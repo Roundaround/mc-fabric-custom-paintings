@@ -10,6 +10,7 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.network.EditPaintingPacket;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
+import net.minecraft.entity.decoration.painting.PaintingVariants;
 import net.minecraft.item.DecorationItem;
 import net.minecraft.item.ItemUsageContext;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -26,24 +27,23 @@ public abstract class DecorationItemMixin {
       BlockPos pos,
       Direction facing,
       ItemUsageContext context) {
-    Optional<PaintingEntity> optional = PaintingEntity.placePainting(world, pos, facing);
-
-    if (optional.isPresent()) {
-      PaintingEntity entity = optional.get();
-
-      if (!(context.getPlayer() instanceof ServerPlayerEntity)) {
-        return optional;
-      }
-
-      ServerPlayerEntity player = (ServerPlayerEntity) context.getPlayer();
-      ExpandedPaintingEntity painting = ((ExpandedPaintingEntity) entity);
-      painting.setEditor(player.getUuid());
-      painting.setVariant(Registry.PAINTING_VARIANT.getDefaultId());
-      painting.setCustomData(PaintingData.EMPTY);
-
-      EditPaintingPacket.sendToPlayer(player, entity.getUuid(), pos, facing);
+    if (!(context.getPlayer() instanceof ServerPlayerEntity)) {
+      return PaintingEntity.placePainting(world, pos, facing);
     }
 
-    return optional;
+    PaintingEntity entity = new PaintingEntity(world, pos, facing,
+        Registry.PAINTING_VARIANT.getEntry(PaintingVariants.KEBAB).get());
+
+    if (!entity.canStayAttached()) {
+      return Optional.empty();
+    }
+
+    ServerPlayerEntity player = (ServerPlayerEntity) context.getPlayer();
+    ExpandedPaintingEntity painting = ((ExpandedPaintingEntity) entity);
+    painting.setEditor(player.getUuid());
+
+    EditPaintingPacket.sendToPlayer(player, entity.getUuid(), pos, facing);
+
+    return Optional.of(entity);
   }
 }

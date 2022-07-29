@@ -111,13 +111,14 @@ public class PaintingEditScreen extends Screen {
 
     addDrawableChild(
         new ButtonWidget(this.width / 2 - 100, this.height / 4 + 120, 200, 20, ScreenTexts.DONE, button -> {
-          close();
+          super.close();
         }));
   }
 
   @Override
   public void close() {
-    client.setScreen(null);
+    paintingData = PaintingData.EMPTY;
+    super.close();
   }
 
   @Override

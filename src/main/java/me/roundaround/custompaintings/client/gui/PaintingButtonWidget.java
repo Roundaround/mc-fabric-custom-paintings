@@ -37,13 +37,13 @@ public class PaintingButtonWidget extends ButtonWidget {
     matrixStack.translate(0, 0, 150);
 
     int border = isHovered() || isSelected ? 0xFFFFFFFF : 0xFF000000;
-    fill(matrixStack, x - 1, y - 1, x + width + 1, y + height + 1, border);
+    fill(matrixStack, x, y, x + width, y + height, border);
 
     Sprite sprite = CustomPaintingsClientMod.customPaintingManager.getPaintingSprite(paintingData.getId()).get();
     RenderSystem.setShader(GameRenderer::getPositionTexShader);
     RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
     RenderSystem.setShaderTexture(0, sprite.getAtlas().getId());
-    drawSprite(matrixStack, x, y, 1, width, height, sprite);
+    drawSprite(matrixStack, x + 1, y + 1, 1, width - 2, height - 2, sprite);
 
     matrixStack.pop();
   }

@@ -1,5 +1,6 @@
 package me.roundaround.custompaintings.network;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import io.netty.buffer.Unpooled;
@@ -13,6 +14,9 @@ import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.world.event.GameEvent;
 
 public class SetPaintingPacket {
   private static final Identifier SET_PAINTING_PACKET = new Identifier(
@@ -22,7 +26,7 @@ public class SetPaintingPacket {
   public static void registerReceive() {
     ServerPlayNetworking.registerGlobalReceiver(SET_PAINTING_PACKET, (server, player, handler, buf, responseSender) -> {
       UUID paintingUuid = buf.readUuid();
-      PaintingData customPaintingInfo = PaintingData.fromPacketByteBuf(buf);
+      PaintingData paintingData = PaintingData.fromPacketByteBuf(buf);
 
       Entity entity = player.getWorld().getEntity(paintingUuid);
       if (entity == null || !(entity instanceof PaintingEntity)) {
@@ -34,14 +38,32 @@ public class SetPaintingPacket {
         return;
       }
 
-      if (customPaintingInfo.isVanillaVariant()) {
-        painting.setVariant(customPaintingInfo.getId());
-        painting.setCustomData(PaintingData.EMPTY);
-      } else {
-        painting.setCustomData(customPaintingInfo);
+      PaintingEntity basePainting = (PaintingEntity) entity;
+      if (paintingData.isEmpty()) {
+        final BlockPos pos = basePainting.getDecorationBlockPos();
+        final Direction facing = basePainting.getHorizontalFacing();
+
+        entity.discard();
+
+        Optional<PaintingEntity> maybeReplacement = PaintingEntity.placePainting(player.getWorld(), pos, facing);
+        if (maybeReplacement.isEmpty()) {
+          return;
+        }
+
+        PaintingEntity replacement = maybeReplacement.get();
+        replacement.onPlace();
+        player.getWorld().emitGameEvent(player, GameEvent.ENTITY_PLACE, replacement.getPos());
+        player.getWorld().spawnEntity(replacement);
+        return;
       }
 
-      PaintingEntity basePainting = (PaintingEntity) entity;
+      if (paintingData.isVanillaVariant()) {
+        painting.setVariant(paintingData.getId());
+        painting.setCustomData(PaintingData.EMPTY);
+      } else {
+        painting.setCustomData(paintingData);
+      }
+
       if (!basePainting.canStayAttached()) {
         basePainting.damage(DamageSource.player(player), 0f);
       }
