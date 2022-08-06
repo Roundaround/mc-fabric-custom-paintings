@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "custompaintings",
+  "version": "${version}",
+  "name": "Custom Paintings",
+  "description": "Add your own custom paintings to Minecraft.",
+  "authors": [
+    "Roundaround"
+  ],
+  "contact": {
+    "homepage": "https://modrinth.com/mod/roundaround-custom-paintings",
+    "sources": "https://github.com/Roundaround/mc-fabric-custom-paintings",
+    "issues": "https://github.com/Roundaround/mc-fabric-custom-paintings/issues"
+  },
+  "license": "MIT",
+  "icon": "assets/custompaintings/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "me.roundaround.custompaintings.CustomPaintingsMod"
+    ]
+  },
+  "mixins": [
+    "custompaintings.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.13.3",
+    "fabric": "*",
+    "minecraft": "1.19.x",
+    "java": ">=17"
+  }
+}
