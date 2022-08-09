@@ -16,6 +16,9 @@
   "icon": "assets/custompaintings/icon.png",
   "environment": "*",
   "entrypoints": {
+    "client": [
+      "me.roundaround.custompaintings.client.CustomPaintingsClientMod"
+    ],
     "main": [
       "me.roundaround.custompaintings.CustomPaintingsMod"
     ]
