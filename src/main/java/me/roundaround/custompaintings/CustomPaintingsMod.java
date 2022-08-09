@@ -11,6 +11,12 @@ public final class CustomPaintingsMod implements ModInitializer {
 
   @Override
   public void onInitialize() {
-    PaintingManager.init();
+    CustomPaintingManager.init();
+
+    // TODO: Resoruce reload listener, prepare all paintings together into a
+    // sprite atlas, Mixin into PaintingManager to call containsId on the
+    // painting registry. If not found, check our own dynamic/custom registry,
+    // load from our custom atlas. If we don't have it either, fall back to
+    // vanilla default.
   }
 }

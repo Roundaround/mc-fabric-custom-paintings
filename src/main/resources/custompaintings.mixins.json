@@ -3,8 +3,13 @@
   "minVersion": "0.8",
   "package": "me.roundaround.custompaintings.mixin",
   "compatibilityLevel": "JAVA_17",
-  "mixins": [],
-  "client": [],
+  "mixins": [
+    "PaintingEntityMixin",
+    "PaintingManagerMixin"
+  ],
+  "client": [
+    "PaintingEntityRendererMixin"
+  ],
   "server": [],
   "injectors": {
     "defaultRequire": 1
