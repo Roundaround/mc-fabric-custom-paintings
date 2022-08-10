@@ -3,44 +3,32 @@ package me.roundaround.custompaintings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import me.roundaround.custompaintings.entity.decoration.painting.CustomPaintingInfo;
+import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.network.SetPaintingPacket;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.entity.data.TrackedDataHandler;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.network.PacketByteBuf;
-import net.minecraft.util.Identifier;
 
 public final class CustomPaintingsMod implements ModInitializer {
   public static final String MOD_ID = "custompaintings";
   public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
 
-  public static final TrackedDataHandler<CustomPaintingInfo> CUSTOM_PAINTING_INFO_HANDLER = new TrackedDataHandler.ImmutableHandler<CustomPaintingInfo>() {
+  public static final TrackedDataHandler<PaintingData> CUSTOM_PAINTING_DATA_HANDLER = new TrackedDataHandler.ImmutableHandler<PaintingData>() {
     @Override
-    public void write(PacketByteBuf packetByteBuf, CustomPaintingInfo info) {
-      if (info.isEmpty()) {
-        packetByteBuf.writeBoolean(false);
-        return;
-      }
-      packetByteBuf.writeBoolean(true);
-      packetByteBuf.writeIdentifier(info.getId());
-      packetByteBuf.writeInt(info.getWidth());
-      packetByteBuf.writeInt(info.getHeight());
+    public void write(PacketByteBuf packetByteBuf, PaintingData info) {
+      info.writeToPacketByteBuf(packetByteBuf);
     }
 
     @Override
-    public CustomPaintingInfo read(PacketByteBuf packetByteBuf) {
-      if (!packetByteBuf.readBoolean()) {
-        return CustomPaintingInfo.EMPTY;
-      }
-      Identifier id = packetByteBuf.readIdentifier();
-      int width = packetByteBuf.readInt();
-      int height = packetByteBuf.readInt();
-      return new CustomPaintingInfo(id, width, height);
+    public PaintingData read(PacketByteBuf packetByteBuf) {
+      return PaintingData.fromPacketByteBuf(packetByteBuf);
     }
   };
 
   @Override
   public void onInitialize() {
-    TrackedDataHandlerRegistry.register(CUSTOM_PAINTING_INFO_HANDLER);
+    TrackedDataHandlerRegistry.register(CUSTOM_PAINTING_DATA_HANDLER);
+    SetPaintingPacket.registerReceive();
   }
 }

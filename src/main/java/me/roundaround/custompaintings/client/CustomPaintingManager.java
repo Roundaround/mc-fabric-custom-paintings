@@ -11,9 +11,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
@@ -36,6 +38,7 @@ public class CustomPaintingManager
   private static final Pattern PATTERN = Pattern.compile("(?:\\w*/)*?(\\w+)\\.png");
   private static final Identifier PAINTING_BACK_ID = new Identifier(Identifier.DEFAULT_NAMESPACE, "back");
 
+  private final HashMap<String, Pack> packs = new HashMap<>();
   private final HashMap<Identifier, Pair<Integer, Integer>> dimensions = new HashMap<>();
   private final HashSet<Identifier> spriteIds = new HashSet<>();
 
@@ -45,18 +48,27 @@ public class CustomPaintingManager
 
   @Override
   protected SpriteAtlasTexture.Data prepare(ResourceManager resourceManager, Profiler profiler) {
+    packs.clear();
     dimensions.clear();
     spriteIds.clear();
 
     resourceManager.streamResourcePacks().forEach((resource) -> {
       try (InputStream stream = resource.openRoot("custompaintings.json")) {
         try (JsonReader reader = new JsonReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
-          Pack pack = readPack(reader);
+          Pack pack = readPack(reader, resource.getName());
+
+          if (packs.containsKey(pack.id())) {
+            throw new ParseException("Multiple packs detected with id '" + pack.id() + "'! Pack id must be unique.");
+          }
+          packs.put(pack.id(), pack);
+
           pack.paintings().forEach((painting) -> {
             dimensions.put(new Identifier(pack.id(), painting.id()),
                 new Pair<>(painting.width().orElse(1), painting.height().orElse(1)));
           });
         }
+      } catch (ParseException e) {
+        CustomPaintingsMod.LOGGER.error("Error parsing custom painting pack, skipping...", e);
       } catch (Exception e) {
       }
 
@@ -108,12 +120,23 @@ public class CustomPaintingManager
     return spriteIds.stream();
   }
 
+  public Optional<Pack> getPack(String id) {
+    return Optional.ofNullable(packs.get(id));
+  }
+
   public Identifier getAtlasId() {
     return getBackSprite().getAtlas().getId();
   }
 
   public boolean exists(Identifier id) {
     return dimensions.containsKey(id);
+  }
+
+  public List<PaintingData> getEntries() {
+    return dimensions.entrySet()
+        .stream()
+        .map((entry) -> new PaintingData(entry.getKey(), entry.getValue().getLeft(), entry.getValue().getRight()))
+        .collect(Collectors.toList());
   }
 
   public Optional<Sprite> getPaintingSprite(Identifier id) {
@@ -131,7 +154,7 @@ public class CustomPaintingManager
     return this.getSprite(PAINTING_BACK_ID);
   }
 
-  private Pack readPack(JsonReader reader) throws IOException, ParseException {
+  private Pack readPack(JsonReader reader, String filename) throws IOException, ParseException {
     if (reader.peek() != JsonToken.BEGIN_OBJECT) {
       throw new ParseException("Root of \"custompaintings.json\" must be an object");
     }
@@ -186,7 +209,7 @@ public class CustomPaintingManager
       throw new ParseException("Pack ID is required.");
     }
 
-    return new Pack(id.get(), name, List.copyOf(paintings));
+    return new Pack(id.get(), name.orElse(filename), List.copyOf(paintings));
   }
 
   private Painting readPainting(JsonReader reader) throws IOException, ParseException {
@@ -257,7 +280,7 @@ public class CustomPaintingManager
     }
   }
 
-  public record Pack(String id, Optional<String> name, List<Painting> paintings) {
+  public record Pack(String id, String name, List<Painting> paintings) {
   }
 
   public record Painting(String id, Optional<String> name, Optional<Integer> height, Optional<Integer> width) {
