@@ -299,15 +299,6 @@ public class PaintingEditScreen extends Screen {
     saveSelection(PaintingData.EMPTY);
   }
 
-  private void saveCurrentSelection() {
-    if (currentGroup == null || currentGroup.paintings().isEmpty() || currentPainting < 0
-        || currentPainting >= currentGroup.paintings().size()) {
-      return;
-    }
-
-    saveSelection(currentGroup.paintings().get(currentPainting));
-  }
-
   private void saveSelection(PaintingData paintingData) {
     SetPaintingPacket.sendToServer(paintingUuid, paintingData);
     close();
