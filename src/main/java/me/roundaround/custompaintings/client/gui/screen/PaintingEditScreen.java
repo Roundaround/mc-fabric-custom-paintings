@@ -2,11 +2,15 @@ package me.roundaround.custompaintings.client.gui.screen;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Predicate;
 
+import com.google.common.collect.Streams;
+
 import me.roundaround.custompaintings.client.CustomPaintingManager;
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
+import me.roundaround.custompaintings.client.gui.PaintingButtonWidget;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.network.SetPaintingPacket;
 import net.fabricmc.loader.api.FabricLoader;
@@ -26,6 +30,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.registry.Registry;
+import net.minecraft.util.registry.RegistryEntry;
 import net.minecraft.world.World;
 
 public class PaintingEditScreen extends Screen {
@@ -49,42 +54,63 @@ public class PaintingEditScreen extends Screen {
     HashMap<String, Group> allPaintings = new HashMap<>();
 
     // TODO: Replace with Registry.PAINTING_VARIANT.stream() to include all
-    Registry.PAINTING_VARIANT.iterateEntries(PaintingVariantTags.PLACEABLE).forEach((entry) -> {
-      PaintingVariant vanillaVariant = entry.value();
-      if (canStay(vanillaVariant)) {
-        Identifier id = Registry.PAINTING_VARIANT.getId(vanillaVariant);
-        String groupId = id.getNamespace();
+    Streams.stream(Registry.PAINTING_VARIANT.iterateEntries(PaintingVariantTags.PLACEABLE))
+        .map(RegistryEntry::value)
+        .filter(this::canStay)
+        .forEach((vanillaVariant) -> {
+          Identifier id = Registry.PAINTING_VARIANT.getId(vanillaVariant);
+          String groupId = id.getNamespace();
 
-        if (!allPaintings.containsKey(groupId)) {
-          String groupName = FabricLoader.getInstance()
-              .getModContainer(groupId)
-              .map((mod) -> mod.getMetadata().getName()).orElse(groupId);
-          allPaintings.put(groupId, new Group(groupId, groupName, new ArrayList<>()));
-        }
+          if (!allPaintings.containsKey(groupId)) {
+            String groupName = FabricLoader.getInstance()
+                .getModContainer(groupId)
+                .map((mod) -> mod.getMetadata().getName()).orElse(groupId);
+            allPaintings.put(groupId, new Group(groupId, groupName, new ArrayList<>()));
+          }
 
-        allPaintings.get(groupId).paintings().add(new PaintingData(vanillaVariant));
-      }
-    });
+          allPaintings.get(groupId).paintings().add(new PaintingData(vanillaVariant));
+        });
 
     CustomPaintingManager paintingManager = CustomPaintingsClientMod.customPaintingManager;
-    paintingManager.getEntries().forEach((paintingData) -> {
-      if (canStay(paintingData)) {
-        Identifier id = paintingData.getId();
-        String groupId = id.getNamespace();
+    paintingManager.getEntries().stream()
+        .filter(this::canStay)
+        .forEach((paintingData) -> {
+          Identifier id = paintingData.getId();
+          String groupId = id.getNamespace();
 
-        if (!allPaintings.containsKey(groupId)) {
-          String groupName = paintingManager.getPack(groupId)
-              .map((pack) -> pack.name()).orElse(groupId);
-          allPaintings.put(groupId, new Group(groupId, groupName, new ArrayList<>()));
-        }
+          if (!allPaintings.containsKey(groupId)) {
+            String groupName = paintingManager.getPack(groupId)
+                .map((pack) -> pack.name()).orElse(groupId);
+            allPaintings.put(groupId, new Group(groupId, groupName, new ArrayList<>()));
+          }
 
-        allPaintings.get(groupId).paintings().add(paintingData);
-      }
+          allPaintings.get(groupId).paintings().add(paintingData);
+        });
+
+    Optional.ofNullable(allPaintings.get("cincity")).ifPresent((group) -> {
+      PaintingData paintingData = group.paintings().get(0);
+
+      int maxWidth = width / 8;
+      int maxHeight = height / 4;
+
+      int scaledWidth = PaintingButtonWidget.getScaledWidth(paintingData, maxWidth, maxHeight);
+      int scaledHeight = PaintingButtonWidget.getScaledHeight(paintingData, maxWidth, maxHeight);
+
+      addDrawableChild(new PaintingButtonWidget(
+          (width - scaledWidth) / 2,
+          (height - scaledHeight) / 2,
+          maxWidth,
+          maxHeight,
+          (button) -> {
+            clearSelection();
+            ((PaintingButtonWidget) button).setSelected(true);
+            choosePainting(paintingData.getId());
+          },
+          paintingData));
     });
 
     addDrawableChild(
         new ButtonWidget(this.width / 2 - 100, this.height / 4 + 120, 200, 20, ScreenTexts.DONE, button -> {
-          choosePainting(allPaintings.get("cincity").paintings().get(0).getId());
           close();
         }));
   }
@@ -97,6 +123,16 @@ public class PaintingEditScreen extends Screen {
   @Override
   public void removed() {
     SetPaintingPacket.sendToServer(paintingUuid, paintingData);
+  }
+
+  private void clearSelection() {
+    children()
+        .stream()
+        .filter((child) -> child instanceof PaintingButtonWidget)
+        .map((child) -> (PaintingButtonWidget) child)
+        .forEach((button) -> {
+          button.setSelected(false);
+        });
   }
 
   private void choosePainting(PaintingVariant vanillaVariant) {
