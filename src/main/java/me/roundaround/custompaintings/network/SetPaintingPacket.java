@@ -1,12 +1,11 @@
 package me.roundaround.custompaintings.network;
 
-import java.util.Optional;
 import java.util.UUID;
 
 import io.netty.buffer.Unpooled;
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
+import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.Entity;
@@ -14,9 +13,6 @@ import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.world.event.GameEvent;
 
 public class SetPaintingPacket {
   private static final Identifier SET_PAINTING_PACKET = new Identifier(
@@ -40,25 +36,12 @@ public class SetPaintingPacket {
 
       PaintingEntity basePainting = (PaintingEntity) entity;
       if (paintingData.isEmpty()) {
-        final BlockPos pos = basePainting.getDecorationBlockPos();
-        final Direction facing = basePainting.getHorizontalFacing();
-
-        entity.discard();
-
-        Optional<PaintingEntity> maybeReplacement = PaintingEntity.placePainting(player.getWorld(), pos, facing);
-        if (maybeReplacement.isEmpty()) {
-          return;
-        }
-
-        PaintingEntity replacement = maybeReplacement.get();
-        replacement.onPlace();
-        player.getWorld().emitGameEvent(player, GameEvent.ENTITY_PLACE, replacement.getPos());
-        player.getWorld().spawnEntity(replacement);
+        entity.damage(DamageSource.player(player), 0f);
         return;
       }
 
-      if (paintingData.isVanillaVariant()) {
-        painting.setVariant(paintingData.getId());
+      if (paintingData.isVanilla()) {
+        painting.setVariant(paintingData.id());
         painting.setCustomData(PaintingData.EMPTY);
       } else {
         painting.setCustomData(paintingData);

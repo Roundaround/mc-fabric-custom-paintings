@@ -2,9 +2,10 @@ package me.roundaround.custompaintings.client.gui.screen;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Predicate;
+
+import org.lwjgl.glfw.GLFW;
 
 import com.google.common.collect.Streams;
 
@@ -18,6 +19,7 @@ import net.minecraft.block.AbstractRedstoneGateBlock;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.AbstractDecorationEntity;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
@@ -25,7 +27,6 @@ import net.minecraft.screen.ScreenTexts;
 import net.minecraft.tag.PaintingVariantTags;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
@@ -34,16 +35,21 @@ import net.minecraft.util.registry.RegistryEntry;
 import net.minecraft.world.World;
 
 public class PaintingEditScreen extends Screen {
+  private final HashMap<String, Group> allPaintings = new HashMap<>();
   private final UUID paintingUuid;
   private final BlockPos blockPos;
   private final Direction facing;
-  private PaintingData paintingData = PaintingData.EMPTY;
+  private Group currentGroup = null;
+  private State state = State.GROUP_SELECT;
+  private int currentPainting = 0;
 
-  protected static final Predicate<Entity> DECORATION_PREDICATE = (
+  private static final Predicate<Entity> DECORATION_PREDICATE = (
       entity) -> entity instanceof AbstractDecorationEntity;
+  private static final int BUTTON_WIDTH = 100;
+  private static final int BUTTON_HEIGHT = 20;
 
   public PaintingEditScreen(UUID paintingUuid, BlockPos blockPos, Direction facing) {
-    super(Text.translatable("painting.edit"));
+    super(Text.translatable("custompaintings.painting.title"));
     this.paintingUuid = paintingUuid;
     this.blockPos = blockPos;
     this.facing = facing;
@@ -51,7 +57,295 @@ public class PaintingEditScreen extends Screen {
 
   @Override
   public void init() {
-    HashMap<String, Group> allPaintings = new HashMap<>();
+    if (allPaintings.isEmpty()) {
+      refreshPaintings();
+    }
+
+    if (allPaintings.isEmpty()) {
+      saveEmpty();
+    }
+
+    if (!hasMultipleGroups()) {
+      currentGroup = allPaintings.values().stream().findFirst().get();
+      state = State.PAINTING_SELECT;
+    }
+
+    switch (state) {
+      case PAINTING_SELECT:
+        initForPaintingSelection();
+        break;
+      case GROUP_SELECT:
+      default:
+        initForGroupSelection();
+    }
+  }
+
+  private void initForGroupSelection() {
+    // TODO: Group list
+
+    addDrawableChild(
+        new ButtonWidget(
+            (width - BUTTON_WIDTH) / 2,
+            height - BUTTON_HEIGHT - 10,
+            BUTTON_WIDTH,
+            BUTTON_HEIGHT,
+            ScreenTexts.CANCEL,
+            button -> {
+              saveEmpty();
+            }));
+  }
+
+  private void initForPaintingSelection() {
+    PaintingData paintingData = currentGroup.paintings().get(currentPainting);
+
+    int maxWidth = width / 2;
+    int maxHeight = height - 20 - BUTTON_HEIGHT - 4 - 3 * textRenderer.fontHeight - 20;
+
+    int scaledWidth = PaintingButtonWidget.getScaledWidth(paintingData, maxWidth, maxHeight);
+    int scaledHeight = PaintingButtonWidget.getScaledHeight(paintingData, maxWidth, maxHeight);
+
+    int startY = 10 + 4 + 3 * textRenderer.fontHeight;
+    int endY = height - BUTTON_HEIGHT - 10;
+
+    addDrawableChild(new PaintingButtonWidget(
+        (width - scaledWidth) / 2,
+        (endY + startY - scaledHeight) / 2,
+        maxWidth,
+        maxHeight,
+        (button) -> {
+          saveSelection(paintingData);
+        },
+        paintingData));
+
+    if (hasMultiplePaintings()) {
+      int posX = (width - 4) / 2 - BUTTON_WIDTH;
+      if (hasMultipleGroups()) {
+        posX -= (BUTTON_WIDTH + 4) / 2;
+      }
+
+      addDrawableChild(
+          new ButtonWidget(
+              posX,
+              height - BUTTON_HEIGHT - 10,
+              BUTTON_WIDTH,
+              BUTTON_HEIGHT,
+              Text.translatable("custompaintings.painting.previous"),
+              (button) -> {
+                previousPainting();
+              }));
+    }
+
+    if (hasMultipleGroups()) {
+      addDrawableChild(
+          new ButtonWidget(
+              (width - BUTTON_WIDTH) / 2,
+              height - BUTTON_HEIGHT - 10,
+              BUTTON_WIDTH,
+              BUTTON_HEIGHT,
+              ScreenTexts.BACK,
+              (button) -> {
+                clearGroup();
+              }));
+    }
+
+    if (hasMultiplePaintings()) {
+      int posX = (width + 4) / 2;
+      if (hasMultipleGroups()) {
+        posX += (BUTTON_WIDTH + 4) / 2;
+      }
+
+      addDrawableChild(
+          new ButtonWidget(
+              posX,
+              height - BUTTON_HEIGHT - 10,
+              BUTTON_WIDTH,
+              BUTTON_HEIGHT,
+              Text.translatable("custompaintings.painting.next"),
+              (button) -> {
+                nextPainting();
+              }));
+    }
+  }
+
+  @Override
+  public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    if (keyCode == GLFW.GLFW_KEY_ESCAPE && this.shouldCloseOnEsc()) {
+      saveEmpty();
+      return true;
+    }
+
+    switch (state) {
+      case GROUP_SELECT:
+        if (keyPressedForGroupSelect(keyCode, scanCode, modifiers)) {
+          return true;
+        }
+      case PAINTING_SELECT:
+        if (keyPressedForPaintingSelect(keyCode, scanCode, modifiers)) {
+          return true;
+        }
+    }
+
+    return super.keyPressed(keyCode, scanCode, modifiers);
+  }
+
+  private boolean keyPressedForGroupSelect(int keyCode, int scanCode, int modifiers) {
+    switch (keyCode) {
+      case GLFW.GLFW_KEY_ENTER:
+      case GLFW.GLFW_KEY_KP_ENTER:
+        selectGroup(allPaintings.values().stream()
+            .filter((group) -> !group.paintings().isEmpty())
+            .map(Group::id)
+            .findFirst()
+            .orElse(Identifier.DEFAULT_NAMESPACE));
+        return true;
+    }
+
+    return false;
+  }
+
+  private boolean keyPressedForPaintingSelect(int keyCode, int scanCode, int modifiers) {
+    switch (keyCode) {
+      case GLFW.GLFW_KEY_LEFT:
+        previousPainting();
+        return true;
+      case GLFW.GLFW_KEY_RIGHT:
+        nextPainting();
+        return true;
+    }
+
+    return false;
+  }
+
+  @Override
+  public void render(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
+    renderBackground(matrixStack);
+
+    matrixStack.push();
+    matrixStack.translate(0, 0, 10);
+
+    renderTexts(matrixStack, mouseX, mouseY, partialTicks);
+    super.render(matrixStack, mouseX, mouseY, partialTicks);
+
+    matrixStack.pop();
+  }
+
+  private void renderTexts(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
+    switch (state) {
+      case GROUP_SELECT:
+        renderTextsForGroupSelect(matrixStack, mouseX, mouseY, partialTicks);
+        break;
+      case PAINTING_SELECT:
+        renderTextsForPaintingSelect(matrixStack, mouseX, mouseY, partialTicks);
+        break;
+    }
+  }
+
+  private void renderTextsForGroupSelect(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
+    drawCenteredTextWithShadow(
+        matrixStack,
+        textRenderer,
+        Text.translatable("custompaintings.painting.choose").asOrderedText(),
+        width / 2,
+        10,
+        0xFFFFFFFF);
+  }
+
+  private void renderTextsForPaintingSelect(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
+    int posY = 10;
+    PaintingData paintingData = currentGroup.paintings().get(currentPainting);
+
+    if (hasMultipleGroups()) {
+      drawCenteredTextWithShadow(
+          matrixStack,
+          textRenderer,
+          Text.literal(currentGroup.name()).asOrderedText(),
+          width / 2,
+          posY,
+          0xFFFFFFFF);
+    }
+
+    posY += textRenderer.fontHeight + 2;
+
+    drawCenteredTextWithShadow(
+        matrixStack,
+        textRenderer,
+        Text.translatable("custompaintings.painting.number", currentPainting + 1, currentGroup.paintings().size())
+            .asOrderedText(),
+        width / 2,
+        posY,
+        0xFFFFFFFF);
+
+    posY += textRenderer.fontHeight + 2;
+
+    drawCenteredTextWithShadow(
+        matrixStack,
+        textRenderer,
+        Text.translatable("custompaintings.painting.dimensions", paintingData.width(), paintingData.height())
+            .asOrderedText(),
+        width / 2,
+        posY,
+        0xFFFFFFFF);
+  }
+
+  private boolean hasMultipleGroups() {
+    return allPaintings.keySet().size() > 1;
+  }
+
+  private boolean hasMultiplePaintings() {
+    return currentGroup.paintings().size() > 1;
+  }
+
+  private void saveEmpty() {
+    saveSelection(PaintingData.EMPTY);
+  }
+
+  private void saveCurrentSelection() {
+    if (currentGroup == null || currentGroup.paintings().isEmpty() || currentPainting < 0
+        || currentPainting >= currentGroup.paintings().size()) {
+      return;
+    }
+
+    saveSelection(currentGroup.paintings().get(currentPainting));
+  }
+
+  private void saveSelection(PaintingData paintingData) {
+    SetPaintingPacket.sendToServer(paintingUuid, paintingData);
+    close();
+  }
+
+  private void setState(State state) {
+    this.state = state;
+    clearAndInit();
+  }
+
+  private void selectGroup(String id) {
+    if (!allPaintings.containsKey(id)) {
+      return;
+    }
+
+    currentGroup = allPaintings.get(id);
+    currentPainting = 0;
+    setState(State.PAINTING_SELECT);
+  }
+
+  private void clearGroup() {
+    currentGroup = null;
+    currentPainting = 0;
+    setState(State.GROUP_SELECT);
+  }
+
+  private void previousPainting() {
+    currentPainting = (currentGroup.paintings().size() + currentPainting - 1) % currentGroup.paintings().size();
+    clearAndInit();
+  }
+
+  private void nextPainting() {
+    currentPainting = (currentPainting + 1) % currentGroup.paintings().size();
+    clearAndInit();
+  }
+
+  private void refreshPaintings() {
+    allPaintings.clear();
 
     // TODO: Replace with Registry.PAINTING_VARIANT.stream() to include all
     Streams.stream(Registry.PAINTING_VARIANT.iterateEntries(PaintingVariantTags.PLACEABLE))
@@ -75,7 +369,7 @@ public class PaintingEditScreen extends Screen {
     paintingManager.getEntries().stream()
         .filter(this::canStay)
         .forEach((paintingData) -> {
-          Identifier id = paintingData.getId();
+          Identifier id = paintingData.id();
           String groupId = id.getNamespace();
 
           if (!allPaintings.containsKey(groupId)) {
@@ -86,71 +380,6 @@ public class PaintingEditScreen extends Screen {
 
           allPaintings.get(groupId).paintings().add(paintingData);
         });
-
-    Optional.ofNullable(allPaintings.get("cincity")).ifPresent((group) -> {
-      PaintingData paintingData = group.paintings().get(0);
-
-      int maxWidth = width / 8;
-      int maxHeight = height / 4;
-
-      int scaledWidth = PaintingButtonWidget.getScaledWidth(paintingData, maxWidth, maxHeight);
-      int scaledHeight = PaintingButtonWidget.getScaledHeight(paintingData, maxWidth, maxHeight);
-
-      addDrawableChild(new PaintingButtonWidget(
-          (width - scaledWidth) / 2,
-          (height - scaledHeight) / 2,
-          maxWidth,
-          maxHeight,
-          (button) -> {
-            clearSelection();
-            ((PaintingButtonWidget) button).setSelected(true);
-            choosePainting(paintingData.getId());
-          },
-          paintingData));
-    });
-
-    addDrawableChild(
-        new ButtonWidget(this.width / 2 - 100, this.height / 4 + 120, 200, 20, ScreenTexts.DONE, button -> {
-          super.close();
-        }));
-  }
-
-  @Override
-  public void close() {
-    paintingData = PaintingData.EMPTY;
-    super.close();
-  }
-
-  @Override
-  public void removed() {
-    SetPaintingPacket.sendToServer(paintingUuid, paintingData);
-  }
-
-  private void clearSelection() {
-    children()
-        .stream()
-        .filter((child) -> child instanceof PaintingButtonWidget)
-        .map((child) -> (PaintingButtonWidget) child)
-        .forEach((button) -> {
-          button.setSelected(false);
-        });
-  }
-
-  private void choosePainting(PaintingVariant vanillaVariant) {
-    paintingData = new PaintingData(vanillaVariant);
-  }
-
-  private void choosePainting(Identifier id) {
-    if (id.getNamespace().equals(Identifier.DEFAULT_NAMESPACE)) {
-      choosePainting(Registry.PAINTING_VARIANT.get(id));
-      return;
-    }
-
-    Pair<Integer, Integer> dimensions = CustomPaintingsClientMod.customPaintingManager.getPaintingDimensions(id);
-    paintingData = new PaintingData(
-        id,
-        dimensions.getLeft(),
-        dimensions.getRight());
   }
 
   private boolean canStay(PaintingData customPaintingInfo) {
@@ -215,5 +444,10 @@ public class PaintingEditScreen extends Screen {
   }
 
   public record Group(String id, String name, ArrayList<PaintingData> paintings) {
+  }
+
+  private enum State {
+    GROUP_SELECT,
+    PAINTING_SELECT;
   }
 }

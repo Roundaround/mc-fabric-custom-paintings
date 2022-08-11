@@ -22,32 +22,16 @@ public record PaintingData(Identifier id, int width, int height, boolean isVanil
         true);
   }
 
-  public Identifier getId() {
-    return id;
-  }
-
-  public int getWidth() {
-    return width;
-  }
-
-  public int getHeight() {
-    return height;
-  }
-
   public int getScaledWidth() {
-    return getWidth() * 16;
+    return width() * 16;
   }
 
   public int getScaledHeight() {
-    return getHeight() * 16;
+    return height() * 16;
   }
 
   public boolean isEmpty() {
     return id == null;
-  }
-
-  public boolean isVanillaVariant() {
-    return isVanilla;
   }
 
   public NbtCompound writeToNbt() {
@@ -81,10 +65,10 @@ public record PaintingData(Identifier id, int width, int height, boolean isVanil
       return;
     }
     buf.writeBoolean(true);
-    buf.writeIdentifier(getId());
-    buf.writeInt(getWidth());
-    buf.writeInt(getHeight());
-    buf.writeBoolean(isVanillaVariant());
+    buf.writeIdentifier(id());
+    buf.writeInt(width());
+    buf.writeInt(height());
+    buf.writeBoolean(isVanilla());
   }
 
   public static PaintingData fromPacketByteBuf(PacketByteBuf buf) {

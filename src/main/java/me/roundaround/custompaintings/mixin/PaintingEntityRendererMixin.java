@@ -25,7 +25,7 @@ public abstract class PaintingEntityRendererMixin {
     PaintingData paintingData = ((ExpandedPaintingEntity) entity).getCustomData();
 
     CustomPaintingManager paintingManager = CustomPaintingsClientMod.customPaintingManager;
-    if (paintingData.isEmpty() || !paintingManager.exists(paintingData.getId())) {
+    if (paintingData.isEmpty() || !paintingManager.exists(paintingData.id())) {
       return;
     }
 
@@ -38,7 +38,7 @@ public abstract class PaintingEntityRendererMixin {
     PaintingData paintingData = ((ExpandedPaintingEntity) entity).getCustomData();
 
     CustomPaintingManager paintingManager = CustomPaintingsClientMod.customPaintingManager;
-    if (paintingData.isEmpty() || !paintingManager.exists(paintingData.getId())) {
+    if (paintingData.isEmpty() || !paintingManager.exists(paintingData.id())) {
       return;
     }
 
@@ -47,7 +47,7 @@ public abstract class PaintingEntityRendererMixin {
     args.set(3, paintingData.getScaledWidth());
     args.set(4, paintingData.getScaledHeight());
 
-    Identifier id = paintingData.getId();
+    Identifier id = paintingData.id();
     Optional<Sprite> maybeSprite = paintingManager.getPaintingSprite(id);
     maybeSprite.ifPresent((sprite) -> {
       // 5 - front sprite

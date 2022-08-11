@@ -12,7 +12,6 @@ import net.minecraft.text.Text;
 
 public class PaintingButtonWidget extends ButtonWidget {
   private final PaintingData paintingData;
-  private boolean isSelected = false;
 
   public PaintingButtonWidget(
       int x,
@@ -26,7 +25,7 @@ public class PaintingButtonWidget extends ButtonWidget {
         y,
         getScaledWidth(paintingData, maxWidth, maxHeight),
         getScaledHeight(paintingData, maxWidth, maxHeight),
-        Text.literal(paintingData.getId().toString()),
+        Text.literal(paintingData.id().toString()),
         onPress);
     this.paintingData = paintingData;
   }
@@ -36,20 +35,16 @@ public class PaintingButtonWidget extends ButtonWidget {
     matrixStack.push();
     matrixStack.translate(0, 0, 150);
 
-    int border = isHovered() || isSelected ? 0xFFFFFFFF : 0xFF000000;
+    int border = isHovered() ? 0xFFFFFFFF : 0xFF000000;
     fill(matrixStack, x, y, x + width, y + height, border);
 
-    Sprite sprite = CustomPaintingsClientMod.customPaintingManager.getPaintingSprite(paintingData.getId()).get();
+    Sprite sprite = CustomPaintingsClientMod.customPaintingManager.getPaintingSprite(paintingData).get();
     RenderSystem.setShader(GameRenderer::getPositionTexShader);
     RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
     RenderSystem.setShaderTexture(0, sprite.getAtlas().getId());
     drawSprite(matrixStack, x + 1, y + 1, 1, width - 2, height - 2, sprite);
 
     matrixStack.pop();
-  }
-
-  public void setSelected(boolean isSelected) {
-    this.isSelected = isSelected;
   }
 
   public static int getScaledWidth(PaintingData paintingData, int maxWidth, int maxHeight) {

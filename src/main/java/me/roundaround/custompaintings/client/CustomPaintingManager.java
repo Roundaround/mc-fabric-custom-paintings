@@ -21,6 +21,7 @@ import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
 import net.fabricmc.loader.impl.lib.gson.JsonReader;
 import net.fabricmc.loader.impl.lib.gson.JsonToken;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.texture.Sprite;
 import net.minecraft.client.texture.SpriteAtlasHolder;
 import net.minecraft.client.texture.SpriteAtlasTexture;
@@ -30,11 +31,13 @@ import net.minecraft.resource.ResourceType;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Pair;
 import net.minecraft.util.profiler.Profiler;
+import net.minecraft.util.registry.Registry;
 
 @Environment(value = EnvType.CLIENT)
 public class CustomPaintingManager
     extends SpriteAtlasHolder
     implements IdentifiableResourceReloadListener {
+  private static final MinecraftClient MINECRAFT = MinecraftClient.getInstance();
   private static final Pattern PATTERN = Pattern.compile("(?:\\w*/)*?(\\w+)\\.png");
   private static final Identifier PAINTING_BACK_ID = new Identifier(Identifier.DEFAULT_NAMESPACE, "back");
 
@@ -139,11 +142,20 @@ public class CustomPaintingManager
         .collect(Collectors.toList());
   }
 
+  public Optional<Sprite> getPaintingSprite(PaintingData paintingData) {
+    if (paintingData.isVanilla()) {
+      Sprite vanillaSprite = MINECRAFT.getPaintingManager()
+          .getPaintingSprite(Registry.PAINTING_VARIANT.get(paintingData.id()));
+      return Optional.of(vanillaSprite);
+    }
+    return getPaintingSprite(paintingData.id());
+  }
+
   public Optional<Sprite> getPaintingSprite(Identifier id) {
     if (!spriteIds.contains(id)) {
       return Optional.empty();
     }
-    return Optional.of(getSprite(id));
+    return Optional.ofNullable(getSprite(id));
   }
 
   public Pair<Integer, Integer> getPaintingDimensions(Identifier id) {

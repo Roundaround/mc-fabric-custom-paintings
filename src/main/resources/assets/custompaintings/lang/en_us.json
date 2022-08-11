@@ -1,0 +1,8 @@
+{
+  "custompaintings.painting.title": "Choose a painting",
+  "custompaintings.painting.choose": "Choose a collection",
+  "custompaintings.painting.number": "%s of %s",
+  "custompaintings.painting.dimensions": "%s x %s blocks",
+  "custompaintings.painting.previous": "Previous",
+  "custompaintings.painting.next": "Next"
+}
