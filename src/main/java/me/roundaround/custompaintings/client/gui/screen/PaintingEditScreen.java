@@ -169,21 +169,23 @@ public class PaintingEditScreen extends Screen {
       return false;
     }
 
-    // TODO: Gross
-    int blocksHorizontal = Math.max(1, width / 16);
-    int j = Math.max(1, height / 16);
+    int blocksWidth = Math.max(1, width / 16);
+    int blocksHeight = Math.max(1, height / 16);
     BlockPos pos = blockPos.offset(facing.getOpposite());
     Direction direction = facing.rotateYCounterclockwise();
     BlockPos.Mutable mutable = new BlockPos.Mutable();
-    for (int k = 0; k < blocksHorizontal; ++k) {
-      for (int l = 0; l < j; ++l) {
-        int m = (blocksHorizontal - 1) / -2;
-        int n = (j - 1) / -2;
-        mutable.set(pos).move(direction, k + m).move(Direction.UP, l + n);
+
+    for (int x = 0; x < blocksWidth; x++) {
+      for (int z = 0; z < blocksHeight; z++) {
+        mutable.set(pos)
+            .move(direction, x - (blocksWidth - 1) / 2)
+            .move(Direction.UP, z - (blocksHeight - 1) / 2);
         BlockState blockState = world.getBlockState(mutable);
-        if (blockState.getMaterial().isSolid() || AbstractRedstoneGateBlock.isRedstoneGate(blockState))
-          continue;
-        return false;
+
+        if (!blockState.getMaterial().isSolid()
+            && !AbstractRedstoneGateBlock.isRedstoneGate(blockState)) {
+          return false;
+        }
       }
     }
 
