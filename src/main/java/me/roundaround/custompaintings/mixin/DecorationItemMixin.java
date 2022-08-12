@@ -6,6 +6,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
+import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.network.EditPaintingPacket;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
@@ -26,7 +27,8 @@ public abstract class DecorationItemMixin {
       BlockPos pos,
       Direction facing,
       ItemUsageContext context) {
-    if (!(context.getPlayer() instanceof ServerPlayerEntity)) {
+    if (!(context.getPlayer() instanceof ServerPlayerEntity)
+        || !CustomPaintingsMod.playersUsingMod.contains(context.getPlayer().getUuid())) {
       return PaintingEntity.placePainting(world, pos, facing);
     }
 

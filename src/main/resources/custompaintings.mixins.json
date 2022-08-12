@@ -6,7 +6,8 @@
   "mixins": [
     "DecorationItemMixin",
     "PaintingEntityAccessor",
-    "PaintingEntityMixin"
+    "PaintingEntityMixin",
+    "PlayerManagerMixin"
   ],
   "client": [
     "DebugRendererMixin",

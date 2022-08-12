@@ -1,9 +1,13 @@
 package me.roundaround.custompaintings;
 
+import java.util.HashSet;
+import java.util.UUID;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.network.DeclareCustomPaintingUserPacket;
 import me.roundaround.custompaintings.network.SetPaintingPacket;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.entity.data.TrackedDataHandler;
@@ -26,9 +30,12 @@ public final class CustomPaintingsMod implements ModInitializer {
     }
   };
 
+  public static HashSet<UUID> playersUsingMod = new HashSet<>();
+
   @Override
   public void onInitialize() {
     TrackedDataHandlerRegistry.register(CUSTOM_PAINTING_DATA_HANDLER);
     SetPaintingPacket.registerReceive();
+    DeclareCustomPaintingUserPacket.registerReceive();
   }
 }

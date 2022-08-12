@@ -8,6 +8,7 @@ import java.util.function.Predicate;
 import org.lwjgl.glfw.GLFW;
 
 import com.google.common.collect.Streams;
+import com.mojang.blaze3d.systems.RenderSystem;
 
 import me.roundaround.custompaintings.client.CustomPaintingManager;
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
@@ -20,11 +21,18 @@ import net.minecraft.block.AbstractRedstoneGateBlock;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.render.BufferBuilder;
+import net.minecraft.client.render.GameRenderer;
+import net.minecraft.client.render.Tessellator;
+import net.minecraft.client.render.VertexFormat;
+import net.minecraft.client.render.VertexFormats;
+import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.AbstractDecorationEntity;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.screen.ScreenTexts;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.tag.PaintingVariantTags;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -42,6 +50,8 @@ public class PaintingEditScreen extends Screen {
   private final Direction facing;
   private Group currentGroup = null;
   private State state = State.GROUP_SELECT;
+  private State nextState = State.GROUP_SELECT;
+  private Action onStateSwitch = null;
   private int currentPainting = 0;
   private GroupsListWidget groupsListWidget;
   private int selectedIndex = 0;
@@ -82,7 +92,9 @@ public class PaintingEditScreen extends Screen {
         initForGroupSelection();
     }
 
-    setInitialFocus(children().get(selectedIndex));
+    if (selectedIndex >= 0 && selectedIndex < children().size()) {
+      setInitialFocus(children().get(selectedIndex));
+    }
   }
 
   private void initForGroupSelection() {
@@ -91,8 +103,8 @@ public class PaintingEditScreen extends Screen {
         client,
         width,
         height,
-        10 + textRenderer.fontHeight + 2 + 10,
-        height - 10 - BUTTON_HEIGHT - 10);
+        getHeaderHeight(),
+        height - getFooterHeight());
     groupsListWidget.setGroups(allPaintings.values());
     addSelectableChild(groupsListWidget);
 
@@ -111,8 +123,8 @@ public class PaintingEditScreen extends Screen {
   private void initForPaintingSelection() {
     PaintingData paintingData = currentGroup.paintings().get(currentPainting);
 
-    int headerHeight = 10 + 3 * textRenderer.fontHeight + 2 * 2;
-    int footerHeight = 10 + 2 * BUTTON_HEIGHT + 4;
+    int headerHeight = getHeaderHeight();
+    int footerHeight = getFooterHeight();
 
     int maxWidth = width / 2;
     int maxHeight = height - headerHeight - footerHeight - 20;
@@ -166,7 +178,11 @@ public class PaintingEditScreen extends Screen {
             BUTTON_HEIGHT,
             ScreenTexts.CANCEL,
             (button) -> {
-              clearGroup();
+              if (hasMultipleGroups()) {
+                clearGroup();
+              } else {
+                saveEmpty();
+              }
             }));
 
     addDrawableChild(
@@ -210,11 +226,19 @@ public class PaintingEditScreen extends Screen {
   private boolean keyPressedForPaintingSelect(int keyCode, int scanCode, int modifiers) {
     switch (keyCode) {
       case GLFW.GLFW_KEY_LEFT:
-        previousPainting();
-        return true;
+        if (hasMultiplePaintings()) {
+          client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1f));
+          previousPainting();
+          return true;
+        }
+        break;
       case GLFW.GLFW_KEY_RIGHT:
-        nextPainting();
-        return true;
+        if (hasMultiplePaintings()) {
+          client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1f));
+          nextPainting();
+          return true;
+        }
+        break;
       case GLFW.GLFW_KEY_ESCAPE:
         clearGroup();
         return true;
@@ -225,19 +249,92 @@ public class PaintingEditScreen extends Screen {
 
   @Override
   public void render(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-    renderBackground(matrixStack);
+    checkAndAdvanceState();
 
-    matrixStack.push();
-    matrixStack.translate(0, 0, 10);
-
-    renderTexts(matrixStack, mouseX, mouseY, partialTicks);
-    super.render(matrixStack, mouseX, mouseY, partialTicks);
-
-    if (state == State.GROUP_SELECT) {
-      groupsListWidget.render(matrixStack, mouseX, mouseY, partialTicks);
+    switch (state) {
+      case GROUP_SELECT:
+        renderBackgroundForGroupSelect(matrixStack, mouseX, mouseY, partialTicks);
+        break;
+      case PAINTING_SELECT:
+        renderBackgroundForPaintingSelect(matrixStack, mouseX, mouseY, partialTicks);
+        break;
     }
 
+    matrixStack.push();
+    matrixStack.translate(0, 0, 12);
+    renderTexts(matrixStack, mouseX, mouseY, partialTicks);
+    super.render(matrixStack, mouseX, mouseY, partialTicks);
     matrixStack.pop();
+  }
+
+  private void renderBackgroundForGroupSelect(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
+    matrixStack.push();
+    matrixStack.translate(0, 0, 10);
+    groupsListWidget.render(matrixStack, mouseX, mouseY, partialTicks);
+    matrixStack.pop();
+
+    matrixStack.push();
+    matrixStack.translate(0, 0, 11);
+    renderBackgroundInRegion(0, getHeaderHeight(), 0, width);
+    renderBackgroundInRegion(height - getFooterHeight(), height, 0, width);
+    matrixStack.pop();
+  }
+
+  private void renderBackgroundForPaintingSelect(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
+    renderBackgroundInRegion(0, height, 0, width);
+  }
+
+  private int getHeaderHeight() {
+    switch (state) {
+      case GROUP_SELECT:
+        return 10 + textRenderer.fontHeight + 2 + 10;
+      case PAINTING_SELECT:
+        return 10 + 3 * textRenderer.fontHeight + 2 * 2 + 10;
+    }
+
+    return 0;
+  }
+
+  private int getFooterHeight() {
+    switch (state) {
+      case GROUP_SELECT:
+        return 10 + BUTTON_HEIGHT + 10;
+      case PAINTING_SELECT:
+        return 10 + 2 * BUTTON_HEIGHT + 4 + 10;
+    }
+
+    return 0;
+  }
+
+  private void renderBackgroundInRegion(int top, int bottom, int left, int right) {
+    Tessellator tessellator = Tessellator.getInstance();
+    BufferBuilder bufferBuilder = tessellator.getBuffer();
+    RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
+    RenderSystem.setShaderTexture(0, OPTIONS_BACKGROUND_TEXTURE);
+    RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+
+    bufferBuilder.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_TEXTURE_COLOR);
+    bufferBuilder
+        .vertex(left, bottom, 0)
+        .texture(left / 32f, bottom / 32f)
+        .color(64, 64, 64, 255)
+        .next();
+    bufferBuilder
+        .vertex(right, bottom, 0)
+        .texture(right / 32f, bottom / 32f)
+        .color(64, 64, 64, 255)
+        .next();
+    bufferBuilder
+        .vertex(right, top, 0)
+        .texture(right / 32f, top / 32f)
+        .color(64, 64, 64, 255)
+        .next();
+    bufferBuilder
+        .vertex(left, top, 0)
+        .texture(left / 32f, top / 32f)
+        .color(64, 64, 64, 255)
+        .next();
+    tessellator.draw();
   }
 
   private void renderTexts(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
@@ -257,12 +354,12 @@ public class PaintingEditScreen extends Screen {
         textRenderer,
         Text.translatable("custompaintings.painting.choose").asOrderedText(),
         width / 2,
-        10,
+        11,
         0xFFFFFFFF);
   }
 
   private void renderTextsForPaintingSelect(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-    int posY = 10;
+    int posY = 11;
     PaintingData paintingData = currentGroup.paintings().get(currentPainting);
 
     if (hasMultipleGroups()) {
@@ -322,10 +419,23 @@ public class PaintingEditScreen extends Screen {
     close();
   }
 
-  private void setState(State state) {
-    this.state = state;
-    selectedIndex = 0;
-    clearAndInit();
+  private void setState(State state, Action onSwitch) {
+    nextState = state;
+    onStateSwitch = onSwitch;
+  }
+
+  private void checkAndAdvanceState() {
+    if (state != nextState) {
+      state = nextState;
+
+      if (onStateSwitch != null) {
+        onStateSwitch.execute();
+        onStateSwitch = null;
+      }
+
+      selectedIndex = 0;
+      clearAndInit();
+    }
   }
 
   public void selectGroup(String id) {
@@ -333,15 +443,17 @@ public class PaintingEditScreen extends Screen {
       return;
     }
 
-    currentGroup = allPaintings.get(id);
-    currentPainting = 0;
-    setState(State.PAINTING_SELECT);
+    setState(State.PAINTING_SELECT, () -> {
+      currentGroup = allPaintings.get(id);
+      currentPainting = 0;
+    });
   }
 
   private void clearGroup() {
-    currentGroup = null;
-    currentPainting = 0;
-    setState(State.GROUP_SELECT);
+    setState(State.GROUP_SELECT, () -> {
+      currentGroup = null;
+      currentPainting = 0;
+    });
   }
 
   private void previousPainting() {
@@ -357,7 +469,7 @@ public class PaintingEditScreen extends Screen {
   }
 
   private int getSelectedIndex() {
-    return children().indexOf(getFocused());
+    return Math.max(0, children().indexOf(getFocused()));
   }
 
   private void refreshPaintings() {
@@ -434,13 +546,18 @@ public class PaintingEditScreen extends Screen {
       }
     }
 
-    return world.getEntitiesByClass(Entity.class, boundingBox, DECORATION_PREDICATE).isEmpty();
+    return world.getOtherEntities(null, boundingBox, DECORATION_PREDICATE).isEmpty();
   }
 
   private Box getBoundingBox(int width, int height) {
-    double posX = blockPos.getX() + 0.5 + facing.getOffsetX() * (offsetForEven(width) - 0.46875);
-    double posY = blockPos.getY() + 0.5 + offsetForEven(height);
-    double posZ = blockPos.getZ() + 0.5 + facing.getOffsetZ() * (offsetForEven(width) - 0.46875);
+    double posX = blockPos.getX() + 0.5
+        - facing.getOffsetX() * 0.46875
+        + facing.rotateYCounterclockwise().getOffsetX() * offsetForEven(width);
+    double posY = blockPos.getY() + 0.5
+        + offsetForEven(height);
+    double posZ = blockPos.getZ() + 0.5
+        - facing.getOffsetZ() * 0.46875
+        + facing.rotateYCounterclockwise().getOffsetZ() * offsetForEven(width);
 
     double sizeX = (facing.getAxis() == Direction.Axis.Z ? width : 1) / 32D;
     double sizeY = height / 32D;
@@ -460,6 +577,11 @@ public class PaintingEditScreen extends Screen {
   }
 
   public record Group(String id, String name, ArrayList<PaintingData> paintings) {
+  }
+
+  @FunctionalInterface
+  public interface Action {
+    public abstract void execute();
   }
 
   private enum State {
