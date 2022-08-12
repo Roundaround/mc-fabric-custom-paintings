@@ -11,6 +11,7 @@ import com.google.common.collect.Streams;
 
 import me.roundaround.custompaintings.client.CustomPaintingManager;
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
+import me.roundaround.custompaintings.client.gui.GroupsListWidget;
 import me.roundaround.custompaintings.client.gui.PaintingButtonWidget;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.network.SetPaintingPacket;
@@ -42,6 +43,8 @@ public class PaintingEditScreen extends Screen {
   private Group currentGroup = null;
   private State state = State.GROUP_SELECT;
   private int currentPainting = 0;
+  private GroupsListWidget groupsListWidget;
+  private int selectedIndex = 0;
 
   private static final Predicate<Entity> DECORATION_PREDICATE = (
       entity) -> entity instanceof AbstractDecorationEntity;
@@ -78,10 +81,18 @@ public class PaintingEditScreen extends Screen {
       default:
         initForGroupSelection();
     }
+
+    setInitialFocus(children().get(selectedIndex));
   }
 
   private void initForGroupSelection() {
-    // TODO: Group list
+    int top = 10 + textRenderer.fontHeight + 2 + 10;
+    int bottom = height - 10 - BUTTON_HEIGHT - 10;
+
+    groupsListWidget = new GroupsListWidget(this, client, 400, top - bottom, top, bottom);
+    groupsListWidget.setLeftPos((width - 400) / 2);
+    groupsListWidget.setGroups(allPaintings.values());
+    addSelectableChild(groupsListWidget);
 
     addDrawableChild(
         new ButtonWidget(
@@ -98,18 +109,18 @@ public class PaintingEditScreen extends Screen {
   private void initForPaintingSelection() {
     PaintingData paintingData = currentGroup.paintings().get(currentPainting);
 
+    int headerHeight = 10 + 3 * textRenderer.fontHeight + 2 * 2;
+    int footerHeight = 10 + 2 * BUTTON_HEIGHT + 4;
+
     int maxWidth = width / 2;
-    int maxHeight = height - 20 - BUTTON_HEIGHT - 4 - 3 * textRenderer.fontHeight - 20;
+    int maxHeight = height - headerHeight - footerHeight - 20;
 
     int scaledWidth = PaintingButtonWidget.getScaledWidth(paintingData, maxWidth, maxHeight);
     int scaledHeight = PaintingButtonWidget.getScaledHeight(paintingData, maxWidth, maxHeight);
 
-    int startY = 10 + 4 + 3 * textRenderer.fontHeight;
-    int endY = height - BUTTON_HEIGHT - 10;
-
     addDrawableChild(new PaintingButtonWidget(
         (width - scaledWidth) / 2,
-        (endY + startY - scaledHeight) / 2,
+        (height + headerHeight - footerHeight - scaledHeight) / 2,
         maxWidth,
         maxHeight,
         (button) -> {
@@ -117,54 +128,55 @@ public class PaintingEditScreen extends Screen {
         },
         paintingData));
 
-    if (hasMultiplePaintings()) {
-      int posX = (width - 4) / 2 - BUTTON_WIDTH;
-      if (hasMultipleGroups()) {
-        posX -= (BUTTON_WIDTH + 4) / 2;
-      }
+    ButtonWidget prevButton = new ButtonWidget(
+        width / 2 - BUTTON_WIDTH - 2,
+        height - 2 * BUTTON_HEIGHT - 10 - 4,
+        BUTTON_WIDTH,
+        BUTTON_HEIGHT,
+        Text.translatable("custompaintings.painting.previous"),
+        (button) -> {
+          previousPainting();
+        });
 
-      addDrawableChild(
-          new ButtonWidget(
-              posX,
-              height - BUTTON_HEIGHT - 10,
-              BUTTON_WIDTH,
-              BUTTON_HEIGHT,
-              Text.translatable("custompaintings.painting.previous"),
-              (button) -> {
-                previousPainting();
-              }));
+    ButtonWidget nextButton = new ButtonWidget(
+        width / 2 + 2,
+        height - 2 * BUTTON_HEIGHT - 10 - 4,
+        BUTTON_WIDTH,
+        BUTTON_HEIGHT,
+        Text.translatable("custompaintings.painting.next"),
+        (button) -> {
+          nextPainting();
+        });
+
+    if (!hasMultiplePaintings()) {
+      prevButton.active = false;
+      nextButton.active = false;
     }
 
-    if (hasMultipleGroups()) {
-      addDrawableChild(
-          new ButtonWidget(
-              (width - BUTTON_WIDTH) / 2,
-              height - BUTTON_HEIGHT - 10,
-              BUTTON_WIDTH,
-              BUTTON_HEIGHT,
-              ScreenTexts.BACK,
-              (button) -> {
-                clearGroup();
-              }));
-    }
+    addDrawableChild(prevButton);
+    addDrawableChild(nextButton);
 
-    if (hasMultiplePaintings()) {
-      int posX = (width + 4) / 2;
-      if (hasMultipleGroups()) {
-        posX += (BUTTON_WIDTH + 4) / 2;
-      }
+    addDrawableChild(
+        new ButtonWidget(
+            width / 2 - BUTTON_WIDTH - 2,
+            height - BUTTON_HEIGHT - 10,
+            BUTTON_WIDTH,
+            BUTTON_HEIGHT,
+            ScreenTexts.CANCEL,
+            (button) -> {
+              clearGroup();
+            }));
 
-      addDrawableChild(
-          new ButtonWidget(
-              posX,
-              height - BUTTON_HEIGHT - 10,
-              BUTTON_WIDTH,
-              BUTTON_HEIGHT,
-              Text.translatable("custompaintings.painting.next"),
-              (button) -> {
-                nextPainting();
-              }));
-    }
+    addDrawableChild(
+        new ButtonWidget(
+            width / 2 + 2,
+            height - BUTTON_HEIGHT - 10,
+            BUTTON_WIDTH,
+            BUTTON_HEIGHT,
+            ScreenTexts.DONE,
+            (button) -> {
+              saveCurrentSelection();
+            }));
   }
 
   @Override
@@ -189,17 +201,6 @@ public class PaintingEditScreen extends Screen {
   }
 
   private boolean keyPressedForGroupSelect(int keyCode, int scanCode, int modifiers) {
-    switch (keyCode) {
-      case GLFW.GLFW_KEY_ENTER:
-      case GLFW.GLFW_KEY_KP_ENTER:
-        selectGroup(allPaintings.values().stream()
-            .filter((group) -> !group.paintings().isEmpty())
-            .map(Group::id)
-            .findFirst()
-            .orElse(Identifier.DEFAULT_NAMESPACE));
-        return true;
-    }
-
     return false;
   }
 
@@ -225,6 +226,10 @@ public class PaintingEditScreen extends Screen {
 
     renderTexts(matrixStack, mouseX, mouseY, partialTicks);
     super.render(matrixStack, mouseX, mouseY, partialTicks);
+
+    if (state == State.GROUP_SELECT) {
+      groupsListWidget.render(matrixStack, mouseX, mouseY, partialTicks);
+    }
 
     matrixStack.pop();
   }
@@ -299,6 +304,13 @@ public class PaintingEditScreen extends Screen {
     saveSelection(PaintingData.EMPTY);
   }
 
+  private void saveCurrentSelection() {
+    if (currentGroup == null || currentPainting >= currentGroup.paintings().size()) {
+      saveEmpty();
+    }
+    saveSelection(currentGroup.paintings().get(currentPainting));
+  }
+
   private void saveSelection(PaintingData paintingData) {
     SetPaintingPacket.sendToServer(paintingUuid, paintingData);
     close();
@@ -306,10 +318,11 @@ public class PaintingEditScreen extends Screen {
 
   private void setState(State state) {
     this.state = state;
+    selectedIndex = 0;
     clearAndInit();
   }
 
-  private void selectGroup(String id) {
+  public void selectGroup(String id) {
     if (!allPaintings.containsKey(id)) {
       return;
     }
@@ -327,12 +340,18 @@ public class PaintingEditScreen extends Screen {
 
   private void previousPainting() {
     currentPainting = (currentGroup.paintings().size() + currentPainting - 1) % currentGroup.paintings().size();
+    selectedIndex = getSelectedIndex();
     clearAndInit();
   }
 
   private void nextPainting() {
     currentPainting = (currentPainting + 1) % currentGroup.paintings().size();
+    selectedIndex = getSelectedIndex();
     clearAndInit();
+  }
+
+  private int getSelectedIndex() {
+    return children().indexOf(getFocused());
   }
 
   private void refreshPaintings() {
