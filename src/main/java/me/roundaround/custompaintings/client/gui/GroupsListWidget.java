@@ -2,17 +2,19 @@ package me.roundaround.custompaintings.client.gui;
 
 import java.util.Collection;
 
+import org.lwjgl.glfw.GLFW;
+
 import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen;
 import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen.Group;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
+import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
+import net.minecraft.client.gui.widget.EntryListWidget;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.text.Text;
 
 @Environment(value = EnvType.CLIENT)
-public class GroupsListWidget extends AlwaysSelectedEntryListWidget<GroupsListWidget.GroupEntry> {
+public class GroupsListWidget extends EntryListWidget<GroupsListWidget.GroupEntry> {
   private final PaintingEditScreen parent;
 
   public GroupsListWidget(
@@ -31,9 +33,11 @@ public class GroupsListWidget extends AlwaysSelectedEntryListWidget<GroupsListWi
 
   public void setGroups(Collection<Group> groups) {
     clearEntries();
-    groups.stream()
-        .map(GroupEntry::new)
-        .forEach(this::addEntry);
+    for (int i = 0; i < 6; i++) {
+      groups.stream()
+          .map(GroupEntry::new)
+          .forEach(this::addEntry);
+    }
   }
 
   @Override
@@ -48,8 +52,12 @@ public class GroupsListWidget extends AlwaysSelectedEntryListWidget<GroupsListWi
     return parent.getFocused() == this;
   }
 
+  @Override
+  public void appendNarrations(NarrationMessageBuilder builder) {
+  }
+
   @Environment(value = EnvType.CLIENT)
-  public class GroupEntry extends AlwaysSelectedEntryListWidget.Entry<GroupEntry> {
+  public class GroupEntry extends EntryListWidget.Entry<GroupEntry> {
     private final Group group;
 
     public GroupEntry(Group group) {
@@ -73,7 +81,7 @@ public class GroupsListWidget extends AlwaysSelectedEntryListWidget<GroupsListWi
           client.textRenderer,
           group.name(),
           x + entryWidth / 2,
-          y + (entryHeight - client.textRenderer.fontHeight) / 2,
+          y + (entryHeight - client.textRenderer.fontHeight + 1) / 2,
           0xFFFFFFFF);
     }
 
@@ -84,8 +92,15 @@ public class GroupsListWidget extends AlwaysSelectedEntryListWidget<GroupsListWi
     }
 
     @Override
-    public Text getNarration() {
-      return null;
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+      switch (keyCode) {
+        case GLFW.GLFW_KEY_ENTER:
+        case GLFW.GLFW_KEY_KP_ENTER:
+          parent.selectGroup(group.id());
+          return true;
+      }
+
+      return false;
     }
   }
 }

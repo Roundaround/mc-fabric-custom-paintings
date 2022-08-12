@@ -86,11 +86,13 @@ public class PaintingEditScreen extends Screen {
   }
 
   private void initForGroupSelection() {
-    int top = 10 + textRenderer.fontHeight + 2 + 10;
-    int bottom = height - 10 - BUTTON_HEIGHT - 10;
-
-    groupsListWidget = new GroupsListWidget(this, client, 400, top - bottom, top, bottom);
-    groupsListWidget.setLeftPos((width - 400) / 2);
+    groupsListWidget = new GroupsListWidget(
+        this,
+        client,
+        width,
+        height,
+        10 + textRenderer.fontHeight + 2 + 10,
+        height - 10 - BUTTON_HEIGHT - 10);
     groupsListWidget.setGroups(allPaintings.values());
     addSelectableChild(groupsListWidget);
 
@@ -181,11 +183,6 @@ public class PaintingEditScreen extends Screen {
 
   @Override
   public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-    if (keyCode == GLFW.GLFW_KEY_ESCAPE && this.shouldCloseOnEsc()) {
-      saveEmpty();
-      return true;
-    }
-
     switch (state) {
       case GROUP_SELECT:
         if (keyPressedForGroupSelect(keyCode, scanCode, modifiers)) {
@@ -201,6 +198,12 @@ public class PaintingEditScreen extends Screen {
   }
 
   private boolean keyPressedForGroupSelect(int keyCode, int scanCode, int modifiers) {
+    switch (keyCode) {
+      case GLFW.GLFW_KEY_ESCAPE:
+        saveEmpty();
+        return true;
+    }
+
     return false;
   }
 
@@ -211,6 +214,9 @@ public class PaintingEditScreen extends Screen {
         return true;
       case GLFW.GLFW_KEY_RIGHT:
         nextPainting();
+        return true;
+      case GLFW.GLFW_KEY_ESCAPE:
+        clearGroup();
         return true;
     }
 
