@@ -22,10 +22,6 @@ public class ClientNetworking {
   }
 
   public static void sendSetPaintingPacket(UUID paintingUuid, PaintingData customPaintingInfo) {
-    if (!ClientPlayNetworking.canSend(NetworkPackets.SET_PAINTING_PACKET)) {
-      return;
-    }
-
     PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
     buf.writeUuid(paintingUuid);
     customPaintingInfo.writeToPacketByteBuf(buf);
@@ -34,10 +30,6 @@ public class ClientNetworking {
   }
 
   public static void sendDeclareCustomPaintingUserPacket() {
-    if (!ClientPlayNetworking.canSend(NetworkPackets.DECLARE_CUSTOM_PAINTING_USER_PACKET)) {
-      return;
-    }
-
     ClientPlayNetworking.send(
         NetworkPackets.DECLARE_CUSTOM_PAINTING_USER_PACKET,
         new PacketByteBuf(Unpooled.buffer()));

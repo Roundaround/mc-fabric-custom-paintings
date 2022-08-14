@@ -33,11 +33,6 @@ public class ServerNetworking {
       UUID paintingUuid,
       BlockPos pos,
       Direction facing) {
-
-    if (!ServerPlayNetworking.canSend(player, NetworkPackets.EDIT_PAINTING_PACKET)) {
-      return;
-    }
-
     PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
     buf.writeUuid(paintingUuid);
     buf.writeBlockPos(pos);
