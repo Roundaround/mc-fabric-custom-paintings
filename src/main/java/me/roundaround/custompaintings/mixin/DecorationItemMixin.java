@@ -8,7 +8,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
-import me.roundaround.custompaintings.network.EditPaintingPacket;
+import me.roundaround.custompaintings.network.ServerNetworking;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.entity.decoration.painting.PaintingVariants;
 import net.minecraft.item.DecorationItem;
@@ -43,7 +43,7 @@ public abstract class DecorationItemMixin {
     ExpandedPaintingEntity painting = ((ExpandedPaintingEntity) entity);
     painting.setEditor(player.getUuid());
 
-    EditPaintingPacket.sendToPlayer(player, entity.getUuid(), pos, facing);
+    ServerNetworking.sendEditPaintingPacket(player, entity.getUuid(), pos, facing);
 
     return Optional.of(entity);
   }

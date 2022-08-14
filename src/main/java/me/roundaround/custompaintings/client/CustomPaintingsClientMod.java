@@ -1,8 +1,7 @@
 package me.roundaround.custompaintings.client;
 
 import me.roundaround.custompaintings.client.event.MinecraftClientEvents;
-import me.roundaround.custompaintings.network.DeclareCustomPaintingUserPacket;
-import me.roundaround.custompaintings.network.EditPaintingPacket;
+import me.roundaround.custompaintings.client.network.ClientNetworking;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
@@ -24,9 +23,9 @@ public class CustomPaintingsClientMod implements ClientModInitializer {
     });
 
     ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
-      DeclareCustomPaintingUserPacket.sendToServer();
+      ClientNetworking.sendDeclareCustomPaintingUserPacket();
     });
 
-    EditPaintingPacket.registerReceive();
+    ClientNetworking.registerReceivers();
   }
 }

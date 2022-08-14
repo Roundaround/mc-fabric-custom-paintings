@@ -14,8 +14,8 @@ import me.roundaround.custompaintings.client.CustomPaintingManager;
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
 import me.roundaround.custompaintings.client.gui.GroupsListWidget;
 import me.roundaround.custompaintings.client.gui.PaintingButtonWidget;
+import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.custompaintings.network.SetPaintingPacket;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.AbstractRedstoneGateBlock;
 import net.minecraft.block.BlockState;
@@ -415,7 +415,7 @@ public class PaintingEditScreen extends Screen {
   }
 
   private void saveSelection(PaintingData paintingData) {
-    SetPaintingPacket.sendToServer(paintingUuid, paintingData);
+    ClientNetworking.sendSetPaintingPacket(paintingUuid, paintingData);
     close();
   }
 

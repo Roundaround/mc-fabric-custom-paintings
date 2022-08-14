@@ -7,8 +7,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.custompaintings.network.DeclareCustomPaintingUserPacket;
-import me.roundaround.custompaintings.network.SetPaintingPacket;
+import me.roundaround.custompaintings.network.ServerNetworking;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.entity.data.TrackedDataHandler;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
@@ -35,7 +34,6 @@ public final class CustomPaintingsMod implements ModInitializer {
   @Override
   public void onInitialize() {
     TrackedDataHandlerRegistry.register(CUSTOM_PAINTING_DATA_HANDLER);
-    SetPaintingPacket.registerReceive();
-    DeclareCustomPaintingUserPacket.registerReceive();
+    ServerNetworking.registerReceivers();
   }
 }
