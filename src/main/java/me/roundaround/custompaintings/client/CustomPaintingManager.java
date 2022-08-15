@@ -234,7 +234,6 @@ public class CustomPaintingManager
     Optional<String> paintingId = Optional.empty();
 
     // Optional
-    Optional<String> paintingName = Optional.empty();
     Optional<Integer> height = Optional.empty();
     Optional<Integer> width = Optional.empty();
 
@@ -250,14 +249,6 @@ public class CustomPaintingManager
 
           // TODO: Additional validation
           paintingId = Optional.of(reader.nextString());
-          break;
-        case "name":
-          if (reader.peek() != JsonToken.STRING) {
-            throw new ParseException("Painting name must be a string.");
-          }
-
-          // TODO: Additional validation
-          paintingName = Optional.of(reader.nextString());
           break;
         case "height":
           if (reader.peek() != JsonToken.NUMBER) {
@@ -284,7 +275,7 @@ public class CustomPaintingManager
       throw new ParseException("Painting ID is required.");
     }
 
-    return new Painting(paintingId.get(), paintingName, height, width);
+    return new Painting(paintingId.get(), height, width);
   }
 
   public class ParseException extends Exception {
@@ -296,6 +287,6 @@ public class CustomPaintingManager
   public record Pack(String id, String name, List<Painting> paintings) {
   }
 
-  public record Painting(String id, Optional<String> name, Optional<Integer> height, Optional<Integer> width) {
+  public record Painting(String id, Optional<Integer> height, Optional<Integer> width) {
   }
 }
