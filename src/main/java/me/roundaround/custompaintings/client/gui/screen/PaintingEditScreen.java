@@ -30,6 +30,7 @@ import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.AbstractDecorationEntity;
+import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.sound.SoundEvents;
@@ -46,6 +47,7 @@ import net.minecraft.world.World;
 public class PaintingEditScreen extends Screen {
   private final HashMap<String, Group> allPaintings = new HashMap<>();
   private final UUID paintingUuid;
+  private final int paintingId;
   private final BlockPos blockPos;
   private final Direction facing;
   private Group currentGroup = null;
@@ -61,9 +63,10 @@ public class PaintingEditScreen extends Screen {
   private static final int BUTTON_WIDTH = 100;
   private static final int BUTTON_HEIGHT = 20;
 
-  public PaintingEditScreen(UUID paintingUuid, BlockPos blockPos, Direction facing) {
+  public PaintingEditScreen(UUID paintingUuid, int paintingId, BlockPos blockPos, Direction facing) {
     super(Text.translatable("custompaintings.painting.title"));
     this.paintingUuid = paintingUuid;
+    this.paintingId = paintingId;
     this.blockPos = blockPos;
     this.facing = facing;
   }
@@ -122,6 +125,7 @@ public class PaintingEditScreen extends Screen {
 
   private void initForPaintingSelection() {
     PaintingData paintingData = currentGroup.paintings().get(currentPainting);
+    boolean canStay = canStay(paintingData);
 
     int headerHeight = getHeaderHeight();
     int footerHeight = getFooterHeight();
@@ -142,7 +146,7 @@ public class PaintingEditScreen extends Screen {
         },
         paintingData);
 
-    if (!canStay(paintingData)) {
+    if (!canStay) {
       paintingButton.active = false;
     }
 
@@ -191,16 +195,21 @@ public class PaintingEditScreen extends Screen {
               }
             }));
 
-    addDrawableChild(
-        new ButtonWidget(
-            width / 2 + 2,
-            height - BUTTON_HEIGHT - 10,
-            BUTTON_WIDTH,
-            BUTTON_HEIGHT,
-            ScreenTexts.DONE,
-            (button) -> {
-              saveCurrentSelection();
-            }));
+    ButtonWidget doneButton = new ButtonWidget(
+        width / 2 + 2,
+        height - BUTTON_HEIGHT - 10,
+        BUTTON_WIDTH,
+        BUTTON_HEIGHT,
+        ScreenTexts.DONE,
+        (button) -> {
+          saveCurrentSelection();
+        });
+
+    if (!canStay) {
+      doneButton.active = false;
+    }
+
+    addDrawableChild(doneButton);
   }
 
   @Override
@@ -552,7 +561,12 @@ public class PaintingEditScreen extends Screen {
       }
     }
 
-    return world.getOtherEntities(null, boundingBox, DECORATION_PREDICATE).isEmpty();
+    Entity entity = world.getEntityById(paintingId);
+    PaintingEntity currentPainting = entity != null && entity instanceof PaintingEntity
+        ? (PaintingEntity) entity
+        : null;
+
+    return world.getOtherEntities(currentPainting, boundingBox, DECORATION_PREDICATE).isEmpty();
   }
 
   private Box getBoundingBox(int width, int height) {

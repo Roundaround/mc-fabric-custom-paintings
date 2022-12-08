@@ -31,10 +31,12 @@ public class ServerNetworking {
   public static void sendEditPaintingPacket(
       ServerPlayerEntity player,
       UUID paintingUuid,
+      int paintingId,
       BlockPos pos,
       Direction facing) {
     PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
     buf.writeUuid(paintingUuid);
+    buf.writeInt(paintingId);
     buf.writeBlockPos(pos);
     buf.writeInt(facing.getId());
     ServerPlayNetworking.send(player, NetworkPackets.EDIT_PAINTING_PACKET, buf);

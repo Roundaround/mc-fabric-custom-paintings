@@ -43,7 +43,7 @@ public abstract class DecorationItemMixin {
     ExpandedPaintingEntity painting = ((ExpandedPaintingEntity) entity);
     painting.setEditor(player.getUuid());
 
-    ServerNetworking.sendEditPaintingPacket(player, entity.getUuid(), pos, facing);
+    ServerNetworking.sendEditPaintingPacket(player, entity.getUuid(), entity.getId(), pos, facing);
 
     return Optional.of(entity);
   }

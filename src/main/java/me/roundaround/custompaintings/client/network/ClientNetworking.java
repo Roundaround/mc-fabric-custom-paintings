@@ -41,11 +41,12 @@ public class ClientNetworking {
       PacketByteBuf buffer,
       PacketSender responseSender) {
     UUID paintingUuid = buffer.readUuid();
+    int paintingId = buffer.readInt();
     BlockPos pos = buffer.readBlockPos();
     Direction facing = Direction.byId(buffer.readInt());
 
     client.execute(() -> {
-      client.setScreen(new PaintingEditScreen(paintingUuid, pos, facing));
+      client.setScreen(new PaintingEditScreen(paintingUuid, paintingId, pos, facing));
     });
   }
 }
