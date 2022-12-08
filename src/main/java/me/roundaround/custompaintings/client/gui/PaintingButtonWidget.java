@@ -40,7 +40,10 @@ public class PaintingButtonWidget extends ButtonWidget {
 
     Sprite sprite = CustomPaintingsClientMod.customPaintingManager.getPaintingSprite(paintingData).get();
     RenderSystem.setShader(GameRenderer::getPositionTexShader);
-    RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+
+    float color = active ? 1f : 0.5f;
+
+    RenderSystem.setShaderColor(color, color, color, 1f);
     RenderSystem.setShaderTexture(0, sprite.getAtlas().getId());
     drawSprite(matrixStack, x + 1, y + 1, 1, width - 2, height - 2, sprite);
 

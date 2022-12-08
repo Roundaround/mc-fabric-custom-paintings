@@ -132,7 +132,7 @@ public class PaintingEditScreen extends Screen {
     int scaledWidth = PaintingButtonWidget.getScaledWidth(paintingData, maxWidth, maxHeight);
     int scaledHeight = PaintingButtonWidget.getScaledHeight(paintingData, maxWidth, maxHeight);
 
-    addDrawableChild(new PaintingButtonWidget(
+    PaintingButtonWidget paintingButton = new PaintingButtonWidget(
         (width - scaledWidth) / 2,
         (height + headerHeight - footerHeight - scaledHeight) / 2,
         maxWidth,
@@ -140,7 +140,13 @@ public class PaintingEditScreen extends Screen {
         (button) -> {
           saveSelection(paintingData);
         },
-        paintingData));
+        paintingData);
+
+    if (!canStay(paintingData)) {
+      paintingButton.active = false;
+    }
+
+    addDrawableChild(paintingButton);
 
     ButtonWidget prevButton = new ButtonWidget(
         width / 2 - BUTTON_WIDTH - 2,
@@ -478,7 +484,7 @@ public class PaintingEditScreen extends Screen {
     // TODO: Replace with Registry.PAINTING_VARIANT.stream() to include all
     Streams.stream(Registry.PAINTING_VARIANT.iterateEntries(PaintingVariantTags.PLACEABLE))
         .map(RegistryEntry::value)
-        .filter(this::canStay)
+        // .filter(this::canStay)
         .forEach((vanillaVariant) -> {
           Identifier id = Registry.PAINTING_VARIANT.getId(vanillaVariant);
           String groupId = id.getNamespace();
@@ -495,7 +501,7 @@ public class PaintingEditScreen extends Screen {
 
     CustomPaintingManager paintingManager = CustomPaintingsClientMod.customPaintingManager;
     paintingManager.getEntries().stream()
-        .filter(this::canStay)
+        // .filter(this::canStay)
         .forEach((paintingData) -> {
           Identifier id = paintingData.id();
           String groupId = id.getNamespace();
