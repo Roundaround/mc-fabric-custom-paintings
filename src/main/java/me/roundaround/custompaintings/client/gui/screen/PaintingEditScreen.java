@@ -31,7 +31,6 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.AbstractDecorationEntity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
-import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.tag.PaintingVariantTags;
@@ -51,7 +50,7 @@ public class PaintingEditScreen extends Screen {
   private final BlockPos blockPos;
   private final Direction facing;
   private Group currentGroup = null;
-  private State state = State.GROUP_SELECT;
+  private State currentState = State.GROUP_SELECT;
   private State nextState = State.GROUP_SELECT;
   private Action onStateSwitch = null;
   private int currentPainting = 0;
@@ -83,10 +82,10 @@ public class PaintingEditScreen extends Screen {
 
     if (!hasMultipleGroups()) {
       currentGroup = allPaintings.values().stream().findFirst().get();
-      state = State.PAINTING_SELECT;
+      setStateImmediate(State.PAINTING_SELECT);
     }
 
-    switch (state) {
+    switch (currentState) {
       case PAINTING_SELECT:
         initForPaintingSelection();
         break;
@@ -150,8 +149,6 @@ public class PaintingEditScreen extends Screen {
       paintingButton.active = false;
     }
 
-    addDrawableChild(paintingButton);
-
     ButtonWidget prevButton = new ButtonWidget(
         width / 2 - BUTTON_WIDTH - 2,
         height - 2 * BUTTON_HEIGHT - 10 - 4,
@@ -177,23 +174,19 @@ public class PaintingEditScreen extends Screen {
       nextButton.active = false;
     }
 
-    addDrawableChild(prevButton);
-    addDrawableChild(nextButton);
-
-    addDrawableChild(
-        new ButtonWidget(
-            width / 2 - BUTTON_WIDTH - 2,
-            height - BUTTON_HEIGHT - 10,
-            BUTTON_WIDTH,
-            BUTTON_HEIGHT,
-            ScreenTexts.CANCEL,
-            (button) -> {
-              if (hasMultipleGroups()) {
-                clearGroup();
-              } else {
-                saveEmpty();
-              }
-            }));
+    ButtonWidget cancelButton = new ButtonWidget(
+        width / 2 - BUTTON_WIDTH - 2,
+        height - BUTTON_HEIGHT - 10,
+        BUTTON_WIDTH,
+        BUTTON_HEIGHT,
+        ScreenTexts.CANCEL,
+        (button) -> {
+          if (hasMultipleGroups()) {
+            clearGroup();
+          } else {
+            saveEmpty();
+          }
+        });
 
     ButtonWidget doneButton = new ButtonWidget(
         width / 2 + 2,
@@ -209,12 +202,16 @@ public class PaintingEditScreen extends Screen {
       doneButton.active = false;
     }
 
+    addDrawableChild(paintingButton);
+    addDrawableChild(prevButton);
+    addDrawableChild(nextButton);
+    addDrawableChild(cancelButton);
     addDrawableChild(doneButton);
   }
 
   @Override
   public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-    switch (state) {
+    switch (currentState) {
       case GROUP_SELECT:
         if (keyPressedForGroupSelect(keyCode, scanCode, modifiers)) {
           return true;
@@ -263,10 +260,15 @@ public class PaintingEditScreen extends Screen {
   }
 
   @Override
+  public boolean changeFocus(boolean lookForwards) {
+    return super.changeFocus(lookForwards);
+  }
+
+  @Override
   public void render(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
     checkAndAdvanceState();
 
-    switch (state) {
+    switch (currentState) {
       case GROUP_SELECT:
         renderBackgroundForGroupSelect(matrixStack, mouseX, mouseY, partialTicks);
         break;
@@ -300,7 +302,7 @@ public class PaintingEditScreen extends Screen {
   }
 
   private int getHeaderHeight() {
-    switch (state) {
+    switch (currentState) {
       case GROUP_SELECT:
         return 10 + textRenderer.fontHeight + 2 + 10;
       case PAINTING_SELECT:
@@ -311,7 +313,7 @@ public class PaintingEditScreen extends Screen {
   }
 
   private int getFooterHeight() {
-    switch (state) {
+    switch (currentState) {
       case GROUP_SELECT:
         return 10 + BUTTON_HEIGHT + 10;
       case PAINTING_SELECT:
@@ -353,7 +355,7 @@ public class PaintingEditScreen extends Screen {
   }
 
   private void renderTexts(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-    switch (state) {
+    switch (currentState) {
       case GROUP_SELECT:
         renderTextsForGroupSelect(matrixStack, mouseX, mouseY, partialTicks);
         break;
@@ -440,8 +442,8 @@ public class PaintingEditScreen extends Screen {
   }
 
   private void checkAndAdvanceState() {
-    if (state != nextState) {
-      state = nextState;
+    if (currentState != nextState) {
+      currentState = nextState;
 
       if (onStateSwitch != null) {
         onStateSwitch.execute();
@@ -451,6 +453,12 @@ public class PaintingEditScreen extends Screen {
       selectedIndex = 0;
       clearAndInit();
     }
+  }
+
+  private void setStateImmediate(State state) {
+    currentState = state;
+    nextState = state;
+    onStateSwitch = null;
   }
 
   public void selectGroup(String id) {
@@ -527,10 +535,6 @@ public class PaintingEditScreen extends Screen {
 
   private boolean canStay(PaintingData customPaintingInfo) {
     return canStay(customPaintingInfo.getScaledWidth(), customPaintingInfo.getScaledHeight());
-  }
-
-  private boolean canStay(PaintingVariant vanillaVariant) {
-    return canStay(vanillaVariant.getWidth(), vanillaVariant.getHeight());
   }
 
   private boolean canStay(int width, int height) {

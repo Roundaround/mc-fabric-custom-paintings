@@ -50,6 +50,11 @@ public class PaintingButtonWidget extends ButtonWidget {
     matrixStack.pop();
   }
 
+  @Override
+  public boolean isHovered() {
+    return super.isHovered() && active;
+  }
+
   public static int getScaledWidth(PaintingData paintingData, int maxWidth, int maxHeight) {
     float scale = Math.min((float) maxWidth / paintingData.getScaledWidth(), (float) maxHeight / paintingData.getScaledHeight());
     return Math.round(scale * paintingData.getScaledWidth());
