@@ -2,12 +2,12 @@ package me.roundaround.custompaintings.client.gui.screen;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Predicate;
 
 import org.lwjgl.glfw.GLFW;
 
-import com.google.common.collect.Streams;
 import com.mojang.blaze3d.systems.RenderSystem;
 
 import me.roundaround.custompaintings.client.CustomPaintingManager;
@@ -31,6 +31,7 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.AbstractDecorationEntity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
+import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.tag.PaintingVariantTags;
@@ -41,6 +42,7 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.util.registry.RegistryEntry;
+import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.world.World;
 
 public class PaintingEditScreen extends Screen {
@@ -498,18 +500,25 @@ public class PaintingEditScreen extends Screen {
   private void refreshPaintings() {
     allPaintings.clear();
 
-    // TODO: Replace with Registry.PAINTING_VARIANT.stream() to include all
-    Streams.stream(Registry.PAINTING_VARIANT.iterateEntries(PaintingVariantTags.PLACEABLE))
-        .map(RegistryEntry::value)
-        // .filter(this::canStay)
+    Registry.PAINTING_VARIANT.stream()
         .forEach((vanillaVariant) -> {
           Identifier id = Registry.PAINTING_VARIANT.getId(vanillaVariant);
-          String groupId = id.getNamespace();
+          RegistryKey<PaintingVariant> key = RegistryKey.of(Registry.PAINTING_VARIANT_KEY, id);
+          Optional<RegistryEntry<PaintingVariant>> maybeEntry = Registry.PAINTING_VARIANT.getEntry(key);
+
+          if (!maybeEntry.isPresent()) {
+            return;
+          }
+
+          RegistryEntry<PaintingVariant> entry = maybeEntry.get();
+          boolean placeable = entry.isIn(PaintingVariantTags.PLACEABLE);
+          String groupId = id.getNamespace() + (placeable ? "" : "_unplaceable");
 
           if (!allPaintings.containsKey(groupId)) {
-            String groupName = FabricLoader.getInstance()
-                .getModContainer(groupId)
-                .map((mod) -> mod.getMetadata().getName()).orElse(groupId);
+            String groupName = !placeable ? "Minecraft: The Hidden Ones"
+                : FabricLoader.getInstance()
+                    .getModContainer(groupId)
+                    .map((mod) -> mod.getMetadata().getName()).orElse(groupId);
             allPaintings.put(groupId, new Group(groupId, groupName, new ArrayList<>()));
           }
 
@@ -518,7 +527,6 @@ public class PaintingEditScreen extends Screen {
 
     CustomPaintingManager paintingManager = CustomPaintingsClientMod.customPaintingManager;
     paintingManager.getEntries().stream()
-        // .filter(this::canStay)
         .forEach((paintingData) -> {
           Identifier id = paintingData.id();
           String groupId = id.getNamespace();
