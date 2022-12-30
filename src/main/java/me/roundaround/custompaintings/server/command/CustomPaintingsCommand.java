@@ -1,6 +1,7 @@
 package me.roundaround.custompaintings.server.command;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
@@ -30,15 +31,15 @@ public class CustomPaintingsCommand {
           return executeListKnown(context.getSource());
         });
 
-    LiteralArgumentBuilder<ServerCommandSource> locateMissingSub = CommandManager
-        .literal("locatemissing")
+    LiteralArgumentBuilder<ServerCommandSource> listMissingSub = CommandManager
+        .literal("listmissing")
         .executes(context -> {
-          return executeLocateMissing(context.getSource());
+          return executeListMissing(context.getSource());
         });
 
     LiteralArgumentBuilder<ServerCommandSource> finalCommand = baseCommand
         .then(listKnownSub)
-        .then(locateMissingSub);
+        .then(listMissingSub);
 
     dispatcher.register(finalCommand);
   }
@@ -67,11 +68,12 @@ public class CustomPaintingsCommand {
     return ids.size();
   }
 
-  private static int executeLocateMissing(ServerCommandSource source) {
+  private static int executeListMissing(ServerCommandSource source) {
     ServerPlayerEntity player = source.getPlayer();
     UUID uuid = player.getUuid();
     HashSet<Identifier> known = CustomPaintingsMod.knownPaintings.get(uuid);
-    ArrayList<String> missing = new ArrayList<>();
+
+    HashMap<String, Integer> missing = new HashMap<>();
 
     source.getServer().getWorlds().forEach((world) -> {
       world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
@@ -79,14 +81,18 @@ public class CustomPaintingsCommand {
           .map((entity) -> ((ExpandedPaintingEntity) entity).getCustomData().id())
           .filter((id) -> !known.contains(id))
           .forEach((id) -> {
-            missing.add(id.toString());
+            missing.put(id.toString(), missing.getOrDefault(id.toString(), 0) + 1);
           });
     });
 
     if (missing.isEmpty()) {
-      source.sendFeedback(Text.translatable("command.custompaintings.locatemissing.none"), true);
+      source.sendFeedback(Text.translatable("command.custompaintings.listmissing.none"), true);
     } else {
-      source.sendFeedback(Text.literal(String.join(", ", missing)), true);
+      List<String> missingPrintouts = new ArrayList<>();
+      missing.forEach((id, count) -> {
+        missingPrintouts.add(String.format("%s (%d)", id, count));
+      });
+      source.sendFeedback(Text.literal(String.join("\n", missingPrintouts)), true);
     }
 
     return missing.size();
