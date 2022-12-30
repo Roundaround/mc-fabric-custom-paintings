@@ -30,6 +30,7 @@ import net.minecraft.client.texture.SpriteAtlasTexture;
 import net.minecraft.client.texture.TextureManager;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.ResourceType;
+import net.minecraft.resource.ZipResourcePack;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Pair;
 import net.minecraft.util.profiler.Profiler;
@@ -57,19 +58,19 @@ public class CustomPaintingManager
     dimensions.clear();
     spriteIds.clear();
 
-    resourceManager.streamResourcePacks().forEach((resource) -> {
-      long nonVanillaNamespaces = resource.getNamespaces(ResourceType.CLIENT_RESOURCES)
+    resourceManager.streamResourcePacks().filter((resource) -> {
+      // Can we find a way to include non-zip packs without throwing everytime
+      // on the fabric pack?
+      return resource instanceof ZipResourcePack;
+    }).filter((resource) -> {
+      return resource.getNamespaces(ResourceType.CLIENT_RESOURCES)
           .stream()
           .filter((namespace) -> {
             return !Identifier.DEFAULT_NAMESPACE.equals(namespace)
                 && !Identifier.REALMS_NAMESPACE.equals(namespace);
           })
-          .count();
-
-      if (nonVanillaNamespaces == 0) {
-        return;
-      }
-
+          .count() > 0;
+    }).forEach((resource) -> {
       try (InputStream stream = resource.openRoot("custompaintings.json")) {
         try (JsonReader reader = new JsonReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
           Pack pack = readPack(reader, resource.getName());
