@@ -526,18 +526,20 @@ public class PaintingEditScreen extends Screen {
         });
 
     CustomPaintingManager paintingManager = CustomPaintingsClientMod.customPaintingManager;
-    paintingManager.getEntries().stream()
-        .forEach((paintingData) -> {
-          Identifier id = paintingData.id();
-          String groupId = id.getNamespace();
+    paintingManager.getPacks().stream()
+        .forEach((pack) -> {
+          String groupId = pack.id();
+          String groupName = pack.name();
 
           if (!allPaintings.containsKey(groupId)) {
-            String groupName = paintingManager.getPack(groupId)
-                .map((pack) -> pack.name()).orElse(groupId);
             allPaintings.put(groupId, new Group(groupId, groupName, new ArrayList<>()));
           }
 
-          allPaintings.get(groupId).paintings().add(paintingData);
+          pack.paintings().stream()
+              .forEach((painting) -> {
+                allPaintings.get(groupId).paintings().add(new PaintingData(new Identifier(groupId, painting.id()),
+                    painting.width().orElse(1), painting.height().orElse(1)));
+              });
         });
   }
 

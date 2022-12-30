@@ -23,7 +23,7 @@ public class CustomPaintingsClientMod implements ClientModInitializer {
     });
 
     ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
-      ClientNetworking.sendDeclareCustomPaintingUserPacket();
+      customPaintingManager.sendKnownPaintingsToServer();
     });
 
     ClientNetworking.registerReceivers();

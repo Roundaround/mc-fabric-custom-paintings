@@ -28,7 +28,7 @@ public abstract class DecorationItemMixin {
       Direction facing,
       ItemUsageContext context) {
     if (!(context.getPlayer() instanceof ServerPlayerEntity)
-        || !CustomPaintingsMod.playersUsingMod.contains(context.getPlayer().getUuid())) {
+        || !CustomPaintingsMod.knownPaintings.containsKey(context.getPlayer().getUuid())) {
       return PaintingEntity.placePainting(world, pos, facing);
     }
 

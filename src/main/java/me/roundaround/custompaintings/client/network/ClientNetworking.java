@@ -1,5 +1,6 @@
 package me.roundaround.custompaintings.client.network;
 
+import java.util.List;
 import java.util.UUID;
 
 import io.netty.buffer.Unpooled;
@@ -11,6 +12,7 @@ import net.fabricmc.fabric.api.networking.v1.PacketSender;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 
@@ -29,10 +31,14 @@ public class ClientNetworking {
     ClientPlayNetworking.send(NetworkPackets.SET_PAINTING_PACKET, buf);
   }
 
-  public static void sendDeclareCustomPaintingUserPacket() {
+  public static void sendDeclareKnownPaintingsPacket(List<Identifier> knownPaintings) {
+    PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+    buf.writeInt(knownPaintings.size());
+    for (Identifier paintingId : knownPaintings) {
+      buf.writeIdentifier(paintingId);
+    }
     ClientPlayNetworking.send(
-        NetworkPackets.DECLARE_CUSTOM_PAINTING_USER_PACKET,
-        new PacketByteBuf(Unpooled.buffer()));
+        NetworkPackets.DECLARE_KNOWN_PAINTINGS, buf);
   }
 
   private static void handleEditPaintingPacket(

@@ -13,4 +13,7 @@ public class NetworkPackets {
   public static final Identifier DECLARE_CUSTOM_PAINTING_USER_PACKET = new Identifier(
       CustomPaintingsMod.MOD_ID,
       "declare_custom_painting_user");
+  public static final Identifier DECLARE_KNOWN_PAINTINGS = new Identifier(
+      CustomPaintingsMod.MOD_ID,
+      "declare_known_paintings");
 }

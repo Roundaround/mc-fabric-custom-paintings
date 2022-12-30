@@ -14,6 +14,6 @@ import net.minecraft.server.network.ServerPlayerEntity;
 public abstract class PlayerManagerMixin {
   @Inject(method = "onPlayerConnect", at = @At(value = "HEAD"))
   public void onPlayerConnect(ClientConnection connection, ServerPlayerEntity player, CallbackInfo info) {
-    CustomPaintingsMod.playersUsingMod.remove(player.getUuid());
+    CustomPaintingsMod.knownPaintings.remove(player.getUuid());
   }
 }

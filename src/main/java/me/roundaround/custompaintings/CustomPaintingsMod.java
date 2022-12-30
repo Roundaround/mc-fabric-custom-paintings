@@ -1,5 +1,6 @@
 package me.roundaround.custompaintings;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.UUID;
 
@@ -12,6 +13,7 @@ import net.fabricmc.api.ModInitializer;
 import net.minecraft.entity.data.TrackedDataHandler;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.util.Identifier;
 
 public final class CustomPaintingsMod implements ModInitializer {
   public static final String MOD_ID = "custompaintings";
@@ -29,7 +31,7 @@ public final class CustomPaintingsMod implements ModInitializer {
     }
   };
 
-  public static HashSet<UUID> playersUsingMod = new HashSet<>();
+  public static HashMap<UUID, HashSet<Identifier>> knownPaintings = new HashMap<>();
 
   @Override
   public void onInitialize() {

@@ -1,5 +1,6 @@
 package me.roundaround.custompaintings.network;
 
+import java.util.HashSet;
 import java.util.UUID;
 
 import io.netty.buffer.Unpooled;
@@ -24,8 +25,8 @@ public class ServerNetworking {
         NetworkPackets.SET_PAINTING_PACKET,
         ServerNetworking::handleSetPaintingPacket);
     ServerPlayNetworking.registerGlobalReceiver(
-        NetworkPackets.DECLARE_CUSTOM_PAINTING_USER_PACKET,
-        ServerNetworking::handleDeclareCustomPaintingUserPacket);
+        NetworkPackets.DECLARE_KNOWN_PAINTINGS,
+        ServerNetworking::handleDeclareKnownPaintings);
   }
 
   public static void sendEditPaintingPacket(
@@ -79,12 +80,17 @@ public class ServerNetworking {
     }
   }
 
-  public static void handleDeclareCustomPaintingUserPacket(
+  public static void handleDeclareKnownPaintings(
       MinecraftServer server,
       ServerPlayerEntity player,
       ServerPlayNetworkHandler handler,
       PacketByteBuf buf,
       PacketSender responseSender) {
-    CustomPaintingsMod.playersUsingMod.add(player.getUuid());
+    CustomPaintingsMod.knownPaintings.put(player.getUuid(), new HashSet<>());
+
+    int size = buf.readInt();
+    for (int i = 0; i < size; i++) {
+      CustomPaintingsMod.knownPaintings.get(player.getUuid()).add(buf.readIdentifier());
+    }
   }
 }

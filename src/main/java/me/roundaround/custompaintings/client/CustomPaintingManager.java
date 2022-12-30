@@ -18,6 +18,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -71,9 +72,8 @@ public class CustomPaintingManager
                 new Pair<>(painting.width().orElse(1), painting.height().orElse(1)));
           });
         }
-      } catch (ParseException e) {
-        CustomPaintingsMod.LOGGER.error("Error parsing custom painting pack, skipping...", e);
       } catch (Exception e) {
+        CustomPaintingsMod.LOGGER.error("Error reading custom painting pack, skipping...", e);
       }
 
       spriteIds.add(PAINTING_BACK_ID);
@@ -111,6 +111,10 @@ public class CustomPaintingManager
           .forEach(spriteIds::add);
     });
 
+    if (MINECRAFT.player != null) {
+      sendKnownPaintingsToServer();
+    }
+
     return super.prepare(resourceManager, profiler);
   }
 
@@ -122,6 +126,16 @@ public class CustomPaintingManager
   @Override
   protected Stream<Identifier> getSprites() {
     return spriteIds.stream();
+  }
+
+  public void sendKnownPaintingsToServer() {
+    try {
+      List<PaintingData> entries = getEntries();
+      List<Identifier> ids = entries.stream().map(PaintingData::id).collect(Collectors.toList());
+      ClientNetworking.sendDeclareKnownPaintingsPacket(ids);
+    } catch (Exception e) {
+      CustomPaintingsMod.LOGGER.error("Error sending known paintings to server", e);
+    }
   }
 
   public Optional<Pack> getPack(String id) {
@@ -141,6 +155,10 @@ public class CustomPaintingManager
         .stream()
         .map((entry) -> new PaintingData(entry.getKey(), entry.getValue().getLeft(), entry.getValue().getRight()))
         .collect(Collectors.toList());
+  }
+
+  public List<Pack> getPacks() {
+    return new ArrayList<>(packs.values());
   }
 
   public Optional<Sprite> getPaintingSprite(PaintingData paintingData) {
@@ -213,6 +231,9 @@ public class CustomPaintingManager
 
           reader.endArray();
           break;
+        default:
+          // Unknown key, skip it
+          reader.skipValue();
       }
     }
 
@@ -266,6 +287,9 @@ public class CustomPaintingManager
           // TODO: Additional validation
           width = Optional.of(reader.nextInt());
           break;
+        default:
+          // Unknown key, skip it
+          reader.skipValue();
       }
     }
 
