@@ -58,6 +58,18 @@ public class CustomPaintingManager
     spriteIds.clear();
 
     resourceManager.streamResourcePacks().forEach((resource) -> {
+      long nonVanillaNamespaces = resource.getNamespaces(ResourceType.CLIENT_RESOURCES)
+          .stream()
+          .filter((namespace) -> {
+            return !Identifier.DEFAULT_NAMESPACE.equals(namespace)
+                && !Identifier.REALMS_NAMESPACE.equals(namespace);
+          })
+          .count();
+
+      if (nonVanillaNamespaces == 0) {
+        return;
+      }
+
       try (InputStream stream = resource.openRoot("custompaintings.json")) {
         try (JsonReader reader = new JsonReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
           Pack pack = readPack(reader, resource.getName());
@@ -74,6 +86,7 @@ public class CustomPaintingManager
         }
       } catch (Exception e) {
         CustomPaintingsMod.LOGGER.error("Error reading custom painting pack, skipping...", e);
+        return;
       }
 
       spriteIds.add(PAINTING_BACK_ID);
