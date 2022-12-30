@@ -24,6 +24,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.texture.MissingSprite;
 import net.minecraft.client.texture.Sprite;
 import net.minecraft.client.texture.SpriteAtlasHolder;
 import net.minecraft.client.texture.SpriteAtlasTexture;
@@ -175,20 +176,12 @@ public class CustomPaintingManager
     return new ArrayList<>(packs.values());
   }
 
-  public Optional<Sprite> getPaintingSprite(PaintingData paintingData) {
+  public Sprite getPaintingSprite(PaintingData paintingData) {
     if (paintingData.isVanilla()) {
-      Sprite vanillaSprite = MINECRAFT.getPaintingManager()
+      return MINECRAFT.getPaintingManager()
           .getPaintingSprite(Registry.PAINTING_VARIANT.get(paintingData.id()));
-      return Optional.of(vanillaSprite);
     }
-    return getPaintingSprite(paintingData.id());
-  }
-
-  public Optional<Sprite> getPaintingSprite(Identifier id) {
-    if (!spriteIds.contains(id)) {
-      return Optional.empty();
-    }
-    return Optional.ofNullable(getSprite(id));
+    return this.getSprite(paintingData.id());
   }
 
   public Pair<Integer, Integer> getPaintingDimensions(Identifier id) {

@@ -38,7 +38,7 @@ public class PaintingButtonWidget extends ButtonWidget {
     int border = isHovered() ? 0xFFFFFFFF : 0xFF000000;
     fill(matrixStack, x, y, x + width, y + height, border);
 
-    Sprite sprite = CustomPaintingsClientMod.customPaintingManager.getPaintingSprite(paintingData).get();
+    Sprite sprite = CustomPaintingsClientMod.customPaintingManager.getPaintingSprite(paintingData);
     RenderSystem.setShader(GameRenderer::getPositionTexShader);
 
     float color = active ? 1f : 0.5f;

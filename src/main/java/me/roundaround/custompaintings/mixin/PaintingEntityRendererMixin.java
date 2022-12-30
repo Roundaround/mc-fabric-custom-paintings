@@ -1,7 +1,5 @@
 package me.roundaround.custompaintings.mixin;
 
-import java.util.Optional;
-
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -9,10 +7,11 @@ import org.spongepowered.asm.mixin.injection.ModifyArgs;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 
+import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.CustomPaintingManager;
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
-import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
+import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.minecraft.client.render.entity.PaintingEntityRenderer;
 import net.minecraft.client.texture.Sprite;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
@@ -38,22 +37,17 @@ public abstract class PaintingEntityRendererMixin {
     PaintingData paintingData = ((ExpandedPaintingEntity) entity).getCustomData();
 
     CustomPaintingManager paintingManager = CustomPaintingsClientMod.customPaintingManager;
-    if (paintingData.isEmpty() || !paintingManager.exists(paintingData.id())) {
+    if (paintingData.isEmpty() || paintingData.isVanilla()) {
       return;
     }
 
     // 3 - width
-    // 4 - height
     args.set(3, paintingData.getScaledWidth());
+    // 4 - height
     args.set(4, paintingData.getScaledHeight());
-
-    Identifier id = paintingData.id();
-    Optional<Sprite> maybeSprite = paintingManager.getPaintingSprite(id);
-    maybeSprite.ifPresent((sprite) -> {
-      // 5 - front sprite
-      // 6 - back sprite
-      args.set(5, sprite);
-      args.set(6, paintingManager.getBackSprite());
-    });
+    // 5 - front sprite
+    args.set(5, paintingManager.getPaintingSprite(paintingData));
+    // 6 - back sprite
+    args.set(6, paintingManager.getBackSprite());
   }
 }
