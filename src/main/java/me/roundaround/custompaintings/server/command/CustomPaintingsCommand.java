@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -12,7 +13,10 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
+import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -25,21 +29,32 @@ public class CustomPaintingsCommand {
         .requires(source -> source.hasPermissionLevel(2))
         .requires(source -> source.isExecutedByPlayer());
 
-    LiteralArgumentBuilder<ServerCommandSource> listKnownSub = CommandManager
-        .literal("listknown")
-        .executes(context -> {
-          return executeListKnown(context.getSource());
-        });
+    LiteralArgumentBuilder<ServerCommandSource> listSub = CommandManager
+        .literal("list")
+        .then(CommandManager.literal("known")
+            .executes(context -> {
+              return executeListKnown(context.getSource());
+            }))
+        .then(CommandManager.literal("missing")
+            .executes(context -> {
+              return executeListMissing(context.getSource());
+            }));
 
-    LiteralArgumentBuilder<ServerCommandSource> listMissingSub = CommandManager
-        .literal("listmissing")
-        .executes(context -> {
-          return executeListMissing(context.getSource());
-        });
+    LiteralArgumentBuilder<ServerCommandSource> removeSub = CommandManager
+        .literal("remove")
+        .then(CommandManager.literal("missing")
+            .executes(context -> {
+              return executeRemove(context.getSource(), Optional.empty());
+            }))
+        .then(CommandManager.argument("id", IdentifierArgumentType.identifier())
+            .executes(context -> {
+              return executeRemove(context.getSource(),
+                  Optional.of(IdentifierArgumentType.getIdentifier(context, "id")));
+            }));
 
     LiteralArgumentBuilder<ServerCommandSource> finalCommand = baseCommand
-        .then(listKnownSub)
-        .then(listMissingSub);
+        .then(listSub)
+        .then(removeSub);
 
     dispatcher.register(finalCommand);
   }
@@ -96,5 +111,47 @@ public class CustomPaintingsCommand {
     }
 
     return missing.size();
+  }
+
+  private static int executeRemove(ServerCommandSource source, Optional<Identifier> idToRemove) {
+    ServerPlayerEntity player = source.getPlayer();
+    ArrayList<PaintingEntity> toRemove = new ArrayList<>();
+
+    if (idToRemove.isPresent()) {
+      source.getServer().getWorlds().forEach((world) -> {
+        world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
+            .stream()
+            .filter((entity) -> ((ExpandedPaintingEntity) entity).getCustomData().id().equals(idToRemove.get()))
+            .forEach((entity) -> {
+              toRemove.add((PaintingEntity) entity);
+            });
+      });
+    } else {
+      HashSet<Identifier> known = CustomPaintingsMod.knownPaintings.get(player.getUuid());
+
+      source.getServer().getWorlds().forEach((world) -> {
+        world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
+            .stream()
+            .filter((entity) -> {
+              Identifier id = ((ExpandedPaintingEntity) entity).getCustomData().id();
+              return !known.contains(id);
+            })
+            .forEach((entity) -> {
+              toRemove.add((PaintingEntity) entity);
+            });
+      });
+    }
+
+    toRemove.forEach((painting) -> {
+      painting.damage(DamageSource.player(player), 0f);
+    });
+
+    if (toRemove.isEmpty()) {
+      source.sendFeedback(Text.translatable("command.custompaintings.remove.none"), true);
+    } else {
+      source.sendFeedback(Text.translatable("command.custompaintings.remove.success", toRemove.size()), true);
+    }
+
+    return toRemove.size();
   }
 }
