@@ -7,13 +7,11 @@ import org.spongepowered.asm.mixin.injection.ModifyArgs;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 
-import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.CustomPaintingManager;
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.minecraft.client.render.entity.PaintingEntityRenderer;
-import net.minecraft.client.texture.Sprite;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.util.Identifier;
 
