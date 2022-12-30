@@ -9,7 +9,9 @@ import org.apache.logging.log4j.Logger;
 
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.network.ServerNetworking;
+import me.roundaround.custompaintings.server.command.CustomPaintingsCommand;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.entity.data.TrackedDataHandler;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.network.PacketByteBuf;
@@ -37,5 +39,9 @@ public final class CustomPaintingsMod implements ModInitializer {
   public void onInitialize() {
     TrackedDataHandlerRegistry.register(CUSTOM_PAINTING_DATA_HANDLER);
     ServerNetworking.registerReceivers();
+
+    CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+      CustomPaintingsCommand.register(dispatcher);
+    });
   }
 }
