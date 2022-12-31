@@ -11,6 +11,7 @@
   ],
   "client": [
     "DebugRendererMixin",
+    "EntityRendererMixin",
     "MinecraftClientMixin",
     "PaintingEntityRendererMixin"
   ],

@@ -41,14 +41,13 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
   public void setCustomData(PaintingData info) {
     dataTracker.set(CUSTOM_DATA, info);
 
-    // TODO: Re-enable after overriding the label rendering code
-    // if (info.hasName() && info.hasArtist()) {
-    //   setCustomNameVisible(true);
-    //   setCustomName(getPaintingName());
-    // } else {
-    //   setCustomNameVisible(false);
-    //   setCustomName(null);
-    // }
+    if (info.hasName() && info.hasArtist()) {
+      setCustomNameVisible(true);
+      setCustomName(getPaintingName());
+    } else {
+      setCustomNameVisible(false);
+      setCustomName(null);
+    }
   }
 
   public Text getPaintingName() {
