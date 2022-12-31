@@ -44,8 +44,20 @@ public class CustomPaintingsCommand {
             }))
         .then(CommandManager.literal("mismatched")
             .executes(context -> {
-              return executeListMismatched(context.getSource());
-            }));
+              return executeListMismatched(context.getSource(), MismatchedCategory.EVERYTHING);
+            })
+            .then(CommandManager.literal("size")
+                .executes(context -> {
+                  return executeListMismatched(context.getSource(), MismatchedCategory.SIZE);
+                }))
+            .then(CommandManager.literal("info")
+                .executes(context -> {
+                  return executeListMismatched(context.getSource(), MismatchedCategory.INFO);
+                }))
+            .then(CommandManager.literal("everything")
+                .executes(context -> {
+                  return executeListMismatched(context.getSource(), MismatchedCategory.EVERYTHING);
+                })));
 
     LiteralArgumentBuilder<ServerCommandSource> removeSub = CommandManager
         .literal("remove")
@@ -172,7 +184,27 @@ public class CustomPaintingsCommand {
     return missing.size();
   }
 
-  private static int executeListMismatched(ServerCommandSource source) {
+  private enum MismatchedCategory {
+    SIZE,
+    INFO,
+    EVERYTHING
+  }
+
+  private static boolean isMismatched(PaintingData data, PaintingData knownData, MismatchedCategory category) {
+    switch (category) {
+      case SIZE:
+        return data.width() != knownData.width() || data.height() != knownData.height();
+      case INFO:
+        return !data.name().equals(knownData.name()) || !data.artist().equals(knownData.artist());
+      case EVERYTHING:
+        return data.width() != knownData.width() || data.height() != knownData.height()
+            || !data.name().equals(knownData.name()) || !data.artist().equals(knownData.artist());
+      default:
+        return false;
+    }
+  }
+
+  private static int executeListMismatched(ServerCommandSource source, MismatchedCategory category) {
     ServerPlayerEntity player = source.getPlayer();
     UUID uuid = player.getUuid();
     Map<Identifier, PaintingData> known = CustomPaintingsMod.knownPaintings.get(uuid)
@@ -188,7 +220,7 @@ public class CustomPaintingsCommand {
             PaintingData data = ((ExpandedPaintingEntity) entity).getCustomData();
             PaintingData knownData = known.get(data.id());
 
-            if (knownData == null || data.width() != knownData.width() || data.height() != knownData.height()) {
+            if (isMismatched(data, knownData, category)) {
               mismatched.put(data.id().toString(), mismatched.getOrDefault(data.id().toString(), 0) + 1);
             }
           });
