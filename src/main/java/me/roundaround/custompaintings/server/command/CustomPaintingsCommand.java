@@ -87,6 +87,14 @@ public class CustomPaintingsCommand {
                   return executeFixInfo(
                       context.getSource(),
                       IdentifierArgumentType.getIdentifier(context, "id"));
+                })))
+        .then(CommandManager.literal("everything")
+            .then(CommandManager.argument("id", IdentifierArgumentType.identifier())
+                .suggests(new KnownPaintingIdentifierSuggestionProvider(true))
+                .executes(context -> {
+                  return executeFixEverything(
+                      context.getSource(),
+                      IdentifierArgumentType.getIdentifier(context, "id"));
                 })));
 
     LiteralArgumentBuilder<ServerCommandSource> finalCommand = baseCommand
@@ -318,6 +326,36 @@ public class CustomPaintingsCommand {
       source.sendFeedback(Text.translatable("command.custompaintings.fix.info.none"), true);
     } else {
       source.sendFeedback(Text.translatable("command.custompaintings.fix.info.success", toUpdate.size()), true);
+    }
+
+    return toUpdate.size();
+  }
+
+  private static int executeFixEverything(ServerCommandSource source, Identifier id) {
+    ArrayList<ExpandedPaintingEntity> toUpdate = new ArrayList<>();
+    Map<Identifier, PaintingData> known = CustomPaintingsMod.knownPaintings.get(source.getPlayer().getUuid())
+        .stream()
+        .collect(Collectors.toMap(PaintingData::id, Function.identity()));
+
+    source.getServer().getWorlds().forEach((world) -> {
+      world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
+          .stream()
+          .filter(
+              (entity) -> ((ExpandedPaintingEntity) entity).getCustomData().id().equals(id) && known.containsKey(id))
+          .forEach((entity) -> {
+            toUpdate.add((ExpandedPaintingEntity) entity);
+          });
+    });
+
+    toUpdate.forEach((painting) -> {
+      PaintingData knownData = known.get(id);
+      painting.setCustomData(id, knownData.width(), knownData.height(), knownData.name(), knownData.artist());
+    });
+
+    if (toUpdate.isEmpty()) {
+      source.sendFeedback(Text.translatable("command.custompaintings.fix.everything.none"), true);
+    } else {
+      source.sendFeedback(Text.translatable("command.custompaintings.fix.everything.success", toUpdate.size()), true);
     }
 
     return toUpdate.size();
