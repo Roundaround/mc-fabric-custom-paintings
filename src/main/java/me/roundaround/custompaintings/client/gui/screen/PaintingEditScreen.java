@@ -39,6 +39,7 @@ import net.minecraft.tag.PaintingVariantTags;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
@@ -110,7 +111,7 @@ public class PaintingEditScreen extends Screen {
         client,
         width,
         height,
-        getHeaderHeight(),
+        getHeaderHeight(null),
         height - getFooterHeight());
     groupsListWidget.setGroups(allPaintings.values());
     addSelectableChild(groupsListWidget);
@@ -131,7 +132,7 @@ public class PaintingEditScreen extends Screen {
     PaintingData paintingData = currentGroup.paintings().get(currentPainting);
     boolean canStay = canStay(paintingData);
 
-    int headerHeight = getHeaderHeight();
+    int headerHeight = getHeaderHeight(paintingData);
     int footerHeight = getFooterHeight();
 
     int maxWidth = width / 2;
@@ -140,13 +141,9 @@ public class PaintingEditScreen extends Screen {
     int scaledWidth = PaintingButtonWidget.getScaledWidth(paintingData, maxWidth, maxHeight);
     int scaledHeight = PaintingButtonWidget.getScaledHeight(paintingData, maxWidth, maxHeight);
 
-    int adjustment = paintingData.hasName() || paintingData.hasArtist()
-        ? textRenderer.fontHeight + 2
-        : 0;
-
     PaintingButtonWidget paintingButton = new PaintingButtonWidget(
         (width - scaledWidth) / 2,
-        (height + headerHeight - footerHeight - scaledHeight + adjustment) / 2,
+        (height + headerHeight - footerHeight - scaledHeight) / 2,
         maxWidth,
         maxHeight,
         (button) -> {
@@ -301,7 +298,7 @@ public class PaintingEditScreen extends Screen {
 
     matrixStack.push();
     matrixStack.translate(0, 0, 11);
-    renderBackgroundInRegion(0, getHeaderHeight(), 0, width);
+    renderBackgroundInRegion(0, getHeaderHeight(null), 0, width);
     renderBackgroundInRegion(height - getFooterHeight(), height, 0, width);
     matrixStack.pop();
   }
@@ -310,12 +307,18 @@ public class PaintingEditScreen extends Screen {
     renderBackgroundInRegion(0, height, 0, width);
   }
 
-  private int getHeaderHeight() {
+  private int getHeaderHeight(PaintingData paintingData) {
     switch (currentState) {
       case GROUP_SELECT:
         return 10 + textRenderer.fontHeight + 2 + 10;
       case PAINTING_SELECT:
-        return 10 + 3 * textRenderer.fontHeight + 2 * 2 + 10;
+        // 10 pixel padding, 4 lines of text, 2 pixel padding between lines, 10 pixel
+        // padding
+        int height = 10 + 4 * textRenderer.fontHeight + 2 * 3 + 10;
+        if (paintingData.hasName() || paintingData.hasArtist()) {
+          height += textRenderer.fontHeight + 2;
+        }
+        return height;
     }
 
     return 0;
@@ -442,6 +445,17 @@ public class PaintingEditScreen extends Screen {
           posY,
           0xFFFFFFFF);
     }
+
+    posY += textRenderer.fontHeight + 2;
+
+    drawCenteredTextWithShadow(
+        matrixStack,
+        textRenderer,
+        OrderedText.styledForwardsVisitedString("(" + paintingData.id().toString() + ")",
+            Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)),
+        width / 2,
+        posY,
+        0xFFFFFFFF);
   }
 
   private boolean hasMultipleGroups() {
