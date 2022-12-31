@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -45,7 +46,7 @@ public class CustomPaintingManager
   private static final Identifier PAINTING_BACK_ID = new Identifier(Identifier.DEFAULT_NAMESPACE, "back");
 
   private final HashMap<String, Pack> packs = new HashMap<>();
-  private final HashMap<Identifier, Pair<Integer, Integer>> dimensions = new HashMap<>();
+  private final HashMap<Identifier, PaintingData> data = new HashMap<>();
   private final HashSet<Identifier> spriteIds = new HashSet<>();
 
   public CustomPaintingManager(TextureManager manager) {
@@ -55,7 +56,7 @@ public class CustomPaintingManager
   @Override
   protected SpriteAtlasTexture.Data prepare(ResourceManager resourceManager, Profiler profiler) {
     packs.clear();
-    dimensions.clear();
+    data.clear();
     spriteIds.clear();
 
     resourceManager.streamResourcePacks().filter((resource) -> {
@@ -81,8 +82,13 @@ public class CustomPaintingManager
           packs.put(pack.id(), pack);
 
           pack.paintings().forEach((painting) -> {
-            dimensions.put(new Identifier(pack.id(), painting.id()),
-                new Pair<>(painting.width().orElse(1), painting.height().orElse(1)));
+            Identifier id = new Identifier(pack.id(), painting.id());
+            data.put(id, new PaintingData(
+                id,
+                painting.width().orElse(1),
+                painting.height().orElse(1),
+                painting.name().orElse(""),
+                painting.artist().orElse("")));
           });
         }
       } catch (Exception e) {
@@ -118,8 +124,8 @@ public class CustomPaintingManager
             return new Identifier(namespace, path);
           })
           .peek((id) -> {
-            if (!dimensions.containsKey(id)) {
-              dimensions.put(id, new Pair<>(1, 1));
+            if (!data.containsKey(id)) {
+              data.put(id, new PaintingData(id, 1, 1, "", ""));
             }
           })
           .forEach(spriteIds::add);
@@ -159,13 +165,13 @@ public class CustomPaintingManager
   }
 
   public boolean exists(Identifier id) {
-    return dimensions.containsKey(id);
+    return data.containsKey(id);
   }
 
   public List<PaintingData> getEntries() {
-    return dimensions.entrySet()
+    return data.entrySet()
         .stream()
-        .map((entry) -> new PaintingData(entry.getKey(), entry.getValue().getLeft(), entry.getValue().getRight()))
+        .map(Map.Entry::getValue)
         .collect(Collectors.toList());
   }
 
@@ -182,7 +188,11 @@ public class CustomPaintingManager
   }
 
   public Pair<Integer, Integer> getPaintingDimensions(Identifier id) {
-    return dimensions.getOrDefault(id, new Pair<>(1, 1));
+    PaintingData paintingData = data.get(id);
+    if (paintingData == null) {
+      return new Pair<>(1, 1);
+    }
+    return new Pair<>(paintingData.width(), paintingData.height());
   }
 
   public Sprite getBackSprite() {
@@ -259,6 +269,8 @@ public class CustomPaintingManager
     Optional<String> paintingId = Optional.empty();
 
     // Optional
+    Optional<String> name = Optional.empty();
+    Optional<String> artist = Optional.empty();
     Optional<Integer> height = Optional.empty();
     Optional<Integer> width = Optional.empty();
 
@@ -274,6 +286,20 @@ public class CustomPaintingManager
 
           // TODO: Additional validation
           paintingId = Optional.of(reader.nextString());
+          break;
+        case "name":
+          if (reader.peek() != JsonToken.STRING) {
+            throw new ParseException("Painting name must be a string.");
+          }
+
+          name = Optional.of(reader.nextString());
+          break;
+        case "artist":
+          if (reader.peek() != JsonToken.STRING) {
+            throw new ParseException("Painting artist must be a string.");
+          }
+
+          artist = Optional.of(reader.nextString());
           break;
         case "height":
           if (reader.peek() != JsonToken.NUMBER) {
@@ -303,7 +329,7 @@ public class CustomPaintingManager
       throw new ParseException("Painting ID is required.");
     }
 
-    return new Painting(paintingId.get(), height, width);
+    return new Painting(paintingId.get(), name, artist, height, width);
   }
 
   public class ParseException extends Exception {
@@ -315,6 +341,7 @@ public class CustomPaintingManager
   public record Pack(String id, String name, List<Painting> paintings) {
   }
 
-  public record Painting(String id, Optional<Integer> height, Optional<Integer> width) {
+  public record Painting(String id, Optional<String> name, Optional<String> artist, Optional<Integer> height,
+      Optional<Integer> width) {
   }
 }

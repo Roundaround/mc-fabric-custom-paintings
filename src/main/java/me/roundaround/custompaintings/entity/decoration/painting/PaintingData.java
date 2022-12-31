@@ -6,12 +6,15 @@ import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
 
-public record PaintingData(Identifier id, int width, int height, boolean isVanilla) {
-
+public record PaintingData(Identifier id, int width, int height, String name, String artist, boolean isVanilla) {
   public static final PaintingData EMPTY = new PaintingData(null, 0, 0);
 
   public PaintingData(Identifier id, int width, int height) {
-    this(id, width, height, false);
+    this(id, width, height, "", "");
+  }
+
+  public PaintingData(Identifier id, int width, int height, String name, String artist) {
+    this(id, width, height, name, artist, false);
   }
 
   public PaintingData(PaintingVariant vanillaVariant) {
@@ -19,6 +22,8 @@ public record PaintingData(Identifier id, int width, int height, boolean isVanil
         Registry.PAINTING_VARIANT.getId(vanillaVariant),
         vanillaVariant.getWidth() / 16,
         vanillaVariant.getHeight() / 16,
+        Registry.PAINTING_VARIANT.getId(vanillaVariant).getPath(),
+        "Minecraft",
         true);
   }
 
@@ -34,6 +39,14 @@ public record PaintingData(Identifier id, int width, int height, boolean isVanil
     return id == null;
   }
 
+  public boolean hasName() {
+    return name != null && !name.isEmpty();
+  }
+
+  public boolean hasArtist() {
+    return artist != null && !artist.isEmpty();
+  }
+
   public NbtCompound writeToNbt() {
     NbtCompound nbt = new NbtCompound();
     if (isEmpty()) {
@@ -43,6 +56,8 @@ public record PaintingData(Identifier id, int width, int height, boolean isVanil
     nbt.putString("Id", id.toString());
     nbt.putInt("Width", width);
     nbt.putInt("Height", height);
+    nbt.putString("Name", name);
+    nbt.putString("Artist", artist);
     nbt.putBoolean("Vanilla", isVanilla);
     return nbt;
   }
@@ -55,8 +70,10 @@ public record PaintingData(Identifier id, int width, int height, boolean isVanil
     Identifier id = Identifier.tryParse(nbt.getString("Id"));
     int width = nbt.getInt("Width");
     int height = nbt.getInt("Height");
+    String name = nbt.getString("Name");
+    String artist = nbt.getString("Artist");
     boolean isVanilla = nbt.getBoolean("Vanilla");
-    return new PaintingData(id, width, height, isVanilla);
+    return new PaintingData(id, width, height, name, artist, isVanilla);
   }
 
   public void writeToPacketByteBuf(PacketByteBuf buf) {
@@ -68,6 +85,8 @@ public record PaintingData(Identifier id, int width, int height, boolean isVanil
     buf.writeIdentifier(id());
     buf.writeInt(width());
     buf.writeInt(height());
+    buf.writeString(name());
+    buf.writeString(artist());
     buf.writeBoolean(isVanilla());
   }
 
@@ -78,7 +97,9 @@ public record PaintingData(Identifier id, int width, int height, boolean isVanil
     Identifier id = buf.readIdentifier();
     int width = buf.readInt();
     int height = buf.readInt();
+    String name = buf.readString();
+    String artist = buf.readString();
     boolean isVanilla = buf.readBoolean();
-    return new PaintingData(id, width, height, isVanilla);
+    return new PaintingData(id, width, height, name, artist, isVanilla);
   }
 }

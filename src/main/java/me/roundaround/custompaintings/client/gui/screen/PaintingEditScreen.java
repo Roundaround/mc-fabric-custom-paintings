@@ -2,6 +2,7 @@ package me.roundaround.custompaintings.client.gui.screen;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -35,6 +36,8 @@ import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.tag.PaintingVariantTags;
+import net.minecraft.text.OrderedText;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
@@ -137,9 +140,13 @@ public class PaintingEditScreen extends Screen {
     int scaledWidth = PaintingButtonWidget.getScaledWidth(paintingData, maxWidth, maxHeight);
     int scaledHeight = PaintingButtonWidget.getScaledHeight(paintingData, maxWidth, maxHeight);
 
+    int adjustment = paintingData.hasName() || paintingData.hasArtist()
+        ? textRenderer.fontHeight + 2
+        : 0;
+
     PaintingButtonWidget paintingButton = new PaintingButtonWidget(
         (width - scaledWidth) / 2,
-        (height + headerHeight - footerHeight - scaledHeight) / 2,
+        (height + headerHeight - footerHeight - scaledHeight + adjustment) / 2,
         maxWidth,
         maxHeight,
         (button) -> {
@@ -412,6 +419,29 @@ public class PaintingEditScreen extends Screen {
         width / 2,
         posY,
         0xFFFFFFFF);
+
+    if (paintingData.hasName() || paintingData.hasArtist()) {
+      posY += textRenderer.fontHeight + 2;
+
+      List<OrderedText> parts = new ArrayList<>();
+      if (paintingData.hasName()) {
+        parts.add(Text.literal("\"" + paintingData.name() + "\"").asOrderedText());
+      }
+      if (paintingData.hasName() && paintingData.hasArtist()) {
+        parts.add(Text.of(" - ").asOrderedText());
+      }
+      if (paintingData.hasArtist()) {
+        parts.add(OrderedText.styledForwardsVisitedString(paintingData.artist(), Style.EMPTY.withItalic(true)));
+      }
+
+      drawCenteredTextWithShadow(
+          matrixStack,
+          textRenderer,
+          OrderedText.concat(parts),
+          width / 2,
+          posY,
+          0xFFFFFFFF);
+    }
   }
 
   private boolean hasMultipleGroups() {
@@ -537,8 +567,13 @@ public class PaintingEditScreen extends Screen {
 
           pack.paintings().stream()
               .forEach((painting) -> {
-                allPaintings.get(groupId).paintings().add(new PaintingData(new Identifier(groupId, painting.id()),
-                    painting.width().orElse(1), painting.height().orElse(1)));
+                allPaintings.get(groupId).paintings().add(
+                    new PaintingData(
+                        new Identifier(pack.id(), painting.id()),
+                        painting.width().orElse(1),
+                        painting.height().orElse(1),
+                        painting.name().orElse(""),
+                        painting.artist().orElse("")));
               });
         });
   }
