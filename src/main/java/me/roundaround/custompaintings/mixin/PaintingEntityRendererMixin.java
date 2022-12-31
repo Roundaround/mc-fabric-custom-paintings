@@ -11,12 +11,18 @@ import me.roundaround.custompaintings.client.CustomPaintingManager;
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import net.minecraft.client.render.entity.EntityRenderer;
+import net.minecraft.client.render.entity.EntityRendererFactory.Context;
 import net.minecraft.client.render.entity.PaintingEntityRenderer;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.util.Identifier;
 
 @Mixin(PaintingEntityRenderer.class)
-public abstract class PaintingEntityRendererMixin {
+public abstract class PaintingEntityRendererMixin extends EntityRenderer<PaintingEntity> {
+  protected PaintingEntityRendererMixin(Context ctx) {
+    super(ctx);
+  }
+
   @Inject(method = "getTexture", at = @At(value = "RETURN"), cancellable = true)
   private void getTexture(PaintingEntity entity, CallbackInfoReturnable<Identifier> info) {
     PaintingData paintingData = ((ExpandedPaintingEntity) entity).getCustomData();
