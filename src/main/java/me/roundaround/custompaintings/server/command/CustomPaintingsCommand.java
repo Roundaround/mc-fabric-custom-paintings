@@ -74,9 +74,17 @@ public class CustomPaintingsCommand {
                     }))))
         .then(CommandManager.literal("size")
             .then(CommandManager.argument("id", IdentifierArgumentType.identifier())
-                .suggests(new KnownPaintingIdentifierSuggestionProvider())
+                .suggests(new KnownPaintingIdentifierSuggestionProvider(true))
                 .executes(context -> {
                   return executeFixSizes(
+                      context.getSource(),
+                      IdentifierArgumentType.getIdentifier(context, "id"));
+                })))
+        .then(CommandManager.literal("info")
+            .then(CommandManager.argument("id", IdentifierArgumentType.identifier())
+                .suggests(new KnownPaintingIdentifierSuggestionProvider(true))
+                .executes(context -> {
+                  return executeFixInfo(
                       context.getSource(),
                       IdentifierArgumentType.getIdentifier(context, "id"));
                 })));
@@ -241,13 +249,13 @@ public class CustomPaintingsCommand {
 
     toUpdate.forEach((painting) -> {
       PaintingData data = painting.getCustomData();
-      painting.setCustomData(to, data.width(), data.height());
+      painting.setCustomData(to, data.width(), data.height(), data.name(), data.artist());
     });
 
     if (toUpdate.isEmpty()) {
-      source.sendFeedback(Text.translatable("command.custompaintings.update.ids.none"), true);
+      source.sendFeedback(Text.translatable("command.custompaintings.fix.ids.none"), true);
     } else {
-      source.sendFeedback(Text.translatable("command.custompaintings.update.ids.success", toUpdate.size()), true);
+      source.sendFeedback(Text.translatable("command.custompaintings.fix.ids.success", toUpdate.size()), true);
     }
 
     return toUpdate.size();
@@ -270,14 +278,46 @@ public class CustomPaintingsCommand {
     });
 
     toUpdate.forEach((painting) -> {
-      PaintingData data = known.get(id);
-      painting.setCustomData(id, data.width(), data.height());
+      PaintingData currentData = painting.getCustomData();
+      PaintingData knownData = known.get(id);
+      painting.setCustomData(id, knownData.width(), knownData.height(), currentData.name(), currentData.artist());
     });
 
     if (toUpdate.isEmpty()) {
-      source.sendFeedback(Text.translatable("command.custompaintings.update.sizes.none"), true);
+      source.sendFeedback(Text.translatable("command.custompaintings.fix.sizes.none"), true);
     } else {
-      source.sendFeedback(Text.translatable("command.custompaintings.update.sizes.success", toUpdate.size()), true);
+      source.sendFeedback(Text.translatable("command.custompaintings.fix.sizes.success", toUpdate.size()), true);
+    }
+
+    return toUpdate.size();
+  }
+
+  private static int executeFixInfo(ServerCommandSource source, Identifier id) {
+    ArrayList<ExpandedPaintingEntity> toUpdate = new ArrayList<>();
+    Map<Identifier, PaintingData> known = CustomPaintingsMod.knownPaintings.get(source.getPlayer().getUuid())
+        .stream()
+        .collect(Collectors.toMap(PaintingData::id, Function.identity()));
+
+    source.getServer().getWorlds().forEach((world) -> {
+      world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
+          .stream()
+          .filter(
+              (entity) -> ((ExpandedPaintingEntity) entity).getCustomData().id().equals(id) && known.containsKey(id))
+          .forEach((entity) -> {
+            toUpdate.add((ExpandedPaintingEntity) entity);
+          });
+    });
+
+    toUpdate.forEach((painting) -> {
+      PaintingData currentData = painting.getCustomData();
+      PaintingData knownData = known.get(id);
+      painting.setCustomData(id, currentData.width(), currentData.height(), knownData.name(), knownData.artist());
+    });
+
+    if (toUpdate.isEmpty()) {
+      source.sendFeedback(Text.translatable("command.custompaintings.fix.info.none"), true);
+    } else {
+      source.sendFeedback(Text.translatable("command.custompaintings.fix.info.success", toUpdate.size()), true);
     }
 
     return toUpdate.size();
