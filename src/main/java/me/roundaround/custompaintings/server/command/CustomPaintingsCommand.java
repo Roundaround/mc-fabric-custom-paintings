@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.mojang.brigadier.CommandDispatcher;
@@ -40,6 +41,10 @@ public class CustomPaintingsCommand {
         .then(CommandManager.literal("missing")
             .executes(context -> {
               return executeListMissing(context.getSource());
+            }))
+        .then(CommandManager.literal("mismatched")
+            .executes(context -> {
+              return executeListMismatched(context.getSource());
             }));
 
     LiteralArgumentBuilder<ServerCommandSource> removeSub = CommandManager
@@ -103,7 +108,7 @@ public class CustomPaintingsCommand {
     if (ids.size() == 0) {
       source.sendFeedback(Text.translatable("command.custompaintings.list.known.none"), true);
     } else {
-      source.sendFeedback(Text.literal(String.join(", ", ids)), true);
+      source.sendFeedback(Text.literal(String.join("\n", ids)), true);
     }
 
     return ids.size();
@@ -140,6 +145,41 @@ public class CustomPaintingsCommand {
     }
 
     return missing.size();
+  }
+
+  private static int executeListMismatched(ServerCommandSource source) {
+    ServerPlayerEntity player = source.getPlayer();
+    UUID uuid = player.getUuid();
+    Map<Identifier, PaintingData> known = CustomPaintingsMod.knownPaintings.get(uuid)
+        .stream()
+        .collect(Collectors.toMap(PaintingData::id, Function.identity()));
+
+    HashMap<String, Integer> mismatched = new HashMap<>();
+
+    source.getServer().getWorlds().forEach((world) -> {
+      world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
+          .stream()
+          .forEach((entity) -> {
+            PaintingData data = ((ExpandedPaintingEntity) entity).getCustomData();
+            PaintingData knownData = known.get(data.id());
+
+            if (knownData == null || data.width() != knownData.width() || data.height() != knownData.height()) {
+              mismatched.put(data.id().toString(), mismatched.getOrDefault(data.id().toString(), 0) + 1);
+            }
+          });
+    });
+
+    if (mismatched.isEmpty()) {
+      source.sendFeedback(Text.translatable("command.custompaintings.list.mismatched.none"), true);
+    } else {
+      List<String> mismatchedPrintouts = new ArrayList<>();
+      mismatched.forEach((id, count) -> {
+        mismatchedPrintouts.add(String.format("%s (%d)", id, count));
+      });
+      source.sendFeedback(Text.literal(String.join("\n", mismatchedPrintouts)), true);
+    }
+
+    return mismatched.size();
   }
 
   private static int executeRemove(ServerCommandSource source, Optional<Identifier> idToRemove) {
@@ -217,7 +257,7 @@ public class CustomPaintingsCommand {
     ArrayList<ExpandedPaintingEntity> toUpdate = new ArrayList<>();
     Map<Identifier, PaintingData> known = CustomPaintingsMod.knownPaintings.get(source.getPlayer().getUuid())
         .stream()
-        .collect(Collectors.toMap((data) -> data.id(), (data) -> data));
+        .collect(Collectors.toMap(PaintingData::id, Function.identity()));
 
     source.getServer().getWorlds().forEach((world) -> {
       world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
