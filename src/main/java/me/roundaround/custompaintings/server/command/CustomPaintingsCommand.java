@@ -73,6 +73,9 @@ public class CustomPaintingsCommand {
                           IdentifierArgumentType.getIdentifier(context, "to"));
                     }))))
         .then(CommandManager.literal("size")
+            .executes(context -> {
+              return executeFixSizes(context.getSource(), null);
+            })
             .then(CommandManager.argument("id", IdentifierArgumentType.identifier())
                 .suggests(new KnownPaintingIdentifierSuggestionProvider(true))
                 .executes(context -> {
@@ -81,6 +84,9 @@ public class CustomPaintingsCommand {
                       IdentifierArgumentType.getIdentifier(context, "id"));
                 })))
         .then(CommandManager.literal("info")
+            .executes(context -> {
+              return executeFixInfo(context.getSource(), null);
+            })
             .then(CommandManager.argument("id", IdentifierArgumentType.identifier())
                 .suggests(new KnownPaintingIdentifierSuggestionProvider(true))
                 .executes(context -> {
@@ -89,6 +95,9 @@ public class CustomPaintingsCommand {
                       IdentifierArgumentType.getIdentifier(context, "id"));
                 })))
         .then(CommandManager.literal("everything")
+            .executes(context -> {
+              return executeFixEverything(context.getSource(), null);
+            })
             .then(CommandManager.argument("id", IdentifierArgumentType.identifier())
                 .suggests(new KnownPaintingIdentifierSuggestionProvider(true))
                 .executes(context -> {
@@ -278,8 +287,10 @@ public class CustomPaintingsCommand {
     source.getServer().getWorlds().forEach((world) -> {
       world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
           .stream()
-          .filter(
-              (entity) -> ((ExpandedPaintingEntity) entity).getCustomData().id().equals(id) && known.containsKey(id))
+          .filter((entity) -> {
+            Identifier entityId = ((ExpandedPaintingEntity) entity).getCustomData().id();
+            return (id == null || entityId.equals(id)) && known.containsKey(entityId);
+          })
           .forEach((entity) -> {
             toUpdate.add((ExpandedPaintingEntity) entity);
           });
@@ -287,8 +298,9 @@ public class CustomPaintingsCommand {
 
     toUpdate.forEach((painting) -> {
       PaintingData currentData = painting.getCustomData();
-      PaintingData knownData = known.get(id);
-      painting.setCustomData(id, knownData.width(), knownData.height(), currentData.name(), currentData.artist());
+      PaintingData knownData = known.get(currentData.id());
+      painting.setCustomData(currentData.id(), knownData.width(), knownData.height(), currentData.name(),
+          currentData.artist());
     });
 
     if (toUpdate.isEmpty()) {
@@ -309,8 +321,10 @@ public class CustomPaintingsCommand {
     source.getServer().getWorlds().forEach((world) -> {
       world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
           .stream()
-          .filter(
-              (entity) -> ((ExpandedPaintingEntity) entity).getCustomData().id().equals(id) && known.containsKey(id))
+          .filter((entity) -> {
+            Identifier entityId = ((ExpandedPaintingEntity) entity).getCustomData().id();
+            return (id == null || entityId.equals(id)) && known.containsKey(entityId);
+          })
           .forEach((entity) -> {
             toUpdate.add((ExpandedPaintingEntity) entity);
           });
@@ -318,8 +332,13 @@ public class CustomPaintingsCommand {
 
     toUpdate.forEach((painting) -> {
       PaintingData currentData = painting.getCustomData();
-      PaintingData knownData = known.get(id);
-      painting.setCustomData(id, currentData.width(), currentData.height(), knownData.name(), knownData.artist());
+      PaintingData knownData = known.get(currentData.id());
+      painting.setCustomData(
+          currentData.id(),
+          currentData.width(),
+          currentData.height(),
+          knownData.name(),
+          knownData.artist());
     });
 
     if (toUpdate.isEmpty()) {
@@ -340,16 +359,24 @@ public class CustomPaintingsCommand {
     source.getServer().getWorlds().forEach((world) -> {
       world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
           .stream()
-          .filter(
-              (entity) -> ((ExpandedPaintingEntity) entity).getCustomData().id().equals(id) && known.containsKey(id))
+          .filter((entity) -> {
+            Identifier entityId = ((ExpandedPaintingEntity) entity).getCustomData().id();
+            return (id == null || entityId.equals(id)) && known.containsKey(entityId);
+          })
           .forEach((entity) -> {
             toUpdate.add((ExpandedPaintingEntity) entity);
           });
     });
 
     toUpdate.forEach((painting) -> {
-      PaintingData knownData = known.get(id);
-      painting.setCustomData(id, knownData.width(), knownData.height(), knownData.name(), knownData.artist());
+      PaintingData currentData = painting.getCustomData();
+      PaintingData knownData = known.get(currentData.id());
+      painting.setCustomData(
+          currentData.id(),
+          knownData.width(),
+          knownData.height(),
+          knownData.name(),
+          knownData.artist());
     });
 
     if (toUpdate.isEmpty()) {
