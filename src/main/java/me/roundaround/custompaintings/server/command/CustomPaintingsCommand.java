@@ -13,6 +13,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
+import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.damage.DamageSource;
@@ -52,9 +53,22 @@ public class CustomPaintingsCommand {
                   Optional.of(IdentifierArgumentType.getIdentifier(context, "id")));
             }));
 
+    LiteralArgumentBuilder<ServerCommandSource> updateSub = CommandManager
+        .literal("update")
+        .then(CommandManager.literal("id")
+            .then(CommandManager.argument("from", IdentifierArgumentType.identifier())
+                .then(CommandManager.argument("to", IdentifierArgumentType.identifier())
+                    .executes(context -> {
+                      return executeUpdateIds(
+                          context.getSource(),
+                          IdentifierArgumentType.getIdentifier(context, "from"),
+                          IdentifierArgumentType.getIdentifier(context, "to"));
+                    }))));
+
     LiteralArgumentBuilder<ServerCommandSource> finalCommand = baseCommand
         .then(listSub)
-        .then(removeSub);
+        .then(removeSub)
+        .then(updateSub);
 
     dispatcher.register(finalCommand);
   }
@@ -64,7 +78,7 @@ public class CustomPaintingsCommand {
     UUID uuid = player.getUuid();
 
     if (!CustomPaintingsMod.knownPaintings.containsKey(uuid)) {
-      source.sendFeedback(Text.translatable("command.custompaintings.listknown.none"), true);
+      source.sendFeedback(Text.translatable("command.custompaintings.list.known.none"), true);
       return 0;
     }
 
@@ -75,7 +89,7 @@ public class CustomPaintingsCommand {
         .collect(Collectors.toList());
 
     if (ids.size() == 0) {
-      source.sendFeedback(Text.translatable("command.custompaintings.listknown.none"), true);
+      source.sendFeedback(Text.translatable("command.custompaintings.list.known.none"), true);
     } else {
       source.sendFeedback(Text.literal(String.join(", ", ids)), true);
     }
@@ -101,7 +115,7 @@ public class CustomPaintingsCommand {
     });
 
     if (missing.isEmpty()) {
-      source.sendFeedback(Text.translatable("command.custompaintings.listmissing.none"), true);
+      source.sendFeedback(Text.translatable("command.custompaintings.list.missing.none"), true);
     } else {
       List<String> missingPrintouts = new ArrayList<>();
       missing.forEach((id, count) -> {
@@ -153,5 +167,31 @@ public class CustomPaintingsCommand {
     }
 
     return toRemove.size();
+  }
+
+  private static int executeUpdateIds(ServerCommandSource source, Identifier from, Identifier to) {
+    ArrayList<ExpandedPaintingEntity> toUpdate = new ArrayList<>();
+
+    source.getServer().getWorlds().forEach((world) -> {
+      world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
+          .stream()
+          .filter((entity) -> ((ExpandedPaintingEntity) entity).getCustomData().id().equals(from))
+          .forEach((entity) -> {
+            toUpdate.add((ExpandedPaintingEntity) entity);
+          });
+    });
+
+    toUpdate.forEach((painting) -> {
+      PaintingData data = painting.getCustomData();
+      painting.setCustomData(to, data.width(), data.height());
+    });
+
+    if (toUpdate.isEmpty()) {
+      source.sendFeedback(Text.translatable("command.custompaintings.update.none"), true);
+    } else {
+      source.sendFeedback(Text.translatable("command.custompaintings.update.success", toUpdate.size()), true);
+    }
+
+    return toUpdate.size();
   }
 }
