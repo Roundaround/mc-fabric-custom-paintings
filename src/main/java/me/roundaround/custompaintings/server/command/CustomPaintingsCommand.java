@@ -2,9 +2,10 @@ package me.roundaround.custompaintings.server.command;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -53,22 +54,32 @@ public class CustomPaintingsCommand {
                   Optional.of(IdentifierArgumentType.getIdentifier(context, "id")));
             }));
 
-    LiteralArgumentBuilder<ServerCommandSource> updateSub = CommandManager
-        .literal("update")
+    LiteralArgumentBuilder<ServerCommandSource> fixSub = CommandManager
+        .literal("fix")
         .then(CommandManager.literal("id")
             .then(CommandManager.argument("from", IdentifierArgumentType.identifier())
+                .suggests(new ExistingPaintingIdentifierSuggestionProvider(true))
                 .then(CommandManager.argument("to", IdentifierArgumentType.identifier())
+                    .suggests(new KnownPaintingIdentifierSuggestionProvider())
                     .executes(context -> {
-                      return executeUpdateIds(
+                      return executeFixIds(
                           context.getSource(),
                           IdentifierArgumentType.getIdentifier(context, "from"),
                           IdentifierArgumentType.getIdentifier(context, "to"));
-                    }))));
+                    }))))
+        .then(CommandManager.literal("size")
+            .then(CommandManager.argument("id", IdentifierArgumentType.identifier())
+                .suggests(new KnownPaintingIdentifierSuggestionProvider())
+                .executes(context -> {
+                  return executeFixSizes(
+                      context.getSource(),
+                      IdentifierArgumentType.getIdentifier(context, "id"));
+                })));
 
     LiteralArgumentBuilder<ServerCommandSource> finalCommand = baseCommand
         .then(listSub)
         .then(removeSub)
-        .then(updateSub);
+        .then(fixSub);
 
     dispatcher.register(finalCommand);
   }
@@ -85,6 +96,7 @@ public class CustomPaintingsCommand {
     List<String> ids = CustomPaintingsMod.knownPaintings
         .get(uuid)
         .stream()
+        .map(PaintingData::id)
         .map(Identifier::toString)
         .collect(Collectors.toList());
 
@@ -100,7 +112,10 @@ public class CustomPaintingsCommand {
   private static int executeListMissing(ServerCommandSource source) {
     ServerPlayerEntity player = source.getPlayer();
     UUID uuid = player.getUuid();
-    HashSet<Identifier> known = CustomPaintingsMod.knownPaintings.get(uuid);
+    Set<Identifier> known = CustomPaintingsMod.knownPaintings.get(uuid)
+        .stream()
+        .map((data) -> data.id())
+        .collect(Collectors.toSet());
 
     HashMap<String, Integer> missing = new HashMap<>();
 
@@ -141,7 +156,10 @@ public class CustomPaintingsCommand {
             });
       });
     } else {
-      HashSet<Identifier> known = CustomPaintingsMod.knownPaintings.get(player.getUuid());
+      Set<Identifier> known = CustomPaintingsMod.knownPaintings.get(player.getUuid())
+          .stream()
+          .map((data) -> data.id())
+          .collect(Collectors.toSet());
 
       source.getServer().getWorlds().forEach((world) -> {
         world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
@@ -169,7 +187,7 @@ public class CustomPaintingsCommand {
     return toRemove.size();
   }
 
-  private static int executeUpdateIds(ServerCommandSource source, Identifier from, Identifier to) {
+  private static int executeFixIds(ServerCommandSource source, Identifier from, Identifier to) {
     ArrayList<ExpandedPaintingEntity> toUpdate = new ArrayList<>();
 
     source.getServer().getWorlds().forEach((world) -> {
@@ -187,9 +205,39 @@ public class CustomPaintingsCommand {
     });
 
     if (toUpdate.isEmpty()) {
-      source.sendFeedback(Text.translatable("command.custompaintings.update.none"), true);
+      source.sendFeedback(Text.translatable("command.custompaintings.update.ids.none"), true);
     } else {
-      source.sendFeedback(Text.translatable("command.custompaintings.update.success", toUpdate.size()), true);
+      source.sendFeedback(Text.translatable("command.custompaintings.update.ids.success", toUpdate.size()), true);
+    }
+
+    return toUpdate.size();
+  }
+
+  private static int executeFixSizes(ServerCommandSource source, Identifier id) {
+    ArrayList<ExpandedPaintingEntity> toUpdate = new ArrayList<>();
+    Map<Identifier, PaintingData> known = CustomPaintingsMod.knownPaintings.get(source.getPlayer().getUuid())
+        .stream()
+        .collect(Collectors.toMap((data) -> data.id(), (data) -> data));
+
+    source.getServer().getWorlds().forEach((world) -> {
+      world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
+          .stream()
+          .filter(
+              (entity) -> ((ExpandedPaintingEntity) entity).getCustomData().id().equals(id) && known.containsKey(id))
+          .forEach((entity) -> {
+            toUpdate.add((ExpandedPaintingEntity) entity);
+          });
+    });
+
+    toUpdate.forEach((painting) -> {
+      PaintingData data = known.get(id);
+      painting.setCustomData(id, data.width(), data.height());
+    });
+
+    if (toUpdate.isEmpty()) {
+      source.sendFeedback(Text.translatable("command.custompaintings.update.sizes.none"), true);
+    } else {
+      source.sendFeedback(Text.translatable("command.custompaintings.update.sizes.success", toUpdate.size()), true);
     }
 
     return toUpdate.size();

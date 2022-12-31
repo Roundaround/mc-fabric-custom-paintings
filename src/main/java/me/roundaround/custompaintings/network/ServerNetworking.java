@@ -90,7 +90,7 @@ public class ServerNetworking {
 
     int size = buf.readInt();
     for (int i = 0; i < size; i++) {
-      CustomPaintingsMod.knownPaintings.get(player.getUuid()).add(buf.readIdentifier());
+      CustomPaintingsMod.knownPaintings.get(player.getUuid()).add(PaintingData.fromPacketByteBuf(buf));
     }
   }
 }

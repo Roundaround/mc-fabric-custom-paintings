@@ -12,7 +12,6 @@ import net.fabricmc.fabric.api.networking.v1.PacketSender;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.network.PacketByteBuf;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 
@@ -31,11 +30,11 @@ public class ClientNetworking {
     ClientPlayNetworking.send(NetworkPackets.SET_PAINTING_PACKET, buf);
   }
 
-  public static void sendDeclareKnownPaintingsPacket(List<Identifier> knownPaintings) {
+  public static void sendDeclareKnownPaintingsPacket(List<PaintingData> knownPaintings) {
     PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
     buf.writeInt(knownPaintings.size());
-    for (Identifier paintingId : knownPaintings) {
-      buf.writeIdentifier(paintingId);
+    for (PaintingData data : knownPaintings) {
+      data.writeToPacketByteBuf(buf);
     }
     ClientPlayNetworking.send(
         NetworkPackets.DECLARE_KNOWN_PAINTINGS, buf);

@@ -144,9 +144,7 @@ public class CustomPaintingManager
 
   public void sendKnownPaintingsToServer() {
     try {
-      List<PaintingData> entries = getEntries();
-      List<Identifier> ids = entries.stream().map(PaintingData::id).collect(Collectors.toList());
-      ClientNetworking.sendDeclareKnownPaintingsPacket(ids);
+      ClientNetworking.sendDeclareKnownPaintingsPacket(getEntries());
     } catch (Exception e) {
       CustomPaintingsMod.LOGGER.error("Error sending known paintings to server", e);
     }

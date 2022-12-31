@@ -15,7 +15,6 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.entity.data.TrackedDataHandler;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.network.PacketByteBuf;
-import net.minecraft.util.Identifier;
 
 public final class CustomPaintingsMod implements ModInitializer {
   public static final String MOD_ID = "custompaintings";
@@ -33,7 +32,7 @@ public final class CustomPaintingsMod implements ModInitializer {
     }
   };
 
-  public static HashMap<UUID, HashSet<Identifier>> knownPaintings = new HashMap<>();
+  public static HashMap<UUID, HashSet<PaintingData>> knownPaintings = new HashMap<>();
 
   @Override
   public void onInitialize() {
