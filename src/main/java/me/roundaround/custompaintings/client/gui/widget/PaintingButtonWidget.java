@@ -1,4 +1,4 @@
-package me.roundaround.custompaintings.client.gui;
+package me.roundaround.custompaintings.client.gui.widget;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 

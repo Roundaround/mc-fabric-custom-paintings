@@ -13,9 +13,9 @@ import com.mojang.blaze3d.systems.RenderSystem;
 
 import me.roundaround.custompaintings.client.CustomPaintingManager;
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
-import me.roundaround.custompaintings.client.gui.GroupsListWidget;
-import me.roundaround.custompaintings.client.gui.PaintingButtonWidget;
 import me.roundaround.custompaintings.client.gui.widget.FilterButtonWidget;
+import me.roundaround.custompaintings.client.gui.widget.GroupsListWidget;
+import me.roundaround.custompaintings.client.gui.widget.PaintingButtonWidget;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.fabricmc.loader.api.FabricLoader;

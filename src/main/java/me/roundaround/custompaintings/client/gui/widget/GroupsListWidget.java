@@ -1,4 +1,4 @@
-package me.roundaround.custompaintings.client.gui;
+package me.roundaround.custompaintings.client.gui.widget;
 
 import java.util.Collection;
 
