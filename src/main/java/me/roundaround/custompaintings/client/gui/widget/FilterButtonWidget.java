@@ -1,5 +1,7 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
+import java.util.function.Consumer;
+
 import com.mojang.blaze3d.systems.RenderSystem;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
@@ -16,6 +18,7 @@ public class FilterButtonWidget extends ButtonWidget {
   protected static final Identifier WIDGETS_TEXTURE = new Identifier(
       CustomPaintingsMod.MOD_ID,
       "textures/gui/filter.png");
+  protected static final Text TOOLTIP = Text.translatable("custompaintings.gui.filter");
 
   public FilterButtonWidget(
       int x,
@@ -26,9 +29,10 @@ public class FilterButtonWidget extends ButtonWidget {
         y,
         WIDTH,
         HEIGHT,
-        Text.translatable("custompaintings.gui.filter"),
+        TOOLTIP,
         (button) -> {
-        });
+        },
+        new TooltipSupplier(parentScreen));
   }
 
   @Override
@@ -42,6 +46,24 @@ public class FilterButtonWidget extends ButtonWidget {
 
     if (hovered) {
       renderTooltip(matrixStack, mouseX, mouseY);
+    }
+  }
+
+  private static class TooltipSupplier implements ButtonWidget.TooltipSupplier {
+    private final Screen screen;
+
+    public TooltipSupplier(Screen screen) {
+      this.screen = screen;
+    }
+
+    @Override
+    public void onTooltip(ButtonWidget buttonWidget, MatrixStack matrixStack, int x, int y) {
+      screen.renderTooltip(matrixStack, TOOLTIP, x, y);
+    }
+
+    @Override
+    public void supply(Consumer<Text> consumer) {
+      consumer.accept(TOOLTIP);
     }
   }
 }
