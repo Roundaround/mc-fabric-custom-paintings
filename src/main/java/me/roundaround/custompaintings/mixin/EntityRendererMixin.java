@@ -39,6 +39,11 @@ public abstract class EntityRendererMixin<T extends Entity> {
       return;
     }
 
+    info.cancel();
+
+    // Replicate the vanilla label rendering, except positioned at the bottom
+    // of the painting and slightly in front of it.
+
     PaintingData paintingData = ((ExpandedPaintingEntity) entity).getCustomData();
     if (paintingData == null || paintingData.isEmpty() || paintingData.isVanilla()) {
       return;
@@ -48,21 +53,20 @@ public abstract class EntityRendererMixin<T extends Entity> {
       return;
     }
 
-    info.cancel();
-
-    // Replicate the vanilla label rendering, except positioned at the bottom
-    // of the painting and slightly in front of it.
-
     PaintingEntity painting = (PaintingEntity) entity;
     if (this.dispatcher.getSquaredDistanceToCamera(painting) > 4096) {
+      return;
+    }
+
+    if (MINECRAFT.targetedEntity != painting) {
       return;
     }
 
     TextRenderer textRenderer = MINECRAFT.textRenderer;
 
     matrices.push();
-    matrices.translate(-0.5f, 0.5f - paintingData.height() / 2f, 0);
-    matrices.multiply(Vec3f.POSITIVE_Y.getDegreesQuaternion(painting.getBodyYaw()));
+    matrices.translate(-0.125f, 0.5f - paintingData.height() / 2f, 0);
+    matrices.multiply(Vec3f.POSITIVE_Y.getDegreesQuaternion(painting.getHorizontalFacing().asRotation()));
     matrices.scale(-0.025f, -0.025f, 0.025f);
 
     Matrix4f matrix4f = matrices.peek().getPositionMatrix();
