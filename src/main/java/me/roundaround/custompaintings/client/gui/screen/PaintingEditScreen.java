@@ -15,6 +15,7 @@ import me.roundaround.custompaintings.client.CustomPaintingManager;
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
 import me.roundaround.custompaintings.client.gui.GroupsListWidget;
 import me.roundaround.custompaintings.client.gui.PaintingButtonWidget;
+import me.roundaround.custompaintings.client.gui.widget.FilterButtonWidget;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.fabricmc.loader.api.FabricLoader;
@@ -208,11 +209,17 @@ public class PaintingEditScreen extends Screen {
       doneButton.active = false;
     }
 
+    FilterButtonWidget filterButton = new FilterButtonWidget(
+        this.width - FilterButtonWidget.WIDTH - 10,
+        this.height - FilterButtonWidget.HEIGHT - 10,
+        this);
+
     addDrawableChild(paintingButton);
     addDrawableChild(prevButton);
     addDrawableChild(nextButton);
     addDrawableChild(cancelButton);
     addDrawableChild(doneButton);
+    addDrawableChild(filterButton);
   }
 
   @Override
