@@ -5,6 +5,9 @@ import java.util.function.Consumer;
 import com.mojang.blaze3d.systems.RenderSystem;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen;
+import me.roundaround.custompaintings.client.gui.screen.PaintingFilterScreen;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.render.GameRenderer;
@@ -19,11 +22,12 @@ public class FilterButtonWidget extends ButtonWidget {
       CustomPaintingsMod.MOD_ID,
       "textures/gui/filter.png");
   protected static final Text TOOLTIP = Text.translatable("custompaintings.gui.filter");
+  private static final MinecraftClient MINECRAFT = MinecraftClient.getInstance();
 
   public FilterButtonWidget(
       int x,
       int y,
-      Screen parentScreen) {
+      PaintingEditScreen parent) {
     super(
         x,
         y,
@@ -31,8 +35,9 @@ public class FilterButtonWidget extends ButtonWidget {
         HEIGHT,
         TOOLTIP,
         (button) -> {
+          MINECRAFT.setScreen(new PaintingFilterScreen(parent));
         },
-        new TooltipSupplier(parentScreen));
+        new TooltipSupplier(parent));
   }
 
   @Override
