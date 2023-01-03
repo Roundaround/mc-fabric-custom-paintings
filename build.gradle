@@ -1,5 +1,5 @@
 plugins {
-  id 'fabric-loom' version '0.12-SNAPSHOT'
+  id 'fabric-loom' version '1.0-SNAPSHOT'
   id 'maven-publish'
 }
 
@@ -61,10 +61,7 @@ publishing {
     mavenJava(MavenPublication) {
       artifactId project.archives_base_name
       version = project.mod_version + "+" + project.minecraft_version
-
-      artifact(remapJar) {
-        builtBy remapJar
-      }
+			from components.java
     }
   }
   repositories {
