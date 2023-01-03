@@ -41,9 +41,6 @@ public abstract class EntityRendererMixin<T extends Entity> {
 
     info.cancel();
 
-    // Replicate the vanilla label rendering, except positioned at the bottom
-    // of the painting and slightly in front of it.
-
     PaintingData paintingData = ((ExpandedPaintingEntity) entity).getCustomData();
     if (paintingData == null || paintingData.isEmpty() || paintingData.isVanilla()) {
       return;
@@ -65,8 +62,8 @@ public abstract class EntityRendererMixin<T extends Entity> {
     TextRenderer textRenderer = MINECRAFT.textRenderer;
 
     matrices.push();
-    matrices.translate(-0.125f, 0.5f - paintingData.height() / 2f, 0);
-    matrices.multiply(Vec3f.POSITIVE_Y.getDegreesQuaternion(painting.getHorizontalFacing().asRotation()));
+    matrices.multiply(Vec3f.POSITIVE_Y.getDegreesQuaternion(180 - painting.getHorizontalFacing().asRotation()));
+    matrices.translate(0, 0.5f - paintingData.height() / 2f, -0.125f);
     matrices.scale(-0.025f, -0.025f, 0.025f);
 
     Matrix4f matrix4f = matrices.peek().getPositionMatrix();
