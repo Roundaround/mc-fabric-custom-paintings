@@ -1,5 +1,7 @@
 package me.roundaround.custompaintings.client.gui.screen;
 
+import org.lwjgl.glfw.GLFW;
+
 import com.mojang.blaze3d.systems.RenderSystem;
 
 import net.minecraft.client.gui.screen.Screen;
@@ -9,7 +11,9 @@ import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.render.Tessellator;
 import net.minecraft.client.render.VertexFormat;
 import net.minecraft.client.render.VertexFormats;
+import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 
 public class PaintingFilterScreen extends Screen {
@@ -24,6 +28,35 @@ public class PaintingFilterScreen extends Screen {
   }
 
   @Override
+  public void close() {
+    this.client.setScreen(this.parent);
+  }
+
+  @Override
+  public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    switch (keyCode) {
+      case GLFW.GLFW_KEY_ESCAPE:
+        playClickSound();
+        resetFilters();
+        this.close();
+        return true;
+      case GLFW.GLFW_KEY_F:
+        if (hasControlDown() && !hasShiftDown() && !hasAltDown()) {
+          playClickSound();
+          this.close();
+          return true;
+        }
+        break;
+      case GLFW.GLFW_KEY_ENTER:
+        playClickSound();
+        this.close();
+        return true;
+    }
+
+    return super.keyPressed(keyCode, scanCode, modifiers);
+  }
+
+  @Override
   public void init() {
     ButtonWidget closeButton = new ButtonWidget(
         width / 2 - BUTTON_WIDTH / 2,
@@ -32,7 +65,7 @@ public class PaintingFilterScreen extends Screen {
         BUTTON_HEIGHT,
         Text.translatable("custompaintings.filter.close"),
         (button) -> {
-          client.setScreen(parent);
+          this.client.setScreen(this.parent);
         });
 
     addDrawableChild(closeButton);
@@ -108,5 +141,13 @@ public class PaintingFilterScreen extends Screen {
 
   private int getFooterHeight() {
     return 10 + BUTTON_HEIGHT + 10;
+  }
+
+  private void playClickSound() {
+    client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1f));
+  }
+
+  private void resetFilters() {
+    // TODO
   }
 }

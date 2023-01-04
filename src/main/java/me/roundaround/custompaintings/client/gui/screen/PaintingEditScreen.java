@@ -241,6 +241,7 @@ public class PaintingEditScreen extends Screen {
   private boolean keyPressedForGroupSelect(int keyCode, int scanCode, int modifiers) {
     switch (keyCode) {
       case GLFW.GLFW_KEY_ESCAPE:
+        playClickSound();
         saveEmpty();
         return true;
     }
@@ -252,24 +253,35 @@ public class PaintingEditScreen extends Screen {
     switch (keyCode) {
       case GLFW.GLFW_KEY_LEFT:
         if (hasMultiplePaintings()) {
-          client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1f));
+          playClickSound();
           previousPainting();
           return true;
         }
         break;
       case GLFW.GLFW_KEY_RIGHT:
         if (hasMultiplePaintings()) {
-          client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1f));
+          playClickSound();
           nextPainting();
           return true;
         }
         break;
       case GLFW.GLFW_KEY_ESCAPE:
+        playClickSound();
         clearGroup();
         return true;
+      case GLFW.GLFW_KEY_F:
+        if (hasControlDown() && !hasShiftDown() && !hasAltDown()) {
+          playClickSound();
+          client.setScreen(new PaintingFilterScreen(this));
+          return true;
+        }
     }
 
     return false;
+  }
+
+  private void playClickSound() {
+    client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1f));
   }
 
   @Override
