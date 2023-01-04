@@ -47,6 +47,7 @@ public class PaintingFilterScreen extends Screen {
   private void renderBackgroundInRegion(int top, int bottom, int left, int right) {
     Tessellator tessellator = Tessellator.getInstance();
     BufferBuilder bufferBuilder = tessellator.getBuffer();
+
     RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
     RenderSystem.setShaderTexture(0, OPTIONS_BACKGROUND_TEXTURE);
     RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
@@ -73,5 +74,39 @@ public class PaintingFilterScreen extends Screen {
         .color(64, 64, 64, 255)
         .next();
     tessellator.draw();
+
+    int headerBottom = top + getHeaderHeight();
+    int footerTop = bottom - getFooterHeight();
+
+    bufferBuilder.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_TEXTURE_COLOR);
+    bufferBuilder
+        .vertex(0, footerTop, 0)
+        .texture(0, footerTop / 32f)
+        .color(32, 32, 32, 255)
+        .next();
+    bufferBuilder
+        .vertex(width, footerTop, 0)
+        .texture(width / 32f, footerTop / 32f)
+        .color(32, 32, 32, 255)
+        .next();
+    bufferBuilder
+        .vertex(width, headerBottom, 0)
+        .texture(width / 32f, headerBottom / 32f)
+        .color(32, 32, 32, 255)
+        .next();
+    bufferBuilder
+        .vertex(0, headerBottom, 0)
+        .texture(0, headerBottom / 32f)
+        .color(32, 32, 32, 255)
+        .next();
+    tessellator.draw();
+  }
+
+  private int getHeaderHeight() {
+    return 10 + this.textRenderer.fontHeight + 2 + 10;
+  }
+
+  private int getFooterHeight() {
+    return 10 + BUTTON_HEIGHT + 10;
   }
 }
