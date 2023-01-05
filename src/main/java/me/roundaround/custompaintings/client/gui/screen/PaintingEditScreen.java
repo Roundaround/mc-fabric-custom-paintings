@@ -11,6 +11,7 @@ import java.util.function.Predicate;
 import me.roundaround.custompaintings.client.CustomPaintingManager;
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
 import me.roundaround.custompaintings.client.gui.screen.page.GroupSelectPage;
+import me.roundaround.custompaintings.client.gui.screen.page.PaintingEditScreenPage;
 import me.roundaround.custompaintings.client.gui.screen.page.PaintingSelectPage;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
@@ -45,9 +46,9 @@ public class PaintingEditScreen extends Screen {
   private final Direction facing;
   private Group currentGroup = null;
   private int currentPainting = 0;
-  private State currentState = State.GROUP_SELECT;
-  private State nextState = State.GROUP_SELECT;
-  private Action onStateSwitch = null;
+  private PaintingEditScreenPage currentPage;
+  private PaintingEditScreenPage nextPage;
+  private Action onPageSwitch = null;
   private int selectedIndex = 0;
 
   private boolean pagesInitialized = false;
@@ -106,17 +107,10 @@ public class PaintingEditScreen extends Screen {
 
     if (!hasMultipleGroups()) {
       currentGroup = allPaintings.values().stream().findFirst().get();
-      setStateImmediate(State.PAINTING_SELECT);
+      setPageImmediate(this.paintingSelectPage);
     }
 
-    switch (currentState) {
-      case GROUP_SELECT:
-        this.groupSelectPage.init();
-        break;
-      case PAINTING_SELECT:
-        this.paintingSelectPage.init();
-        break;
-    }
+    this.currentPage.init();
 
     if (selectedIndex >= 0 && selectedIndex < children().size()) {
       setInitialFocus(children().get(selectedIndex));
@@ -125,98 +119,38 @@ public class PaintingEditScreen extends Screen {
 
   @Override
   public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-    switch (currentState) {
-      case GROUP_SELECT:
-        if (this.groupSelectPage.preKeyPressed(keyCode, scanCode, modifiers)) {
-          return true;
-        }
-        break;
-      case PAINTING_SELECT:
-        if (this.paintingSelectPage.preKeyPressed(keyCode, scanCode, modifiers)) {
-          return true;
-        }
-        break;
+    if (this.currentPage.preKeyPressed(keyCode, scanCode, modifiers)) {
+      return true;
     }
 
     if (super.keyPressed(keyCode, scanCode, modifiers)) {
       return true;
     }
 
-    switch (currentState) {
-      case GROUP_SELECT:
-        if (this.groupSelectPage.postKeyPressed(keyCode, scanCode, modifiers)) {
-          return true;
-        }
-        break;
-      case PAINTING_SELECT:
-        if (this.paintingSelectPage.postKeyPressed(keyCode, scanCode, modifiers)) {
-          return true;
-        }
-        break;
-    }
-
-    return false;
+    return this.currentPage.postKeyPressed(keyCode, scanCode, modifiers);
   }
 
   @Override
   public boolean charTyped(char chr, int keyCode) {
-    switch (currentState) {
-      case GROUP_SELECT:
-        if (this.groupSelectPage.charTyped(chr, keyCode)) {
-          return true;
-        }
-        break;
-      case PAINTING_SELECT:
-        if (this.paintingSelectPage.charTyped(chr, keyCode)) {
-          return true;
-        }
-        break;
-    }
-
-    return false;
+    return this.currentPage.charTyped(chr, keyCode);
   }
 
   @Override
   public void tick() {
-    switch (currentState) {
-      case GROUP_SELECT:
-        this.groupSelectPage.tick();
-        break;
-      case PAINTING_SELECT:
-        this.paintingSelectPage.tick();
-        break;
-    }
+    this.currentPage.tick();
   }
 
   @Override
   public void render(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
     checkAndAdvanceState();
 
-    switch (currentState) {
-      case GROUP_SELECT:
-        this.groupSelectPage.renderBackground(matrixStack, mouseX, mouseY, partialTicks);
-        break;
-      case PAINTING_SELECT:
-        this.paintingSelectPage.renderBackground(matrixStack, mouseX, mouseY, partialTicks);
-        break;
-    }
+    this.currentPage.renderBackground(matrixStack, mouseX, mouseY, partialTicks);
 
     matrixStack.push();
     matrixStack.translate(0, 0, 12);
-    renderForegrounds(matrixStack, mouseX, mouseY, partialTicks);
+    this.currentPage.renderForeground(matrixStack, mouseX, mouseY, partialTicks);
     super.render(matrixStack, mouseX, mouseY, partialTicks);
     matrixStack.pop();
-  }
-
-  private void renderForegrounds(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-    switch (currentState) {
-      case GROUP_SELECT:
-        this.groupSelectPage.renderForeground(matrixStack, mouseX, mouseY, partialTicks);
-        break;
-      case PAINTING_SELECT:
-        this.paintingSelectPage.renderForeground(matrixStack, mouseX, mouseY, partialTicks);
-        break;
-    }
   }
 
   public void markCurrentSelectedIndex() {
@@ -247,18 +181,18 @@ public class PaintingEditScreen extends Screen {
     close();
   }
 
-  private void setState(State state, Action onSwitch) {
-    nextState = state;
-    onStateSwitch = onSwitch;
+  private void setPage(PaintingEditScreenPage page, Action onSwitch) {
+    nextPage = page;
+    onPageSwitch = onSwitch;
   }
 
   private void checkAndAdvanceState() {
-    if (currentState != nextState) {
-      currentState = nextState;
+    if (currentPage != nextPage) {
+      currentPage = nextPage;
 
-      if (onStateSwitch != null) {
-        onStateSwitch.execute();
-        onStateSwitch = null;
+      if (onPageSwitch != null) {
+        onPageSwitch.execute();
+        onPageSwitch = null;
       }
 
       selectedIndex = 0;
@@ -266,10 +200,10 @@ public class PaintingEditScreen extends Screen {
     }
   }
 
-  private void setStateImmediate(State state) {
-    currentState = state;
-    nextState = state;
-    onStateSwitch = null;
+  private void setPageImmediate(PaintingEditScreenPage page) {
+    currentPage = page;
+    nextPage = page;
+    onPageSwitch = null;
   }
 
   public void selectGroup(String id) {
@@ -277,13 +211,13 @@ public class PaintingEditScreen extends Screen {
       return;
     }
 
-    setState(State.PAINTING_SELECT, () -> {
+    setPage(this.paintingSelectPage, () -> {
       this.currentGroup = allPaintings.get(id);
     });
   }
 
   public void clearGroup() {
-    setState(State.GROUP_SELECT, () -> {
+    setPage(this.groupSelectPage, () -> {
       this.currentGroup = null;
       this.currentPainting = 0;
     });
@@ -430,11 +364,11 @@ public class PaintingEditScreen extends Screen {
   }
 
   private void initPages() {
-    if (pagesInitialized) {
+    if (this.pagesInitialized) {
       return;
     }
 
-    pagesInitialized = true;
+    this.pagesInitialized = true;
     this.groupSelectPage = new GroupSelectPage(
         this,
         this.client,
@@ -445,6 +379,9 @@ public class PaintingEditScreen extends Screen {
         this.client,
         this.width,
         this.height);
+
+    this.currentPage = this.groupSelectPage;
+    this.nextPage = this.groupSelectPage;
   }
 
   public record Group(String id, String name, ArrayList<PaintingData> paintings) {
@@ -453,10 +390,5 @@ public class PaintingEditScreen extends Screen {
   @FunctionalInterface
   public interface Action {
     public abstract void execute();
-  }
-
-  private enum State {
-    GROUP_SELECT,
-    PAINTING_SELECT;
   }
 }
