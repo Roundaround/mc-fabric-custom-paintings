@@ -8,6 +8,7 @@ import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen;
 import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen.Group;
 import me.roundaround.custompaintings.client.gui.widget.FilterButtonWidget;
 import me.roundaround.custompaintings.client.gui.widget.PaintingButtonWidget;
+import me.roundaround.custompaintings.client.gui.widget.PaintingListWidget;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -21,6 +22,7 @@ import net.minecraft.util.Formatting;
 
 public class PaintingSelectPage extends PaintingEditScreenPage {
   private TextFieldWidget searchBox;
+  private PaintingListWidget paintingList;
   private int paneWidth;
   private int rightPaneX;
 
@@ -61,11 +63,19 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
     int headerHeight = getHeaderHeight();
     int footerHeight = getFooterHeight();
 
+    this.paintingList = new PaintingListWidget(
+        this.parent,
+        this.client,
+        this.paneWidth,
+        this.height - 22 - FilterButtonWidget.HEIGHT - 4 - footerHeight,
+        22 + FilterButtonWidget.HEIGHT + 4,
+        this.height - getFooterHeight() - 4);
+
     int maxWidth = this.paneWidth / 2;
     int maxHeight = this.height - headerHeight - footerHeight - BUTTON_HEIGHT - 24;
 
-    int scaledWidth = PaintingButtonWidget.getScaledWidth(paintingData, maxWidth, maxHeight);
-    int scaledHeight = PaintingButtonWidget.getScaledHeight(paintingData, maxWidth, maxHeight);
+    int scaledWidth = paintingData.getScaledWidth(maxWidth, maxHeight);
+    int scaledHeight = paintingData.getScaledHeight(maxWidth, maxHeight);
 
     PaintingButtonWidget paintingButton = new PaintingButtonWidget(
         this.rightPaneX + (this.paneWidth - scaledWidth) / 2,
@@ -135,6 +145,7 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
     }
 
     addSelectableChild(this.searchBox);
+    addSelectableChild(this.paintingList);
     addDrawableChild(filterButton);
     addDrawableChild(paintingButton);
     addDrawableChild(prevButton);
@@ -179,6 +190,14 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
     return this.searchBox.charTyped(chr, keyCode);
   }
 
+	@Override
+	public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+		if (this.paintingList.isMouseOver(mouseX, mouseY)) {
+			return this.paintingList.mouseScrolled(mouseX, mouseY, amount);
+		}
+		return false;
+	}
+
   @Override
   public void tick() {
     this.searchBox.tick();
@@ -197,6 +216,7 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
     PaintingData paintingData = currentGroup.paintings().get(currentPainting);
 
     this.searchBox.render(matrixStack, mouseX, mouseY, partialTicks);
+    this.paintingList.render(matrixStack, mouseX, mouseY, partialTicks);
 
     if (this.parent.hasMultipleGroups()) {
       drawTextWithShadow(

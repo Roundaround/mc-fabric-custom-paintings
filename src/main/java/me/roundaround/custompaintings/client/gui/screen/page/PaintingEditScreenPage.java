@@ -44,7 +44,7 @@ public abstract class PaintingEditScreenPage extends DrawableHelper {
   public abstract void renderBackground(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks);
 
   public abstract void renderForeground(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks);
-  
+
   public boolean preKeyPressed(int keyCode, int scanCode, int modifiers) {
     return false;
   }
@@ -54,6 +54,10 @@ public abstract class PaintingEditScreenPage extends DrawableHelper {
   }
 
   public boolean charTyped(char chr, int modifiers) {
+    return false;
+  }
+
+  public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
     return false;
   }
 

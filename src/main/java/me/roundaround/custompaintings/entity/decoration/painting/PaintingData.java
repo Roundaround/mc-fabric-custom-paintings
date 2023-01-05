@@ -35,6 +35,16 @@ public record PaintingData(Identifier id, int width, int height, String name, St
     return height() * 16;
   }
 
+  public int getScaledWidth(int maxWidth, int maxHeight) {
+    float scale = Math.min((float) maxWidth / getScaledWidth(), (float) maxHeight / getScaledHeight());
+    return Math.round(scale * getScaledWidth());
+  }
+
+  public int getScaledHeight(int maxWidth, int maxHeight) {
+    float scale = Math.min((float) maxWidth / getScaledWidth(), (float) maxHeight / getScaledHeight());
+    return Math.round(scale * getScaledHeight());
+  }
+
   public boolean isEmpty() {
     return id == null;
   }

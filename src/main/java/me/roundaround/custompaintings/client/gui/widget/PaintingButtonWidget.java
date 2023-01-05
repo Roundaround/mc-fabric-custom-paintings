@@ -23,8 +23,8 @@ public class PaintingButtonWidget extends ButtonWidget {
     super(
         x,
         y,
-        getScaledWidth(paintingData, maxWidth, maxHeight),
-        getScaledHeight(paintingData, maxWidth, maxHeight),
+        paintingData.getScaledWidth(maxWidth, maxHeight),
+        paintingData.getScaledHeight(maxWidth, maxHeight),
         Text.literal(paintingData.id().toString()),
         onPress);
     this.paintingData = paintingData;
@@ -53,15 +53,5 @@ public class PaintingButtonWidget extends ButtonWidget {
   @Override
   public boolean isHovered() {
     return super.isHovered() && active;
-  }
-
-  public static int getScaledWidth(PaintingData paintingData, int maxWidth, int maxHeight) {
-    float scale = Math.min((float) maxWidth / paintingData.getScaledWidth(), (float) maxHeight / paintingData.getScaledHeight());
-    return Math.round(scale * paintingData.getScaledWidth());
-  }
-
-  public static int getScaledHeight(PaintingData paintingData, int maxWidth, int maxHeight) {
-    float scale = Math.min((float) maxWidth / paintingData.getScaledWidth(), (float) maxHeight / paintingData.getScaledHeight());
-    return Math.round(scale * paintingData.getScaledHeight());
   }
 }

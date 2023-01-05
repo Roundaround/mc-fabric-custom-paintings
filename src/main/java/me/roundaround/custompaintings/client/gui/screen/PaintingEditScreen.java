@@ -135,6 +135,11 @@ public class PaintingEditScreen extends Screen {
     return this.currentPage.charTyped(chr, keyCode);
   }
 
+	@Override
+	public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+    return this.currentPage.mouseScrolled(mouseX, mouseY, amount);
+  }
+
   @Override
   public void tick() {
     this.currentPage.tick();
@@ -232,6 +237,10 @@ public class PaintingEditScreen extends Screen {
   }
 
   public void setCurrentPainting(int index) {
+    if (this.currentPainting == index) {
+      return;
+    }
+
     this.currentPainting = index;
     markCurrentSelectedIndex();
     clearAndInit();
