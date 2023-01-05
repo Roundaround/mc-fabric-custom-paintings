@@ -1,5 +1,7 @@
 package me.roundaround.custompaintings.client.gui.screen.page;
 
+import java.util.ArrayList;
+
 import org.lwjgl.glfw.GLFW;
 
 import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen;
@@ -13,7 +15,10 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.screen.ScreenTexts;
+import net.minecraft.text.OrderedText;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 
 public class PaintingSelectPage extends PaintingEditScreenPage {
   private TextFieldWidget searchBox;
@@ -48,11 +53,14 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
     this.paneWidth = this.width / 2 - 8;
     this.rightPaneX = this.width - this.paneWidth;
 
+    int headerHeight = getHeaderHeight();
+    int footerHeight = getFooterHeight();
+
     // 10px padding on each side, 4px between search box and filter button
     this.searchBox = new TextFieldWidget(
         this.textRenderer,
         10,
-        22,
+        headerHeight + 4 + (this.parent.hasMultipleGroups() ? this.textRenderer.fontHeight + 2 : 0),
         this.paneWidth - FilterButtonWidget.WIDTH - 24,
         BUTTON_HEIGHT,
         this.searchBox,
@@ -61,30 +69,39 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
 
     FilterButtonWidget filterButton = new FilterButtonWidget(
         10 + this.searchBox.getWidth() + 4,
-        22,
-        this.parent);
+        this.searchBox.y,
+        this.parent,
+        Text.translatable("custompaintings.painting.filter"),
+        (button) -> {
+          // TODO: Show advanced filters
+        });
 
-    int headerHeight = getHeaderHeight();
-    int footerHeight = getFooterHeight();
-
+    int listTop = this.searchBox.y + this.searchBox.getHeight() + 4;
+    int listBottom = this.height - footerHeight - 4;
+    int listHeight = listBottom - listTop;
     this.paintingList = new PaintingListWidget(
         this,
         this.parent,
         this.client,
         this.paneWidth,
-        this.height - 22 - FilterButtonWidget.HEIGHT - 4 - footerHeight,
-        22 + FilterButtonWidget.HEIGHT + 4,
-        this.height - footerHeight - 4);
+        listHeight,
+        listTop,
+        listBottom);
 
-    int maxWidth = this.paneWidth / 2;
-    int maxHeight = this.height - headerHeight - footerHeight - BUTTON_HEIGHT - 24;
+    int paintingTop = headerHeight + 8
+        + (paintingData.hasName() || paintingData.hasArtist() ? 3 : 2) * textRenderer.fontHeight
+        + (paintingData.hasName() || paintingData.hasArtist() ? 2 : 1) * 2;
+    int paintingBottom = this.height - footerHeight - 8 - BUTTON_HEIGHT;
+
+    int maxWidth = this.paneWidth / 2 - 8;
+    int maxHeight = paintingBottom - paintingTop;
 
     int scaledWidth = paintingData.getScaledWidth(maxWidth, maxHeight);
     int scaledHeight = paintingData.getScaledHeight(maxWidth, maxHeight);
 
     PaintingButtonWidget paintingButton = new PaintingButtonWidget(
         this.rightPaneX + (this.paneWidth - scaledWidth) / 2,
-        (height + headerHeight - footerHeight - scaledHeight) / 2,
+        (paintingTop + paintingBottom - scaledHeight) / 2,
         maxWidth,
         maxHeight,
         (button) -> {
@@ -98,7 +115,7 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
 
     ButtonWidget prevButton = new ButtonWidget(
         this.rightPaneX + this.paneWidth / 2 - BUTTON_WIDTH - 2,
-        height - 2 * BUTTON_HEIGHT - 10 - 4,
+        this.height - footerHeight - 4 - BUTTON_HEIGHT,
         BUTTON_WIDTH,
         BUTTON_HEIGHT,
         Text.translatable("custompaintings.painting.previous"),
@@ -108,7 +125,7 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
 
     ButtonWidget nextButton = new ButtonWidget(
         this.rightPaneX + this.paneWidth / 2 + 2,
-        height - 2 * BUTTON_HEIGHT - 10 - 4,
+        this.height - footerHeight - 4 - BUTTON_HEIGHT,
         BUTTON_WIDTH,
         BUTTON_HEIGHT,
         Text.translatable("custompaintings.painting.next"),
@@ -227,20 +244,70 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
         0xFFFFFFFF);
 
     Group currentGroup = this.parent.getCurrentGroup();
-    int currentPainting = this.parent.getCurrentPainting();
-    int posY = this.searchBox.y;
 
     if (this.parent.hasMultipleGroups()) {
-      drawCenteredText(
+      drawTextWithShadow(
           matrixStack,
           textRenderer,
-          Text.literal(currentGroup.name()),
-          (this.width + this.rightPaneX) / 2,
-          posY,
+          Text.literal(this.parent.getCurrentGroup().name()),
+          10,
+          getHeaderHeight() + 4,
           0xFFFFFFFF);
     }
 
+    int currentPainting = this.parent.getCurrentPainting();
+    PaintingData paintingData = currentGroup
+        .paintings()
+        .get(currentPainting);
+    int posX = this.rightPaneX + paneWidth / 2;
+    int posY = getHeaderHeight() + 4;
+
+    if (paintingData.hasName() || paintingData.hasArtist()) {
+      ArrayList<OrderedText> parts = new ArrayList<>();
+      if (paintingData.hasName()) {
+        parts.add(Text.literal("\"" + paintingData.name() + "\"").asOrderedText());
+      }
+      if (paintingData.hasName() && paintingData.hasArtist()) {
+        parts.add(Text.of(" - ").asOrderedText());
+      }
+      if (paintingData.hasArtist()) {
+        parts.add(OrderedText.styledForwardsVisitedString(
+            paintingData.artist(),
+            Style.EMPTY.withItalic(true)));
+      }
+
+      drawCenteredTextWithShadow(
+          matrixStack,
+          textRenderer,
+          OrderedText.concat(parts),
+          posX,
+          posY,
+          0xFFFFFFFF);
+
+      posY += textRenderer.fontHeight + 2;
+    }
+
+    drawCenteredText(
+        matrixStack,
+        textRenderer,
+        Text.literal("(" + paintingData.id().toString() + ")")
+            .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)),
+        posX,
+        posY,
+        0xFFFFFFFF);
+
     posY += textRenderer.fontHeight + 2;
+
+    drawCenteredText(
+        matrixStack,
+        textRenderer,
+        Text.translatable(
+            "custompaintings.painting.dimensions",
+            paintingData.width(),
+            paintingData.height()),
+        posX,
+        posY,
+        0xFFFFFFFF);
 
     drawCenteredText(
         matrixStack,
@@ -249,13 +316,17 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
             "custompaintings.painting.number",
             currentPainting + 1,
             currentGroup.paintings().size()),
-        (this.width + this.rightPaneX) / 2,
-        posY,
+        posX,
+        this.height
+            - getFooterHeight()
+            - 4
+            - BUTTON_HEIGHT
+            + (BUTTON_HEIGHT - textRenderer.fontHeight) / 2,
         0xFFFFFFFF);
   }
 
   private int getHeaderHeight() {
-    return 11 + textRenderer.fontHeight;
+    return 11 + textRenderer.fontHeight + 10;
   }
 
   private int getFooterHeight() {

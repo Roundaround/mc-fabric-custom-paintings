@@ -6,6 +6,7 @@
   "custompaintings.painting.dimensions": "%s x %s blocks",
   "custompaintings.painting.previous": "Previous",
   "custompaintings.painting.next": "Next",
+  "custompaintings.painting.filter": "Advanced filters",
   "custompaintings.filter.title": "Set filters",
   "custompaintings.filter.reset": "Reset"
 }

@@ -6,8 +6,6 @@ import com.mojang.blaze3d.systems.RenderSystem;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen;
-import me.roundaround.custompaintings.client.gui.screen.PaintingFilterScreen;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.render.GameRenderer;
@@ -21,23 +19,21 @@ public class FilterButtonWidget extends ButtonWidget {
   protected static final Identifier WIDGETS_TEXTURE = new Identifier(
       CustomPaintingsMod.MOD_ID,
       "textures/gui/filter.png");
-  protected static final Text TOOLTIP = Text.translatable("custompaintings.gui.filter");
-  private static final MinecraftClient MINECRAFT = MinecraftClient.getInstance();
 
   public FilterButtonWidget(
       int x,
       int y,
-      PaintingEditScreen parent) {
+      PaintingEditScreen parent,
+      Text tooltip,
+      PressAction onPress) {
     super(
         x,
         y,
         WIDTH,
         HEIGHT,
-        TOOLTIP,
-        (button) -> {
-          MINECRAFT.setScreen(new PaintingFilterScreen(parent));
-        },
-        new TooltipSupplier(parent));
+        tooltip,
+        onPress,
+        new TooltipSupplier(parent, tooltip));
   }
 
   @Override
@@ -56,19 +52,21 @@ public class FilterButtonWidget extends ButtonWidget {
 
   private static class TooltipSupplier implements ButtonWidget.TooltipSupplier {
     private final Screen screen;
+    private final Text tooltip;
 
-    public TooltipSupplier(Screen screen) {
+    public TooltipSupplier(Screen screen, Text tooltip) {
       this.screen = screen;
+      this.tooltip = tooltip;
     }
 
     @Override
     public void onTooltip(ButtonWidget buttonWidget, MatrixStack matrixStack, int x, int y) {
-      screen.renderTooltip(matrixStack, TOOLTIP, x, y);
+      screen.renderTooltip(matrixStack, this.tooltip, x, y);
     }
 
     @Override
     public void supply(Consumer<Text> consumer) {
-      consumer.accept(TOOLTIP);
+      consumer.accept(this.tooltip);
     }
   }
 }
