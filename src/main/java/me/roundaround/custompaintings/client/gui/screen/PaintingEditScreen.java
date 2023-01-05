@@ -229,10 +229,12 @@ public class PaintingEditScreen extends Screen {
         if (keyPressedForGroupSelect(keyCode, scanCode, modifiers)) {
           return true;
         }
+        break;
       case PAINTING_SELECT:
         if (keyPressedForPaintingSelect(keyCode, scanCode, modifiers)) {
           return true;
         }
+        break;
     }
 
     return super.keyPressed(keyCode, scanCode, modifiers);

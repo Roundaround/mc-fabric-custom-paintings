@@ -6,6 +6,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.render.BufferBuilder;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.render.Tessellator;
@@ -21,6 +22,8 @@ public class PaintingFilterScreen extends Screen {
   private static final int BUTTON_HEIGHT = 20;
 
   private final PaintingEditScreen parent;
+
+  protected TextFieldWidget searchBox;
 
   public PaintingFilterScreen(PaintingEditScreen parent) {
     super(Text.translatable("custompaintings.filter.title"));
@@ -53,27 +56,68 @@ public class PaintingFilterScreen extends Screen {
         return true;
     }
 
-    return super.keyPressed(keyCode, scanCode, modifiers);
+    if (super.keyPressed(keyCode, scanCode, modifiers)) {
+      return true;
+    }
+
+    return this.searchBox.keyPressed(keyCode, scanCode, modifiers);
+  }
+
+  @Override
+  public boolean charTyped(char chr, int modifiers) {
+    return this.searchBox.charTyped(chr, modifiers);
   }
 
   @Override
   public void init() {
-    ButtonWidget closeButton = new ButtonWidget(
-        width / 2 - BUTTON_WIDTH / 2,
-        height / 2 - BUTTON_HEIGHT / 2,
+    this.client.keyboard.setRepeatEvents(true);
+    this.searchBox = new TextFieldWidget(
+        this.textRenderer,
+        this.width / 2 - BUTTON_WIDTH,
+        22,
+        BUTTON_WIDTH * 2,
+        BUTTON_HEIGHT,
+        this.searchBox,
+        Text.translatable("custompaintings.filter.search"));
+    this.searchBox.setChangedListener((search) -> {
+      setSearchText(search);
+    });
+
+    this.addSelectableChild(this.searchBox);
+
+    addDrawableChild(new ButtonWidget(
+        this.width / 2 - BUTTON_WIDTH - 2,
+        this.height - BUTTON_HEIGHT - 10,
         BUTTON_WIDTH,
         BUTTON_HEIGHT,
         Text.translatable("custompaintings.filter.close"),
         (button) -> {
           this.client.setScreen(this.parent);
-        });
+        }));
 
-    addDrawableChild(closeButton);
+    addDrawableChild(new ButtonWidget(
+        this.width / 2 + 2,
+        this.height - BUTTON_HEIGHT - 10,
+        BUTTON_WIDTH,
+        BUTTON_HEIGHT,
+        Text.translatable("custompaintings.filter.reset"),
+        (button) -> {
+          resetFilters();
+        }));
+
+    this.setInitialFocus(this.searchBox);
+  }
+
+  @Override
+  public void tick() {
+    this.searchBox.tick();
   }
 
   @Override
   public void render(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
     renderBackgroundInRegion(0, height, 0, width);
+    this.searchBox.render(matrixStack, mouseX, mouseY, partialTicks);
+    drawCenteredText(matrixStack, this.textRenderer, this.title, this.width / 2, 8, 0xFFFFFF);
     super.render(matrixStack, mouseX, mouseY, partialTicks);
   }
 
@@ -136,7 +180,8 @@ public class PaintingFilterScreen extends Screen {
   }
 
   private int getHeaderHeight() {
-    return 10 + this.textRenderer.fontHeight + 2 + 10;
+    // return 8 + this.textRenderer.fontHeight + BUTTON_HEIGHT;
+    return 48;
   }
 
   private int getFooterHeight() {
@@ -148,6 +193,10 @@ public class PaintingFilterScreen extends Screen {
   }
 
   private void resetFilters() {
+    // TODO
+  }
+
+  private void setSearchText(String text) {
     // TODO
   }
 }
