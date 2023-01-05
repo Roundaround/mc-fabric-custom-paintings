@@ -23,6 +23,7 @@ import net.minecraft.block.AbstractRedstoneGateBlock;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.render.BufferBuilder;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.render.Tessellator;
@@ -63,6 +64,9 @@ public class PaintingEditScreen extends Screen {
   private int currentPainting = 0;
   private GroupsListWidget groupsListWidget;
   private int selectedIndex = 0;
+  private TextFieldWidget searchBox;
+  private int paneWidth;
+  private int rightPaneX;
 
   private static final Predicate<Entity> DECORATION_PREDICATE = (
       entity) -> entity instanceof AbstractDecorationEntity;
@@ -75,6 +79,14 @@ public class PaintingEditScreen extends Screen {
     this.paintingId = paintingId;
     this.blockPos = blockPos;
     this.facing = facing;
+  }
+
+  public void resetFilters() {
+    // TODO
+  }
+
+  public void setSearchQuery(String text) {
+    // TODO
   }
 
   @Override
@@ -112,7 +124,7 @@ public class PaintingEditScreen extends Screen {
         client,
         width,
         height,
-        getHeaderHeight(null),
+        getHeaderHeight(),
         height - getFooterHeight());
     groupsListWidget.setGroups(allPaintings.values());
     addSelectableChild(groupsListWidget);
@@ -133,17 +145,36 @@ public class PaintingEditScreen extends Screen {
     PaintingData paintingData = currentGroup.paintings().get(currentPainting);
     boolean canStay = canStay(paintingData);
 
-    int headerHeight = getHeaderHeight(paintingData);
+    this.paneWidth = this.width / 2 - 8;
+    this.rightPaneX = this.width - this.paneWidth;
+
+    // 10px padding on each side, 4px between search box and filter button
+    this.searchBox = new TextFieldWidget(
+        this.textRenderer,
+        10,
+        22,
+        this.paneWidth - FilterButtonWidget.WIDTH - 24,
+        BUTTON_HEIGHT,
+        this.searchBox,
+        Text.translatable("custompaintings.painting.search"));
+    this.searchBox.setChangedListener((search) -> setSearchQuery(search));
+
+    FilterButtonWidget filterButton = new FilterButtonWidget(
+        10 + this.searchBox.getWidth() + 4,
+        22,
+        this);
+
+    int headerHeight = getHeaderHeight();
     int footerHeight = getFooterHeight();
 
-    int maxWidth = width / 2;
-    int maxHeight = height - headerHeight - footerHeight - 20;
+    int maxWidth = this.paneWidth / 2;
+    int maxHeight = this.height - headerHeight - footerHeight - BUTTON_HEIGHT - 24;
 
     int scaledWidth = PaintingButtonWidget.getScaledWidth(paintingData, maxWidth, maxHeight);
     int scaledHeight = PaintingButtonWidget.getScaledHeight(paintingData, maxWidth, maxHeight);
 
     PaintingButtonWidget paintingButton = new PaintingButtonWidget(
-        (width - scaledWidth) / 2,
+        this.rightPaneX + (this.paneWidth - scaledWidth) / 2,
         (height + headerHeight - footerHeight - scaledHeight) / 2,
         maxWidth,
         maxHeight,
@@ -157,7 +188,7 @@ public class PaintingEditScreen extends Screen {
     }
 
     ButtonWidget prevButton = new ButtonWidget(
-        width / 2 - BUTTON_WIDTH - 2,
+        this.rightPaneX + this.paneWidth / 2 - BUTTON_WIDTH - 2,
         height - 2 * BUTTON_HEIGHT - 10 - 4,
         BUTTON_WIDTH,
         BUTTON_HEIGHT,
@@ -167,7 +198,7 @@ public class PaintingEditScreen extends Screen {
         });
 
     ButtonWidget nextButton = new ButtonWidget(
-        width / 2 + 2,
+        this.rightPaneX + this.paneWidth / 2 + 2,
         height - 2 * BUTTON_HEIGHT - 10 - 4,
         BUTTON_WIDTH,
         BUTTON_HEIGHT,
@@ -209,17 +240,13 @@ public class PaintingEditScreen extends Screen {
       doneButton.active = false;
     }
 
-    FilterButtonWidget filterButton = new FilterButtonWidget(
-        this.width - FilterButtonWidget.WIDTH - 10,
-        this.height - FilterButtonWidget.HEIGHT - 10,
-        this);
-
+    addSelectableChild(this.searchBox);
+    addDrawableChild(filterButton);
     addDrawableChild(paintingButton);
     addDrawableChild(prevButton);
     addDrawableChild(nextButton);
     addDrawableChild(cancelButton);
     addDrawableChild(doneButton);
-    addDrawableChild(filterButton);
   }
 
   @Override
@@ -248,7 +275,7 @@ public class PaintingEditScreen extends Screen {
         return true;
     }
 
-    return false;
+    return super.keyPressed(keyCode, scanCode, modifiers);
   }
 
   private boolean keyPressedForPaintingSelect(int keyCode, int scanCode, int modifiers) {
@@ -279,16 +306,61 @@ public class PaintingEditScreen extends Screen {
         }
     }
 
+    if (super.keyPressed(keyCode, scanCode, modifiers)) {
+      return true;
+    }
+
+    return this.searchBox.keyPressed(keyCode, scanCode, modifiers);
+  }
+
+  @Override
+  public boolean charTyped(char chr, int keyCode) {
+    switch (currentState) {
+      case GROUP_SELECT:
+        if (charTypedForGroupSelect(chr, keyCode)) {
+          return true;
+        }
+        break;
+      case PAINTING_SELECT:
+        if (charTypedForPaintingSelect(chr, keyCode)) {
+          return true;
+        }
+        break;
+    }
+
     return false;
   }
 
-  private void playClickSound() {
-    client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1f));
+  private boolean charTypedForGroupSelect(char chr, int keyCode) {
+    return false;
+  }
+
+  private boolean charTypedForPaintingSelect(char chr, int keyCode) {
+    return this.searchBox.charTyped(chr, keyCode);
   }
 
   @Override
   public boolean changeFocus(boolean lookForwards) {
     return super.changeFocus(lookForwards);
+  }
+
+  @Override
+  public void tick() {
+    switch (currentState) {
+      case GROUP_SELECT:
+        tickForGroupSelect();
+        break;
+      case PAINTING_SELECT:
+        tickForPaintingSelect();
+        break;
+    }
+  }
+
+  private void tickForGroupSelect() {
+  }
+
+  private void tickForPaintingSelect() {
+    this.searchBox.tick();
   }
 
   @Override
@@ -306,7 +378,7 @@ public class PaintingEditScreen extends Screen {
 
     matrixStack.push();
     matrixStack.translate(0, 0, 12);
-    renderTexts(matrixStack, mouseX, mouseY, partialTicks);
+    renderForegrounds(matrixStack, mouseX, mouseY, partialTicks);
     super.render(matrixStack, mouseX, mouseY, partialTicks);
     matrixStack.pop();
   }
@@ -319,7 +391,7 @@ public class PaintingEditScreen extends Screen {
 
     matrixStack.push();
     matrixStack.translate(0, 0, 11);
-    renderBackgroundInRegion(0, getHeaderHeight(null), 0, width);
+    renderBackgroundInRegion(0, getHeaderHeight(), 0, width);
     renderBackgroundInRegion(height - getFooterHeight(), height, 0, width);
     matrixStack.pop();
   }
@@ -328,32 +400,12 @@ public class PaintingEditScreen extends Screen {
     renderBackgroundInRegion(0, height, 0, width);
   }
 
-  private int getHeaderHeight(PaintingData paintingData) {
-    switch (currentState) {
-      case GROUP_SELECT:
-        return 10 + textRenderer.fontHeight + 2 + 10;
-      case PAINTING_SELECT:
-        // 10 pixel padding, 4 lines of text, 2 pixel padding between lines, 10 pixel
-        // padding
-        int height = 10 + 4 * textRenderer.fontHeight + 2 * 3 + 10;
-        if (paintingData.hasName() || paintingData.hasArtist()) {
-          height += textRenderer.fontHeight + 2;
-        }
-        return height;
-    }
-
-    return 0;
+  private int getHeaderHeight() {
+    return 10 + textRenderer.fontHeight + 2 + 10;
   }
 
   private int getFooterHeight() {
-    switch (currentState) {
-      case GROUP_SELECT:
-        return 10 + BUTTON_HEIGHT + 10;
-      case PAINTING_SELECT:
-        return 10 + 2 * BUTTON_HEIGHT + 4 + 10;
-    }
-
-    return 0;
+    return 10 + BUTTON_HEIGHT + 10;
   }
 
   private void renderBackgroundInRegion(int top, int bottom, int left, int right) {
@@ -387,18 +439,18 @@ public class PaintingEditScreen extends Screen {
     tessellator.draw();
   }
 
-  private void renderTexts(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
+  private void renderForegrounds(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
     switch (currentState) {
       case GROUP_SELECT:
-        renderTextsForGroupSelect(matrixStack, mouseX, mouseY, partialTicks);
+        renderForegroundForGroupSelect(matrixStack, mouseX, mouseY, partialTicks);
         break;
       case PAINTING_SELECT:
-        renderTextsForPaintingSelect(matrixStack, mouseX, mouseY, partialTicks);
+        renderForegroundForPaintingSelect(matrixStack, mouseX, mouseY, partialTicks);
         break;
     }
   }
 
-  private void renderTextsForGroupSelect(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
+  private void renderForegroundForGroupSelect(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
     drawCenteredTextWithShadow(
         matrixStack,
         textRenderer,
@@ -408,39 +460,39 @@ public class PaintingEditScreen extends Screen {
         0xFFFFFFFF);
   }
 
-  private void renderTextsForPaintingSelect(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-    int posY = 11;
+  private void renderForegroundForPaintingSelect(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
+    int posY = this.searchBox.y + this.searchBox.getHeight() + 10;
     PaintingData paintingData = currentGroup.paintings().get(currentPainting);
 
+    this.searchBox.render(matrixStack, mouseX, mouseY, partialTicks);
+
     if (hasMultipleGroups()) {
-      drawCenteredTextWithShadow(
+      drawTextWithShadow(
           matrixStack,
           textRenderer,
-          Text.literal(currentGroup.name()).asOrderedText(),
-          width / 2,
+          Text.literal(currentGroup.name()),
+          10,
           posY,
           0xFFFFFFFF);
     }
 
     posY += textRenderer.fontHeight + 2;
 
-    drawCenteredTextWithShadow(
+    drawTextWithShadow(
         matrixStack,
         textRenderer,
-        Text.translatable("custompaintings.painting.number", currentPainting + 1, currentGroup.paintings().size())
-            .asOrderedText(),
-        width / 2,
+        Text.translatable("custompaintings.painting.number", currentPainting + 1, currentGroup.paintings().size()),
+        10,
         posY,
         0xFFFFFFFF);
 
     posY += textRenderer.fontHeight + 2;
 
-    drawCenteredTextWithShadow(
+    drawTextWithShadow(
         matrixStack,
         textRenderer,
-        Text.translatable("custompaintings.painting.dimensions", paintingData.width(), paintingData.height())
-            .asOrderedText(),
-        width / 2,
+        Text.translatable("custompaintings.painting.dimensions", paintingData.width(), paintingData.height()),
+        10,
         posY,
         0xFFFFFFFF);
 
@@ -458,23 +510,23 @@ public class PaintingEditScreen extends Screen {
         parts.add(OrderedText.styledForwardsVisitedString(paintingData.artist(), Style.EMPTY.withItalic(true)));
       }
 
-      drawCenteredTextWithShadow(
+      drawWithShadow(
           matrixStack,
           textRenderer,
           OrderedText.concat(parts),
-          width / 2,
+          10,
           posY,
           0xFFFFFFFF);
     }
 
     posY += textRenderer.fontHeight + 2;
 
-    drawCenteredTextWithShadow(
+    drawTextWithShadow(
         matrixStack,
         textRenderer,
-        OrderedText.styledForwardsVisitedString("(" + paintingData.id().toString() + ")",
-            Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)),
-        width / 2,
+        Text.literal("(" + paintingData.id().toString() + ")")
+            .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)),
+        10,
         posY,
         0xFFFFFFFF);
   }
@@ -678,6 +730,10 @@ public class PaintingEditScreen extends Screen {
 
   private double offsetForEven(int size) {
     return size % 32 == 0 ? 0.5 : 0;
+  }
+
+  private void playClickSound() {
+    client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1f));
   }
 
   public record Group(String id, String name, ArrayList<PaintingData> paintings) {
