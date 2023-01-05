@@ -1,7 +1,5 @@
 package me.roundaround.custompaintings.client.gui.screen.page;
 
-import java.util.ArrayList;
-
 import org.lwjgl.glfw.GLFW;
 
 import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen;
@@ -15,10 +13,7 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.screen.ScreenTexts;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.Style;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 
 public class PaintingSelectPage extends PaintingEditScreenPage {
   private TextFieldWidget searchBox;
@@ -79,7 +74,7 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
         this.paneWidth,
         this.height - 22 - FilterButtonWidget.HEIGHT - 4 - footerHeight,
         22 + FilterButtonWidget.HEIGHT + 4,
-        this.height - getFooterHeight() - 4);
+        this.height - footerHeight - 4);
 
     int maxWidth = this.paneWidth / 2;
     int maxHeight = this.height - headerHeight - footerHeight - BUTTON_HEIGHT - 24;
@@ -220,93 +215,51 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
 
   @Override
   public void renderForeground(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
+    this.paintingList.render(matrixStack, mouseX, mouseY, partialTicks);
+    this.searchBox.render(matrixStack, mouseX, mouseY, partialTicks);
+
+    drawCenteredText(
+        matrixStack,
+        textRenderer,
+        Text.translatable("custompaintings.painting.title"),
+        width / 2,
+        11,
+        0xFFFFFFFF);
+
     Group currentGroup = this.parent.getCurrentGroup();
     int currentPainting = this.parent.getCurrentPainting();
-    int posY = this.searchBox.y + this.searchBox.getHeight() + 10;
-    PaintingData paintingData = currentGroup.paintings().get(currentPainting);
-
-    this.searchBox.render(matrixStack, mouseX, mouseY, partialTicks);
-    this.paintingList.render(matrixStack, mouseX, mouseY, partialTicks);
+    int posY = this.searchBox.y;
 
     if (this.parent.hasMultipleGroups()) {
-      drawTextWithShadow(
+      drawCenteredText(
           matrixStack,
           textRenderer,
           Text.literal(currentGroup.name()),
-          10,
+          (this.width + this.rightPaneX) / 2,
           posY,
           0xFFFFFFFF);
     }
 
     posY += textRenderer.fontHeight + 2;
 
-    drawTextWithShadow(
+    drawCenteredText(
         matrixStack,
         textRenderer,
         Text.translatable(
             "custompaintings.painting.number",
             currentPainting + 1,
             currentGroup.paintings().size()),
-        10,
-        posY,
-        0xFFFFFFFF);
-
-    posY += textRenderer.fontHeight + 2;
-
-    drawTextWithShadow(
-        matrixStack,
-        textRenderer,
-        Text.translatable(
-            "custompaintings.painting.dimensions",
-            paintingData.width(),
-            paintingData.height()),
-        10,
-        posY,
-        0xFFFFFFFF);
-
-    if (paintingData.hasName() || paintingData.hasArtist()) {
-      posY += textRenderer.fontHeight + 2;
-
-      ArrayList<OrderedText> parts = new ArrayList<>();
-      if (paintingData.hasName()) {
-        parts.add(Text.literal("\"" + paintingData.name() + "\"").asOrderedText());
-      }
-      if (paintingData.hasName() && paintingData.hasArtist()) {
-        parts.add(Text.of(" - ").asOrderedText());
-      }
-      if (paintingData.hasArtist()) {
-        parts.add(OrderedText.styledForwardsVisitedString(
-            paintingData.artist(),
-            Style.EMPTY.withItalic(true)));
-      }
-
-      drawWithShadow(
-          matrixStack,
-          textRenderer,
-          OrderedText.concat(parts),
-          10,
-          posY,
-          0xFFFFFFFF);
-    }
-
-    posY += textRenderer.fontHeight + 2;
-
-    drawTextWithShadow(
-        matrixStack,
-        textRenderer,
-        Text.literal("(" + paintingData.id().toString() + ")")
-            .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)),
-        10,
+        (this.width + this.rightPaneX) / 2,
         posY,
         0xFFFFFFFF);
   }
 
   private int getHeaderHeight() {
-    return 10 + textRenderer.fontHeight + 2 + 10;
+    return 11 + textRenderer.fontHeight;
   }
 
   private int getFooterHeight() {
-    return 10 + BUTTON_HEIGHT + 10;
+    return 10 + BUTTON_HEIGHT;
   }
 
   private void resetFilters() {

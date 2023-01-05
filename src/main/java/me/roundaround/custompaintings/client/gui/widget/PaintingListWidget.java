@@ -1,5 +1,7 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
+import java.util.ArrayList;
+
 import com.mojang.blaze3d.systems.RenderSystem;
 
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
@@ -9,11 +11,15 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.texture.Sprite;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.text.OrderedText;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 
 @Environment(value = EnvType.CLIENT)
 public class PaintingListWidget
@@ -115,8 +121,59 @@ public class PaintingListWidget
 
       RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
       RenderSystem.setShaderTexture(0, this.sprite.getAtlas().getId());
-      drawSprite(matrixStack, x + 2 + (maxWidth - scaledWidth) / 2, y + (entryHeight - scaledHeight) / 2, 1,
+      drawSprite(matrixStack, x + 4 + (maxWidth - scaledWidth) / 2, y + (entryHeight - scaledHeight) / 2, 1,
           scaledWidth, scaledHeight, sprite);
+
+      TextRenderer textRenderer = PaintingListWidget.this.client.textRenderer;
+      int posX = x + maxWidth + 4 + 4;
+      int posY = y + (entryHeight - 3 * textRenderer.fontHeight - 2 * 2) / 2;
+
+      if (paintingData.hasName() || paintingData.hasArtist()) {
+        ArrayList<OrderedText> parts = new ArrayList<>();
+        if (paintingData.hasName()) {
+          parts.add(Text.literal("\"" + paintingData.name() + "\"").asOrderedText());
+        }
+        if (paintingData.hasName() && paintingData.hasArtist()) {
+          parts.add(Text.of(" - ").asOrderedText());
+        }
+        if (paintingData.hasArtist()) {
+          parts.add(OrderedText.styledForwardsVisitedString(
+              paintingData.artist(),
+              Style.EMPTY.withItalic(true)));
+        }
+
+        drawWithShadow(
+            matrixStack,
+            textRenderer,
+            OrderedText.concat(parts),
+            posX,
+            posY,
+            0xFFFFFFFF);
+
+        posY += textRenderer.fontHeight + 2;
+      }
+
+      drawTextWithShadow(
+          matrixStack,
+          textRenderer,
+          Text.literal("(" + paintingData.id().toString() + ")")
+              .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)),
+          posX,
+          posY,
+          0xFFFFFFFF);
+
+      posY += textRenderer.fontHeight + 2;
+
+      drawTextWithShadow(
+          matrixStack,
+          textRenderer,
+          Text.translatable(
+              "custompaintings.painting.dimensions",
+              paintingData.width(),
+              paintingData.height()),
+          posX,
+          posY,
+          0xFFFFFFFF);
     }
 
     @Override

@@ -14,6 +14,7 @@ import net.minecraft.client.render.VertexFormat;
 import net.minecraft.client.render.VertexFormats;
 import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.screen.ScreenTexts;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 
@@ -70,27 +71,12 @@ public class PaintingFilterScreen extends Screen {
 
   @Override
   public void init() {
-    this.client.keyboard.setRepeatEvents(true);
-    this.searchBox = new TextFieldWidget(
-        this.textRenderer,
-        this.width / 2 - BUTTON_WIDTH,
-        22,
-        BUTTON_WIDTH * 2,
-        BUTTON_HEIGHT,
-        this.searchBox,
-        Text.translatable("custompaintings.filter.search"));
-    this.searchBox.setChangedListener((search) -> {
-      setSearchText(search);
-    });
-
-    this.addSelectableChild(this.searchBox);
-
     addDrawableChild(new ButtonWidget(
         this.width / 2 - BUTTON_WIDTH - 2,
         this.height - BUTTON_HEIGHT - 10,
         BUTTON_WIDTH,
         BUTTON_HEIGHT,
-        Text.translatable("custompaintings.filter.close"),
+        ScreenTexts.DONE,
         (button) -> {
           this.client.setScreen(this.parent);
         }));
@@ -193,10 +179,6 @@ public class PaintingFilterScreen extends Screen {
   }
 
   private void resetFilters() {
-    // TODO
-  }
-
-  private void setSearchText(String text) {
     // TODO
   }
 }

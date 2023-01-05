@@ -1,8 +1,11 @@
 {
+  "custompaintings.group.title": "Choose a collection",
   "custompaintings.painting.title": "Choose a painting",
-  "custompaintings.painting.choose": "Choose a collection",
+  "custompaintings.painting.search": "Search for a painting",
   "custompaintings.painting.number": "%s of %s",
   "custompaintings.painting.dimensions": "%s x %s blocks",
   "custompaintings.painting.previous": "Previous",
-  "custompaintings.painting.next": "Next"
+  "custompaintings.painting.next": "Next",
+  "custompaintings.filter.title": "Set filters",
+  "custompaintings.filter.reset": "Reset"
 }

@@ -77,7 +77,7 @@ public class GroupSelectPage extends PaintingEditScreenPage {
     drawCenteredText(
         matrixStack,
         textRenderer,
-        Text.translatable("custompaintings.painting.choose"),
+        Text.translatable("custompaintings.group.title"),
         width / 2,
         11,
         0xFFFFFFFF);
