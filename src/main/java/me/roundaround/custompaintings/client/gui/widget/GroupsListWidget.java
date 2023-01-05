@@ -1,6 +1,7 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
 import java.util.Collection;
+import java.util.function.Consumer;
 
 import org.lwjgl.glfw.GLFW;
 
@@ -26,6 +27,7 @@ import net.minecraft.sound.SoundEvents;
 @Environment(value = EnvType.CLIENT)
 public class GroupsListWidget extends EntryListWidget<GroupsListWidget.GroupEntry> {
   private final PaintingEditScreen parent;
+  private final Consumer<String> onGroupSelect;
   private boolean hovered = false;
 
   public GroupsListWidget(
@@ -34,9 +36,11 @@ public class GroupsListWidget extends EntryListWidget<GroupsListWidget.GroupEntr
       int width,
       int height,
       int top,
-      int bottom) {
+      int bottom,
+      Consumer<String> onGroupSelect) {
     super(minecraftClient, width, height, top, bottom, 20);
     this.parent = parent;
+    this.onGroupSelect = onGroupSelect;
     setRenderBackground(false);
     setRenderHeader(false, 0);
   }
@@ -193,7 +197,7 @@ public class GroupsListWidget extends EntryListWidget<GroupsListWidget.GroupEntr
 
     private void press() {
       client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1f));
-      parent.selectGroup(group.id());
+      GroupsListWidget.this.onGroupSelect.accept(group.id());
     }
   }
 }

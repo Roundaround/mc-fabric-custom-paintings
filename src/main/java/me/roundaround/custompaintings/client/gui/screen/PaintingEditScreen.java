@@ -1,47 +1,33 @@
 package me.roundaround.custompaintings.client.gui.screen;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.function.Predicate;
-
-import org.lwjgl.glfw.GLFW;
-
-import com.mojang.blaze3d.systems.RenderSystem;
 
 import me.roundaround.custompaintings.client.CustomPaintingManager;
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
-import me.roundaround.custompaintings.client.gui.widget.FilterButtonWidget;
-import me.roundaround.custompaintings.client.gui.widget.GroupsListWidget;
-import me.roundaround.custompaintings.client.gui.widget.PaintingButtonWidget;
+import me.roundaround.custompaintings.client.gui.screen.page.GroupSelectPage;
+import me.roundaround.custompaintings.client.gui.screen.page.PaintingSelectPage;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.AbstractRedstoneGateBlock;
 import net.minecraft.block.BlockState;
+import net.minecraft.client.gui.Drawable;
+import net.minecraft.client.gui.Element;
+import net.minecraft.client.gui.Selectable;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.render.BufferBuilder;
-import net.minecraft.client.render.GameRenderer;
-import net.minecraft.client.render.Tessellator;
-import net.minecraft.client.render.VertexFormat;
-import net.minecraft.client.render.VertexFormats;
-import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.AbstractDecorationEntity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
-import net.minecraft.screen.ScreenTexts;
-import net.minecraft.sound.SoundEvents;
 import net.minecraft.tag.PaintingVariantTags;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.Style;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
@@ -58,20 +44,18 @@ public class PaintingEditScreen extends Screen {
   private final BlockPos blockPos;
   private final Direction facing;
   private Group currentGroup = null;
+  private int currentPainting = 0;
   private State currentState = State.GROUP_SELECT;
   private State nextState = State.GROUP_SELECT;
   private Action onStateSwitch = null;
-  private int currentPainting = 0;
-  private GroupsListWidget groupsListWidget;
   private int selectedIndex = 0;
-  private TextFieldWidget searchBox;
-  private int paneWidth;
-  private int rightPaneX;
+
+  private boolean pagesInitialized = false;
+  private GroupSelectPage groupSelectPage;
+  private PaintingSelectPage paintingSelectPage;
 
   private static final Predicate<Entity> DECORATION_PREDICATE = (
       entity) -> entity instanceof AbstractDecorationEntity;
-  private static final int BUTTON_WIDTH = 100;
-  private static final int BUTTON_HEIGHT = 20;
 
   public PaintingEditScreen(UUID paintingUuid, int paintingId, BlockPos blockPos, Direction facing) {
     super(Text.translatable("custompaintings.painting.title"));
@@ -89,6 +73,25 @@ public class PaintingEditScreen extends Screen {
     // TODO
   }
 
+  public Collection<Group> getGroups() {
+    return allPaintings.values();
+  }
+
+  @Override
+  public <T extends Element & Drawable & Selectable> T addDrawableChild(T drawableElement) {
+    return super.addDrawableChild(drawableElement);
+  }
+
+  @Override
+  public <T extends Drawable> T addDrawable(T drawable) {
+    return super.addDrawable(drawable);
+  }
+
+  @Override
+  public <T extends Element & Selectable> T addSelectableChild(T child) {
+    return super.addSelectableChild(child);
+  }
+
   @Override
   public void init() {
     if (allPaintings.isEmpty()) {
@@ -99,18 +102,20 @@ public class PaintingEditScreen extends Screen {
       saveEmpty();
     }
 
+    initPages();
+
     if (!hasMultipleGroups()) {
       currentGroup = allPaintings.values().stream().findFirst().get();
       setStateImmediate(State.PAINTING_SELECT);
     }
 
     switch (currentState) {
-      case PAINTING_SELECT:
-        initForPaintingSelection();
-        break;
       case GROUP_SELECT:
-      default:
-        initForGroupSelection();
+        this.groupSelectPage.init();
+        break;
+      case PAINTING_SELECT:
+        this.paintingSelectPage.init();
+        break;
     }
 
     if (selectedIndex >= 0 && selectedIndex < children().size()) {
@@ -118,249 +123,69 @@ public class PaintingEditScreen extends Screen {
     }
   }
 
-  private void initForGroupSelection() {
-    groupsListWidget = new GroupsListWidget(
-        this,
-        client,
-        width,
-        height,
-        getHeaderHeight(),
-        height - getFooterHeight());
-    groupsListWidget.setGroups(allPaintings.values());
-    addSelectableChild(groupsListWidget);
-
-    addDrawableChild(
-        new ButtonWidget(
-            (width - BUTTON_WIDTH) / 2,
-            height - BUTTON_HEIGHT - 10,
-            BUTTON_WIDTH,
-            BUTTON_HEIGHT,
-            ScreenTexts.CANCEL,
-            button -> {
-              saveEmpty();
-            }));
-  }
-
-  private void initForPaintingSelection() {
-    PaintingData paintingData = currentGroup.paintings().get(currentPainting);
-    boolean canStay = canStay(paintingData);
-
-    this.paneWidth = this.width / 2 - 8;
-    this.rightPaneX = this.width - this.paneWidth;
-
-    // 10px padding on each side, 4px between search box and filter button
-    this.searchBox = new TextFieldWidget(
-        this.textRenderer,
-        10,
-        22,
-        this.paneWidth - FilterButtonWidget.WIDTH - 24,
-        BUTTON_HEIGHT,
-        this.searchBox,
-        Text.translatable("custompaintings.painting.search"));
-    this.searchBox.setChangedListener((search) -> setSearchQuery(search));
-
-    FilterButtonWidget filterButton = new FilterButtonWidget(
-        10 + this.searchBox.getWidth() + 4,
-        22,
-        this);
-
-    int headerHeight = getHeaderHeight();
-    int footerHeight = getFooterHeight();
-
-    int maxWidth = this.paneWidth / 2;
-    int maxHeight = this.height - headerHeight - footerHeight - BUTTON_HEIGHT - 24;
-
-    int scaledWidth = PaintingButtonWidget.getScaledWidth(paintingData, maxWidth, maxHeight);
-    int scaledHeight = PaintingButtonWidget.getScaledHeight(paintingData, maxWidth, maxHeight);
-
-    PaintingButtonWidget paintingButton = new PaintingButtonWidget(
-        this.rightPaneX + (this.paneWidth - scaledWidth) / 2,
-        (height + headerHeight - footerHeight - scaledHeight) / 2,
-        maxWidth,
-        maxHeight,
-        (button) -> {
-          saveSelection(paintingData);
-        },
-        paintingData);
-
-    if (!canStay) {
-      paintingButton.active = false;
-    }
-
-    ButtonWidget prevButton = new ButtonWidget(
-        this.rightPaneX + this.paneWidth / 2 - BUTTON_WIDTH - 2,
-        height - 2 * BUTTON_HEIGHT - 10 - 4,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
-        Text.translatable("custompaintings.painting.previous"),
-        (button) -> {
-          previousPainting();
-        });
-
-    ButtonWidget nextButton = new ButtonWidget(
-        this.rightPaneX + this.paneWidth / 2 + 2,
-        height - 2 * BUTTON_HEIGHT - 10 - 4,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
-        Text.translatable("custompaintings.painting.next"),
-        (button) -> {
-          nextPainting();
-        });
-
-    if (!hasMultiplePaintings()) {
-      prevButton.active = false;
-      nextButton.active = false;
-    }
-
-    ButtonWidget cancelButton = new ButtonWidget(
-        width / 2 - BUTTON_WIDTH - 2,
-        height - BUTTON_HEIGHT - 10,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
-        ScreenTexts.CANCEL,
-        (button) -> {
-          if (hasMultipleGroups()) {
-            clearGroup();
-          } else {
-            saveEmpty();
-          }
-        });
-
-    ButtonWidget doneButton = new ButtonWidget(
-        width / 2 + 2,
-        height - BUTTON_HEIGHT - 10,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
-        ScreenTexts.DONE,
-        (button) -> {
-          saveCurrentSelection();
-        });
-
-    if (!canStay) {
-      doneButton.active = false;
-    }
-
-    addSelectableChild(this.searchBox);
-    addDrawableChild(filterButton);
-    addDrawableChild(paintingButton);
-    addDrawableChild(prevButton);
-    addDrawableChild(nextButton);
-    addDrawableChild(cancelButton);
-    addDrawableChild(doneButton);
-  }
-
   @Override
   public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
     switch (currentState) {
       case GROUP_SELECT:
-        if (keyPressedForGroupSelect(keyCode, scanCode, modifiers)) {
+        if (this.groupSelectPage.preKeyPressed(keyCode, scanCode, modifiers)) {
           return true;
         }
         break;
       case PAINTING_SELECT:
-        if (keyPressedForPaintingSelect(keyCode, scanCode, modifiers)) {
+        if (this.paintingSelectPage.preKeyPressed(keyCode, scanCode, modifiers)) {
           return true;
         }
         break;
-    }
-
-    return super.keyPressed(keyCode, scanCode, modifiers);
-  }
-
-  private boolean keyPressedForGroupSelect(int keyCode, int scanCode, int modifiers) {
-    switch (keyCode) {
-      case GLFW.GLFW_KEY_ESCAPE:
-        playClickSound();
-        saveEmpty();
-        return true;
-    }
-
-    return super.keyPressed(keyCode, scanCode, modifiers);
-  }
-
-  private boolean keyPressedForPaintingSelect(int keyCode, int scanCode, int modifiers) {
-    switch (keyCode) {
-      case GLFW.GLFW_KEY_LEFT:
-        if (hasMultiplePaintings()) {
-          playClickSound();
-          previousPainting();
-          return true;
-        }
-        break;
-      case GLFW.GLFW_KEY_RIGHT:
-        if (hasMultiplePaintings()) {
-          playClickSound();
-          nextPainting();
-          return true;
-        }
-        break;
-      case GLFW.GLFW_KEY_ESCAPE:
-        playClickSound();
-        clearGroup();
-        return true;
-      case GLFW.GLFW_KEY_F:
-        if (hasControlDown() && !hasShiftDown() && !hasAltDown()) {
-          playClickSound();
-          client.setScreen(new PaintingFilterScreen(this));
-          return true;
-        }
     }
 
     if (super.keyPressed(keyCode, scanCode, modifiers)) {
       return true;
     }
 
-    return this.searchBox.keyPressed(keyCode, scanCode, modifiers);
+    switch (currentState) {
+      case GROUP_SELECT:
+        if (this.groupSelectPage.postKeyPressed(keyCode, scanCode, modifiers)) {
+          return true;
+        }
+        break;
+      case PAINTING_SELECT:
+        if (this.paintingSelectPage.postKeyPressed(keyCode, scanCode, modifiers)) {
+          return true;
+        }
+        break;
+    }
+
+    return false;
   }
 
   @Override
   public boolean charTyped(char chr, int keyCode) {
     switch (currentState) {
       case GROUP_SELECT:
-        if (charTypedForGroupSelect(chr, keyCode)) {
+        if (this.groupSelectPage.charTyped(chr, keyCode)) {
           return true;
         }
         break;
       case PAINTING_SELECT:
-        if (charTypedForPaintingSelect(chr, keyCode)) {
+        if (this.paintingSelectPage.charTyped(chr, keyCode)) {
           return true;
         }
         break;
     }
 
     return false;
-  }
-
-  private boolean charTypedForGroupSelect(char chr, int keyCode) {
-    return false;
-  }
-
-  private boolean charTypedForPaintingSelect(char chr, int keyCode) {
-    return this.searchBox.charTyped(chr, keyCode);
-  }
-
-  @Override
-  public boolean changeFocus(boolean lookForwards) {
-    return super.changeFocus(lookForwards);
   }
 
   @Override
   public void tick() {
     switch (currentState) {
       case GROUP_SELECT:
-        tickForGroupSelect();
+        this.groupSelectPage.tick();
         break;
       case PAINTING_SELECT:
-        tickForPaintingSelect();
+        this.paintingSelectPage.tick();
         break;
     }
-  }
-
-  private void tickForGroupSelect() {
-  }
-
-  private void tickForPaintingSelect() {
-    this.searchBox.tick();
   }
 
   @Override
@@ -369,10 +194,10 @@ public class PaintingEditScreen extends Screen {
 
     switch (currentState) {
       case GROUP_SELECT:
-        renderBackgroundForGroupSelect(matrixStack, mouseX, mouseY, partialTicks);
+        this.groupSelectPage.renderBackground(matrixStack, mouseX, mouseY, partialTicks);
         break;
       case PAINTING_SELECT:
-        renderBackgroundForPaintingSelect(matrixStack, mouseX, mouseY, partialTicks);
+        this.paintingSelectPage.renderBackground(matrixStack, mouseX, mouseY, partialTicks);
         break;
     }
 
@@ -383,174 +208,41 @@ public class PaintingEditScreen extends Screen {
     matrixStack.pop();
   }
 
-  private void renderBackgroundForGroupSelect(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-    matrixStack.push();
-    matrixStack.translate(0, 0, 10);
-    groupsListWidget.render(matrixStack, mouseX, mouseY, partialTicks);
-    matrixStack.pop();
-
-    matrixStack.push();
-    matrixStack.translate(0, 0, 11);
-    renderBackgroundInRegion(0, getHeaderHeight(), 0, width);
-    renderBackgroundInRegion(height - getFooterHeight(), height, 0, width);
-    matrixStack.pop();
-  }
-
-  private void renderBackgroundForPaintingSelect(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-    renderBackgroundInRegion(0, height, 0, width);
-  }
-
-  private int getHeaderHeight() {
-    return 10 + textRenderer.fontHeight + 2 + 10;
-  }
-
-  private int getFooterHeight() {
-    return 10 + BUTTON_HEIGHT + 10;
-  }
-
-  private void renderBackgroundInRegion(int top, int bottom, int left, int right) {
-    Tessellator tessellator = Tessellator.getInstance();
-    BufferBuilder bufferBuilder = tessellator.getBuffer();
-    RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
-    RenderSystem.setShaderTexture(0, OPTIONS_BACKGROUND_TEXTURE);
-    RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-
-    bufferBuilder.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_TEXTURE_COLOR);
-    bufferBuilder
-        .vertex(left, bottom, 0)
-        .texture(left / 32f, bottom / 32f)
-        .color(64, 64, 64, 255)
-        .next();
-    bufferBuilder
-        .vertex(right, bottom, 0)
-        .texture(right / 32f, bottom / 32f)
-        .color(64, 64, 64, 255)
-        .next();
-    bufferBuilder
-        .vertex(right, top, 0)
-        .texture(right / 32f, top / 32f)
-        .color(64, 64, 64, 255)
-        .next();
-    bufferBuilder
-        .vertex(left, top, 0)
-        .texture(left / 32f, top / 32f)
-        .color(64, 64, 64, 255)
-        .next();
-    tessellator.draw();
-  }
-
   private void renderForegrounds(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
     switch (currentState) {
       case GROUP_SELECT:
-        renderForegroundForGroupSelect(matrixStack, mouseX, mouseY, partialTicks);
+        this.groupSelectPage.renderForeground(matrixStack, mouseX, mouseY, partialTicks);
         break;
       case PAINTING_SELECT:
-        renderForegroundForPaintingSelect(matrixStack, mouseX, mouseY, partialTicks);
+        this.paintingSelectPage.renderForeground(matrixStack, mouseX, mouseY, partialTicks);
         break;
     }
   }
 
-  private void renderForegroundForGroupSelect(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-    drawCenteredTextWithShadow(
-        matrixStack,
-        textRenderer,
-        Text.translatable("custompaintings.painting.choose").asOrderedText(),
-        width / 2,
-        11,
-        0xFFFFFFFF);
+  public void markCurrentSelectedIndex() {
+    this.selectedIndex = getSelectedIndex();
   }
 
-  private void renderForegroundForPaintingSelect(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-    int posY = this.searchBox.y + this.searchBox.getHeight() + 10;
-    PaintingData paintingData = currentGroup.paintings().get(currentPainting);
-
-    this.searchBox.render(matrixStack, mouseX, mouseY, partialTicks);
-
-    if (hasMultipleGroups()) {
-      drawTextWithShadow(
-          matrixStack,
-          textRenderer,
-          Text.literal(currentGroup.name()),
-          10,
-          posY,
-          0xFFFFFFFF);
-    }
-
-    posY += textRenderer.fontHeight + 2;
-
-    drawTextWithShadow(
-        matrixStack,
-        textRenderer,
-        Text.translatable("custompaintings.painting.number", currentPainting + 1, currentGroup.paintings().size()),
-        10,
-        posY,
-        0xFFFFFFFF);
-
-    posY += textRenderer.fontHeight + 2;
-
-    drawTextWithShadow(
-        matrixStack,
-        textRenderer,
-        Text.translatable("custompaintings.painting.dimensions", paintingData.width(), paintingData.height()),
-        10,
-        posY,
-        0xFFFFFFFF);
-
-    if (paintingData.hasName() || paintingData.hasArtist()) {
-      posY += textRenderer.fontHeight + 2;
-
-      List<OrderedText> parts = new ArrayList<>();
-      if (paintingData.hasName()) {
-        parts.add(Text.literal("\"" + paintingData.name() + "\"").asOrderedText());
-      }
-      if (paintingData.hasName() && paintingData.hasArtist()) {
-        parts.add(Text.of(" - ").asOrderedText());
-      }
-      if (paintingData.hasArtist()) {
-        parts.add(OrderedText.styledForwardsVisitedString(paintingData.artist(), Style.EMPTY.withItalic(true)));
-      }
-
-      drawWithShadow(
-          matrixStack,
-          textRenderer,
-          OrderedText.concat(parts),
-          10,
-          posY,
-          0xFFFFFFFF);
-    }
-
-    posY += textRenderer.fontHeight + 2;
-
-    drawTextWithShadow(
-        matrixStack,
-        textRenderer,
-        Text.literal("(" + paintingData.id().toString() + ")")
-            .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)),
-        10,
-        posY,
-        0xFFFFFFFF);
-  }
-
-  private boolean hasMultipleGroups() {
+  public boolean hasMultipleGroups() {
     return allPaintings.keySet().size() > 1;
   }
 
-  private boolean hasMultiplePaintings() {
+  public boolean hasMultiplePaintings() {
     return currentGroup.paintings().size() > 1;
   }
 
-  private void saveEmpty() {
+  public void saveEmpty() {
     saveSelection(PaintingData.EMPTY);
   }
 
-  private void saveCurrentSelection() {
+  public void saveCurrentSelection() {
     if (currentGroup == null || currentPainting >= currentGroup.paintings().size()) {
       saveEmpty();
     }
     saveSelection(currentGroup.paintings().get(currentPainting));
   }
 
-  private void saveSelection(PaintingData paintingData) {
+  public void saveSelection(PaintingData paintingData) {
     ClientNetworking.sendSetPaintingPacket(paintingUuid, paintingData);
     close();
   }
@@ -586,28 +278,33 @@ public class PaintingEditScreen extends Screen {
     }
 
     setState(State.PAINTING_SELECT, () -> {
-      currentGroup = allPaintings.get(id);
-      currentPainting = 0;
+      this.currentGroup = allPaintings.get(id);
     });
   }
 
-  private void clearGroup() {
+  public void clearGroup() {
     setState(State.GROUP_SELECT, () -> {
-      currentGroup = null;
-      currentPainting = 0;
+      this.currentGroup = null;
+      this.currentPainting = 0;
     });
   }
 
-  private void previousPainting() {
-    currentPainting = (currentGroup.paintings().size() + currentPainting - 1) % currentGroup.paintings().size();
-    selectedIndex = getSelectedIndex();
+  public Group getCurrentGroup() {
+    return this.currentGroup;
+  }
+
+  public int getCurrentPainting() {
+    return this.currentPainting;
+  }
+
+  public void setCurrentPainting(int index) {
+    this.currentPainting = index;
+    markCurrentSelectedIndex();
     clearAndInit();
   }
 
-  private void nextPainting() {
-    currentPainting = (currentPainting + 1) % currentGroup.paintings().size();
-    selectedIndex = getSelectedIndex();
-    clearAndInit();
+  public void setCurrentPainting(Function<Integer, Integer> mapper) {
+    setCurrentPainting(mapper.apply(this.currentPainting));
   }
 
   private int getSelectedIndex() {
@@ -665,11 +362,11 @@ public class PaintingEditScreen extends Screen {
         });
   }
 
-  private boolean canStay(PaintingData customPaintingInfo) {
+  public boolean canStay(PaintingData customPaintingInfo) {
     return canStay(customPaintingInfo.getScaledWidth(), customPaintingInfo.getScaledHeight());
   }
 
-  private boolean canStay(int width, int height) {
+  public boolean canStay(int width, int height) {
     World world = client.player.world;
     Box boundingBox = getBoundingBox(width, height);
 
@@ -732,8 +429,22 @@ public class PaintingEditScreen extends Screen {
     return size % 32 == 0 ? 0.5 : 0;
   }
 
-  private void playClickSound() {
-    client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1f));
+  private void initPages() {
+    if (pagesInitialized) {
+      return;
+    }
+
+    pagesInitialized = true;
+    this.groupSelectPage = new GroupSelectPage(
+        this,
+        this.client,
+        this.width,
+        this.height);
+    this.paintingSelectPage = new PaintingSelectPage(
+        this,
+        this.client,
+        this.width,
+        this.height);
   }
 
   public record Group(String id, String name, ArrayList<PaintingData> paintings) {
