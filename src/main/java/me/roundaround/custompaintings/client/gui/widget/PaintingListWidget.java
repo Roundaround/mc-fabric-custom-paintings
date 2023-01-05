@@ -4,6 +4,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
 import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen;
+import me.roundaround.custompaintings.client.gui.screen.page.PaintingSelectPage;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -17,9 +18,11 @@ import net.minecraft.text.Text;
 @Environment(value = EnvType.CLIENT)
 public class PaintingListWidget
     extends AlwaysSelectedEntryListWidget<PaintingListWidget.PaintingEntry> {
+  private final PaintingSelectPage page;
   private final PaintingEditScreen parent;
 
   public PaintingListWidget(
+      PaintingSelectPage page,
       PaintingEditScreen parent,
       MinecraftClient minecraftClient,
       int width,
@@ -27,6 +30,7 @@ public class PaintingListWidget
       int top,
       int bottom) {
     super(minecraftClient, width, height, top, bottom, 36);
+    this.page = page;
     this.parent = parent;
 
     this.parent.getCurrentGroup().paintings().forEach((paintingData) -> {
@@ -36,6 +40,7 @@ public class PaintingListWidget
         this.setSelected(entry);
       }
     });
+    setScrollAmount(this.page.getScrollAmount());
   }
 
   @Override
@@ -49,25 +54,31 @@ public class PaintingListWidget
     this.parent.setCurrentPainting(entry.index);
   }
 
-	@Override
-	protected int getScrollbarPositionX() {
-		return this.width - 6;
-	}
+  @Override
+  public void setScrollAmount(double amount) {
+    super.setScrollAmount(amount);
+    this.page.setScrollAmount(amount);
+  }
 
-	@Override
-	public int getRowWidth() {
-		return this.width - (Math.max(0, this.getMaxPosition() - (this.bottom - this.top - 4)) > 0 ? 18 : 12);
-	}
+  @Override
+  protected int getScrollbarPositionX() {
+    return this.width - 6;
+  }
 
-	@Override
-	public int getRowLeft() {
-		return this.left + 4;
-	}
+  @Override
+  public int getRowWidth() {
+    return this.width - (Math.max(0, this.getMaxPosition() - (this.bottom - this.top - 4)) > 0 ? 18 : 12);
+  }
 
-	@Override
-	protected int getMaxPosition() {
-		return super.getMaxPosition() + 4;
-	}
+  @Override
+  public int getRowLeft() {
+    return this.left + 4;
+  }
+
+  @Override
+  protected int getMaxPosition() {
+    return super.getMaxPosition() + 4;
+  }
 
   @Environment(value = EnvType.CLIENT)
   public class PaintingEntry extends AlwaysSelectedEntryListWidget.Entry<PaintingEntry> {
@@ -104,7 +115,8 @@ public class PaintingListWidget
 
       RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
       RenderSystem.setShaderTexture(0, this.sprite.getAtlas().getId());
-      drawSprite(matrixStack, x + 2 + (maxWidth - scaledWidth) / 2, y + (entryHeight - scaledHeight) / 2, 1, scaledWidth, scaledHeight, sprite);
+      drawSprite(matrixStack, x + 2 + (maxWidth - scaledWidth) / 2, y + (entryHeight - scaledHeight) / 2, 1,
+          scaledWidth, scaledHeight, sprite);
     }
 
     @Override

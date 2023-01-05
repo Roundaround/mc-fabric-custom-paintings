@@ -25,6 +25,7 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
   private PaintingListWidget paintingList;
   private int paneWidth;
   private int rightPaneX;
+  private double scrollAmount;
 
   public PaintingSelectPage(
       PaintingEditScreen parent,
@@ -32,6 +33,14 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
       int width,
       int height) {
     super(parent, client, width, height);
+  }
+
+  public void setScrollAmount(double scrollAmount) {
+    this.scrollAmount = scrollAmount;
+  }
+
+  public double getScrollAmount() {
+    return this.scrollAmount;
   }
 
   @Override
@@ -64,6 +73,7 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
     int footerHeight = getFooterHeight();
 
     this.paintingList = new PaintingListWidget(
+        this,
         this.parent,
         this.client,
         this.paneWidth,
@@ -190,13 +200,13 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
     return this.searchBox.charTyped(chr, keyCode);
   }
 
-	@Override
-	public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
-		if (this.paintingList.isMouseOver(mouseX, mouseY)) {
-			return this.paintingList.mouseScrolled(mouseX, mouseY, amount);
-		}
-		return false;
-	}
+  @Override
+  public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+    if (this.paintingList.isMouseOver(mouseX, mouseY)) {
+      return this.paintingList.mouseScrolled(mouseX, mouseY, amount);
+    }
+    return false;
+  }
 
   @Override
   public void tick() {
