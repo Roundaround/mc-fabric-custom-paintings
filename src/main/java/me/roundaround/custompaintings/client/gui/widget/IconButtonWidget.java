@@ -13,17 +13,20 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
-public class FilterButtonWidget extends ButtonWidget {
+public class IconButtonWidget extends ButtonWidget {
   public static final int WIDTH = 20;
   public static final int HEIGHT = 20;
   protected static final Identifier WIDGETS_TEXTURE = new Identifier(
       CustomPaintingsMod.MOD_ID,
-      "textures/gui/filter.png");
+      "textures/gui/widgets.png");
 
-  public FilterButtonWidget(
+  protected int textureIndex;
+
+  public IconButtonWidget(
+      PaintingEditScreen parent,
       int x,
       int y,
-      PaintingEditScreen parent,
+      int textureIndex,
       Text tooltip,
       PressAction onPress) {
     super(
@@ -34,6 +37,7 @@ public class FilterButtonWidget extends ButtonWidget {
         tooltip,
         onPress,
         new TooltipSupplier(parent, tooltip));
+    this.textureIndex = textureIndex;
   }
 
   @Override
@@ -42,8 +46,16 @@ public class FilterButtonWidget extends ButtonWidget {
     RenderSystem.setShaderTexture(0, WIDGETS_TEXTURE);
     RenderSystem.enableDepthTest();
 
-    int vIndex = isHovered() ? 2 : 1;
-    drawTexture(matrixStack, x, y, 0, vIndex * HEIGHT, WIDTH, HEIGHT, WIDTH, HEIGHT * 3);
+    drawTexture(
+        matrixStack,
+        x,
+        y,
+        this.textureIndex * WIDTH,
+        (isHovered() ? 2 : 1) * HEIGHT,
+        WIDTH,
+        HEIGHT,
+        WIDTH,
+        HEIGHT * 3);
 
     if (hovered) {
       renderTooltip(matrixStack, mouseX, mouseY);

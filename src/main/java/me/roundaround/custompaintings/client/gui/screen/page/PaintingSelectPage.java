@@ -6,7 +6,7 @@ import org.lwjgl.glfw.GLFW;
 
 import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen;
 import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen.Group;
-import me.roundaround.custompaintings.client.gui.widget.FilterButtonWidget;
+import me.roundaround.custompaintings.client.gui.widget.IconButtonWidget;
 import me.roundaround.custompaintings.client.gui.widget.PaintingButtonWidget;
 import me.roundaround.custompaintings.client.gui.widget.PaintingListWidget;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
@@ -61,16 +61,17 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
         this.textRenderer,
         10,
         headerHeight + 4 + (this.parent.hasMultipleGroups() ? this.textRenderer.fontHeight + 2 : 0),
-        this.paneWidth - FilterButtonWidget.WIDTH - 24,
+        this.paneWidth - IconButtonWidget.WIDTH - 24,
         BUTTON_HEIGHT,
         this.searchBox,
         Text.translatable("custompaintings.painting.search"));
     this.searchBox.setChangedListener((search) -> setSearchQuery(search));
 
-    FilterButtonWidget filterButton = new FilterButtonWidget(
+    IconButtonWidget filterButton = new IconButtonWidget(
+        this.parent,
         10 + this.searchBox.getWidth() + 4,
         this.searchBox.y,
-        this.parent,
+        0,
         Text.translatable("custompaintings.painting.filter"),
         (button) -> {
           // TODO: Show advanced filters
