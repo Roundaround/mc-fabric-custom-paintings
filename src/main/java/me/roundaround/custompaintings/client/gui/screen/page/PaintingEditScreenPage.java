@@ -65,6 +65,10 @@ public abstract class PaintingEditScreenPage extends DrawableHelper {
 
   }
 
+  public void playClickSound() {
+    this.client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1f));
+  }
+
   protected <T extends Element & Drawable & Selectable> T addDrawableChild(T drawableElement) {
     return this.parent.addDrawableChild(drawableElement);
   }
@@ -75,10 +79,6 @@ public abstract class PaintingEditScreenPage extends DrawableHelper {
 
   protected <T extends Element & Selectable> T addSelectableChild(T child) {
     return this.parent.addSelectableChild(child);
-  }
-
-  protected void playClickSound() {
-    this.client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1f));
   }
 
   protected void renderBackgroundInRegion(int top, int bottom, int left, int right) {

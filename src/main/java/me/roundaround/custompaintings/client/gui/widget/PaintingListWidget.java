@@ -187,21 +187,24 @@ public class PaintingListWidget
 
     @Override
     public Text getNarration() {
-      return Text.literal("placeholder");
+      return !this.paintingData.hasLabel()
+          ? Text.literal(this.paintingData.id().toString())
+          : this.paintingData.getLabel();
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
       PaintingListWidget.this.setSelected(this);
 
-      // if (this.canStay) {
-      //   if (Util.getMeasuringTimeMs() - this.time < 250L) {
-      //     PaintingListWidget.this.parent.saveSelection(this.paintingData);
-      //     return true;
-      //   }
+      if (this.canStay) {
+        if (Util.getMeasuringTimeMs() - this.time < 250L) {
+          PaintingListWidget.this.page.playClickSound();
+          PaintingListWidget.this.parent.saveSelection(this.paintingData);
+          return true;
+        }
 
-      //   this.time = Util.getMeasuringTimeMs();
-      // }
+        this.time = Util.getMeasuringTimeMs();
+      }
 
       return true;
     }

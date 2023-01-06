@@ -243,6 +243,8 @@ public class PaintingEditScreen extends Screen {
       return;
     }
 
+    // TODO: Update page instead of tearing down and rebuilding
+    
     this.currentPainting = paintingData;
     markCurrentSelectedIndex();
     clearAndInit();
@@ -399,6 +401,8 @@ public class PaintingEditScreen extends Screen {
     if (this.pagesInitialized) {
       return;
     }
+
+    // TODO: Reinitialize pages when window is resized
 
     this.pagesInitialized = true;
     this.groupSelectPage = new GroupSelectPage(
