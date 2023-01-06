@@ -3,7 +3,7 @@ package me.roundaround.custompaintings.client.gui.screen.page;
 import org.lwjgl.glfw.GLFW;
 
 import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen;
-import me.roundaround.custompaintings.client.gui.widget.GroupsListWidget;
+import me.roundaround.custompaintings.client.gui.widget.GroupListWidget;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.util.math.MatrixStack;
@@ -11,7 +11,7 @@ import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 
 public class GroupSelectPage extends PaintingEditScreenPage {
-  private GroupsListWidget groupsListWidget;
+  private GroupListWidget groupsListWidget;
 
   public GroupSelectPage(
       PaintingEditScreen parent,
@@ -23,7 +23,7 @@ public class GroupSelectPage extends PaintingEditScreenPage {
 
   @Override
   public void init() {
-    this.groupsListWidget = new GroupsListWidget(
+    this.groupsListWidget = new GroupListWidget(
         this.parent,
         this.client,
         this.width,

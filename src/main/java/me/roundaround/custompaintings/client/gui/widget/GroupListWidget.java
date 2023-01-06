@@ -25,12 +25,12 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.sound.SoundEvents;
 
 @Environment(value = EnvType.CLIENT)
-public class GroupsListWidget extends EntryListWidget<GroupsListWidget.GroupEntry> {
+public class GroupListWidget extends EntryListWidget<GroupListWidget.GroupEntry> {
   private final PaintingEditScreen parent;
   private final Consumer<String> onGroupSelect;
   private boolean hovered = false;
 
-  public GroupsListWidget(
+  public GroupListWidget(
       PaintingEditScreen parent,
       MinecraftClient minecraftClient,
       int width,
@@ -197,7 +197,7 @@ public class GroupsListWidget extends EntryListWidget<GroupsListWidget.GroupEntr
 
     private void press() {
       client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1f));
-      GroupsListWidget.this.onGroupSelect.accept(group.id());
+      GroupListWidget.this.onGroupSelect.accept(group.id());
     }
   }
 }
