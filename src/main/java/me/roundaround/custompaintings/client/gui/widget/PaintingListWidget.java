@@ -144,9 +144,8 @@ public class PaintingListWidget
               ellipsis);
         }
 
-        drawWithShadow(
+        textRenderer.draw(
             matrixStack,
-            textRenderer,
             Language.getInstance().reorder(label),
             posX,
             posY,
@@ -155,29 +154,27 @@ public class PaintingListWidget
         posY += textRenderer.fontHeight + 2;
       }
 
-      StringVisitable idText = Text.literal("(" + paintingData.id().toString() + ")")
+      StringVisitable id = Text.literal("(" + paintingData.id().toString() + ")")
           .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
-      if (textRenderer.getWidth(idText) > textWidth) {
+      if (textRenderer.getWidth(id) > textWidth) {
         Text ellipsis = Text.literal("...")
             .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
-        idText = StringVisitable.concat(
-            textRenderer.trimToWidth(idText, textWidth - textRenderer.getWidth(ellipsis)),
+        id = StringVisitable.concat(
+            textRenderer.trimToWidth(id, textWidth - textRenderer.getWidth(ellipsis)),
             ellipsis);
       }
 
-      drawWithShadow(
+      textRenderer.draw(
           matrixStack,
-          textRenderer,
-          Language.getInstance().reorder(idText),
+          Language.getInstance().reorder(id),
           posX,
           posY,
           0xFFFFFFFF);
 
       posY += textRenderer.fontHeight + 2;
 
-      drawTextWithShadow(
+      textRenderer.draw(
           matrixStack,
-          textRenderer,
           Text.translatable(
               "custompaintings.painting.dimensions",
               paintingData.width(),
