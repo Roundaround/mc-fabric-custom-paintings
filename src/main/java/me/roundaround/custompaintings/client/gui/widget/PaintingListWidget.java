@@ -16,9 +16,11 @@ import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.texture.Sprite;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.text.StringVisitable;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Language;
 
 @Environment(value = EnvType.CLIENT)
 public class PaintingListWidget
@@ -129,14 +131,23 @@ public class PaintingListWidget
           scaledWidth, scaledHeight, sprite);
 
       TextRenderer textRenderer = PaintingListWidget.this.client.textRenderer;
+      int textWidth = entryWidth - 4 - maxWidth - 4 - 4;
       int posX = x + maxWidth + 4 + 4;
       int posY = y + (entryHeight - 3 * textRenderer.fontHeight - 2 * 2) / 2;
 
       if (paintingData.hasLabel()) {
-        drawTextWithShadow(
+        StringVisitable label = paintingData.getLabel();
+        if (textRenderer.getWidth(label) > textWidth) {
+          Text ellipsis = Text.literal("...");
+          label = StringVisitable.concat(
+              textRenderer.trimToWidth(label, textWidth - textRenderer.getWidth(ellipsis)),
+              ellipsis);
+        }
+
+        drawWithShadow(
             matrixStack,
             textRenderer,
-            paintingData.getLabel(),
+            Language.getInstance().reorder(label),
             posX,
             posY,
             0xFFFFFFFF);
@@ -144,11 +155,20 @@ public class PaintingListWidget
         posY += textRenderer.fontHeight + 2;
       }
 
-      drawTextWithShadow(
+      StringVisitable idText = Text.literal("(" + paintingData.id().toString() + ")")
+          .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
+      if (textRenderer.getWidth(idText) > textWidth) {
+        Text ellipsis = Text.literal("...")
+            .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
+        idText = StringVisitable.concat(
+            textRenderer.trimToWidth(idText, textWidth - textRenderer.getWidth(ellipsis)),
+            ellipsis);
+      }
+
+      drawWithShadow(
           matrixStack,
           textRenderer,
-          Text.literal("(" + paintingData.id().toString() + ")")
-              .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)),
+          Language.getInstance().reorder(idText),
           posX,
           posY,
           0xFFFFFFFF);
