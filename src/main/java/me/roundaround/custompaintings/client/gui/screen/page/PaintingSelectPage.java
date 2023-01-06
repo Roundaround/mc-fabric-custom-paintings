@@ -68,7 +68,9 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
         BUTTON_HEIGHT,
         this.searchBox,
         Text.translatable("custompaintings.painting.search"));
-    this.searchBox.setChangedListener((search) -> setSearchQuery(search));
+    this.searchBox.setChangedListener((search) -> {
+      setSearchQuery(search);
+    });
 
     IconButtonWidget filterButton = new IconButtonWidget(
         this.parent,
@@ -332,7 +334,7 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
     }
 
     this.searchQuery = text;
-    this.paintingList.setFilter((paintingData) -> {
+    this.filter = (paintingData) -> {
       if (this.searchQuery.isEmpty()) {
         return true;
       }
@@ -342,7 +344,8 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
       String query = this.searchQuery.toLowerCase();
 
       return name.contains(query) || artist.contains(query);
-    });
+    };
+    this.paintingList.setFilter(this.filter);
   }
 
   private boolean hasMultiplePaintings() {
