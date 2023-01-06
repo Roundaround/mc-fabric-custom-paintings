@@ -255,8 +255,6 @@ public class PaintingEditScreen extends Screen {
       return;
     }
 
-    // TODO: Update page instead of tearing down and rebuilding
-
     this.currentPainting = paintingData;
     markCurrentSelectedIndex();
     clearAndInit();

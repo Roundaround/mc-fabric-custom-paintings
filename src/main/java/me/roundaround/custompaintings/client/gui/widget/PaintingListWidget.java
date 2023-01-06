@@ -20,6 +20,7 @@ import net.minecraft.text.StringVisitable;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.Language;
 import net.minecraft.util.Util;
 
@@ -100,7 +101,8 @@ public class PaintingListWidget
     private final Sprite sprite;
     private final boolean canStay;
 
-    private long time;
+    private static Identifier clickedId;
+    private static long time;
 
     public PaintingEntry(PaintingData paintingData) {
       this.paintingData = paintingData;
@@ -199,13 +201,14 @@ public class PaintingListWidget
       PaintingListWidget.this.setSelected(this);
 
       if (this.canStay) {
-        if (Util.getMeasuringTimeMs() - this.time < 250L) {
+        if (this.paintingData.id().equals(clickedId) && Util.getMeasuringTimeMs() - time < 250L) {
           PaintingListWidget.this.page.playClickSound();
           PaintingListWidget.this.parent.saveSelection(this.paintingData);
           return true;
         }
 
-        this.time = Util.getMeasuringTimeMs();
+        clickedId = this.paintingData.id();
+        time = Util.getMeasuringTimeMs();
       }
 
       return true;
