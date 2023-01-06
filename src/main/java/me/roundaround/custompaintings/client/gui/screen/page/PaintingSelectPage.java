@@ -110,6 +110,7 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
 
     PaintingButtonWidget paintingButton = new PaintingButtonWidget(
         this.parent,
+        this.textRenderer,
         this.rightPaneX + (this.paneWidth - scaledWidth) / 2,
         (paintingTop + paintingBottom - scaledHeight) / 2,
         scaledWidth,
@@ -162,6 +163,7 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
 
     ButtonWidget doneButton = new ButtonWithDisabledTooltipWidget(
         this.parent,
+        this.textRenderer,
         width / 2 + 2,
         height - BUTTON_HEIGHT - 10,
         BUTTON_WIDTH,
@@ -321,7 +323,9 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
   }
 
   private void resetFilters() {
-    // TODO
+    this.searchQuery = "";
+    this.searchBox.setText("");
+    updateFilters();
   }
 
   private void setSearchQuery(String text) {
@@ -330,7 +334,13 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
     }
 
     this.searchQuery = text;
+    updateFilters();
+  }
+
+  private void updateFilters() {
     this.filter = (paintingData) -> {
+      // TODO: Add additional filters here
+
       if (this.searchQuery.isEmpty()) {
         return true;
       }

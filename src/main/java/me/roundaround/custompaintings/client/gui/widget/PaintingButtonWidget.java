@@ -4,6 +4,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.texture.Sprite;
@@ -15,6 +16,7 @@ public class PaintingButtonWidget extends ButtonWithDisabledTooltipWidget {
 
   public PaintingButtonWidget(
       Screen screen,
+      TextRenderer textRenderer,
       int x,
       int y,
       int width,
@@ -25,6 +27,7 @@ public class PaintingButtonWidget extends ButtonWithDisabledTooltipWidget {
       PaintingData paintingData) {
     super(
         screen,
+        textRenderer,
         x,
         y,
         width,
