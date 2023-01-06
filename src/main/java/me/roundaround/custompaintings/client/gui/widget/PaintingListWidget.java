@@ -1,6 +1,6 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
-import java.util.function.Function;
+import java.util.ArrayList;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 
@@ -21,6 +21,7 @@ import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Language;
+import net.minecraft.util.Util;
 
 @Environment(value = EnvType.CLIENT)
 public class PaintingListWidget
@@ -40,19 +41,16 @@ public class PaintingListWidget
     this.page = page;
     this.parent = parent;
 
-    setFilter(this.page.getFilter());
     setScrollAmount(this.page.getScrollAmount());
   }
 
-  public void setFilter(Function<PaintingData, Boolean> filter) {
+  public void setPaintings(ArrayList<PaintingData> paintings) {
     this.clearEntries();
-    this.parent.getCurrentGroup().paintings().forEach((paintingData) -> {
-      if (filter.apply(paintingData)) {
-        PaintingEntry entry = new PaintingEntry(paintingData);
-        int i = this.addEntry(entry);
-        if (this.parent.getCurrentPainting().index() == i) {
-          this.setSelected(entry);
-        }
+    paintings.forEach((paintingData) -> {
+      PaintingEntry entry = new PaintingEntry(paintingData);
+      this.addEntry(entry);
+      if (this.parent.getCurrentPainting().id() == paintingData.id()) {
+        this.setSelected(entry);
       }
     });
   }
@@ -97,12 +95,15 @@ public class PaintingListWidget
   @Environment(value = EnvType.CLIENT)
   public class PaintingEntry extends AlwaysSelectedEntryListWidget.Entry<PaintingEntry> {
     private final PaintingData paintingData;
+    private final Sprite sprite;
+    private final boolean canStay;
 
-    private Sprite sprite;
+    private long time;
 
     public PaintingEntry(PaintingData paintingData) {
       this.paintingData = paintingData;
       this.sprite = CustomPaintingsClientMod.customPaintingManager.getPaintingSprite(paintingData);
+      this.canStay = PaintingListWidget.this.parent.canStay(paintingData);
     }
 
     @Override
@@ -192,6 +193,16 @@ public class PaintingListWidget
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
       PaintingListWidget.this.setSelected(this);
+
+      // if (this.canStay) {
+      //   if (Util.getMeasuringTimeMs() - this.time < 250L) {
+      //     PaintingListWidget.this.parent.saveSelection(this.paintingData);
+      //     return true;
+      //   }
+
+      //   this.time = Util.getMeasuringTimeMs();
+      // }
+
       return true;
     }
   }

@@ -40,6 +40,7 @@ import net.minecraft.world.World;
 
 public class PaintingEditScreen extends Screen {
   private final HashMap<String, Group> allPaintings = new HashMap<>();
+  private final HashMap<String, Boolean> canStayHashMap = new HashMap<>();
   private final UUID paintingUuid;
   private final int paintingId;
   private final BlockPos blockPos;
@@ -310,10 +311,25 @@ public class PaintingEditScreen extends Screen {
                         painting.artist().orElse("")));
               });
         });
+
+    allPaintings.values().forEach((group) -> {
+      group.paintings().forEach((paintingData) -> {
+        String sizeString = paintingData.width() + "x" + paintingData.height();
+        if (!canStayHashMap.containsKey(sizeString)) {
+          canStayHashMap.put(sizeString, canStay(paintingData));
+        }
+      });
+    });
   }
 
   public boolean canStay(PaintingData paintingData) {
-    return canStay(paintingData.getScaledWidth(), paintingData.getScaledHeight());
+    String sizeString = paintingData.width() + "x" + paintingData.height();
+    if (canStayHashMap.containsKey(sizeString)) {
+      return canStayHashMap.get(sizeString);
+    }
+    boolean result = canStay(paintingData.getScaledWidth(), paintingData.getScaledHeight());
+    canStayHashMap.put(sizeString, result);
+    return result;
   }
 
   public boolean canStay(int width, int height) {
