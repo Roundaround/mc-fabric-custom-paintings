@@ -30,7 +30,6 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
   private double scrollAmount;
   private ArrayList<PaintingData> paintings = new ArrayList<>();
   private boolean hasFilter = false;
-  private String searchQuery = "";
 
   public PaintingSelectPage(
       PaintingEditScreen parent,
@@ -56,6 +55,8 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
 
   @Override
   public void init() {
+    updateFilters();
+
     PaintingData paintingData = this.parent.getCurrentPainting();
     boolean canStay = this.parent.canStay(paintingData);
     Text tooBigTooltip = Text.translatable("custompaintings.painting.big", paintingData.width(), paintingData.height());
@@ -75,6 +76,7 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
         BUTTON_HEIGHT,
         this.searchBox,
         Text.translatable("custompaintings.painting.search"));
+    this.searchBox.setText(this.parent.getFilters().getSearch());
     this.searchBox.setChangedListener((search) -> {
       onSearchBoxChanged(search);
     });
@@ -99,7 +101,8 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
         this.paneWidth,
         listHeight,
         listTop,
-        listBottom);
+        listBottom,
+        this.paintings);
 
     int paintingTop = headerHeight + 8
         + (paintingData.hasLabel() ? 3 : 2) * textRenderer.fontHeight
@@ -187,8 +190,6 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
     addDrawableChild(nextButton);
     addDrawableChild(cancelButton);
     addDrawableChild(doneButton);
-
-    updateFilters();
   }
 
   @Override
@@ -329,20 +330,23 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
   }
 
   private void onSearchBoxChanged(String text) {
-    if (this.searchQuery.equals(text)) {
+    if (this.parent.getFilters().getSearch().equals(text)) {
       return;
     }
 
-    this.searchQuery = text;
+    this.parent.setSearchQuery(text);
     updateFilters();
   }
 
-  private void updateFilters() {
-    this.hasFilter = !this.searchQuery.isEmpty();
+  public void updateFilters() {
+    String search = this.parent.getFilters().getSearch();
+    this.hasFilter = !search.isEmpty();
 
     if (!this.hasFilter) {
       this.paintings = this.parent.getCurrentGroup().paintings();
-      this.paintingList.setPaintings(this.paintings);
+      if (this.paintingList != null) {
+        this.paintingList.setPaintings(this.paintings);
+      }
       return;
     }
 
@@ -350,7 +354,7 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
       // TODO: Add additional filters here
       String name = paintingData.name().toLowerCase().replace(" ", "");
       String artist = paintingData.artist().toLowerCase();
-      String query = this.searchQuery.toLowerCase();
+      String query = search.toLowerCase();
 
       return name.contains(query) || artist.contains(query);
     };
@@ -363,7 +367,9 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
       }
     });
 
-    this.paintingList.setPaintings(this.paintings);
+    if (this.paintingList != null) {
+      this.paintingList.setPaintings(this.paintings);
+    }
   }
 
   private boolean hasMultiplePaintings() {

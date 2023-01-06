@@ -36,11 +36,13 @@ public class PaintingListWidget
       int width,
       int height,
       int top,
-      int bottom) {
+      int bottom,
+      ArrayList<PaintingData> paintings) {
     super(minecraftClient, width, height, top, bottom, 36);
     this.page = page;
     this.parent = parent;
 
+    setPaintings(paintings);
     setScrollAmount(this.page.getScrollAmount());
   }
 

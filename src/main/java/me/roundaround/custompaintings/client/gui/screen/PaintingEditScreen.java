@@ -18,6 +18,7 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.AbstractRedstoneGateBlock;
 import net.minecraft.block.BlockState;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.Drawable;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.Selectable;
@@ -45,6 +46,7 @@ public class PaintingEditScreen extends Screen {
   private final int paintingId;
   private final BlockPos blockPos;
   private final Direction facing;
+  private final FiltersState filtersState = new FiltersState();
   private Group currentGroup = null;
   private PaintingData currentPainting = null;
   private PaintingEditScreenPage currentPage;
@@ -68,11 +70,15 @@ public class PaintingEditScreen extends Screen {
   }
 
   public void resetFilters() {
-    // TODO
+    this.filtersState.reset();
   }
 
   public void setSearchQuery(String text) {
-    // TODO
+    this.filtersState.setSearch(text);
+  }
+
+  public FiltersState getFilters() {
+    return this.filtersState;
   }
 
   public Collection<Group> getGroups() {
@@ -116,6 +122,12 @@ public class PaintingEditScreen extends Screen {
     if (selectedIndex >= 0 && selectedIndex < children().size()) {
       setInitialFocus(children().get(selectedIndex));
     }
+  }
+
+  @Override
+  public void resize(MinecraftClient client, int width, int height) {
+    this.pagesInitialized = false;
+    super.resize(client, width, height);
   }
 
   @Override
@@ -244,7 +256,7 @@ public class PaintingEditScreen extends Screen {
     }
 
     // TODO: Update page instead of tearing down and rebuilding
-    
+
     this.currentPainting = paintingData;
     markCurrentSelectedIndex();
     clearAndInit();
@@ -402,7 +414,7 @@ public class PaintingEditScreen extends Screen {
       return;
     }
 
-    // TODO: Reinitialize pages when window is resized
+    boolean currentlyOnPaintingSelectPage = this.currentPage instanceof PaintingSelectPage;
 
     this.pagesInitialized = true;
     this.groupSelectPage = new GroupSelectPage(
@@ -416,8 +428,18 @@ public class PaintingEditScreen extends Screen {
         this.width,
         this.height);
 
-    this.currentPage = this.groupSelectPage;
-    this.nextPage = this.groupSelectPage;
+    PaintingEditScreenPage page = currentlyOnPaintingSelectPage
+        ? this.paintingSelectPage
+        : this.groupSelectPage;
+
+    this.currentPage = page;
+    this.nextPage = page;
+  }
+
+  private void onFilterChanged() {
+    if (this.currentPage instanceof PaintingSelectPage) {
+      ((PaintingSelectPage) this.currentPage).updateFilters();
+    }
   }
 
   public record Group(String id, String name, ArrayList<PaintingData> paintings) {
@@ -426,5 +448,22 @@ public class PaintingEditScreen extends Screen {
   @FunctionalInterface
   public interface Action {
     public abstract void execute();
+  }
+
+  public class FiltersState {
+    private String search = "";
+
+    public String getSearch() {
+      return this.search;
+    }
+
+    private void reset() {
+      this.search = "";
+    }
+
+    private void setSearch(String search) {
+      this.search = search;
+      PaintingEditScreen.this.onFilterChanged();
+    }
   }
 }
