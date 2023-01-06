@@ -19,7 +19,6 @@ import net.minecraft.entity.decoration.AbstractDecorationEntity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
-import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
@@ -38,10 +37,10 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
   }
 
   @Override
-  public void setCustomData(PaintingData info) {
-    dataTracker.set(CUSTOM_DATA, info);
+  public void setCustomData(PaintingData paintingData) {
+    dataTracker.set(CUSTOM_DATA, paintingData);
 
-    if (info.hasName() && info.hasArtist()) {
+    if (paintingData.hasName() && paintingData.hasArtist()) {
       setCustomNameVisible(true);
       setCustomName(getPaintingName());
     } else {
@@ -56,22 +55,16 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
       return super.getDisplayName();
     }
 
-    if (!paintingData.hasName() && !paintingData.hasArtist()) {
+    if (!paintingData.hasLabel()) {
       return super.getDisplayName();
     }
 
-    return Text.literal(paintingData.hasName() ? "\"" + paintingData.name() + "\"" : "")
-        .append(
-            Text.literal(paintingData.hasName() && paintingData.hasArtist() ? " - " : ""))
-        .append(
-            paintingData.hasArtist()
-                ? Text.literal(paintingData.artist()).setStyle(Style.EMPTY.withItalic(true))
-                : Text.empty());
+    return paintingData.getLabel();
   }
 
   @Override
-  public void setCustomData(Identifier id, int width, int height, String name, String artist) {
-    setCustomData(new PaintingData(id, width, height, name, artist));
+  public void setCustomData(Identifier id, int index, int width, int height, String name, String artist) {
+    setCustomData(new PaintingData(id, index, width, height, name, artist));
   }
 
   @Override

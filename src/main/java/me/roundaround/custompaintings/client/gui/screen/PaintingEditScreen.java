@@ -45,7 +45,7 @@ public class PaintingEditScreen extends Screen {
   private final BlockPos blockPos;
   private final Direction facing;
   private Group currentGroup = null;
-  private int currentPainting = 0;
+  private PaintingData currentPainting = null;
   private PaintingEditScreenPage currentPage;
   private PaintingEditScreenPage nextPage;
   private Action onPageSwitch = null;
@@ -135,8 +135,8 @@ public class PaintingEditScreen extends Screen {
     return this.currentPage.charTyped(chr, keyCode);
   }
 
-	@Override
-	public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+  @Override
+  public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
     return this.currentPage.mouseScrolled(mouseX, mouseY, amount);
   }
 
@@ -175,10 +175,10 @@ public class PaintingEditScreen extends Screen {
   }
 
   public void saveCurrentSelection() {
-    if (currentGroup == null || currentPainting >= currentGroup.paintings().size()) {
+    if (currentGroup == null || currentPainting == null) {
       saveEmpty();
     }
-    saveSelection(currentGroup.paintings().get(currentPainting));
+    saveSelection(currentPainting);
   }
 
   public void saveSelection(PaintingData paintingData) {
@@ -212,19 +212,20 @@ public class PaintingEditScreen extends Screen {
   }
 
   public void selectGroup(String id) {
-    if (!allPaintings.containsKey(id)) {
+    if (!allPaintings.containsKey(id) || allPaintings.get(id).paintings().isEmpty()) {
       return;
     }
 
     setPage(this.paintingSelectPage, () -> {
       this.currentGroup = allPaintings.get(id);
+      this.currentPainting = allPaintings.get(id).paintings().get(0);
     });
   }
 
   public void clearGroup() {
     setPage(this.groupSelectPage, () -> {
       this.currentGroup = null;
-      this.currentPainting = 0;
+      this.currentPainting = null;
     });
   }
 
@@ -232,21 +233,21 @@ public class PaintingEditScreen extends Screen {
     return this.currentGroup;
   }
 
-  public int getCurrentPainting() {
+  public PaintingData getCurrentPainting() {
     return this.currentPainting;
   }
 
-  public void setCurrentPainting(int index) {
-    if (this.currentPainting == index) {
+  public void setCurrentPainting(PaintingData paintingData) {
+    if (this.currentPainting.equals(paintingData)) {
       return;
     }
 
-    this.currentPainting = index;
+    this.currentPainting = paintingData;
     markCurrentSelectedIndex();
     clearAndInit();
   }
 
-  public void setCurrentPainting(Function<Integer, Integer> mapper) {
+  public void setCurrentPainting(Function<PaintingData, PaintingData> mapper) {
     setCurrentPainting(mapper.apply(this.currentPainting));
   }
 
@@ -279,7 +280,12 @@ public class PaintingEditScreen extends Screen {
             allPaintings.put(groupId, new Group(groupId, groupName, new ArrayList<>()));
           }
 
-          allPaintings.get(groupId).paintings().add(new PaintingData(vanillaVariant));
+          allPaintings.get(groupId).paintings().add(new PaintingData(
+              vanillaVariant,
+              allPaintings
+                  .get(groupId)
+                  .paintings()
+                  .size()));
         });
 
     CustomPaintingManager paintingManager = CustomPaintingsClientMod.customPaintingManager;
@@ -297,6 +303,7 @@ public class PaintingEditScreen extends Screen {
                 allPaintings.get(groupId).paintings().add(
                     new PaintingData(
                         new Identifier(pack.id(), painting.id()),
+                        painting.index(),
                         painting.width().orElse(1),
                         painting.height().orElse(1),
                         painting.name().orElse(""),
@@ -305,8 +312,8 @@ public class PaintingEditScreen extends Screen {
         });
   }
 
-  public boolean canStay(PaintingData customPaintingInfo) {
-    return canStay(customPaintingInfo.getScaledWidth(), customPaintingInfo.getScaledHeight());
+  public boolean canStay(PaintingData paintingData) {
+    return canStay(paintingData.getScaledWidth(), paintingData.getScaledHeight());
   }
 
   public boolean canStay(int width, int height) {

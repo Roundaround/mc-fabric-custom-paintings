@@ -1,6 +1,6 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
-import java.util.ArrayList;
+import java.util.function.Function;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 
@@ -16,7 +16,6 @@ import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.texture.Sprite;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.text.OrderedText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
@@ -39,14 +38,21 @@ public class PaintingListWidget
     this.page = page;
     this.parent = parent;
 
+    setFilter(this.page.getFilter());
+    setScrollAmount(this.page.getScrollAmount());
+  }
+
+  public void setFilter(Function<PaintingData, Boolean> filter) {
+    this.clearEntries();
     this.parent.getCurrentGroup().paintings().forEach((paintingData) -> {
-      PaintingEntry entry = new PaintingEntry(this.getEntryCount(), paintingData);
-      int i = this.addEntry(entry);
-      if (this.parent.getCurrentPainting() == i) {
-        this.setSelected(entry);
+      if (filter.apply(paintingData)) {
+        PaintingEntry entry = new PaintingEntry(paintingData);
+        int i = this.addEntry(entry);
+        if (this.parent.getCurrentPainting().index() == i) {
+          this.setSelected(entry);
+        }
       }
     });
-    setScrollAmount(this.page.getScrollAmount());
   }
 
   @Override
@@ -57,7 +63,7 @@ public class PaintingListWidget
   @Override
   public void setSelected(PaintingEntry entry) {
     super.setSelected(entry);
-    this.parent.setCurrentPainting(entry.index);
+    this.parent.setCurrentPainting(entry.paintingData);
   }
 
   @Override
@@ -88,13 +94,11 @@ public class PaintingListWidget
 
   @Environment(value = EnvType.CLIENT)
   public class PaintingEntry extends AlwaysSelectedEntryListWidget.Entry<PaintingEntry> {
-    private final int index;
     private final PaintingData paintingData;
 
     private Sprite sprite;
 
-    public PaintingEntry(int index, PaintingData paintingData) {
-      this.index = index;
+    public PaintingEntry(PaintingData paintingData) {
       this.paintingData = paintingData;
       this.sprite = CustomPaintingsClientMod.customPaintingManager.getPaintingSprite(paintingData);
     }
@@ -128,24 +132,11 @@ public class PaintingListWidget
       int posX = x + maxWidth + 4 + 4;
       int posY = y + (entryHeight - 3 * textRenderer.fontHeight - 2 * 2) / 2;
 
-      if (paintingData.hasName() || paintingData.hasArtist()) {
-        ArrayList<OrderedText> parts = new ArrayList<>();
-        if (paintingData.hasName()) {
-          parts.add(Text.literal("\"" + paintingData.name() + "\"").asOrderedText());
-        }
-        if (paintingData.hasName() && paintingData.hasArtist()) {
-          parts.add(Text.of(" - ").asOrderedText());
-        }
-        if (paintingData.hasArtist()) {
-          parts.add(OrderedText.styledForwardsVisitedString(
-              paintingData.artist(),
-              Style.EMPTY.withItalic(true)));
-        }
-
-        drawWithShadow(
+      if (paintingData.hasLabel()) {
+        drawTextWithShadow(
             matrixStack,
             textRenderer,
-            OrderedText.concat(parts),
+            paintingData.getLabel(),
             posX,
             posY,
             0xFFFFFFFF);

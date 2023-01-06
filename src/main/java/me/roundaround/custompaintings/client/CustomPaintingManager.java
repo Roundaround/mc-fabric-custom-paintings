@@ -85,6 +85,7 @@ public class CustomPaintingManager
             Identifier id = new Identifier(pack.id(), painting.id());
             data.put(id, new PaintingData(
                 id,
+                painting.index(),
                 painting.width().orElse(1),
                 painting.height().orElse(1),
                 painting.name().orElse(""),
@@ -123,11 +124,7 @@ public class CustomPaintingManager
 
             return new Identifier(namespace, path);
           })
-          .peek((id) -> {
-            if (!data.containsKey(id)) {
-              data.put(id, new PaintingData(id, 1, 1, "", ""));
-            }
-          })
+          .filter((id) -> data.containsKey(id))
           .forEach(spriteIds::add);
     });
 
@@ -240,7 +237,7 @@ public class CustomPaintingManager
           reader.beginArray();
 
           while (reader.hasNext()) {
-            paintings.add(readPainting(reader));
+            paintings.add(readPainting(reader, paintings.size()));
           }
 
           reader.endArray();
@@ -260,7 +257,7 @@ public class CustomPaintingManager
     return new Pack(id.get(), name.orElse(filename), List.copyOf(paintings));
   }
 
-  private Painting readPainting(JsonReader reader) throws IOException, ParseException {
+  private Painting readPainting(JsonReader reader, int index) throws IOException, ParseException {
     if (reader.peek() != JsonToken.BEGIN_OBJECT) {
       throw new ParseException("Each painting must be an object.");
     }
@@ -329,7 +326,7 @@ public class CustomPaintingManager
       throw new ParseException("Painting ID is required.");
     }
 
-    return new Painting(paintingId.get(), name, artist, height, width);
+    return new Painting(paintingId.get(), index, name, artist, height, width);
   }
 
   public class ParseException extends Exception {
@@ -338,10 +335,18 @@ public class CustomPaintingManager
     }
   }
 
-  public record Pack(String id, String name, List<Painting> paintings) {
+  public record Pack(
+      String id,
+      String name,
+      List<Painting> paintings) {
   }
 
-  public record Painting(String id, Optional<String> name, Optional<String> artist, Optional<Integer> height,
+  public record Painting(
+      String id,
+      int index,
+      Optional<String> name,
+      Optional<String> artist,
+      Optional<Integer> height,
       Optional<Integer> width) {
   }
 }

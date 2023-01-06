@@ -1,6 +1,6 @@
 package me.roundaround.custompaintings.client.gui.screen.page;
 
-import java.util.ArrayList;
+import java.util.function.Function;
 
 import org.lwjgl.glfw.GLFW;
 
@@ -15,7 +15,6 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.screen.ScreenTexts;
-import net.minecraft.text.OrderedText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
@@ -26,6 +25,8 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
   private int paneWidth;
   private int rightPaneX;
   private double scrollAmount;
+  private Function<PaintingData, Boolean> filter = (paintingData) -> true;
+  private String searchQuery = "";
 
   public PaintingSelectPage(
       PaintingEditScreen parent,
@@ -43,11 +44,13 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
     return this.scrollAmount;
   }
 
+  public Function<PaintingData, Boolean> getFilter() {
+    return this.filter;
+  }
+
   @Override
   public void init() {
-    PaintingData paintingData = this.parent.getCurrentGroup()
-        .paintings()
-        .get(this.parent.getCurrentPainting());
+    PaintingData paintingData = this.parent.getCurrentPainting();
     boolean canStay = this.parent.canStay(paintingData);
 
     this.paneWidth = this.width / 2 - 8;
@@ -256,31 +259,16 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
           0xFFFFFFFF);
     }
 
-    int currentPainting = this.parent.getCurrentPainting();
-    PaintingData paintingData = currentGroup
-        .paintings()
-        .get(currentPainting);
+    PaintingData paintingData = this.parent.getCurrentPainting();
+    int currentPaintingIndex = currentGroup.paintings().indexOf(paintingData);
     int posX = this.rightPaneX + paneWidth / 2;
     int posY = getHeaderHeight() + 4;
 
-    if (paintingData.hasName() || paintingData.hasArtist()) {
-      ArrayList<OrderedText> parts = new ArrayList<>();
-      if (paintingData.hasName()) {
-        parts.add(Text.literal("\"" + paintingData.name() + "\"").asOrderedText());
-      }
-      if (paintingData.hasName() && paintingData.hasArtist()) {
-        parts.add(Text.of(" - ").asOrderedText());
-      }
-      if (paintingData.hasArtist()) {
-        parts.add(OrderedText.styledForwardsVisitedString(
-            paintingData.artist(),
-            Style.EMPTY.withItalic(true)));
-      }
-
-      drawCenteredTextWithShadow(
+    if (paintingData.hasLabel()) {
+      drawCenteredText(
           matrixStack,
           textRenderer,
-          OrderedText.concat(parts),
+          paintingData.getLabel(),
           posX,
           posY,
           0xFFFFFFFF);
@@ -315,7 +303,7 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
         textRenderer,
         Text.translatable(
             "custompaintings.painting.number",
-            currentPainting + 1,
+            currentPaintingIndex + 1,
             currentGroup.paintings().size()),
         posX,
         this.height
@@ -339,7 +327,22 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
   }
 
   private void setSearchQuery(String text) {
-    // TODO
+    if (this.searchQuery.equals(text)) {
+      return;
+    }
+
+    this.searchQuery = text;
+    this.paintingList.setFilter((paintingData) -> {
+      if (this.searchQuery.isEmpty()) {
+        return true;
+      }
+
+      String name = paintingData.name().toLowerCase().replace(" ", "");
+      String artist = paintingData.artist().toLowerCase();
+      String query = this.searchQuery.toLowerCase();
+
+      return name.contains(query) || artist.contains(query);
+    });
   }
 
   private boolean hasMultiplePaintings() {
@@ -349,15 +352,19 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
   private void previousPainting() {
     Group currentGroup = this.parent.getCurrentGroup();
     this.parent.setCurrentPainting((currentPainting) -> {
-      return (currentGroup.paintings().size() + currentPainting - 1)
+      int currentIndex = currentGroup.paintings().indexOf(currentPainting);
+      int nextIndex = (currentGroup.paintings().size() + currentIndex - 1)
           % currentGroup.paintings().size();
+      return currentGroup.paintings().get(nextIndex);
     });
   }
 
   private void nextPainting() {
     Group currentGroup = this.parent.getCurrentGroup();
     this.parent.setCurrentPainting((currentPainting) -> {
-      return (currentPainting + 1) % currentGroup.paintings().size();
+      int currentIndex = currentGroup.paintings().indexOf(currentPainting);
+      int nextIndex = (currentIndex + 1) % currentGroup.paintings().size();
+      return currentGroup.paintings().get(nextIndex);
     });
   }
 }

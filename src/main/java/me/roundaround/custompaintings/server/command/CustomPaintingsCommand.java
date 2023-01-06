@@ -298,7 +298,13 @@ public class CustomPaintingsCommand {
 
     toUpdate.forEach((painting) -> {
       PaintingData data = painting.getCustomData();
-      painting.setCustomData(to, data.width(), data.height(), data.name(), data.artist());
+      painting.setCustomData(
+          to,
+          data.index(),
+          data.width(),
+          data.height(),
+          data.name(),
+          data.artist());
     });
 
     if (toUpdate.isEmpty()) {
@@ -331,7 +337,12 @@ public class CustomPaintingsCommand {
     toUpdate.forEach((painting) -> {
       PaintingData currentData = painting.getCustomData();
       PaintingData knownData = known.get(currentData.id());
-      painting.setCustomData(currentData.id(), knownData.width(), knownData.height(), currentData.name(),
+      painting.setCustomData(
+          currentData.id(),
+          currentData.index(),
+          knownData.width(),
+          knownData.height(),
+          currentData.name(),
           currentData.artist());
     });
 
@@ -367,6 +378,7 @@ public class CustomPaintingsCommand {
       PaintingData knownData = known.get(currentData.id());
       painting.setCustomData(
           currentData.id(),
+          knownData.index(),
           currentData.width(),
           currentData.height(),
           knownData.name(),
@@ -405,6 +417,7 @@ public class CustomPaintingsCommand {
       PaintingData knownData = known.get(currentData.id());
       painting.setCustomData(
           currentData.id(),
+          knownData.index(),
           knownData.width(),
           knownData.height(),
           knownData.name(),

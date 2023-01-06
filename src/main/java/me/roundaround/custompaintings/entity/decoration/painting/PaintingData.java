@@ -3,27 +3,38 @@ package me.roundaround.custompaintings.entity.decoration.painting;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.text.Style;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
 
-public record PaintingData(Identifier id, int width, int height, String name, String artist, boolean isVanilla) {
-  public static final PaintingData EMPTY = new PaintingData(null, 0, 0);
+public record PaintingData(
+    Identifier id,
+    int index,
+    int width,
+    int height,
+    String name,
+    String artist,
+    boolean isVanilla) {
 
-  public PaintingData(Identifier id, int width, int height) {
-    this(id, width, height, "", "");
+  public static final PaintingData EMPTY = new PaintingData(null, 0, 0, 0);
+
+  public PaintingData(Identifier id, int index, int width, int height) {
+    this(id, index, width, height, "", "");
   }
 
-  public PaintingData(Identifier id, int width, int height, String name, String artist) {
-    this(id, width, height, name, artist, false);
+  public PaintingData(Identifier id, int index, int width, int height, String name, String artist) {
+    this(id, index, width, height, name, artist, false);
   }
 
-  public PaintingData(PaintingVariant vanillaVariant) {
+  public PaintingData(PaintingVariant vanillaVariant, int index) {
     this(
         Registry.PAINTING_VARIANT.getId(vanillaVariant),
+        index,
         vanillaVariant.getWidth() / 16,
         vanillaVariant.getHeight() / 16,
         Registry.PAINTING_VARIANT.getId(vanillaVariant).getPath(),
-        "Minecraft",
+        "",
         true);
   }
 
@@ -57,6 +68,27 @@ public record PaintingData(Identifier id, int width, int height, String name, St
     return artist != null && !artist.isEmpty();
   }
 
+  public boolean hasLabel() {
+    return hasName() || hasArtist();
+  }
+
+  public Text getLabel() {
+    if (!hasLabel()) {
+      return Text.empty();
+    }
+
+    if (!hasArtist()) {
+      return Text.literal(name);
+    }
+
+    if (!hasName()) {
+      return Text.literal(artist).setStyle(Style.EMPTY.withItalic(true));
+    }
+
+    return Text.literal("\"" + name + "\" - ")
+        .append(Text.literal(artist).setStyle(Style.EMPTY.withItalic(true)));
+  }
+
   public NbtCompound writeToNbt() {
     NbtCompound nbt = new NbtCompound();
     if (isEmpty()) {
@@ -64,6 +96,7 @@ public record PaintingData(Identifier id, int width, int height, String name, St
     }
 
     nbt.putString("Id", id.toString());
+    nbt.putInt("Index", index);
     nbt.putInt("Width", width);
     nbt.putInt("Height", height);
     nbt.putString("Name", name);
@@ -78,12 +111,13 @@ public record PaintingData(Identifier id, int width, int height, String name, St
     }
 
     Identifier id = Identifier.tryParse(nbt.getString("Id"));
+    int index = nbt.getInt("Index");
     int width = nbt.getInt("Width");
     int height = nbt.getInt("Height");
     String name = nbt.getString("Name");
     String artist = nbt.getString("Artist");
     boolean isVanilla = nbt.getBoolean("Vanilla");
-    return new PaintingData(id, width, height, name, artist, isVanilla);
+    return new PaintingData(id, index, width, height, name, artist, isVanilla);
   }
 
   public void writeToPacketByteBuf(PacketByteBuf buf) {
@@ -92,12 +126,13 @@ public record PaintingData(Identifier id, int width, int height, String name, St
       return;
     }
     buf.writeBoolean(true);
-    buf.writeIdentifier(id());
-    buf.writeInt(width());
-    buf.writeInt(height());
-    buf.writeString(name());
-    buf.writeString(artist());
-    buf.writeBoolean(isVanilla());
+    buf.writeIdentifier(id);
+    buf.writeInt(index);
+    buf.writeInt(width);
+    buf.writeInt(height);
+    buf.writeString(name);
+    buf.writeString(artist);
+    buf.writeBoolean(isVanilla);
   }
 
   public static PaintingData fromPacketByteBuf(PacketByteBuf buf) {
@@ -105,11 +140,12 @@ public record PaintingData(Identifier id, int width, int height, String name, St
       return EMPTY;
     }
     Identifier id = buf.readIdentifier();
+    int index = buf.readInt();
     int width = buf.readInt();
     int height = buf.readInt();
     String name = buf.readString();
     String artist = buf.readString();
     boolean isVanilla = buf.readBoolean();
-    return new PaintingData(id, width, height, name, artist, isVanilla);
+    return new PaintingData(id, index, width, height, name, artist, isVanilla);
   }
 }
