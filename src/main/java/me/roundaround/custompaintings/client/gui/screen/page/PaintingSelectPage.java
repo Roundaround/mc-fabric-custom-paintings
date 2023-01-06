@@ -15,6 +15,7 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.screen.ScreenTexts;
+import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
@@ -63,7 +64,7 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
     this.searchBox = new TextFieldWidget(
         this.textRenderer,
         10,
-        headerHeight + 4 + (this.parent.hasMultipleGroups() ? this.textRenderer.fontHeight + 2 : 0),
+        headerHeight + 4,
         this.paneWidth - IconButtonWidget.WIDTH - 24,
         BUTTON_HEIGHT,
         this.searchBox,
@@ -241,25 +242,20 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
     this.paintingList.render(matrixStack, mouseX, mouseY, partialTicks);
     this.searchBox.render(matrixStack, mouseX, mouseY, partialTicks);
 
+    Group currentGroup = this.parent.getCurrentGroup();
+
+    MutableText title = Text.translatable("custompaintings.painting.title");
+    if (this.parent.hasMultipleGroups()) {
+      title = Text.literal(this.parent.getCurrentGroup().name() + " - ").append(title);
+    }
+
     drawCenteredText(
         matrixStack,
         textRenderer,
-        Text.translatable("custompaintings.painting.title"),
+        title,
         width / 2,
         11,
         0xFFFFFFFF);
-
-    Group currentGroup = this.parent.getCurrentGroup();
-
-    if (this.parent.hasMultipleGroups()) {
-      drawTextWithShadow(
-          matrixStack,
-          textRenderer,
-          Text.literal(this.parent.getCurrentGroup().name()),
-          10,
-          getHeaderHeight() + 4,
-          0xFFFFFFFF);
-    }
 
     PaintingData paintingData = this.parent.getCurrentPainting();
     int currentPaintingIndex = currentGroup.paintings().indexOf(paintingData);
