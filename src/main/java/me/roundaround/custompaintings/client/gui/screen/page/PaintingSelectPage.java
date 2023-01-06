@@ -6,6 +6,7 @@ import org.lwjgl.glfw.GLFW;
 
 import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen;
 import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen.Group;
+import me.roundaround.custompaintings.client.gui.widget.ButtonWithDisabledTooltipWidget;
 import me.roundaround.custompaintings.client.gui.widget.IconButtonWidget;
 import me.roundaround.custompaintings.client.gui.widget.PaintingButtonWidget;
 import me.roundaround.custompaintings.client.gui.widget.PaintingListWidget;
@@ -53,6 +54,7 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
   public void init() {
     PaintingData paintingData = this.parent.getCurrentPainting();
     boolean canStay = this.parent.canStay(paintingData);
+    Text tooBigTooltip = Text.translatable("custompaintings.painting.big", paintingData.width(), paintingData.height());
 
     this.paneWidth = this.width / 2 - 8;
     this.rightPaneX = this.width - this.paneWidth;
@@ -96,8 +98,8 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
         listBottom);
 
     int paintingTop = headerHeight + 8
-        + (paintingData.hasName() || paintingData.hasArtist() ? 3 : 2) * textRenderer.fontHeight
-        + (paintingData.hasName() || paintingData.hasArtist() ? 2 : 1) * 2;
+        + (paintingData.hasLabel() ? 3 : 2) * textRenderer.fontHeight
+        + (paintingData.hasLabel() ? 2 : 1) * 2;
     int paintingBottom = this.height - footerHeight - 8 - BUTTON_HEIGHT;
 
     int maxWidth = this.paneWidth / 2 - 8;
@@ -107,18 +109,17 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
     int scaledHeight = paintingData.getScaledHeight(maxWidth, maxHeight);
 
     PaintingButtonWidget paintingButton = new PaintingButtonWidget(
+        this.parent,
         this.rightPaneX + (this.paneWidth - scaledWidth) / 2,
         (paintingTop + paintingBottom - scaledHeight) / 2,
-        maxWidth,
-        maxHeight,
+        scaledWidth,
+        scaledHeight,
         (button) -> {
           this.parent.saveSelection(paintingData);
         },
+        canStay,
+        tooBigTooltip,
         paintingData);
-
-    if (!canStay) {
-      paintingButton.active = false;
-    }
 
     ButtonWidget prevButton = new ButtonWidget(
         this.rightPaneX + this.paneWidth / 2 - BUTTON_WIDTH - 2,
@@ -159,7 +160,8 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
           }
         });
 
-    ButtonWidget doneButton = new ButtonWidget(
+    ButtonWidget doneButton = new ButtonWithDisabledTooltipWidget(
+        this.parent,
         width / 2 + 2,
         height - BUTTON_HEIGHT - 10,
         BUTTON_WIDTH,
@@ -167,11 +169,9 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
         ScreenTexts.DONE,
         (button) -> {
           this.parent.saveCurrentSelection();
-        });
-
-    if (!canStay) {
-      doneButton.active = false;
-    }
+        },
+        canStay,
+        tooBigTooltip);
 
     addSelectableChild(this.searchBox);
     addSelectableChild(this.paintingList);
