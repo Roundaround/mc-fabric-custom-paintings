@@ -10,6 +10,7 @@ import java.util.function.Predicate;
 
 import me.roundaround.custompaintings.client.CustomPaintingManager;
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
+import me.roundaround.custompaintings.client.gui.screen.page.FiltersPage;
 import me.roundaround.custompaintings.client.gui.screen.page.GroupSelectPage;
 import me.roundaround.custompaintings.client.gui.screen.page.PaintingEditScreenPage;
 import me.roundaround.custompaintings.client.gui.screen.page.PaintingSelectPage;
@@ -57,6 +58,7 @@ public class PaintingEditScreen extends Screen {
   private boolean pagesInitialized = false;
   private GroupSelectPage groupSelectPage;
   private PaintingSelectPage paintingSelectPage;
+  private FiltersPage filtersPage;
 
   private static final Predicate<Entity> DECORATION_PREDICATE = (
       entity) -> entity instanceof AbstractDecorationEntity;
@@ -67,14 +69,6 @@ public class PaintingEditScreen extends Screen {
     this.paintingId = paintingId;
     this.blockPos = blockPos;
     this.facing = facing;
-  }
-
-  public void resetFilters() {
-    this.filtersState.reset();
-  }
-
-  public void setSearchQuery(String text) {
-    this.filtersState.setSearch(text);
   }
 
   public FiltersState getFilters() {
@@ -239,6 +233,16 @@ public class PaintingEditScreen extends Screen {
     setPage(this.groupSelectPage, () -> {
       this.currentGroup = null;
       this.currentPainting = null;
+    });
+  }
+
+  public void openFiltersPage() {
+    setPage(this.filtersPage, () -> {
+    });
+  }
+
+  public void returnToPaintingSelect() {
+    setPage(this.paintingSelectPage, () -> {
     });
   }
 
@@ -425,6 +429,11 @@ public class PaintingEditScreen extends Screen {
         this.client,
         this.width,
         this.height);
+    this.filtersPage = new FiltersPage(
+        this,
+        this.client,
+        this.width,
+        this.height);
 
     PaintingEditScreenPage page = currentlyOnPaintingSelectPage
         ? this.paintingSelectPage
@@ -450,17 +459,85 @@ public class PaintingEditScreen extends Screen {
 
   public class FiltersState {
     private String search = "";
+    private boolean canStayOnly = false;
+    private int minWidth = 1;
+    private int maxWidth = 32;
+    private int minHeight = 1;
+    private int maxHeight = 32;
 
     public String getSearch() {
       return this.search;
     }
 
-    private void reset() {
-      this.search = "";
+    public boolean getCanStayOnly() {
+      return this.canStayOnly;
     }
 
-    private void setSearch(String search) {
+    public int getMinWidth() {
+      return this.minWidth;
+    }
+
+    public int getMaxWidth() {
+      return this.maxWidth;
+    }
+
+    public int getMinHeight() {
+      return this.minHeight;
+    }
+
+    public int getMaxHeight() {
+      return this.maxHeight;
+    }
+
+    public void reset() {
+      this.search = "";
+      this.canStayOnly = false;
+      this.minWidth = 1;
+      this.maxWidth = 32;
+      this.minHeight = 1;
+      this.maxHeight = 32;
+      PaintingEditScreen.this.onFilterChanged();
+    }
+
+    public void setSearch(String search) {
       this.search = search;
+      PaintingEditScreen.this.onFilterChanged();
+    }
+
+    public void setCanStayOnly(boolean canStayOnly) {
+      this.canStayOnly = canStayOnly;
+      PaintingEditScreen.this.onFilterChanged();
+    }
+
+    public void setMinWidth(int minWidth) {
+      this.minWidth = minWidth;
+      PaintingEditScreen.this.onFilterChanged();
+    }
+
+    public void setMaxWidth(int maxWidth) {
+      this.maxWidth = maxWidth;
+      PaintingEditScreen.this.onFilterChanged();
+    }
+
+    public void setMinHeight(int minHeight) {
+      this.minHeight = minHeight;
+      PaintingEditScreen.this.onFilterChanged();
+    }
+
+    public void setMaxHeight(int maxHeight) {
+      this.maxHeight = maxHeight;
+      PaintingEditScreen.this.onFilterChanged();
+    }
+
+    public void setExactWidth(int width) {
+      this.minWidth = width;
+      this.maxWidth = width;
+      PaintingEditScreen.this.onFilterChanged();
+    }
+
+    public void setExactHeight(int height) {
+      this.minHeight = height;
+      this.maxHeight = height;
       PaintingEditScreen.this.onFilterChanged();
     }
   }

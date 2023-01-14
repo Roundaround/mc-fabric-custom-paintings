@@ -88,7 +88,7 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
         0,
         Text.translatable("custompaintings.painting.filter"),
         (button) -> {
-          // TODO: Show advanced filters
+          this.parent.openFiltersPage();
         });
 
     int listTop = this.searchBox.y + this.searchBox.getHeight() + 4;
@@ -334,7 +334,7 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
       return;
     }
 
-    this.parent.setSearchQuery(text);
+    this.parent.getFilters().setSearch(text);
     updateFilters();
   }
 
