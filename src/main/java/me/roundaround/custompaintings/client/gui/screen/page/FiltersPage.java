@@ -20,6 +20,13 @@ public class FiltersPage extends PaintingEditScreenPage {
 
   @Override
   public void init() {
+    // TODO: Min width: >/</=/<>/etc
+    // TODO: Min height: >/</=/<>/etc
+    // TODO: Max width: >/</=/<>/etc
+    // TODO: Max height: >/</=/<>/etc
+    // TODO: Title: string search
+    // TODO: Author: string search
+
     ButtonWidget resetButton = new ButtonWidget(
         width / 2 - BUTTON_WIDTH - 2,
         height - BUTTON_HEIGHT - 10,
