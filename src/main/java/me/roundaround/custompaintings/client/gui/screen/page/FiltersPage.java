@@ -24,6 +24,7 @@ public class FiltersPage extends PaintingEditScreenPage {
     // TODO: Min height: >/</=/<>/etc
     // TODO: Max width: >/</=/<>/etc
     // TODO: Max height: >/</=/<>/etc
+    // TODO: Can stay only: true/false
     // TODO: Title: string search
     // TODO: Author: string search
 
