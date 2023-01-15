@@ -26,6 +26,8 @@ import net.minecraft.sound.SoundEvents;
 
 @Environment(value = EnvType.CLIENT)
 public class GroupListWidget extends EntryListWidget<GroupListWidget.GroupEntry> {
+  private static final int ITEM_HEIGHT = 20;
+  
   private final PaintingEditScreen parent;
   private final Consumer<String> onGroupSelect;
   private boolean hovered = false;
@@ -38,7 +40,7 @@ public class GroupListWidget extends EntryListWidget<GroupListWidget.GroupEntry>
       int top,
       int bottom,
       Consumer<String> onGroupSelect) {
-    super(minecraftClient, width, height, top, bottom, 20);
+    super(minecraftClient, width, height, top, bottom, ITEM_HEIGHT);
     this.parent = parent;
     this.onGroupSelect = onGroupSelect;
     setRenderBackground(false);

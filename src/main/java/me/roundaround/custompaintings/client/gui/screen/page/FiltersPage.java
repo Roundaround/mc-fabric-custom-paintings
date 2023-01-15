@@ -3,6 +3,7 @@ package me.roundaround.custompaintings.client.gui.screen.page;
 import org.lwjgl.glfw.GLFW;
 
 import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen;
+import me.roundaround.custompaintings.client.gui.widget.FilterListWidget;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.util.math.MatrixStack;
@@ -10,6 +11,8 @@ import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 
 public class FiltersPage extends PaintingEditScreenPage {
+  private FilterListWidget filtersListWidget;
+
   public FiltersPage(
       PaintingEditScreen parent,
       MinecraftClient client,
@@ -27,6 +30,15 @@ public class FiltersPage extends PaintingEditScreenPage {
     // TODO: Can stay only: true/false
     // TODO: Title: string search
     // TODO: Author: string search
+
+    this.filtersListWidget = new FilterListWidget(
+        this.parent,
+        this.client,
+        this.width,
+        this.height,
+        this.getHeaderHeight(),
+        this.height - this.getFooterHeight());
+    addSelectableChild(this.filtersListWidget);
 
     ButtonWidget resetButton = new ButtonWidget(
         width / 2 - BUTTON_WIDTH - 2,
@@ -47,7 +59,7 @@ public class FiltersPage extends PaintingEditScreenPage {
         (button) -> {
           this.parent.returnToPaintingSelect();
         });
-        
+
     addDrawableChild(resetButton);
     addDrawableChild(doneButton);
   }
@@ -66,11 +78,28 @@ public class FiltersPage extends PaintingEditScreenPage {
 
   @Override
   public void renderBackground(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-    renderBackgroundInRegion(0, height, 0, width);
+    matrixStack.push();
+    matrixStack.translate(0, 0, 10);
+    filtersListWidget.render(matrixStack, mouseX, mouseY, partialTicks);
+    matrixStack.pop();
+
+    matrixStack.push();
+    matrixStack.translate(0, 0, 11);
+    renderBackgroundInRegion(0, getHeaderHeight(), 0, width);
+    renderBackgroundInRegion(height - getFooterHeight(), height, 0, width);
+    matrixStack.pop();
   }
 
   @Override
   public void renderForeground(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-    
+
+  }
+
+  private int getHeaderHeight() {
+    return 10 + textRenderer.fontHeight + 2 + 10;
+  }
+
+  private int getFooterHeight() {
+    return 10 + BUTTON_HEIGHT + 10;
   }
 }
