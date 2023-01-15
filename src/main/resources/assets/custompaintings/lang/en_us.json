@@ -9,5 +9,6 @@
   "custompaintings.painting.filter": "Advanced filters",
   "custompaintings.painting.big": "This painting (%s x %s blocks) is too big for the current space on the wall",
   "custompaintings.filter.title": "Set filters",
+  "custompaintings.filter.canstay": "Can stay only",
   "custompaintings.filter.reset": "Reset"
 }

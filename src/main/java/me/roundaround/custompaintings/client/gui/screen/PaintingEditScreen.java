@@ -52,6 +52,7 @@ public class PaintingEditScreen extends Screen {
   private PaintingData currentPainting = null;
   private PaintingEditScreenPage currentPage;
   private PaintingEditScreenPage nextPage;
+  private PaintingEditScreenPage lastPage;
   private Action onPageSwitch = null;
   private int selectedIndex = 0;
 
@@ -106,16 +107,19 @@ public class PaintingEditScreen extends Screen {
 
     initPages();
 
-    if (!hasMultipleGroups()) {
+    if (!hasMultipleGroups() && currentGroup == null) {
       currentGroup = allPaintings.values().stream().findFirst().get();
       setPageImmediate(this.paintingSelectPage);
     }
 
     this.currentPage.init();
 
-    if (selectedIndex >= 0 && selectedIndex < children().size()) {
-      setInitialFocus(children().get(selectedIndex));
+    if (this.currentPage == this.lastPage
+        && this.selectedIndex >= 0
+        && this.selectedIndex < children().size()) {
+      setInitialFocus(children().get(this.selectedIndex));
     }
+    this.lastPage = this.currentPage;
   }
 
   @Override

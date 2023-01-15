@@ -38,7 +38,6 @@ public class FiltersPage extends PaintingEditScreenPage {
         this.height,
         this.getHeaderHeight(),
         this.height - this.getFooterHeight());
-    addSelectableChild(this.filtersListWidget);
 
     ButtonWidget resetButton = new ButtonWidget(
         width / 2 - BUTTON_WIDTH - 2,
@@ -48,6 +47,7 @@ public class FiltersPage extends PaintingEditScreenPage {
         Text.translatable("custompaintings.filter.reset"),
         (button) -> {
           this.parent.getFilters().reset();
+          this.filtersListWidget.updateFilters();
         });
 
     ButtonWidget doneButton = new ButtonWidget(
@@ -60,6 +60,7 @@ public class FiltersPage extends PaintingEditScreenPage {
           this.parent.returnToPaintingSelect();
         });
 
+    addSelectableChild(this.filtersListWidget);
     addDrawableChild(resetButton);
     addDrawableChild(doneButton);
   }
@@ -92,7 +93,13 @@ public class FiltersPage extends PaintingEditScreenPage {
 
   @Override
   public void renderForeground(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-
+    drawCenteredText(
+        matrixStack,
+        textRenderer,
+        Text.translatable("custompaintings.filter.title"),
+        width / 2,
+        11,
+        0xFFFFFFFF);
   }
 
   private int getHeaderHeight() {
