@@ -20,6 +20,8 @@ import net.minecraft.text.Text;
 @Environment(value = EnvType.CLIENT)
 public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterEntry> {
   private static final int ITEM_HEIGHT = 20;
+  private static final int CONTROL_FULL_WIDTH = 310;
+  private static final int CONTROL_HALF_WIDTH = 150;
 
   public FilterListWidget(
       PaintingEditScreen parent,
@@ -82,7 +84,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
       this.button = CyclingButtonWidget.onOffBuilder(trueText, falseText)
           .values(List.of(true, false))
           .initially(getter.get())
-          .build(width / 2 - 155, 0, 150, ITEM_HEIGHT, label, (button, value) -> {
+          .build((width - CONTROL_HALF_WIDTH) / 2, 0, CONTROL_HALF_WIDTH, ITEM_HEIGHT, label, (button, value) -> {
             setter.accept(value);
           });
       this.buttonList = List.of(this.button);
