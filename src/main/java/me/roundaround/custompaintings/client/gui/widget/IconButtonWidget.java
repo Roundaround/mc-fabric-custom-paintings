@@ -16,6 +16,9 @@ import net.minecraft.util.Identifier;
 public class IconButtonWidget extends ButtonWidget {
   public static final int WIDTH = 20;
   public static final int HEIGHT = 20;
+  protected static final Identifier BACKGROUND_TEXTURE = new Identifier(
+      Identifier.DEFAULT_NAMESPACE,
+      "textures/gui/widgets.png");
   protected static final Identifier WIDGETS_TEXTURE = new Identifier(
       CustomPaintingsMod.MOD_ID,
       "textures/gui/widgets.png");
@@ -43,18 +46,41 @@ public class IconButtonWidget extends ButtonWidget {
   @Override
   public void renderButton(MatrixStack matrixStack, int mouseX, int mouseY, float delta) {
     RenderSystem.setShader(GameRenderer::getPositionTexShader);
-    RenderSystem.setShaderTexture(0, WIDGETS_TEXTURE);
+    RenderSystem.enableBlend();
+    RenderSystem.defaultBlendFunc();
     RenderSystem.enableDepthTest();
 
+    RenderSystem.setShaderTexture(0, BACKGROUND_TEXTURE);
+    int vOffset = (this.isHovered() ? 2 : 1) * HEIGHT;
     drawTexture(
         matrixStack,
-        x,
-        y,
-        this.textureIndex * WIDTH,
-        (isHovered() ? 2 : 1) * HEIGHT,
+        this.x,
+        this.y,
+        0,
+        46 + vOffset,
+        WIDTH / 2,
+        HEIGHT);
+    drawTexture(
+        matrixStack,
+        this.x + WIDTH / 2,
+        this.y,
+        200 - WIDTH / 2,
+        46 + vOffset,
+        WIDTH / 2,
+        HEIGHT);
+
+    int uIndex = this.textureIndex % 5;
+    int vIndex = this.textureIndex / 5;
+    RenderSystem.setShaderTexture(0, WIDGETS_TEXTURE);
+    drawTexture(
+        matrixStack,
+        this.x,
+        this.y,
+        uIndex * WIDTH,
+        vIndex * HEIGHT,
         WIDTH,
         HEIGHT,
-        WIDTH,
+        WIDTH * 5,
         HEIGHT * 3);
 
     if (hovered) {
