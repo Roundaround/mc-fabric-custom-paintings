@@ -118,6 +118,13 @@ public class PaintingEditScreen extends Screen {
         && this.selectedIndex >= 0
         && this.selectedIndex < children().size()) {
       setInitialFocus(children().get(this.selectedIndex));
+    } else {
+      // TODO: Re-enable after fixing focus for text fields on filters page
+      // if (children().isEmpty()) {
+      //   setInitialFocus(null);
+      // } else {
+      //   setInitialFocus(children().get(0));
+      // }
     }
     this.lastPage = this.currentPage;
   }
