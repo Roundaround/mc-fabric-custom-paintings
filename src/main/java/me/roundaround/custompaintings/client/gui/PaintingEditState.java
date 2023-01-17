@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 import me.roundaround.custompaintings.client.CustomPaintingManager;
@@ -49,15 +50,15 @@ public class PaintingEditState {
       UUID paintingUuid,
       int paintingId,
       BlockPos blockPos,
-      Direction facing,
-      Runnable onFilterChanged) {
+      Direction facing) {
     this.client = client;
     this.paintingUuid = paintingUuid;
     this.paintingId = paintingId;
     this.blockPos = blockPos;
     this.facing = facing;
 
-    this.filtersState = new FiltersState(onFilterChanged, this::canStay);
+    this.filtersState = new FiltersState(this::canStay);
+    populatePaintings();
   }
 
   public FiltersState getFilters() {
@@ -116,7 +117,7 @@ public class PaintingEditState {
     if (group != null && !group.paintings().isEmpty()) {
       setCurrentPainting(group.paintings().get(0));
     } else {
-      setCurrentPainting(null);
+      setCurrentPainting((PaintingData) null);
     }
   }
 
@@ -126,6 +127,10 @@ public class PaintingEditState {
 
   public void setCurrentPainting(PaintingData painting) {
     this.currentPainting = painting;
+  }
+
+  public void setCurrentPainting(Function<PaintingData, PaintingData> mapper) {
+    setCurrentPainting(mapper.apply(currentPainting));
   }
 
   public void populatePaintings() {

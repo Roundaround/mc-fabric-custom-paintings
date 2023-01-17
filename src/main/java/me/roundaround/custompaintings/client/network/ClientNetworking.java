@@ -4,7 +4,10 @@ import java.util.List;
 import java.util.UUID;
 
 import io.netty.buffer.Unpooled;
+import me.roundaround.custompaintings.client.gui.PaintingEditState;
+import me.roundaround.custompaintings.client.gui.screen.GroupSelectScreen;
 import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen;
+import me.roundaround.custompaintings.client.gui.screen.PaintingSelectScreen;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.network.NetworkPackets;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -51,7 +54,18 @@ public class ClientNetworking {
     Direction facing = Direction.byId(buffer.readInt());
 
     client.execute(() -> {
-      client.setScreen(new PaintingEditScreen(paintingUuid, paintingId, pos, facing));
+      PaintingEditState state = new PaintingEditState(
+          client,
+          paintingUuid,
+          paintingId,
+          pos,
+          facing);
+
+      PaintingEditScreen screen = state.hasMultipleGroups()
+          ? new GroupSelectScreen(state)
+          : new PaintingSelectScreen(state);
+
+      client.setScreen(screen);
     });
   }
 }

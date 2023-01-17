@@ -9,13 +9,12 @@ import com.mojang.blaze3d.systems.RenderSystem;
 
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
-import me.roundaround.custompaintings.client.gui.screen.page.PaintingSelectPage;
+import me.roundaround.custompaintings.client.gui.screen.PaintingSelectScreen;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.texture.Sprite;
@@ -31,13 +30,11 @@ import net.minecraft.util.Util;
 @Environment(value = EnvType.CLIENT)
 public class PaintingListWidget
     extends AlwaysSelectedEntryListWidget<PaintingListWidget.PaintingEntry> {
-  private final Screen parent;
-  private final PaintingSelectPage page;
+  private final PaintingSelectScreen parent;
   private final PaintingEditState state;
 
   public PaintingListWidget(
-      Screen parent,
-      PaintingSelectPage page,
+      PaintingSelectScreen parent,
       PaintingEditState state,
       MinecraftClient minecraftClient,
       int width,
@@ -47,11 +44,10 @@ public class PaintingListWidget
       ArrayList<PaintingData> paintings) {
     super(minecraftClient, width, height, top, bottom, 36);
     this.parent = parent;
-    this.page = page;
     this.state = state;
 
     setPaintings(paintings);
-    setScrollAmount(this.page.getScrollAmount());
+    setScrollAmount(this.parent.getScrollAmount());
   }
 
   public void setPaintings(ArrayList<PaintingData> paintings) {
@@ -87,7 +83,7 @@ public class PaintingListWidget
   @Override
   public void setScrollAmount(double amount) {
     super.setScrollAmount(amount);
-    this.page.setScrollAmount(amount);
+    this.parent.setScrollAmount(amount);
   }
 
   @Override
@@ -217,8 +213,8 @@ public class PaintingListWidget
 
       if (this.canStay) {
         if (this.paintingData.id().equals(clickedId) && Util.getMeasuringTimeMs() - time < 250L) {
-          PaintingListWidget.this.page.playClickSound();
-          PaintingListWidget.this.page.saveSelection(this.paintingData);
+          PaintingListWidget.this.parent.playClickSound();
+          PaintingListWidget.this.parent.saveSelection(this.paintingData);
           return true;
         }
 
@@ -238,7 +234,7 @@ public class PaintingListWidget
       switch (keyCode) {
         case GLFW.GLFW_KEY_ENTER:
           if (this.canStay) {
-            PaintingListWidget.this.page.saveSelection(this.paintingData);
+            PaintingListWidget.this.parent.saveSelection(this.paintingData);
             return true;
           }
           break;

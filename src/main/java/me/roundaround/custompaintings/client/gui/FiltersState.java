@@ -5,9 +5,9 @@ import java.util.function.Predicate;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 
 public class FiltersState implements Predicate<PaintingData> {
-  private final Runnable onFilterChanged;
   private final Predicate<PaintingData> canStay;
 
+  private Runnable onFilterChanged = null;
   private String search = "";
   private String nameSearch = "";
   private String artistSearch = "";
@@ -17,8 +17,7 @@ public class FiltersState implements Predicate<PaintingData> {
   private int minHeight = 1;
   private int maxHeight = 32;
 
-  public FiltersState(Runnable onFilterChanged, Predicate<PaintingData> canStay) {
-    this.onFilterChanged = onFilterChanged;
+  public FiltersState(Predicate<PaintingData> canStay) {
     this.canStay = canStay;
   }
 
@@ -56,6 +55,10 @@ public class FiltersState implements Predicate<PaintingData> {
     }
 
     return true;
+  }
+
+  public void setChangedListener(Runnable onFilterChanged) {
+    this.onFilterChanged = onFilterChanged;
   }
 
   public boolean hasFilters() {
@@ -110,58 +113,91 @@ public class FiltersState implements Predicate<PaintingData> {
     this.maxWidth = 32;
     this.minHeight = 1;
     this.maxHeight = 32;
-    this.onFilterChanged.run();
+
+    if (this.onFilterChanged != null) {
+      this.onFilterChanged.run();
+    }
   }
 
   public void setSearch(String search) {
     this.search = search;
-    this.onFilterChanged.run();
+
+    if (this.onFilterChanged != null) {
+      this.onFilterChanged.run();
+    }
   }
 
   public void setNameSearch(String nameSearch) {
     this.nameSearch = nameSearch;
-    this.onFilterChanged.run();
+
+    if (this.onFilterChanged != null) {
+      this.onFilterChanged.run();
+    }
   }
 
   public void setArtistSearch(String artistSearch) {
     this.artistSearch = artistSearch;
-    this.onFilterChanged.run();
+
+    if (this.onFilterChanged != null) {
+      this.onFilterChanged.run();
+    }
   }
 
   public void setCanStayOnly(boolean canStayOnly) {
     this.canStayOnly = canStayOnly;
-    this.onFilterChanged.run();
+
+    if (this.onFilterChanged != null) {
+      this.onFilterChanged.run();
+    }
   }
 
   public void setMinWidth(int minWidth) {
     this.minWidth = minWidth;
-    this.onFilterChanged.run();
+
+    if (this.onFilterChanged != null) {
+      this.onFilterChanged.run();
+    }
   }
 
   public void setMaxWidth(int maxWidth) {
     this.maxWidth = maxWidth;
-    this.onFilterChanged.run();
+
+    if (this.onFilterChanged != null) {
+      this.onFilterChanged.run();
+    }
   }
 
   public void setMinHeight(int minHeight) {
     this.minHeight = minHeight;
-    this.onFilterChanged.run();
+
+    if (this.onFilterChanged != null) {
+      this.onFilterChanged.run();
+    }
   }
 
   public void setMaxHeight(int maxHeight) {
     this.maxHeight = maxHeight;
-    this.onFilterChanged.run();
+
+    if (this.onFilterChanged != null) {
+      this.onFilterChanged.run();
+    }
   }
 
   public void setExactWidth(int width) {
     this.minWidth = width;
     this.maxWidth = width;
-    this.onFilterChanged.run();
+
+    if (this.onFilterChanged != null) {
+      this.onFilterChanged.run();
+    }
   }
 
   public void setExactHeight(int height) {
     this.minHeight = height;
     this.maxHeight = height;
-    this.onFilterChanged.run();
+
+    if (this.onFilterChanged != null) {
+      this.onFilterChanged.run();
+    }
   }
 }
