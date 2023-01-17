@@ -52,9 +52,7 @@ public class PaintingEditScreen extends Screen {
   private PaintingData currentPainting = null;
   private PaintingEditScreenPage currentPage;
   private PaintingEditScreenPage nextPage;
-  private PaintingEditScreenPage lastPage;
   private Action onPageSwitch = null;
-  private int selectedIndex = 0;
 
   private boolean pagesInitialized = false;
   private GroupSelectPage groupSelectPage;
@@ -113,20 +111,6 @@ public class PaintingEditScreen extends Screen {
     }
 
     this.currentPage.init();
-
-    if (this.currentPage == this.lastPage
-        && this.selectedIndex >= 0
-        && this.selectedIndex < children().size()) {
-      setInitialFocus(children().get(this.selectedIndex));
-    } else {
-      // TODO: Re-enable after fixing focus for text fields on filters page
-      // if (children().isEmpty()) {
-      //   setInitialFocus(null);
-      // } else {
-      //   setInitialFocus(children().get(0));
-      // }
-    }
-    this.lastPage = this.currentPage;
   }
 
   @Override
@@ -176,10 +160,6 @@ public class PaintingEditScreen extends Screen {
     matrixStack.pop();
   }
 
-  public void markCurrentSelectedIndex() {
-    this.selectedIndex = getSelectedIndex();
-  }
-
   public boolean hasMultipleGroups() {
     return allPaintings.keySet().size() > 1;
   }
@@ -218,7 +198,6 @@ public class PaintingEditScreen extends Screen {
         onPageSwitch = null;
       }
 
-      selectedIndex = 0;
       clearAndInit();
     }
   }
@@ -271,16 +250,11 @@ public class PaintingEditScreen extends Screen {
     }
 
     this.currentPainting = paintingData;
-    markCurrentSelectedIndex();
     clearAndInit();
   }
 
   public void setCurrentPainting(Function<PaintingData, PaintingData> mapper) {
     setCurrentPainting(mapper.apply(this.currentPainting));
-  }
-
-  private int getSelectedIndex() {
-    return Math.max(0, children().indexOf(getFocused()));
   }
 
   private void refreshPaintings() {
