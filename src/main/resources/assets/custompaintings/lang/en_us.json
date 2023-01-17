@@ -9,7 +9,10 @@
   "custompaintings.painting.filter": "Advanced filters",
   "custompaintings.painting.big": "This painting (%s x %s blocks) is too big for the current space on the wall",
   "custompaintings.filter.title": "Set filters",
+  "custompaintings.filter.search": "Search for a painting",
+  "custompaintings.filter.name.label": "Search name",
+  "custompaintings.filter.artist.label": "Search artist",
   "custompaintings.filter.canstay.label": "Can stay only",
-  "custompaintings.filter.canstay.tooltip": "Enable this to only show the paintings that can fit in the available space and stay there",
+  "custompaintings.filter.canstay.tooltip": "Enable to hide any painting that can't fit on the wall",
   "custompaintings.filter.reset": "Reset"
 }

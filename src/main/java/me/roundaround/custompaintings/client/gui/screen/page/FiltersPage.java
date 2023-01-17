@@ -28,17 +28,10 @@ public class FiltersPage extends PaintingEditScreenPage {
 
   @Override
   public void init() {
-    // TODO: Min width: >/</=/<>/etc
-    // TODO: Min height: >/</=/<>/etc
-    // TODO: Max width: >/</=/<>/etc
-    // TODO: Max height: >/</=/<>/etc
-    // TODO: Can stay only: true/false
-    // TODO: Title: string search
-    // TODO: Author: string search
-
     this.filtersListWidget = new FilterListWidget(
         this.parent,
         this.client,
+        this.filtersListWidget,
         this.width,
         this.height,
         this.getHeaderHeight(),
