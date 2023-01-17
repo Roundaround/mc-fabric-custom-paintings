@@ -1,6 +1,7 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -8,6 +9,7 @@ import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.Selectable;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
@@ -23,6 +25,8 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
   private static final int CONTROL_FULL_WIDTH = 310;
   private static final int CONTROL_HALF_WIDTH = 150;
 
+  private final TextRenderer textRenderer;
+
   public FilterListWidget(
       PaintingEditScreen parent,
       MinecraftClient minecraftClient,
@@ -31,11 +35,14 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
       int top,
       int bottom) {
     super(minecraftClient, width, height, top, bottom, ITEM_HEIGHT);
+    this.textRenderer = minecraftClient.textRenderer;
+
     this.centerListVertically = false;
     setRenderHeader(false, 0);
 
     addEntry(new ToggleFilterEntry(
-        Text.translatable("custompaintings.filter.canstay"),
+        Text.translatable("custompaintings.filter.canstay.label"),
+        Text.translatable("custompaintings.filter.canstay.tooltip"),
         ScreenTexts.YES,
         ScreenTexts.NO,
         () -> parent.getFilters().getCanStayOnly(),
@@ -54,6 +61,17 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
 
   @Override
   public void appendNarrations(NarrationMessageBuilder builder) {
+  }
+
+  public Optional<Element> getHoveredElement(double mouseX, double mouseY) {
+    for (FilterEntry entry : children()) {
+      for (Element element : entry.children()) {
+        if (element.isMouseOver(mouseX, mouseY)) {
+          return Optional.of(element);
+        }
+      }
+    }
+    return Optional.empty();
   }
 
   public void updateFilters() {
@@ -79,14 +97,36 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
         Text falseText,
         Supplier<Boolean> getter,
         Consumer<Boolean> setter) {
+      this(label, null, trueText, falseText, getter, setter);
+    }
+
+    public ToggleFilterEntry(
+        Text label,
+        Text tooltip,
+        Text trueText,
+        Text falseText,
+        Supplier<Boolean> getter,
+        Consumer<Boolean> setter) {
       this.getter = getter;
 
       this.button = CyclingButtonWidget.onOffBuilder(trueText, falseText)
           .values(List.of(true, false))
-          .initially(getter.get())
-          .build((width - CONTROL_HALF_WIDTH) / 2, 0, CONTROL_HALF_WIDTH, ITEM_HEIGHT, label, (button, value) -> {
-            setter.accept(value);
-          });
+          .initially(this.getter.get())
+          .tooltip((value) -> {
+            if (tooltip == null || tooltip == Text.EMPTY) {
+              return null;
+            }
+            return FilterListWidget.this.textRenderer.wrapLines(tooltip, 200);
+          })
+          .build(
+              (FilterListWidget.this.width - CONTROL_HALF_WIDTH) / 2,
+              0,
+              CONTROL_HALF_WIDTH,
+              ITEM_HEIGHT,
+              label,
+              (button, value) -> {
+                setter.accept(value);
+              });
       this.buttonList = List.of(this.button);
     }
 

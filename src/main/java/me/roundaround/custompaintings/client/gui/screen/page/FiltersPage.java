@@ -1,13 +1,18 @@
 package me.roundaround.custompaintings.client.gui.screen.page;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.lwjgl.glfw.GLFW;
 
 import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen;
 import me.roundaround.custompaintings.client.gui.widget.FilterListWidget;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.util.OrderableTooltip;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.screen.ScreenTexts;
+import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 
 public class FiltersPage extends PaintingEditScreenPage {
@@ -100,6 +105,19 @@ public class FiltersPage extends PaintingEditScreenPage {
         width / 2,
         11,
         0xFFFFFFFF);
+
+    List<OrderedText> tooltip = filtersListWidget.getHoveredElement(mouseX, mouseY)
+        .map((element) -> {
+          if (element instanceof OrderableTooltip) {
+            return ((OrderableTooltip) element).getOrderedTooltip();
+          }
+          return new ArrayList<OrderedText>();
+        })
+        .orElse(new ArrayList<OrderedText>());
+
+    if (!tooltip.isEmpty()) {
+      parent.renderOrderedTooltip(matrixStack, tooltip, mouseX, mouseY);
+    }
   }
 
   private int getHeaderHeight() {
