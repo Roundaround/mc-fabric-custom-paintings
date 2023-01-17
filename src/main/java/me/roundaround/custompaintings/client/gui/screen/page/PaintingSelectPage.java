@@ -183,8 +183,8 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
         tooBigTooltip);
 
     addSelectableChild(this.searchBox);
-    addSelectableChild(this.paintingList);
     addDrawableChild(filterButton);
+    addSelectableChild(this.paintingList);
     addDrawableChild(paintingButton);
     addDrawableChild(prevButton);
     addDrawableChild(nextButton);
