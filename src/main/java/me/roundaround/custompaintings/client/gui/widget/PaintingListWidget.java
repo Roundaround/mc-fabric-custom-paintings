@@ -1,6 +1,9 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
 import java.util.ArrayList;
+import java.util.Optional;
+
+import org.lwjgl.glfw.GLFW;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 
@@ -58,8 +61,16 @@ public class PaintingListWidget
     });
   }
 
+  public Optional<PaintingData> getSelectedPainting() {
+    PaintingEntry entry = this.getSelectedOrNull();
+    if (entry == null) {
+      return Optional.empty();
+    }
+    return Optional.of(entry.paintingData);
+  }
+
   @Override
-  protected boolean isFocused() {
+  public boolean isFocused() {
     return parent.getFocused() == this;
   }
 
@@ -212,6 +223,24 @@ public class PaintingListWidget
       }
 
       return true;
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+      if (PaintingListWidget.this.getSelectedOrNull() != this) {
+        return false;
+      }
+
+      switch (keyCode) {
+        case GLFW.GLFW_KEY_ENTER:
+          if (this.canStay) {
+            PaintingListWidget.this.parent.saveSelection(this.paintingData);
+            return true;
+          }
+          break;
+      }
+
+      return super.keyPressed(keyCode, scanCode, modifiers);
     }
   }
 }

@@ -1,6 +1,7 @@
 package me.roundaround.custompaintings.client.gui.screen.page;
 
 import java.util.ArrayList;
+import java.util.Optional;
 
 import org.lwjgl.glfw.GLFW;
 
@@ -211,6 +212,26 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
         playClickSound();
         this.parent.clearGroup();
         return true;
+      case GLFW.GLFW_KEY_ENTER:
+        if (!this.paintingList.isFocused()) {
+          break;
+        }
+        Optional<PaintingData> painting = this.paintingList.getSelectedPainting();
+        if (painting.isPresent() && this.parent.canStay(painting.get())) {
+          playClickSound();
+          this.parent.saveSelection(painting.get());
+          return true;
+        }
+        break;
+      case GLFW.GLFW_KEY_F:
+        if ((modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
+          if ((modifiers & GLFW.GLFW_MOD_SHIFT) != 0) {
+            this.parent.openFiltersPage();
+            return true;
+          }
+          this.parent.setFocused(this.searchBox);
+        }
+        break;
     }
 
     return false;
@@ -218,7 +239,8 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
 
   @Override
   public boolean postKeyPressed(int keyCode, int scanCode, int modifiers) {
-    return this.searchBox.keyPressed(keyCode, scanCode, modifiers);
+    return this.searchBox.keyPressed(keyCode, scanCode, modifiers)
+        || this.paintingList.keyPressed(keyCode, scanCode, modifiers);
   }
 
   @Override
