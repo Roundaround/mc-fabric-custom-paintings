@@ -5,7 +5,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen;
+import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
@@ -30,7 +30,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
   private final TextRenderer textRenderer;
 
   public FilterListWidget(
-      PaintingEditScreen parent,
+      PaintingEditState state,
       MinecraftClient minecraftClient,
       FilterListWidget previousInstance,
       int width,
@@ -50,8 +50,8 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
     addEntry(new TextFilterEntry(
         Text.translatable("custompaintings.filter.name.label"),
         previousNameFilterEntry,
-        () -> parent.getState().getFilters().getNameSearch(),
-        (value) -> parent.getState().getFilters().setNameSearch(value)));
+        () -> state.getFilters().getNameSearch(),
+        (value) -> state.getFilters().setNameSearch(value)));
 
     TextFilterEntry previousArtistFilterEntry = null;
     if (previousInstance != null && previousInstance.children().size() > 1) {
@@ -60,8 +60,8 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
     addEntry(new TextFilterEntry(
         Text.translatable("custompaintings.filter.artist.label"),
         previousArtistFilterEntry,
-        () -> parent.getState().getFilters().getArtistSearch(),
-        (value) -> parent.getState().getFilters().setArtistSearch(value)));
+        () -> state.getFilters().getArtistSearch(),
+        (value) -> state.getFilters().setArtistSearch(value)));
 
     // TODO: Name: Empty
     // TODO: Artist: Empty
@@ -71,8 +71,8 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
         Text.translatable("custompaintings.filter.canstay.tooltip"),
         ScreenTexts.YES,
         ScreenTexts.NO,
-        () -> parent.getState().getFilters().getCanStayOnly(),
-        (value) -> parent.getState().getFilters().setCanStayOnly(value)));
+        () -> state.getFilters().getCanStayOnly(),
+        (value) -> state.getFilters().setCanStayOnly(value)));
 
     // TODO: Min width: >/</=/<>/etc
     // TODO: Min height: >/</=/<>/etc

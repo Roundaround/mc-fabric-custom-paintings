@@ -8,11 +8,11 @@ import org.lwjgl.glfw.GLFW;
 import com.mojang.blaze3d.systems.RenderSystem;
 
 import me.roundaround.custompaintings.client.gui.PaintingEditState.Group;
-import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawableHelper;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.EntryListWidget;
 import net.minecraft.client.render.BufferBuilder;
@@ -28,12 +28,12 @@ import net.minecraft.sound.SoundEvents;
 public class GroupListWidget extends EntryListWidget<GroupListWidget.GroupEntry> {
   private static final int ITEM_HEIGHT = 20;
 
-  private final PaintingEditScreen parent;
+  private final Screen parent;
   private final Consumer<String> onGroupSelect;
   private boolean hovered = false;
 
   public GroupListWidget(
-      PaintingEditScreen parent,
+      Screen parent,
       MinecraftClient minecraftClient,
       int width,
       int height,

@@ -5,7 +5,6 @@ import java.util.function.Consumer;
 import com.mojang.blaze3d.systems.RenderSystem;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.render.GameRenderer;
@@ -26,7 +25,7 @@ public class IconButtonWidget extends ButtonWidget {
   protected int textureIndex;
 
   public IconButtonWidget(
-      PaintingEditScreen parent,
+      Screen parent,
       int x,
       int y,
       int textureIndex,

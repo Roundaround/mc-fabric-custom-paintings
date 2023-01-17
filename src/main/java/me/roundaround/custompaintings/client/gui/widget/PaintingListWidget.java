@@ -8,13 +8,14 @@ import org.lwjgl.glfw.GLFW;
 import com.mojang.blaze3d.systems.RenderSystem;
 
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
-import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen;
+import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.screen.page.PaintingSelectPage;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.texture.Sprite;
@@ -30,12 +31,14 @@ import net.minecraft.util.Util;
 @Environment(value = EnvType.CLIENT)
 public class PaintingListWidget
     extends AlwaysSelectedEntryListWidget<PaintingListWidget.PaintingEntry> {
+  private final Screen parent;
   private final PaintingSelectPage page;
-  private final PaintingEditScreen parent;
+  private final PaintingEditState state;
 
   public PaintingListWidget(
+      Screen parent,
       PaintingSelectPage page,
-      PaintingEditScreen parent,
+      PaintingEditState state,
       MinecraftClient minecraftClient,
       int width,
       int height,
@@ -43,8 +46,9 @@ public class PaintingListWidget
       int bottom,
       ArrayList<PaintingData> paintings) {
     super(minecraftClient, width, height, top, bottom, 36);
-    this.page = page;
     this.parent = parent;
+    this.page = page;
+    this.state = state;
 
     setPaintings(paintings);
     setScrollAmount(this.page.getScrollAmount());
@@ -55,7 +59,7 @@ public class PaintingListWidget
     paintings.forEach((paintingData) -> {
       PaintingEntry entry = new PaintingEntry(paintingData);
       this.addEntry(entry);
-      if (this.parent.getState().getCurrentPainting().id() == paintingData.id()) {
+      if (this.state.getCurrentPainting().id() == paintingData.id()) {
         this.setSelected(entry);
       }
     });
@@ -77,7 +81,7 @@ public class PaintingListWidget
   @Override
   public void setSelected(PaintingEntry entry) {
     super.setSelected(entry);
-    this.parent.setCurrentPainting(entry.paintingData);
+    this.state.setCurrentPainting(entry.paintingData);
   }
 
   @Override
@@ -118,7 +122,7 @@ public class PaintingListWidget
     public PaintingEntry(PaintingData paintingData) {
       this.paintingData = paintingData;
       this.sprite = CustomPaintingsClientMod.customPaintingManager.getPaintingSprite(paintingData);
-      this.canStay = PaintingListWidget.this.parent.getState().canStay(paintingData);
+      this.canStay = PaintingListWidget.this.state.canStay(paintingData);
     }
 
     @Override
@@ -214,7 +218,7 @@ public class PaintingListWidget
       if (this.canStay) {
         if (this.paintingData.id().equals(clickedId) && Util.getMeasuringTimeMs() - time < 250L) {
           PaintingListWidget.this.page.playClickSound();
-          PaintingListWidget.this.parent.saveSelection(this.paintingData);
+          PaintingListWidget.this.page.saveSelection(this.paintingData);
           return true;
         }
 
@@ -234,7 +238,7 @@ public class PaintingListWidget
       switch (keyCode) {
         case GLFW.GLFW_KEY_ENTER:
           if (this.canStay) {
-            PaintingListWidget.this.parent.saveSelection(this.paintingData);
+            PaintingListWidget.this.page.saveSelection(this.paintingData);
             return true;
           }
           break;

@@ -52,6 +52,32 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
     });
   }
 
+  public void updateFilters() {
+    if (!this.parent.getState().getFilters().hasFilters()) {
+      this.paintings = this.parent.getState().getCurrentGroup().paintings();
+      if (this.paintingList != null) {
+        this.paintingList.setPaintings(this.paintings);
+      }
+      return;
+    }
+
+    // Manually iterate to guarantee order
+    this.paintings = new ArrayList<>();
+    this.parent.getState().getCurrentGroup().paintings().forEach((paintingData) -> {
+      if (this.parent.getState().getFilters().test(paintingData)) {
+        this.paintings.add(paintingData);
+      }
+    });
+
+    if (this.paintingList != null) {
+      this.paintingList.setPaintings(this.paintings);
+    }
+  }
+
+  public void saveSelection(PaintingData paintingData) {
+    this.parent.saveSelection(paintingData);
+  }
+
   @Override
   public void init() {
     updateFilters();
@@ -94,8 +120,9 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
     int listBottom = this.height - footerHeight - 4;
     int listHeight = listBottom - listTop;
     this.paintingList = new PaintingListWidget(
-        this,
         this.parent,
+        this,
+        this.parent.getState(),
         this.client,
         this.paneWidth,
         listHeight,
@@ -356,28 +383,6 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
 
     this.parent.getState().getFilters().setSearch(text);
     updateFilters();
-  }
-
-  public void updateFilters() {
-    if (!this.parent.getState().getFilters().hasFilters()) {
-      this.paintings = this.parent.getState().getCurrentGroup().paintings();
-      if (this.paintingList != null) {
-        this.paintingList.setPaintings(this.paintings);
-      }
-      return;
-    }
-
-    // Manually iterate to guarantee order
-    this.paintings = new ArrayList<>();
-    this.parent.getState().getCurrentGroup().paintings().forEach((paintingData) -> {
-      if (this.parent.getState().getFilters().test(paintingData)) {
-        this.paintings.add(paintingData);
-      }
-    });
-
-    if (this.paintingList != null) {
-      this.paintingList.setPaintings(this.paintings);
-    }
   }
 
   private boolean hasMultiplePaintings() {

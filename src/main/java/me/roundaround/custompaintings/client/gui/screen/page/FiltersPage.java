@@ -29,7 +29,7 @@ public class FiltersPage extends PaintingEditScreenPage {
   @Override
   public void init() {
     this.filtersListWidget = new FilterListWidget(
-        this.parent,
+        this.parent.getState(),
         this.client,
         this.filtersListWidget,
         this.width,
