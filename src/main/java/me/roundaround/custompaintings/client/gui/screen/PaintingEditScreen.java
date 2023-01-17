@@ -461,16 +461,73 @@ public class PaintingEditScreen extends Screen {
     public abstract void execute();
   }
 
-  public class FiltersState {
+  public class FiltersState implements Predicate<PaintingData> {
     private String search = "";
+    private String nameSearch = "";
+    private String artistSearch = "";
     private boolean canStayOnly = false;
     private int minWidth = 1;
     private int maxWidth = 32;
     private int minHeight = 1;
     private int maxHeight = 32;
 
+    @Override
+    public boolean test(PaintingData paintingData) {
+      if (this.canStayOnly && !canStay(paintingData)) {
+        return false;
+      }
+
+      if (this.minWidth > paintingData.width()
+          || this.maxWidth < paintingData.width()
+          || this.minHeight > paintingData.height()
+          || this.maxHeight < paintingData.height()) {
+        return false;
+      }
+
+      String query = this.search.toLowerCase().replace(" ", "");
+      String name = paintingData.name().toLowerCase().replace(" ", "");
+      String artist = paintingData.artist().toLowerCase().replace(" ", "");
+
+      if (!query.isEmpty()) {
+        if (!name.contains(query) && !artist.contains(query)) {
+          return false;
+        }
+      }
+
+      String nameQuery = this.nameSearch.toLowerCase().replace(" ", "");
+      if (!nameQuery.isEmpty() && !name.contains(nameQuery)) {
+        return false;
+      }
+
+      String artistQuery = this.artistSearch.toLowerCase().replace(" ", "");
+      if (!artistQuery.isEmpty() && !artist.contains(artistQuery)) {
+        return false;
+      }
+
+      return true;
+    }
+
+    public boolean hasFilters() {
+      return !this.search.isEmpty()
+          || !this.nameSearch.isEmpty()
+          || !this.artistSearch.isEmpty()
+          || this.canStayOnly
+          || this.minWidth > 1
+          || this.maxWidth < 32
+          || this.minHeight > 1
+          || this.maxHeight < 32;
+    }
+
     public String getSearch() {
       return this.search;
+    }
+
+    public String getNameSearch() {
+      return this.nameSearch;
+    }
+
+    public String getArtistSearch() {
+      return this.artistSearch;
     }
 
     public boolean getCanStayOnly() {
@@ -495,6 +552,8 @@ public class PaintingEditScreen extends Screen {
 
     public void reset() {
       this.search = "";
+      this.nameSearch = "";
+      this.artistSearch = "";
       this.canStayOnly = false;
       this.minWidth = 1;
       this.maxWidth = 32;
@@ -505,6 +564,16 @@ public class PaintingEditScreen extends Screen {
 
     public void setSearch(String search) {
       this.search = search;
+      PaintingEditScreen.this.onFilterChanged();
+    }
+
+    public void setNameSearch(String nameSearch) {
+      this.nameSearch = nameSearch;
+      PaintingEditScreen.this.onFilterChanged();
+    }
+
+    public void setArtistSearch(String artistSearch) {
+      this.artistSearch = artistSearch;
       PaintingEditScreen.this.onFilterChanged();
     }
 

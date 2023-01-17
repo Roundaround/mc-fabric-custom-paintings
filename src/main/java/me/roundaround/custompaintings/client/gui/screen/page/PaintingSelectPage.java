@@ -1,7 +1,6 @@
 package me.roundaround.custompaintings.client.gui.screen.page;
 
 import java.util.ArrayList;
-import java.util.function.Predicate;
 
 import org.lwjgl.glfw.GLFW;
 
@@ -29,7 +28,6 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
   private int rightPaneX;
   private double scrollAmount;
   private ArrayList<PaintingData> paintings = new ArrayList<>();
-  private boolean hasFilter = false;
 
   public PaintingSelectPage(
       PaintingEditScreen parent,
@@ -339,10 +337,7 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
   }
 
   public void updateFilters() {
-    String search = this.parent.getFilters().getSearch();
-    this.hasFilter = !search.isEmpty();
-
-    if (!this.hasFilter) {
+    if (!this.parent.getFilters().hasFilters()) {
       this.paintings = this.parent.getCurrentGroup().paintings();
       if (this.paintingList != null) {
         this.paintingList.setPaintings(this.paintings);
@@ -350,19 +345,10 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
       return;
     }
 
-    Predicate<PaintingData> filter = (paintingData) -> {
-      // TODO: Add additional filters here
-      String name = paintingData.name().toLowerCase().replace(" ", "");
-      String artist = paintingData.artist().toLowerCase();
-      String query = search.toLowerCase();
-
-      return name.contains(query) || artist.contains(query);
-    };
-
     // Manually iterate to guarantee order
     this.paintings = new ArrayList<>();
     this.parent.getCurrentGroup().paintings().forEach((paintingData) -> {
-      if (filter.test(paintingData)) {
+      if (this.parent.getFilters().test(paintingData)) {
         this.paintings.add(paintingData);
       }
     });
