@@ -1,81 +1,49 @@
 package me.roundaround.custompaintings.client.gui.screen;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
-import me.roundaround.custompaintings.client.CustomPaintingManager;
-import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
+import me.roundaround.custompaintings.client.gui.PaintingEditState;
+import me.roundaround.custompaintings.client.gui.PaintingEditState.Group;
 import me.roundaround.custompaintings.client.gui.screen.page.FiltersPage;
 import me.roundaround.custompaintings.client.gui.screen.page.GroupSelectPage;
 import me.roundaround.custompaintings.client.gui.screen.page.PaintingEditScreenPage;
 import me.roundaround.custompaintings.client.gui.screen.page.PaintingSelectPage;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.block.AbstractRedstoneGateBlock;
-import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.Drawable;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.Selectable;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.decoration.AbstractDecorationEntity;
-import net.minecraft.entity.decoration.painting.PaintingEntity;
-import net.minecraft.entity.decoration.painting.PaintingVariant;
-import net.minecraft.tag.PaintingVariantTags;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.util.registry.RegistryEntry;
-import net.minecraft.util.registry.RegistryKey;
-import net.minecraft.world.World;
 
 public class PaintingEditScreen extends Screen {
-  private final HashMap<String, Group> allPaintings = new HashMap<>();
-  private final HashMap<String, Boolean> canStayHashMap = new HashMap<>();
-  private final UUID paintingUuid;
-  private final int paintingId;
-  private final BlockPos blockPos;
-  private final Direction facing;
-  private final FiltersState filtersState = new FiltersState();
-  private Group currentGroup = null;
-  private PaintingData currentPainting = null;
-  private PaintingEditScreenPage currentPage;
-  private PaintingEditScreenPage nextPage;
-  private Action onPageSwitch = null;
-
+  private final PaintingEditState state;
   private boolean pagesInitialized = false;
   private GroupSelectPage groupSelectPage;
   private PaintingSelectPage paintingSelectPage;
   private FiltersPage filtersPage;
-
-  private static final Predicate<Entity> DECORATION_PREDICATE = (
-      entity) -> entity instanceof AbstractDecorationEntity;
+  private PaintingEditScreenPage currentPage;
+  private PaintingEditScreenPage nextPage;
+  private Runnable onPageSwitch = null;
 
   public PaintingEditScreen(UUID paintingUuid, int paintingId, BlockPos blockPos, Direction facing) {
     super(Text.translatable("custompaintings.painting.title"));
-    this.paintingUuid = paintingUuid;
-    this.paintingId = paintingId;
-    this.blockPos = blockPos;
-    this.facing = facing;
+    this.state = new PaintingEditState(
+        this.client,
+        paintingUuid,
+        paintingId,
+        blockPos,
+        facing,
+        this::onFilterChanged);
   }
 
-  public FiltersState getFilters() {
-    return this.filtersState;
-  }
-
-  public Collection<Group> getGroups() {
-    return allPaintings.values();
+  public PaintingEditState getState() {
+    return this.state;
   }
 
   @Override
@@ -95,18 +63,16 @@ public class PaintingEditScreen extends Screen {
 
   @Override
   public void init() {
-    if (allPaintings.isEmpty()) {
-      refreshPaintings();
-    }
+    this.state.populatePaintings();
 
-    if (allPaintings.isEmpty()) {
+    if (this.state.hasNoPaintings()) {
       saveEmpty();
     }
 
     initPages();
 
-    if (!hasMultipleGroups() && currentGroup == null) {
-      currentGroup = allPaintings.values().stream().findFirst().get();
+    if (!this.state.hasMultipleGroups() && this.state.getCurrentGroup() == null) {
+      this.state.selectFirstGroup();
       setPageImmediate(this.paintingSelectPage);
     }
 
@@ -160,19 +126,13 @@ public class PaintingEditScreen extends Screen {
     matrixStack.pop();
   }
 
-  public boolean hasMultipleGroups() {
-    return allPaintings.keySet().size() > 1;
-  }
-
-  public boolean hasMultiplePaintings() {
-    return currentGroup.paintings().size() > 1;
-  }
-
   public void saveEmpty() {
     saveSelection(PaintingData.EMPTY);
   }
 
   public void saveCurrentSelection() {
+    Group currentGroup = this.state.getCurrentGroup();
+    PaintingData currentPainting = this.state.getCurrentPainting();
     if (currentGroup == null || currentPainting == null) {
       saveEmpty();
     }
@@ -180,11 +140,15 @@ public class PaintingEditScreen extends Screen {
   }
 
   public void saveSelection(PaintingData paintingData) {
-    ClientNetworking.sendSetPaintingPacket(paintingUuid, paintingData);
+    ClientNetworking.sendSetPaintingPacket(this.state.getPaintingUuid(), paintingData);
     close();
   }
 
-  private void setPage(PaintingEditScreenPage page, Action onSwitch) {
+  private void setPage(PaintingEditScreenPage page) {
+    setPage(page, null);
+  }
+
+  private void setPage(PaintingEditScreenPage page, Runnable onSwitch) {
     nextPage = page;
     onPageSwitch = onSwitch;
   }
@@ -194,7 +158,7 @@ public class PaintingEditScreen extends Screen {
       currentPage = nextPage;
 
       if (onPageSwitch != null) {
-        onPageSwitch.execute();
+        onPageSwitch.run();
         onPageSwitch = null;
       }
 
@@ -209,191 +173,41 @@ public class PaintingEditScreen extends Screen {
   }
 
   public void selectGroup(String id) {
-    if (!allPaintings.containsKey(id) || allPaintings.get(id).paintings().isEmpty()) {
+    if (!this.state.hasGroup(id)) {
       return;
     }
 
     setPage(this.paintingSelectPage, () -> {
-      this.currentGroup = allPaintings.get(id);
-      this.currentPainting = allPaintings.get(id).paintings().get(0);
+      this.state.setCurrentGroup(id);
     });
   }
 
   public void clearGroup() {
     setPage(this.groupSelectPage, () -> {
-      this.currentGroup = null;
-      this.currentPainting = null;
+      this.state.clearGroup();
     });
   }
 
   public void openFiltersPage() {
-    setPage(this.filtersPage, () -> {
-    });
+    setPage(this.filtersPage);
   }
 
   public void returnToPaintingSelect() {
-    setPage(this.paintingSelectPage, () -> {
-    });
-  }
-
-  public Group getCurrentGroup() {
-    return this.currentGroup;
-  }
-
-  public PaintingData getCurrentPainting() {
-    return this.currentPainting;
+    setPage(this.paintingSelectPage);
   }
 
   public void setCurrentPainting(PaintingData paintingData) {
-    if (this.currentPainting.equals(paintingData)) {
+    PaintingData currentPainting = this.state.getCurrentPainting();
+    if (currentPainting != null && currentPainting.equals(paintingData)) {
       return;
     }
 
-    this.currentPainting = paintingData;
+    this.state.setCurrentPainting(paintingData);
     clearAndInit();
   }
 
   public void setCurrentPainting(Function<PaintingData, PaintingData> mapper) {
-    setCurrentPainting(mapper.apply(this.currentPainting));
-  }
-
-  private void refreshPaintings() {
-    allPaintings.clear();
-
-    Registry.PAINTING_VARIANT.stream()
-        .forEach((vanillaVariant) -> {
-          Identifier id = Registry.PAINTING_VARIANT.getId(vanillaVariant);
-          RegistryKey<PaintingVariant> key = RegistryKey.of(Registry.PAINTING_VARIANT_KEY, id);
-          Optional<RegistryEntry<PaintingVariant>> maybeEntry = Registry.PAINTING_VARIANT.getEntry(key);
-
-          if (!maybeEntry.isPresent()) {
-            return;
-          }
-
-          RegistryEntry<PaintingVariant> entry = maybeEntry.get();
-          boolean placeable = entry.isIn(PaintingVariantTags.PLACEABLE);
-          String groupId = id.getNamespace() + (placeable ? "" : "_unplaceable");
-
-          if (!allPaintings.containsKey(groupId)) {
-            String groupName = !placeable ? "Minecraft: The Hidden Ones"
-                : FabricLoader.getInstance()
-                    .getModContainer(groupId)
-                    .map((mod) -> mod.getMetadata().getName()).orElse(groupId);
-            allPaintings.put(groupId, new Group(groupId, groupName, new ArrayList<>()));
-          }
-
-          allPaintings.get(groupId).paintings().add(new PaintingData(
-              vanillaVariant,
-              allPaintings
-                  .get(groupId)
-                  .paintings()
-                  .size()));
-        });
-
-    CustomPaintingManager paintingManager = CustomPaintingsClientMod.customPaintingManager;
-    paintingManager.getPacks().stream()
-        .forEach((pack) -> {
-          String groupId = pack.id();
-          String groupName = pack.name();
-
-          if (!allPaintings.containsKey(groupId)) {
-            allPaintings.put(groupId, new Group(groupId, groupName, new ArrayList<>()));
-          }
-
-          pack.paintings().stream()
-              .forEach((painting) -> {
-                allPaintings.get(groupId).paintings().add(
-                    new PaintingData(
-                        new Identifier(pack.id(), painting.id()),
-                        painting.index(),
-                        painting.width().orElse(1),
-                        painting.height().orElse(1),
-                        painting.name().orElse(""),
-                        painting.artist().orElse("")));
-              });
-        });
-
-    allPaintings.values().forEach((group) -> {
-      group.paintings().forEach((paintingData) -> {
-        String sizeString = paintingData.width() + "x" + paintingData.height();
-        if (!canStayHashMap.containsKey(sizeString)) {
-          canStayHashMap.put(sizeString, canStay(paintingData));
-        }
-      });
-    });
-  }
-
-  public boolean canStay(PaintingData paintingData) {
-    String sizeString = paintingData.width() + "x" + paintingData.height();
-    if (canStayHashMap.containsKey(sizeString)) {
-      return canStayHashMap.get(sizeString);
-    }
-    boolean result = canStay(paintingData.getScaledWidth(), paintingData.getScaledHeight());
-    canStayHashMap.put(sizeString, result);
-    return result;
-  }
-
-  public boolean canStay(int width, int height) {
-    World world = client.player.world;
-    Box boundingBox = getBoundingBox(width, height);
-
-    if (!world.isSpaceEmpty(boundingBox)) {
-      return false;
-    }
-
-    int blocksWidth = Math.max(1, width / 16);
-    int blocksHeight = Math.max(1, height / 16);
-    BlockPos pos = blockPos.offset(facing.getOpposite());
-    Direction direction = facing.rotateYCounterclockwise();
-    BlockPos.Mutable mutable = new BlockPos.Mutable();
-
-    for (int x = 0; x < blocksWidth; x++) {
-      for (int z = 0; z < blocksHeight; z++) {
-        mutable.set(pos)
-            .move(direction, x - (blocksWidth - 1) / 2)
-            .move(Direction.UP, z - (blocksHeight - 1) / 2);
-        BlockState blockState = world.getBlockState(mutable);
-
-        if (!blockState.getMaterial().isSolid()
-            && !AbstractRedstoneGateBlock.isRedstoneGate(blockState)) {
-          return false;
-        }
-      }
-    }
-
-    Entity entity = world.getEntityById(paintingId);
-    PaintingEntity currentPainting = entity != null && entity instanceof PaintingEntity
-        ? (PaintingEntity) entity
-        : null;
-
-    return world.getOtherEntities(currentPainting, boundingBox, DECORATION_PREDICATE).isEmpty();
-  }
-
-  private Box getBoundingBox(int width, int height) {
-    double posX = blockPos.getX() + 0.5
-        - facing.getOffsetX() * 0.46875
-        + facing.rotateYCounterclockwise().getOffsetX() * offsetForEven(width);
-    double posY = blockPos.getY() + 0.5
-        + offsetForEven(height);
-    double posZ = blockPos.getZ() + 0.5
-        - facing.getOffsetZ() * 0.46875
-        + facing.rotateYCounterclockwise().getOffsetZ() * offsetForEven(width);
-
-    double sizeX = (facing.getAxis() == Direction.Axis.Z ? width : 1) / 32D;
-    double sizeY = height / 32D;
-    double sizeZ = (facing.getAxis() == Direction.Axis.Z ? 1 : width) / 32D;
-
-    return new Box(
-        posX - sizeX,
-        posY - sizeY,
-        posZ - sizeZ,
-        posX + sizeX,
-        posY + sizeY,
-        posZ + sizeZ);
-  }
-
-  private double offsetForEven(int size) {
-    return size % 32 == 0 ? 0.5 : 0;
+    setCurrentPainting(mapper.apply(this.state.getCurrentPainting()));
   }
 
   private void initPages() {
@@ -420,179 +234,16 @@ public class PaintingEditScreen extends Screen {
         this.width,
         this.height);
 
-    PaintingEditScreenPage page = currentlyOnPaintingSelectPage
+    this.currentPage = currentlyOnPaintingSelectPage
         ? this.paintingSelectPage
         : this.groupSelectPage;
 
-    this.currentPage = page;
-    this.nextPage = page;
+    this.nextPage = this.currentPage;
   }
 
   private void onFilterChanged() {
     if (this.currentPage instanceof PaintingSelectPage) {
       ((PaintingSelectPage) this.currentPage).updateFilters();
-    }
-  }
-
-  public record Group(String id, String name, ArrayList<PaintingData> paintings) {
-  }
-
-  @FunctionalInterface
-  public interface Action {
-    public abstract void execute();
-  }
-
-  public class FiltersState implements Predicate<PaintingData> {
-    private String search = "";
-    private String nameSearch = "";
-    private String artistSearch = "";
-    private boolean canStayOnly = false;
-    private int minWidth = 1;
-    private int maxWidth = 32;
-    private int minHeight = 1;
-    private int maxHeight = 32;
-
-    @Override
-    public boolean test(PaintingData paintingData) {
-      if (this.canStayOnly && !canStay(paintingData)) {
-        return false;
-      }
-
-      if (this.minWidth > paintingData.width()
-          || this.maxWidth < paintingData.width()
-          || this.minHeight > paintingData.height()
-          || this.maxHeight < paintingData.height()) {
-        return false;
-      }
-
-      String query = this.search.toLowerCase().replace(" ", "");
-      String name = paintingData.name().toLowerCase().replace(" ", "");
-      String artist = paintingData.artist().toLowerCase().replace(" ", "");
-
-      if (!query.isEmpty()) {
-        if (!name.contains(query) && !artist.contains(query)) {
-          return false;
-        }
-      }
-
-      String nameQuery = this.nameSearch.toLowerCase().replace(" ", "");
-      if (!nameQuery.isEmpty() && !name.contains(nameQuery)) {
-        return false;
-      }
-
-      String artistQuery = this.artistSearch.toLowerCase().replace(" ", "");
-      if (!artistQuery.isEmpty() && !artist.contains(artistQuery)) {
-        return false;
-      }
-
-      return true;
-    }
-
-    public boolean hasFilters() {
-      return !this.search.isEmpty()
-          || !this.nameSearch.isEmpty()
-          || !this.artistSearch.isEmpty()
-          || this.canStayOnly
-          || this.minWidth > 1
-          || this.maxWidth < 32
-          || this.minHeight > 1
-          || this.maxHeight < 32;
-    }
-
-    public String getSearch() {
-      return this.search;
-    }
-
-    public String getNameSearch() {
-      return this.nameSearch;
-    }
-
-    public String getArtistSearch() {
-      return this.artistSearch;
-    }
-
-    public boolean getCanStayOnly() {
-      return this.canStayOnly;
-    }
-
-    public int getMinWidth() {
-      return this.minWidth;
-    }
-
-    public int getMaxWidth() {
-      return this.maxWidth;
-    }
-
-    public int getMinHeight() {
-      return this.minHeight;
-    }
-
-    public int getMaxHeight() {
-      return this.maxHeight;
-    }
-
-    public void reset() {
-      this.search = "";
-      this.nameSearch = "";
-      this.artistSearch = "";
-      this.canStayOnly = false;
-      this.minWidth = 1;
-      this.maxWidth = 32;
-      this.minHeight = 1;
-      this.maxHeight = 32;
-      PaintingEditScreen.this.onFilterChanged();
-    }
-
-    public void setSearch(String search) {
-      this.search = search;
-      PaintingEditScreen.this.onFilterChanged();
-    }
-
-    public void setNameSearch(String nameSearch) {
-      this.nameSearch = nameSearch;
-      PaintingEditScreen.this.onFilterChanged();
-    }
-
-    public void setArtistSearch(String artistSearch) {
-      this.artistSearch = artistSearch;
-      PaintingEditScreen.this.onFilterChanged();
-    }
-
-    public void setCanStayOnly(boolean canStayOnly) {
-      this.canStayOnly = canStayOnly;
-      PaintingEditScreen.this.onFilterChanged();
-    }
-
-    public void setMinWidth(int minWidth) {
-      this.minWidth = minWidth;
-      PaintingEditScreen.this.onFilterChanged();
-    }
-
-    public void setMaxWidth(int maxWidth) {
-      this.maxWidth = maxWidth;
-      PaintingEditScreen.this.onFilterChanged();
-    }
-
-    public void setMinHeight(int minHeight) {
-      this.minHeight = minHeight;
-      PaintingEditScreen.this.onFilterChanged();
-    }
-
-    public void setMaxHeight(int maxHeight) {
-      this.maxHeight = maxHeight;
-      PaintingEditScreen.this.onFilterChanged();
-    }
-
-    public void setExactWidth(int width) {
-      this.minWidth = width;
-      this.maxWidth = width;
-      PaintingEditScreen.this.onFilterChanged();
-    }
-
-    public void setExactHeight(int height) {
-      this.minHeight = height;
-      this.maxHeight = height;
-      PaintingEditScreen.this.onFilterChanged();
     }
   }
 }

@@ -50,8 +50,8 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
     addEntry(new TextFilterEntry(
         Text.translatable("custompaintings.filter.name.label"),
         previousNameFilterEntry,
-        () -> parent.getFilters().getNameSearch(),
-        (value) -> parent.getFilters().setNameSearch(value)));
+        () -> parent.getState().getFilters().getNameSearch(),
+        (value) -> parent.getState().getFilters().setNameSearch(value)));
 
     TextFilterEntry previousArtistFilterEntry = null;
     if (previousInstance != null && previousInstance.children().size() > 1) {
@@ -60,8 +60,8 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
     addEntry(new TextFilterEntry(
         Text.translatable("custompaintings.filter.artist.label"),
         previousArtistFilterEntry,
-        () -> parent.getFilters().getArtistSearch(),
-        (value) -> parent.getFilters().setArtistSearch(value)));
+        () -> parent.getState().getFilters().getArtistSearch(),
+        (value) -> parent.getState().getFilters().setArtistSearch(value)));
 
     // TODO: Name: Empty
     // TODO: Artist: Empty
@@ -71,8 +71,8 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
         Text.translatable("custompaintings.filter.canstay.tooltip"),
         ScreenTexts.YES,
         ScreenTexts.NO,
-        () -> parent.getFilters().getCanStayOnly(),
-        (value) -> parent.getFilters().setCanStayOnly(value)));
+        () -> parent.getState().getFilters().getCanStayOnly(),
+        (value) -> parent.getState().getFilters().setCanStayOnly(value)));
 
     // TODO: Min width: >/</=/<>/etc
     // TODO: Min height: >/</=/<>/etc

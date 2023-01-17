@@ -55,7 +55,7 @@ public class PaintingListWidget
     paintings.forEach((paintingData) -> {
       PaintingEntry entry = new PaintingEntry(paintingData);
       this.addEntry(entry);
-      if (this.parent.getCurrentPainting().id() == paintingData.id()) {
+      if (this.parent.getState().getCurrentPainting().id() == paintingData.id()) {
         this.setSelected(entry);
       }
     });
@@ -118,7 +118,7 @@ public class PaintingListWidget
     public PaintingEntry(PaintingData paintingData) {
       this.paintingData = paintingData;
       this.sprite = CustomPaintingsClientMod.customPaintingManager.getPaintingSprite(paintingData);
-      this.canStay = PaintingListWidget.this.parent.canStay(paintingData);
+      this.canStay = PaintingListWidget.this.parent.getState().canStay(paintingData);
     }
 
     @Override

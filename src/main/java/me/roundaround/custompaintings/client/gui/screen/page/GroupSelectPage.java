@@ -31,7 +31,7 @@ public class GroupSelectPage extends PaintingEditScreenPage {
         this.getHeaderHeight(),
         this.height - this.getFooterHeight(),
         (id) -> this.parent.selectGroup(id));
-    this.groupsListWidget.setGroups(this.parent.getGroups());
+    this.groupsListWidget.setGroups(this.parent.getState().getGroups());
 
     addSelectableChild(this.groupsListWidget);
     addDrawableChild(

@@ -44,7 +44,7 @@ public class FiltersPage extends PaintingEditScreenPage {
         BUTTON_HEIGHT,
         Text.translatable("custompaintings.filter.reset"),
         (button) -> {
-          this.parent.getFilters().reset();
+          this.parent.getState().getFilters().reset();
           this.filtersListWidget.updateFilters();
         });
 

@@ -5,8 +5,8 @@ import java.util.Optional;
 
 import org.lwjgl.glfw.GLFW;
 
+import me.roundaround.custompaintings.client.gui.PaintingEditState.Group;
 import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen;
-import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen.Group;
 import me.roundaround.custompaintings.client.gui.widget.ButtonWithDisabledTooltipWidget;
 import me.roundaround.custompaintings.client.gui.widget.IconButtonWidget;
 import me.roundaround.custompaintings.client.gui.widget.PaintingButtonWidget;
@@ -47,7 +47,7 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
   }
 
   public void populateWithAllPaintings() {
-    this.parent.getCurrentGroup().paintings().forEach((paintingData) -> {
+    this.parent.getState().getCurrentGroup().paintings().forEach((paintingData) -> {
       this.paintings.add(paintingData);
     });
   }
@@ -56,8 +56,8 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
   public void init() {
     updateFilters();
 
-    PaintingData paintingData = this.parent.getCurrentPainting();
-    boolean canStay = this.parent.canStay(paintingData);
+    PaintingData paintingData = this.parent.getState().getCurrentPainting();
+    boolean canStay = this.parent.getState().canStay(paintingData);
     Text tooBigTooltip = Text.translatable("custompaintings.painting.big", paintingData.width(), paintingData.height());
 
     this.paneWidth = this.width / 2 - 8;
@@ -75,7 +75,7 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
         BUTTON_HEIGHT,
         this.searchBox,
         Text.translatable("custompaintings.painting.search"));
-    this.searchBox.setText(this.parent.getFilters().getSearch());
+    this.searchBox.setText(this.parent.getState().getFilters().getSearch());
     this.searchBox.setChangedListener((search) -> {
       onSearchBoxChanged(search);
     });
@@ -160,7 +160,7 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
         BUTTON_HEIGHT,
         ScreenTexts.CANCEL,
         (button) -> {
-          if (this.parent.hasMultipleGroups()) {
+          if (this.parent.getState().hasMultipleGroups()) {
             this.parent.clearGroup();
           } else {
             this.parent.saveEmpty();
@@ -217,7 +217,7 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
           break;
         }
         Optional<PaintingData> painting = this.paintingList.getSelectedPainting();
-        if (painting.isPresent() && this.parent.canStay(painting.get())) {
+        if (painting.isPresent() && this.parent.getState().canStay(painting.get())) {
           playClickSound();
           this.parent.saveSelection(painting.get());
           return true;
@@ -271,11 +271,11 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
     this.paintingList.render(matrixStack, mouseX, mouseY, partialTicks);
     this.searchBox.render(matrixStack, mouseX, mouseY, partialTicks);
 
-    Group currentGroup = this.parent.getCurrentGroup();
+    Group currentGroup = this.parent.getState().getCurrentGroup();
 
     MutableText title = Text.translatable("custompaintings.painting.title");
-    if (this.parent.hasMultipleGroups()) {
-      title = Text.literal(this.parent.getCurrentGroup().name() + " - ").append(title);
+    if (this.parent.getState().hasMultipleGroups()) {
+      title = Text.literal(this.parent.getState().getCurrentGroup().name() + " - ").append(title);
     }
 
     drawCenteredText(
@@ -286,7 +286,7 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
         11,
         0xFFFFFFFF);
 
-    PaintingData paintingData = this.parent.getCurrentPainting();
+    PaintingData paintingData = this.parent.getState().getCurrentPainting();
     int currentPaintingIndex = currentGroup.paintings().indexOf(paintingData);
     int posX = this.rightPaneX + paneWidth / 2;
     int posY = getHeaderHeight() + 4;
@@ -350,17 +350,17 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
   }
 
   private void onSearchBoxChanged(String text) {
-    if (this.parent.getFilters().getSearch().equals(text)) {
+    if (this.parent.getState().getFilters().getSearch().equals(text)) {
       return;
     }
 
-    this.parent.getFilters().setSearch(text);
+    this.parent.getState().getFilters().setSearch(text);
     updateFilters();
   }
 
   public void updateFilters() {
-    if (!this.parent.getFilters().hasFilters()) {
-      this.paintings = this.parent.getCurrentGroup().paintings();
+    if (!this.parent.getState().getFilters().hasFilters()) {
+      this.paintings = this.parent.getState().getCurrentGroup().paintings();
       if (this.paintingList != null) {
         this.paintingList.setPaintings(this.paintings);
       }
@@ -369,8 +369,8 @@ public class PaintingSelectPage extends PaintingEditScreenPage {
 
     // Manually iterate to guarantee order
     this.paintings = new ArrayList<>();
-    this.parent.getCurrentGroup().paintings().forEach((paintingData) -> {
-      if (this.parent.getFilters().test(paintingData)) {
+    this.parent.getState().getCurrentGroup().paintings().forEach((paintingData) -> {
+      if (this.parent.getState().getFilters().test(paintingData)) {
         this.paintings.add(paintingData);
       }
     });
