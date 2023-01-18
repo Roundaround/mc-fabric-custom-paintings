@@ -70,15 +70,6 @@ public class FiltersScreen extends PaintingEditScreen {
     return super.keyPressed(keyCode, scanCode, modifiers);
   }
 
-  // @Override
-  // public boolean mouseClicked(double mouseX, double mouseY, int button) {
-  //   if (this.filtersListWidget.mouseClicked(mouseX, mouseY, button)) {
-  //     return true;
-  //   }
-
-  //   return super.mouseClicked(mouseX, mouseY, button);
-  // }
-
   @Override
   public void tick() {
     this.filtersListWidget.tick();
