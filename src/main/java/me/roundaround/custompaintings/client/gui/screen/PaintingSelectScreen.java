@@ -105,7 +105,6 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
   @Override
   public void init() {
     applyFilters();
-
     onPaintingChange(this.state.getCurrentPainting());
 
     this.paneWidth = this.width / 2 - 8;
@@ -211,6 +210,10 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     addDrawableChild(nextButton);
     addDrawableChild(cancelButton);
     addDrawableChild(doneButton);
+
+    setInitialFocus(this.searchBox);
+
+    this.paintingList.selectFirst();
   }
 
   @Override

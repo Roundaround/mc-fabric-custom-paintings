@@ -43,6 +43,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
     this.textRenderer = minecraftClient.textRenderer;
 
     this.centerListVertically = false;
+    setRenderSelection(false);
     setRenderHeader(false, 0);
 
     TextFilterEntry previousNameFilterEntry = null;
@@ -107,6 +108,12 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
     return Optional.empty();
   }
 
+  public void tick() {
+    children().forEach((child) -> {
+      child.tick();
+    });
+  }
+
   public void updateFilters() {
     children().forEach((child) -> {
       child.resetToFilterValue();
@@ -116,6 +123,9 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
   @Environment(value = EnvType.CLIENT)
   public abstract class FilterEntry extends ElementListWidget.Entry<FilterEntry> {
     public abstract void resetToFilterValue();
+
+    public void tick() {
+    }
   }
 
   @Environment(value = EnvType.CLIENT)
@@ -243,6 +253,11 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
 
       this.textField.y = y + (entryHeight - CONTROL_HEIGHT) / 2;
       this.textField.render(matrixStack, mouseX, mouseY, partialTicks);
+    }
+
+    @Override
+    public void tick() {
+      this.textField.tick();
     }
 
     @Override

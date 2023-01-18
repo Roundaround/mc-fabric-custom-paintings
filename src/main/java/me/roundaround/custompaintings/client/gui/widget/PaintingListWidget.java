@@ -82,6 +82,12 @@ public class PaintingListWidget
     });
   }
 
+  public void selectFirst() {
+    if (this.children().size() > 0) {
+      this.setSelected(this.children().get(0));
+    }
+  }
+
   @Override
   public boolean isFocused() {
     return parent.getFocused() == this;
