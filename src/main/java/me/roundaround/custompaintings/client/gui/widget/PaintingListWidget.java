@@ -26,6 +26,7 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Language;
 import net.minecraft.util.Util;
+import net.minecraft.util.math.MathHelper;
 
 @Environment(value = EnvType.CLIENT)
 public class PaintingListWidget
@@ -52,13 +53,24 @@ public class PaintingListWidget
 
   public void setPaintings(ArrayList<PaintingData> paintings) {
     this.clearEntries();
-    paintings.forEach((paintingData) -> {
-      PaintingEntry entry = new PaintingEntry(paintingData);
+
+    boolean selected = false;
+
+    for (PaintingData paintingData : paintings) {
+      PaintingEntry entry = paintingData.isEmpty()
+          ? new EmptyPaintingEntry()
+          : new PaintingEntry(paintingData);
+
       this.addEntry(entry);
       if (this.state.getCurrentPainting().id() == paintingData.id()) {
         this.setSelected(entry);
+        selected = true;
       }
-    });
+    }
+
+    if (!selected) {
+      this.selectFirst();
+    }
   }
 
   public Optional<PaintingData> getSelectedPainting() {
@@ -86,6 +98,10 @@ public class PaintingListWidget
     if (this.children().size() > 0) {
       this.setSelected(this.children().get(0));
     }
+  }
+
+  public int getBottom() {
+    return this.bottom;
   }
 
   @Override
@@ -116,13 +132,10 @@ public class PaintingListWidget
   }
 
   @Override
-  public int getRowLeft() {
-    return this.left + 4;
-  }
-
-  @Override
-  protected int getMaxPosition() {
-    return super.getMaxPosition() + 4;
+  protected void moveSelection(MoveDirection direction) {
+    moveSelectionIf(direction, (entry) -> {
+      return !entry.paintingData.isEmpty();
+    });
   }
 
   @Environment(value = EnvType.CLIENT)
@@ -152,7 +165,7 @@ public class PaintingListWidget
         int mouseY,
         boolean hovered,
         float partialTicks) {
-      int maxHeight = PaintingListWidget.this.itemHeight - 4;
+      int maxHeight = entryHeight - 4;
       int maxWidth = maxHeight;
 
       int scaledWidth = paintingData.getScaledWidth(maxWidth, maxHeight);
@@ -162,13 +175,19 @@ public class PaintingListWidget
 
       RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
       RenderSystem.setShaderTexture(0, this.sprite.getAtlas().getId());
-      drawSprite(matrixStack, x + 4 + (maxWidth - scaledWidth) / 2, y + (entryHeight - scaledHeight) / 2, 1,
-          scaledWidth, scaledHeight, sprite);
+      drawSprite(
+          matrixStack,
+          x + 4 + (maxWidth - scaledWidth) / 2,
+          y + (entryHeight - scaledHeight) / 2,
+          1,
+          scaledWidth,
+          scaledHeight,
+          sprite);
 
       TextRenderer textRenderer = PaintingListWidget.this.client.textRenderer;
-      int textWidth = entryWidth - 4 - maxWidth - 4 - 4;
+      int textWidth = entryWidth - 4 - maxWidth - 4 - 8;
       int posX = x + maxWidth + 4 + 4;
-      int posY = y + (entryHeight - 3 * textRenderer.fontHeight - 2 * 2) / 2;
+      int posY = y + MathHelper.ceil((entryHeight - 3 * textRenderer.fontHeight - 2 * 2) / 2f);
 
       if (paintingData.hasLabel()) {
         StringVisitable label = paintingData.getLabel();
@@ -260,6 +279,52 @@ public class PaintingListWidget
       }
 
       return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+  }
+
+  @Environment(value = EnvType.CLIENT)
+  public class EmptyPaintingEntry extends PaintingEntry {
+    private Text text = Text.translatable("custompaintings.paintinglist.empty");
+
+    public EmptyPaintingEntry() {
+      super(PaintingData.EMPTY);
+    }
+
+    @Override
+    public void render(
+        MatrixStack matrixStack,
+        int index,
+        int y,
+        int x,
+        int entryWidth,
+        int entryHeight,
+        int mouseX,
+        int mouseY,
+        boolean hovered,
+        float partialTicks) {
+      TextRenderer textRenderer = PaintingListWidget.this.client.textRenderer;
+      drawCenteredText(
+          matrixStack,
+          textRenderer,
+          text,
+          x + entryWidth / 2,
+          y + (entryHeight - textRenderer.fontHeight) / 2,
+          0xFFFFFFFF);
+    }
+
+    @Override
+    public Text getNarration() {
+      return text;
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+      return false;
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+      return false;
     }
   }
 }

@@ -32,11 +32,14 @@ import net.minecraft.util.Formatting;
 public class PaintingSelectScreen extends PaintingEditScreen implements PaintingChangeListener {
   private TextFieldWidget searchBox;
   private PaintingListWidget paintingList;
+  private ButtonWidget prevButton;
+  private ButtonWidget nextButton;
   private ButtonWithDisabledTooltipWidget doneButton;
   private int paneWidth;
   private int rightPaneX;
   private double scrollAmount;
   private ArrayList<PaintingData> paintings = new ArrayList<>();
+  private boolean hasHiddenPaintings = false;
   private boolean canStay = true;
   private List<OrderedText> tooBigTooltip = List.of();
   private Sprite paintingSprite = null;
@@ -80,7 +83,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         + (paintingData.hasLabel() ? 2 : 1) * 2;
     int paintingBottom = this.height - footerHeight - 8 - BUTTON_HEIGHT;
 
-    int maxWidth = this.paneWidth / 2 - 8;
+    int maxWidth = paneWidth - 2 * 8;
     int maxHeight = paintingBottom - paintingTop;
 
     int width = paintingData.getScaledWidth(maxWidth, maxHeight);
@@ -90,6 +93,10 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     int y = (paintingTop + paintingBottom - height) / 2;
 
     this.paintingRect = new Rect2i(x, y, width, height);
+
+    if (this.paintingList != null) {
+      this.paintingList.selectPainting(paintingData);
+    }
 
     if (this.doneButton != null) {
       this.doneButton.active = this.canStay;
@@ -150,7 +157,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         listBottom,
         this.paintings);
 
-    ButtonWidget prevButton = new ButtonWidget(
+    this.prevButton = new ButtonWidget(
         this.rightPaneX + this.paneWidth / 2 - BUTTON_WIDTH - 2,
         this.height - footerHeight - 4 - BUTTON_HEIGHT,
         BUTTON_WIDTH,
@@ -160,7 +167,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
           previousPainting();
         });
 
-    ButtonWidget nextButton = new ButtonWidget(
+    this.nextButton = new ButtonWidget(
         this.rightPaneX + this.paneWidth / 2 + 2,
         this.height - footerHeight - 4 - BUTTON_HEIGHT,
         BUTTON_WIDTH,
@@ -170,10 +177,8 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
           nextPainting();
         });
 
-    if (!hasMultiplePaintings()) {
-      prevButton.active = false;
-      nextButton.active = false;
-    }
+    this.prevButton.active = hasMultiplePaintings();
+    this.nextButton.active = hasMultiplePaintings();
 
     ButtonWidget cancelButton = new ButtonWidget(
         width / 2 - BUTTON_WIDTH - 2,
@@ -295,6 +300,8 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     this.paintingList.render(matrixStack, mouseX, mouseY, partialTicks);
     this.searchBox.render(matrixStack, mouseX, mouseY, partialTicks);
 
+    renderBackgroundInRegion(this.paintingList.getBottom(), height, 0, width);
+
     Group currentGroup = this.state.getCurrentGroup();
 
     MutableText title = this.title.copy();
@@ -402,9 +409,15 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
 
   private void applyFilters() {
     if (!this.state.getFilters().hasFilters()) {
+      this.hasHiddenPaintings = false;
       this.paintings = this.state.getCurrentGroup().paintings();
       if (this.paintingList != null) {
         this.paintingList.setPaintings(this.paintings);
+      }
+
+      if (this.prevButton != null && this.nextButton != null) {
+        this.prevButton.active = hasMultiplePaintings();
+        this.nextButton.active = hasMultiplePaintings();
       }
       return;
     }
@@ -417,13 +430,23 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
       }
     });
 
+    this.hasHiddenPaintings = this.paintings.size() < this.state.getCurrentGroup().paintings().size();
+    if (this.hasHiddenPaintings) {
+      this.paintings.add(PaintingData.EMPTY);
+    }
+
     if (this.paintingList != null) {
       this.paintingList.setPaintings(this.paintings);
+    }
+
+    if (this.prevButton != null && this.nextButton != null) {
+      this.prevButton.active = hasMultiplePaintings();
+      this.nextButton.active = hasMultiplePaintings();
     }
   }
 
   private boolean hasMultiplePaintings() {
-    return this.paintings.size() > 1;
+    return this.paintings.size() > (this.hasHiddenPaintings ? 2 : 1);
   }
 
   private void previousPainting() {
@@ -436,8 +459,11 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
       if (currentIndex == -1) {
         currentIndex = 0;
       }
-      int nextIndex = (this.paintings.size() + currentIndex - 1) % this.paintings.size();
-      return this.paintings.get(nextIndex);
+      int nextIndex = this.paintings.size() + currentIndex - 1;
+      if (this.hasHiddenPaintings && nextIndex == this.paintings.size() - 1) {
+        nextIndex--;
+      }
+      return this.paintings.get(nextIndex % this.paintings.size());
     });
   }
 
@@ -448,8 +474,11 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
 
     this.state.setCurrentPainting((currentPainting) -> {
       int currentIndex = this.paintings.indexOf(currentPainting);
-      int nextIndex = (currentIndex + 1) % this.paintings.size();
-      return this.paintings.get(nextIndex);
+      int nextIndex = currentIndex + 1;
+      if (this.hasHiddenPaintings && nextIndex == this.paintings.size() - 1) {
+        nextIndex++;
+      }
+      return this.paintings.get(nextIndex % this.paintings.size());
     });
   }
 

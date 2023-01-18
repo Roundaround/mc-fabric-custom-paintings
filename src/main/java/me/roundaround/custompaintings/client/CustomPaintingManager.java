@@ -177,6 +177,9 @@ public class CustomPaintingManager
   }
 
   public Sprite getPaintingSprite(PaintingData paintingData) {
+    if (paintingData == null || paintingData.isEmpty()) {
+      return this.getBackSprite();
+    }
     if (paintingData.isVanilla()) {
       return MINECRAFT.getPaintingManager()
           .getPaintingSprite(Registry.PAINTING_VARIANT.get(paintingData.id()));
