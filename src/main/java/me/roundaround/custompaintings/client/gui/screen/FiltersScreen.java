@@ -71,6 +71,11 @@ public class FiltersScreen extends PaintingEditScreen {
   }
 
   @Override
+  public void tick() {
+    this.filtersListWidget.tick();
+  }
+
+  @Override
   public void renderBackground(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
     matrixStack.push();
     matrixStack.translate(0, 0, 10);

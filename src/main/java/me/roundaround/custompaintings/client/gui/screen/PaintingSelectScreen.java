@@ -16,6 +16,7 @@ import me.roundaround.custompaintings.client.gui.widget.ButtonWithDisabledToolti
 import me.roundaround.custompaintings.client.gui.widget.IconButtonWidget;
 import me.roundaround.custompaintings.client.gui.widget.PaintingListWidget;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.render.GameRenderer;
@@ -223,14 +224,6 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
 
   @Override
   public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-    if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
-      if (this.state.hasMultipleGroups()) {
-        this.client.setScreen(new GroupSelectScreen(this.state));
-      } else {
-        saveEmpty();
-      }
-      return true;
-    }
     switch (keyCode) {
       case GLFW.GLFW_KEY_LEFT:
         if (this.state.hasMultiplePaintings()) {
@@ -266,9 +259,19 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         }
         break;
       case GLFW.GLFW_KEY_F:
-        if ((modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
-          if ((modifiers & GLFW.GLFW_MOD_SHIFT) != 0) {
+        if (hasControlDown()) {
+          if (hasShiftDown()) {
             this.client.setScreen(new FiltersScreen(this.state));
+            return true;
+          }
+
+          Element focused = getFocused();
+          if (focused != this.searchBox) {
+            if (focused != null) {
+              focused.changeFocus(false);
+            }
+
+            setInitialFocus(this.searchBox);
             return true;
           }
         }
