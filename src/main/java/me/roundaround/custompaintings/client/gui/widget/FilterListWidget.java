@@ -5,6 +5,8 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import com.google.common.collect.ImmutableList;
+
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -120,7 +122,6 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
   public class ToggleFilterEntry extends FilterEntry {
     private final Supplier<Boolean> getter;
     private final CyclingButtonWidget<Boolean> button;
-    private final List<CyclingButtonWidget<Boolean>> buttonList;
 
     public ToggleFilterEntry(
         Text label,
@@ -158,7 +159,6 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
               (button, value) -> {
                 setter.accept(value);
               });
-      this.buttonList = List.of(this.button);
     }
 
     @Override
@@ -179,12 +179,12 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
 
     @Override
     public List<? extends Element> children() {
-      return this.buttonList;
+      return ImmutableList.of(this.button);
     }
 
     @Override
     public List<? extends Selectable> selectableChildren() {
-      return List.of();
+      return ImmutableList.of(this.button);
     }
 
     @Override
@@ -198,7 +198,6 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
     private final Text label;
     private final Supplier<String> getter;
     private final TextFieldWidget textField;
-    private final List<TextFieldWidget> textFieldList;
 
     public TextFilterEntry(
         Text label,
@@ -220,7 +219,6 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
       this.textField.setChangedListener((value) -> {
         setter.accept(value);
       });
-      this.textFieldList = List.of(this.textField);
     }
 
     @Override
@@ -249,12 +247,12 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
 
     @Override
     public List<? extends Element> children() {
-      return this.textFieldList;
+      return ImmutableList.of(this.textField);
     }
 
     @Override
     public List<? extends Selectable> selectableChildren() {
-      return this.textFieldList;
+      return ImmutableList.of(this.textField);
     }
 
     @Override

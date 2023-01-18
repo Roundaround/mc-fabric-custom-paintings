@@ -18,8 +18,6 @@ public class GroupSelectScreen extends PaintingEditScreen {
 
   @Override
   public void init() {
-    super.init();
-
     this.groupsListWidget = new GroupListWidget(
         this,
         this.client,

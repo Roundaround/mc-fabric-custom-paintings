@@ -1,33 +1,46 @@
 package me.roundaround.custompaintings.client.gui.screen;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import org.lwjgl.glfw.GLFW;
 
+import com.mojang.blaze3d.systems.RenderSystem;
+
+import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.PaintingEditState.Group;
+import me.roundaround.custompaintings.client.gui.PaintingEditState.PaintingChangeListener;
 import me.roundaround.custompaintings.client.gui.widget.ButtonWithDisabledTooltipWidget;
 import me.roundaround.custompaintings.client.gui.widget.IconButtonWidget;
-import me.roundaround.custompaintings.client.gui.widget.PaintingButtonWidget;
 import me.roundaround.custompaintings.client.gui.widget.PaintingListWidget;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.render.GameRenderer;
+import net.minecraft.client.texture.Sprite;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.util.math.Rect2i;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.MutableText;
+import net.minecraft.text.OrderedText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
-public class PaintingSelectScreen extends PaintingEditScreen {
+public class PaintingSelectScreen extends PaintingEditScreen implements PaintingChangeListener {
   private TextFieldWidget searchBox;
   private PaintingListWidget paintingList;
+  private ButtonWithDisabledTooltipWidget doneButton;
   private int paneWidth;
   private int rightPaneX;
   private double scrollAmount;
   private ArrayList<PaintingData> paintings = new ArrayList<>();
+  private boolean canStay = true;
+  private List<OrderedText> tooBigTooltip = List.of();
+  private Sprite paintingSprite = null;
+  private Rect2i paintingRect = new Rect2i(0, 0, 0, 0);
 
   public PaintingSelectScreen(PaintingEditState state) {
     super(Text.translatable("custompaintings.painting.title"), state);
@@ -47,25 +60,40 @@ public class PaintingSelectScreen extends PaintingEditScreen {
     });
   }
 
-  public void updateFilters() {
-    if (!this.state.getFilters().hasFilters()) {
-      this.paintings = this.state.getCurrentGroup().paintings();
-      if (this.paintingList != null) {
-        this.paintingList.setPaintings(this.paintings);
-      }
-      return;
-    }
+  @Override
+  public void onPaintingChange(PaintingData paintingData) {
+    this.canStay = this.state.canStay(paintingData);
+    this.tooBigTooltip = this.textRenderer.wrapLines(
+        Text.translatable(
+            "custompaintings.painting.big",
+            paintingData.width(),
+            paintingData.height()),
+        200);
+    this.paintingSprite = CustomPaintingsClientMod.customPaintingManager
+        .getPaintingSprite(paintingData);
 
-    // Manually iterate to guarantee order
-    this.paintings = new ArrayList<>();
-    this.state.getCurrentGroup().paintings().forEach((paintingData) -> {
-      if (this.state.getFilters().test(paintingData)) {
-        this.paintings.add(paintingData);
-      }
-    });
+    int headerHeight = getHeaderHeight();
+    int footerHeight = getFooterHeight();
 
-    if (this.paintingList != null) {
-      this.paintingList.setPaintings(this.paintings);
+    int paintingTop = headerHeight + 8
+        + (paintingData.hasLabel() ? 3 : 2) * textRenderer.fontHeight
+        + (paintingData.hasLabel() ? 2 : 1) * 2;
+    int paintingBottom = this.height - footerHeight - 8 - BUTTON_HEIGHT;
+
+    int maxWidth = this.paneWidth / 2 - 8;
+    int maxHeight = paintingBottom - paintingTop;
+
+    int width = paintingData.getScaledWidth(maxWidth, maxHeight);
+    int height = paintingData.getScaledHeight(maxWidth, maxHeight);
+
+    int x = this.rightPaneX + (this.paneWidth - width) / 2;
+    int y = (paintingTop + paintingBottom - height) / 2;
+
+    this.paintingRect = new Rect2i(x, y, width, height);
+
+    if (this.doneButton != null) {
+      this.doneButton.active = this.canStay;
+      this.doneButton.disabledTooltip = this.tooBigTooltip;
     }
   }
 
@@ -76,13 +104,9 @@ public class PaintingSelectScreen extends PaintingEditScreen {
 
   @Override
   public void init() {
-    super.init();
+    applyFilters();
 
-    updateFilters();
-
-    PaintingData paintingData = this.state.getCurrentPainting();
-    boolean canStay = this.state.canStay(paintingData);
-    Text tooBigTooltip = Text.translatable("custompaintings.painting.big", paintingData.width(), paintingData.height());
+    onPaintingChange(this.state.getCurrentPainting());
 
     this.paneWidth = this.width / 2 - 8;
     this.rightPaneX = this.width - this.paneWidth;
@@ -127,31 +151,6 @@ public class PaintingSelectScreen extends PaintingEditScreen {
         listBottom,
         this.paintings);
 
-    int paintingTop = headerHeight + 8
-        + (paintingData.hasLabel() ? 3 : 2) * textRenderer.fontHeight
-        + (paintingData.hasLabel() ? 2 : 1) * 2;
-    int paintingBottom = this.height - footerHeight - 8 - BUTTON_HEIGHT;
-
-    int maxWidth = this.paneWidth / 2 - 8;
-    int maxHeight = paintingBottom - paintingTop;
-
-    int scaledWidth = paintingData.getScaledWidth(maxWidth, maxHeight);
-    int scaledHeight = paintingData.getScaledHeight(maxWidth, maxHeight);
-
-    PaintingButtonWidget paintingButton = new PaintingButtonWidget(
-        this,
-        this.textRenderer,
-        this.rightPaneX + (this.paneWidth - scaledWidth) / 2,
-        (paintingTop + paintingBottom - scaledHeight) / 2,
-        scaledWidth,
-        scaledHeight,
-        (button) -> {
-          saveSelection(paintingData);
-        },
-        canStay,
-        tooBigTooltip,
-        paintingData);
-
     ButtonWidget prevButton = new ButtonWidget(
         this.rightPaneX + this.paneWidth / 2 - BUTTON_WIDTH - 2,
         this.height - footerHeight - 4 - BUTTON_HEIGHT,
@@ -191,9 +190,8 @@ public class PaintingSelectScreen extends PaintingEditScreen {
           }
         });
 
-    ButtonWidget doneButton = new ButtonWithDisabledTooltipWidget(
+    this.doneButton = new ButtonWithDisabledTooltipWidget(
         this,
-        this.textRenderer,
         width / 2 + 2,
         height - BUTTON_HEIGHT - 10,
         BUTTON_WIDTH,
@@ -201,14 +199,14 @@ public class PaintingSelectScreen extends PaintingEditScreen {
         ScreenTexts.DONE,
         (button) -> {
           saveCurrentSelection();
-        },
-        canStay,
-        tooBigTooltip);
+        });
+
+    this.doneButton.active = this.canStay;
+    this.doneButton.disabledTooltip = this.tooBigTooltip;
 
     addSelectableChild(this.searchBox);
     addDrawableChild(filterButton);
     addSelectableChild(this.paintingList);
-    addDrawableChild(paintingButton);
     addDrawableChild(prevButton);
     addDrawableChild(nextButton);
     addDrawableChild(cancelButton);
@@ -362,6 +360,33 @@ public class PaintingSelectScreen extends PaintingEditScreen {
             - BUTTON_HEIGHT
             + (BUTTON_HEIGHT - textRenderer.fontHeight) / 2,
         0xFFFFFFFF);
+
+    renderPainting(matrixStack, mouseX, mouseY);
+  }
+
+  private void renderPainting(MatrixStack matrixStack, int mouseX, int mouseY) {
+    int x = this.paintingRect.getX();
+    int y = this.paintingRect.getY();
+    int width = this.paintingRect.getWidth();
+    int height = this.paintingRect.getHeight();
+    float color = this.canStay ? 1f : 0.5f;
+
+    fill(matrixStack, x, y, x + width, y + height, 0xFF000000);
+
+    RenderSystem.setShader(GameRenderer::getPositionTexShader);
+    RenderSystem.setShaderColor(color, color, color, 1f);
+    RenderSystem.setShaderTexture(0, this.paintingSprite.getAtlas().getId());
+    drawSprite(matrixStack, x + 1, y + 1, 0, width - 2, height - 2, this.paintingSprite);
+
+    if (!this.canStay
+        && mouseX >= x && mouseX < x + width
+        && mouseY >= y && mouseY < y + height) {
+      renderOrderedTooltip(
+          matrixStack,
+          this.tooBigTooltip,
+          mouseX,
+          mouseY);
+    }
   }
 
   @Override
@@ -370,6 +395,28 @@ public class PaintingSelectScreen extends PaintingEditScreen {
       return this.paintingList.mouseScrolled(mouseX, mouseY, amount);
     }
     return false;
+  }
+
+  private void applyFilters() {
+    if (!this.state.getFilters().hasFilters()) {
+      this.paintings = this.state.getCurrentGroup().paintings();
+      if (this.paintingList != null) {
+        this.paintingList.setPaintings(this.paintings);
+      }
+      return;
+    }
+
+    // Manually iterate to guarantee order
+    this.paintings = new ArrayList<>();
+    this.state.getCurrentGroup().paintings().forEach((paintingData) -> {
+      if (this.state.getFilters().test(paintingData)) {
+        this.paintings.add(paintingData);
+      }
+    });
+
+    if (this.paintingList != null) {
+      this.paintingList.setPaintings(this.paintings);
+    }
   }
 
   private boolean hasMultiplePaintings() {
@@ -426,6 +473,6 @@ public class PaintingSelectScreen extends PaintingEditScreen {
     }
 
     this.state.getFilters().setSearch(text);
-    updateFilters();
+    applyFilters();
   }
 }

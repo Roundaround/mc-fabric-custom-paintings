@@ -127,6 +127,9 @@ public class PaintingEditState {
 
   public void setCurrentPainting(PaintingData painting) {
     this.currentPainting = painting;
+    if (this.client.currentScreen instanceof PaintingChangeListener) {
+      ((PaintingChangeListener) this.client.currentScreen).onPaintingChange(painting);
+    }
   }
 
   public void setCurrentPainting(Function<PaintingData, PaintingData> mapper) {
@@ -275,5 +278,10 @@ public class PaintingEditState {
   }
 
   public record Group(String id, String name, ArrayList<PaintingData> paintings) {
+  }
+
+  @FunctionalInterface
+  public interface PaintingChangeListener {
+    void onPaintingChange(PaintingData paintingData);
   }
 }

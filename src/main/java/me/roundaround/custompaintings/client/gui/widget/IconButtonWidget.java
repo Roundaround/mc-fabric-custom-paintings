@@ -48,6 +48,7 @@ public class IconButtonWidget extends ButtonWidget {
     RenderSystem.enableBlend();
     RenderSystem.defaultBlendFunc();
     RenderSystem.enableDepthTest();
+    RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
 
     RenderSystem.setShaderTexture(0, BACKGROUND_TEXTURE);
     int vOffset = (this.isHovered() ? 2 : 1) * HEIGHT;

@@ -33,18 +33,10 @@ public abstract class PaintingEditScreen extends Screen {
     return this.state;
   }
 
-  public void onFiltersChanged() {
-  }
-
   public void renderBackground(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
   }
 
   public void renderForeground(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-  }
-
-  @Override
-  public void init() {
-    this.state.getFilters().setChangedListener(this::onFiltersChanged);
   }
 
   @Override

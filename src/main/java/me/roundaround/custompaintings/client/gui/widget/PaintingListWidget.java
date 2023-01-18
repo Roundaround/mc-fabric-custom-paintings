@@ -69,6 +69,19 @@ public class PaintingListWidget
     return Optional.of(entry.paintingData);
   }
 
+  public void selectPainting(PaintingData paintingData) {
+    Optional<PaintingData> selected = getSelectedPainting();
+    if (selected.isPresent() && selected.get().id() == paintingData.id()) {
+      return;
+    }
+
+    this.children().forEach((entry) -> {
+      if (entry.paintingData.id() == paintingData.id()) {
+        this.setSelected(entry);
+      }
+    });
+  }
+
   @Override
   public boolean isFocused() {
     return parent.getFocused() == this;

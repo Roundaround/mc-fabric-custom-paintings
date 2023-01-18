@@ -23,8 +23,6 @@ public class FiltersScreen extends PaintingEditScreen {
 
   @Override
   public void init() {
-    super.init();
-
     this.filtersListWidget = new FilterListWidget(
         this.state,
         this.client,
