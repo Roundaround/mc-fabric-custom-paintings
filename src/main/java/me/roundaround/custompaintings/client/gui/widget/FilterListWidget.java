@@ -21,10 +21,11 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
+import net.minecraft.util.math.MathHelper;
 
 @Environment(value = EnvType.CLIENT)
 public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterEntry> {
-  private static final int ITEM_HEIGHT = 24;
+  private static final int ITEM_HEIGHT = 28;
   private static final int CONTROL_HEIGHT = 20;
   private static final int CONTROL_FULL_WIDTH = 310;
   private static final int CONTROL_HALF_WIDTH = 150;
@@ -120,11 +121,26 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
     });
   }
 
+  public void removeFocus() {
+    children().forEach((child) -> {
+      child.unselect();
+    });
+  }
+
   @Environment(value = EnvType.CLIENT)
   public abstract class FilterEntry extends ElementListWidget.Entry<FilterEntry> {
     public abstract void resetToFilterValue();
 
     public void tick() {
+    }
+
+    public void unselect() {
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+      FilterListWidget.this.removeFocus();
+      return super.mouseClicked(mouseX, mouseY, button);
     }
   }
 
@@ -201,6 +217,13 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
     public void resetToFilterValue() {
       this.button.setValue(this.getter.get());
     }
+
+    @Override
+    public void unselect() {
+      if (this.button.isFocused()) {
+        this.button.changeFocus(false);
+      }
+    }
   }
 
   @Environment(value = EnvType.CLIENT)
@@ -219,7 +242,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
 
       this.textField = new TextFieldWidget(
           FilterListWidget.this.textRenderer,
-          CONTROL_FULL_WIDTH - CONTROL_HALF_WIDTH,
+          FilterListWidget.this.getRowLeft() + CONTROL_FULL_WIDTH - CONTROL_HALF_WIDTH,
           0,
           CONTROL_HALF_WIDTH,
           CONTROL_HEIGHT,
@@ -246,16 +269,11 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
           matrixStack,
           this.label,
           x + CONTROL_HALF_WIDTH - width,
-          y + (entryHeight - FilterListWidget.this.textRenderer.fontHeight) / 2,
+          y + MathHelper.ceil((entryHeight - FilterListWidget.this.textRenderer.fontHeight) / 2f),
           0xFFFFFF);
 
       this.textField.y = y + (entryHeight - CONTROL_HEIGHT) / 2;
       this.textField.render(matrixStack, mouseX, mouseY, partialTicks);
-    }
-
-    @Override
-    public void tick() {
-      this.textField.tick();
     }
 
     @Override
@@ -271,6 +289,16 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
     @Override
     public void resetToFilterValue() {
       this.textField.setText(this.getter.get());
+    }
+
+    @Override
+    public void tick() {
+      this.textField.tick();
+    }
+
+    @Override
+    public void unselect() {
+      this.textField.setTextFieldFocused(false);
     }
   }
 }
