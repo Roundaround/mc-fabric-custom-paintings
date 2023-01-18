@@ -62,7 +62,8 @@ public class PaintingListWidget
           : new PaintingEntry(paintingData);
 
       this.addEntry(entry);
-      if (this.state.getCurrentPainting().id() == paintingData.id()) {
+      if (!paintingData.isEmpty()
+          && this.state.getCurrentPainting().id() == paintingData.id()) {
         this.setSelected(entry);
         selected = true;
       }

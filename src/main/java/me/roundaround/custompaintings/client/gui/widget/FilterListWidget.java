@@ -226,9 +226,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
           previousInstance != null ? previousInstance.textField : null,
           label);
       this.textField.setText(this.getter.get());
-      this.textField.setChangedListener((value) -> {
-        setter.accept(value);
-      });
+      this.textField.setChangedListener(setter);
     }
 
     @Override

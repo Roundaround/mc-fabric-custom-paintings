@@ -275,14 +275,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         break;
     }
 
-    return this.searchBox.keyPressed(keyCode, scanCode, modifiers)
-        || this.paintingList.keyPressed(keyCode, scanCode, modifiers)
-        || super.keyPressed(keyCode, scanCode, modifiers);
-  }
-
-  @Override
-  public boolean charTyped(char chr, int keyCode) {
-    return this.searchBox.charTyped(chr, keyCode);
+    return super.keyPressed(keyCode, scanCode, modifiers);
   }
 
   @Override
@@ -318,60 +311,77 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         0xFFFFFFFF);
 
     PaintingData paintingData = this.state.getCurrentPainting();
-    int currentPaintingIndex = currentGroup.paintings().indexOf(paintingData);
-    int posX = this.rightPaneX + paneWidth / 2;
-    int posY = getHeaderHeight() + 4;
 
-    if (paintingData.hasLabel()) {
+    if (paintingData.isEmpty()) {
+      int paneHeight = this.height - this.getHeaderHeight() - this.getFooterHeight();
+      int posX = this.rightPaneX + paneWidth / 2;
+      int posY = getHeaderHeight() + (paneHeight - this.textRenderer.fontHeight) / 2;
+
       drawCenteredText(
           matrixStack,
           textRenderer,
-          paintingData.getLabel(),
+          Text.translatable("custompaintings.painting.none")
+              .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)),
+          posX,
+          posY,
+          0xFFFFFFFF);
+
+    } else {
+      int currentPaintingIndex = currentGroup.paintings().indexOf(paintingData);
+      int posX = this.rightPaneX + paneWidth / 2;
+      int posY = getHeaderHeight() + 4;
+
+      if (paintingData.hasLabel()) {
+        drawCenteredText(
+            matrixStack,
+            textRenderer,
+            paintingData.getLabel(),
+            posX,
+            posY,
+            0xFFFFFFFF);
+
+        posY += textRenderer.fontHeight + 2;
+      }
+
+      drawCenteredText(
+          matrixStack,
+          textRenderer,
+          Text.literal("(" + paintingData.id().toString() + ")")
+              .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)),
           posX,
           posY,
           0xFFFFFFFF);
 
       posY += textRenderer.fontHeight + 2;
+
+      drawCenteredText(
+          matrixStack,
+          textRenderer,
+          Text.translatable(
+              "custompaintings.painting.dimensions",
+              paintingData.width(),
+              paintingData.height()),
+          posX,
+          posY,
+          0xFFFFFFFF);
+
+      drawCenteredText(
+          matrixStack,
+          textRenderer,
+          Text.translatable(
+              "custompaintings.painting.number",
+              currentPaintingIndex + 1,
+              currentGroup.paintings().size()),
+          posX,
+          this.height
+              - getFooterHeight()
+              - 4
+              - BUTTON_HEIGHT
+              + (BUTTON_HEIGHT - textRenderer.fontHeight) / 2,
+          0xFFFFFFFF);
+
+      renderPainting(matrixStack, mouseX, mouseY);
     }
-
-    drawCenteredText(
-        matrixStack,
-        textRenderer,
-        Text.literal("(" + paintingData.id().toString() + ")")
-            .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)),
-        posX,
-        posY,
-        0xFFFFFFFF);
-
-    posY += textRenderer.fontHeight + 2;
-
-    drawCenteredText(
-        matrixStack,
-        textRenderer,
-        Text.translatable(
-            "custompaintings.painting.dimensions",
-            paintingData.width(),
-            paintingData.height()),
-        posX,
-        posY,
-        0xFFFFFFFF);
-
-    drawCenteredText(
-        matrixStack,
-        textRenderer,
-        Text.translatable(
-            "custompaintings.painting.number",
-            currentPaintingIndex + 1,
-            currentGroup.paintings().size()),
-        posX,
-        this.height
-            - getFooterHeight()
-            - 4
-            - BUTTON_HEIGHT
-            + (BUTTON_HEIGHT - textRenderer.fontHeight) / 2,
-        0xFFFFFFFF);
-
-    renderPainting(matrixStack, mouseX, mouseY);
   }
 
   private void renderPainting(MatrixStack matrixStack, int mouseX, int mouseY) {

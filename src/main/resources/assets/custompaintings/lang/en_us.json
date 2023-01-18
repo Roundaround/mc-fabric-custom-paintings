@@ -8,6 +8,8 @@
   "custompaintings.painting.next": "Next",
   "custompaintings.painting.filter": "Advanced filters",
   "custompaintings.painting.big": "This painting (%s x %s blocks) is too big for the current space on the wall",
+  "custompaintings.painting.empty": "(Hidden by filters)",
+  "custompaintings.painting.none": "(No painting selected)",
   "custompaintings.filter.title": "Set filters",
   "custompaintings.filter.search": "Search for a painting",
   "custompaintings.filter.name.label": "Search name",
