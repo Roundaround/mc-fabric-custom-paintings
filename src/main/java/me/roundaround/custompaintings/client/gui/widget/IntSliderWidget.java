@@ -3,6 +3,8 @@ package me.roundaround.custompaintings.client.gui.widget;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import org.lwjgl.glfw.GLFW;
+
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.gui.widget.SliderWidget;
@@ -43,6 +45,19 @@ public class IntSliderWidget extends SliderWidget {
   @Override
   protected void applyValue() {
     this.valueConsumer.accept(this.getIntValue());
+  }
+
+  @Override
+  public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    if (keyCode == GLFW.GLFW_KEY_LEFT) {
+      this.setValue(this.getIntValue() - 1);
+      return true;
+    } else if (keyCode == GLFW.GLFW_KEY_RIGHT) {
+      this.setValue(this.getIntValue() + 1);
+      return true;
+    }
+
+    return super.keyPressed(keyCode, scanCode, modifiers);
   }
 
   public void setValue(int value) {
