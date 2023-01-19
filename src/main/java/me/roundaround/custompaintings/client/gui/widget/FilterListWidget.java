@@ -122,11 +122,41 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
 
   @Override
   protected int getScrollbarPositionX() {
-    return super.getScrollbarPositionX() + 32;
+    return (this.width + getRowWidth()) / 2 + 4;
+  }
+
+  @Override
+  public int getRowLeft() {
+    return (this.width - getRowWidth()) / 2;
+  }
+
+  @Override
+  public int getRowRight() {
+    return (this.width + getRowWidth()) / 2;
   }
 
   @Override
   public void appendNarrations(NarrationMessageBuilder builder) {
+  }
+
+  public int getRowCenter() {
+    return getRowLeft() + getRowWidth() / 2;
+  }
+
+  public int getControlLeft() {
+    return getRowCenter() - CONTROL_FULL_WIDTH / 2;
+  }
+
+  public int getControlRight() {
+    return getRowCenter() + CONTROL_FULL_WIDTH / 2;
+  }
+
+  public int getControlInnerLeft() {
+    return getControlRight() - CONTROL_HALF_WIDTH;
+  }
+
+  public int getControlInnerRight() {
+    return getControlLeft() + CONTROL_HALF_WIDTH;
   }
 
   public Optional<Element> getHoveredElement(double mouseX, double mouseY) {
@@ -184,6 +214,26 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
       FilterListWidget.this.removeFocus();
       return super.mouseClicked(mouseX, mouseY, button);
     }
+
+    protected int getRowCenter() {
+      return FilterListWidget.this.getRowCenter();
+    }
+
+    protected int getControlLeft() {
+      return FilterListWidget.this.getControlLeft();
+    }
+
+    protected int getControlRight() {
+      return FilterListWidget.this.getControlRight();
+    }
+
+    protected int getControlInnerLeft() {
+      return FilterListWidget.this.getControlInnerLeft();
+    }
+
+    protected int getControlInnerRight() {
+      return FilterListWidget.this.getControlInnerRight();
+    }
   }
 
   @Environment(value = EnvType.CLIENT)
@@ -210,7 +260,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
           matrixStack,
           FilterListWidget.this.textRenderer,
           label.asOrderedText(),
-          x + entryWidth / 2,
+          getRowCenter(),
           y + MathHelper.ceil((entryHeight - FilterListWidget.this.textRenderer.fontHeight) / 2f),
           0xFFFFFF);
     }
@@ -249,7 +299,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
             return FilterListWidget.this.textRenderer.wrapLines(tooltip, 200);
           })
           .build(
-              (FilterListWidget.this.width - CONTROL_FULL_WIDTH) / 2,
+              getControlLeft(),
               0,
               CONTROL_FULL_WIDTH,
               CONTROL_HEIGHT,
@@ -314,7 +364,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
 
       this.textField = new TextFieldWidget(
           FilterListWidget.this.textRenderer,
-          (FilterListWidget.this.width - CONTROL_FULL_WIDTH) / 2 + CONTROL_HALF_WIDTH,
+          getControlInnerLeft(),
           0,
           CONTROL_HALF_WIDTH,
           CONTROL_HEIGHT,
@@ -340,7 +390,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
           matrixStack,
           FilterListWidget.this.textRenderer,
           this.label,
-          (FilterListWidget.this.width - CONTROL_FULL_WIDTH) / 2,
+          getControlLeft(),
           y + MathHelper.ceil((entryHeight - FilterListWidget.this.textRenderer.fontHeight) / 2f),
           0xFFFFFF);
 
@@ -394,7 +444,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
       this.getHigh = getHigh;
 
       this.lowSlider = new IntSliderWidget(
-          (FilterListWidget.this.width - CONTROL_FULL_WIDTH) / 2,
+          getControlLeft(),
           0,
           CONTROL_HALF_WIDTH,
           CONTROL_HEIGHT,
@@ -405,7 +455,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
           setLow);
 
       this.highSlider = new IntSliderWidget(
-          (FilterListWidget.this.width - CONTROL_FULL_WIDTH) / 2 + CONTROL_HALF_WIDTH,
+          getControlInnerLeft(),
           0,
           CONTROL_HALF_WIDTH,
           CONTROL_HEIGHT,
