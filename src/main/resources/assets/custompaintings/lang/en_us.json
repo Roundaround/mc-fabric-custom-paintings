@@ -12,9 +12,10 @@
   "custompaintings.painting.none": "(No painting selected)",
   "custompaintings.filter.title": "Set filters",
   "custompaintings.filter.search": "Search for a painting",
-  "custompaintings.filter.name.label": "Search name",
-  "custompaintings.filter.artist.label": "Search artist",
-  "custompaintings.filter.canstay.label": "Can stay only",
-  "custompaintings.filter.canstay.tooltip": "Enable to hide any painting that can't fit on the wall",
+  "custompaintings.filter.section.search": "Search by text",
+  "custompaintings.filter.name": "Name",
+  "custompaintings.filter.artist": "Artist",
+  "custompaintings.filter.section.size": "Filter by size",
+  "custompaintings.filter.canstay": "Fits only",
   "custompaintings.filter.reset": "Reset"
 }
