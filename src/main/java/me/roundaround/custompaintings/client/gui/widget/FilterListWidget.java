@@ -28,7 +28,7 @@ import net.minecraft.util.math.MathHelper;
 
 @Environment(value = EnvType.CLIENT)
 public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterEntry> {
-  private static final int ITEM_HEIGHT = 26;
+  private static final int ITEM_HEIGHT = 25;
   private static final int CONTROL_HEIGHT = 20;
   private static final int CONTROL_FULL_WIDTH = 310;
   private static final int CONTROL_HALF_WIDTH = 150;
