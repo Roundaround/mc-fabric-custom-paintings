@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableList;
@@ -93,7 +94,25 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
         () -> state.getFilters().getCanStayOnly(),
         (value) -> state.getFilters().setCanStayOnly(value)));
 
-    // TODO: Min/max width/height
+    addEntry(new IntRangeFilterEntry(
+        (value) -> Text.translatable("custompaintings.filter.minwidth", value),
+        (value) -> Text.translatable("custompaintings.filter.maxwidth", value),
+        () -> state.getFilters().getMinWidth(),
+        () -> state.getFilters().getMaxWidth(),
+        (value) -> state.getFilters().setMinWidth(value),
+        (value) -> state.getFilters().setMaxWidth(value),
+        1,
+        32));
+
+    addEntry(new IntRangeFilterEntry(
+        (value) -> Text.translatable("custompaintings.filter.minheight", value),
+        (value) -> Text.translatable("custompaintings.filter.maxheight", value),
+        () -> state.getFilters().getMinHeight(),
+        () -> state.getFilters().getMaxHeight(),
+        (value) -> state.getFilters().setMinHeight(value),
+        (value) -> state.getFilters().setMaxHeight(value),
+        1,
+        32));
   }
 
   @Override
@@ -352,6 +371,94 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
     @Override
     public void unselect() {
       this.textField.setTextFieldFocused(false);
+    }
+  }
+
+  @Environment(value = EnvType.CLIENT)
+  public class IntRangeFilterEntry extends FilterEntry {
+    private final Supplier<Integer> getLow;
+    private final Supplier<Integer> getHigh;
+    private final IntSliderWidget lowSlider;
+    private final IntSliderWidget highSlider;
+
+    public IntRangeFilterEntry(
+        Function<Integer, Text> lowLabelFactory,
+        Function<Integer, Text> highLabelFactory,
+        Supplier<Integer> getLow,
+        Supplier<Integer> getHigh,
+        Consumer<Integer> setLow,
+        Consumer<Integer> setHigh,
+        int min,
+        int max) {
+      this.getLow = getLow;
+      this.getHigh = getHigh;
+
+      this.lowSlider = new IntSliderWidget(
+          (FilterListWidget.this.width - CONTROL_FULL_WIDTH) / 2,
+          0,
+          CONTROL_HALF_WIDTH,
+          CONTROL_HEIGHT,
+          this.getLow.get(),
+          min,
+          max,
+          lowLabelFactory,
+          setLow);
+
+      this.highSlider = new IntSliderWidget(
+          (FilterListWidget.this.width - CONTROL_FULL_WIDTH) / 2 + CONTROL_HALF_WIDTH,
+          0,
+          CONTROL_HALF_WIDTH,
+          CONTROL_HEIGHT,
+          this.getHigh.get(),
+          min,
+          max,
+          highLabelFactory,
+          setHigh);
+    }
+
+    @Override
+    public void render(
+        MatrixStack matrixStack,
+        int index,
+        int y,
+        int x,
+        int entryWidth,
+        int entryHeight,
+        int mouseX,
+        int mouseY,
+        boolean hovered,
+        float partialTicks) {
+      this.lowSlider.y = y + (entryHeight - CONTROL_HEIGHT) / 2;
+      this.lowSlider.render(matrixStack, mouseX, mouseY, partialTicks);
+
+      this.highSlider.y = y + (entryHeight - CONTROL_HEIGHT) / 2;
+      this.highSlider.render(matrixStack, mouseX, mouseY, partialTicks);
+    }
+
+    @Override
+    public List<? extends Element> children() {
+      return ImmutableList.of(this.lowSlider, this.highSlider);
+    }
+
+    @Override
+    public List<? extends Selectable> selectableChildren() {
+      return ImmutableList.of(this.lowSlider, this.highSlider);
+    }
+
+    @Override
+    public void resetToFilterValue() {
+      this.lowSlider.setValue(this.getLow.get());
+      this.highSlider.setValue(this.getHigh.get());
+    }
+
+    @Override
+    public void unselect() {
+      if (this.lowSlider.isFocused()) {
+        this.lowSlider.changeFocus(false);
+      }
+      if (this.highSlider.isFocused()) {
+        this.highSlider.changeFocus(false);
+      }
     }
   }
 }

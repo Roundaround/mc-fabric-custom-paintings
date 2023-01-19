@@ -17,5 +17,9 @@
   "custompaintings.filter.artist": "Artist",
   "custompaintings.filter.section.size": "Filter by size",
   "custompaintings.filter.canstay": "Fits only",
+  "custompaintings.filter.minwidth": "Min width: %s blocks",
+  "custompaintings.filter.maxwidth": "Max width: %s blocks",
+  "custompaintings.filter.minheight": "Min height: %s blocks",
+  "custompaintings.filter.maxheight": "Max height: %s blocks",
   "custompaintings.filter.reset": "Reset"
 }
