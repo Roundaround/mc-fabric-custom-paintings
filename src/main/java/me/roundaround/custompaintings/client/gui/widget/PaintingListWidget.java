@@ -285,7 +285,7 @@ public class PaintingListWidget
 
   @Environment(value = EnvType.CLIENT)
   public class EmptyPaintingEntry extends PaintingEntry {
-    private Text text = Text.translatable("custompaintings.paintinglist.empty");
+    private Text text = Text.translatable("custompaintings.painting.empty");
 
     public EmptyPaintingEntry() {
       super(PaintingData.EMPTY);
