@@ -38,6 +38,11 @@ public abstract class PaintingEntityRendererMixin extends EntityRenderer<Paintin
   @ModifyArgs(method = "render", at = @At(value = "INVOKE", target = "net/minecraft/client/render/entity/PaintingEntityRenderer.renderPainting(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumer;Lnet/minecraft/entity/decoration/painting/PaintingEntity;IILnet/minecraft/client/texture/Sprite;Lnet/minecraft/client/texture/Sprite;)V"))
   private void adjustRenderPaintingArgs(Args args) {
     PaintingEntity entity = args.get(2);
+
+    if (!(entity instanceof ExpandedPaintingEntity)) {
+      return;
+    }
+
     PaintingData paintingData = ((ExpandedPaintingEntity) entity).getCustomData();
 
     CustomPaintingManager paintingManager = CustomPaintingsClientMod.customPaintingManager;
