@@ -62,6 +62,16 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
     addEntry(new SectionTitleEntry(
         Text.translatable("custompaintings.filter.section.search")));
 
+    TextFilterEntry previousAnyFilterEntry = null;
+    if (!previousEntries.isEmpty()) {
+      previousAnyFilterEntry = previousEntries.remove();
+    }
+    addEntry(new TextFilterEntry(
+        Text.translatable("custompaintings.filter.any"),
+        previousAnyFilterEntry,
+        () -> state.getFilters().getSearch(),
+        (value) -> state.getFilters().setSearch(value)));
+
     TextFilterEntry previousNameFilterEntry = null;
     if (!previousEntries.isEmpty()) {
       previousNameFilterEntry = previousEntries.remove();

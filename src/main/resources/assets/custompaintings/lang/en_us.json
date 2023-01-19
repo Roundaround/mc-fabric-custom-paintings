@@ -13,6 +13,7 @@
   "custompaintings.filter.title": "Set filters",
   "custompaintings.filter.search": "Search for a painting",
   "custompaintings.filter.section.search": "Search by text",
+  "custompaintings.filter.any": "Name, artist, or id",
   "custompaintings.filter.name": "Name",
   "custompaintings.filter.artist": "Artist",
   "custompaintings.filter.section.size": "Filter by size",
