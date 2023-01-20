@@ -13,6 +13,10 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 public class IconButtonWidget extends ButtonWidget {
+  public static final int FILTER_ICON = 0;
+  public static final int RESET_ICON = 1;
+  public static final int LEFT_ICON = 2;
+  public static final int RIGHT_ICON = 3;
   public static final int WIDTH = 20;
   public static final int HEIGHT = 20;
   protected static final Identifier BACKGROUND_TEXTURE = new Identifier(

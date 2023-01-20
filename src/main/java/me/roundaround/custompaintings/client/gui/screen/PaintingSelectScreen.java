@@ -33,8 +33,8 @@ import net.minecraft.util.Formatting;
 public class PaintingSelectScreen extends PaintingEditScreen implements PaintingChangeListener {
   private TextFieldWidget searchBox;
   private PaintingListWidget paintingList;
-  private ButtonWidget prevButton;
-  private ButtonWidget nextButton;
+  private IconButtonWidget prevButton;
+  private IconButtonWidget nextButton;
   private ButtonWithDisabledTooltipWidget doneButton;
   private int paneWidth;
   private int rightPaneX;
@@ -139,7 +139,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         this,
         10 + this.searchBox.getWidth() + 4,
         this.searchBox.y,
-        0,
+        IconButtonWidget.FILTER_ICON,
         Text.translatable("custompaintings.painting.filter"),
         (button) -> {
           this.client.setScreen(new FiltersScreen(this.state));
@@ -158,21 +158,21 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         listBottom,
         this.paintings);
 
-    this.prevButton = new ButtonWidget(
-        this.rightPaneX + this.paneWidth / 2 - BUTTON_WIDTH - 2,
+    this.prevButton = new IconButtonWidget(
+        this,
+        this.rightPaneX + 8,
         this.height - footerHeight - 4 - BUTTON_HEIGHT,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
+        IconButtonWidget.LEFT_ICON,
         Text.translatable("custompaintings.painting.previous"),
         (button) -> {
           previousPainting();
         });
 
-    this.nextButton = new ButtonWidget(
-        this.rightPaneX + this.paneWidth / 2 + 2,
+    this.nextButton = new IconButtonWidget(
+        this,
+        this.width - 8 - IconButtonWidget.WIDTH,
         this.height - footerHeight - 4 - BUTTON_HEIGHT,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
+        IconButtonWidget.RIGHT_ICON,
         Text.translatable("custompaintings.painting.next"),
         (button) -> {
           nextPainting();
@@ -186,7 +186,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         height - BUTTON_HEIGHT - 10,
         BUTTON_WIDTH,
         BUTTON_HEIGHT,
-        ScreenTexts.CANCEL,
+        this.state.hasMultipleGroups() ? ScreenTexts.BACK : ScreenTexts.CANCEL,
         (button) -> {
           if (this.state.hasMultipleGroups()) {
             this.client.setScreen(new GroupSelectScreen(this.state));
