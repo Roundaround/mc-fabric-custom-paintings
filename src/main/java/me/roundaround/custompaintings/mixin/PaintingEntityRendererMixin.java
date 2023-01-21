@@ -11,24 +11,33 @@ import me.roundaround.custompaintings.client.CustomPaintingManager;
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.EntityRendererFactory.Context;
 import net.minecraft.client.render.entity.PaintingEntityRenderer;
+import net.minecraft.client.texture.MissingSprite;
+import net.minecraft.client.texture.PaintingManager;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.util.Identifier;
 
 @Mixin(PaintingEntityRenderer.class)
 public abstract class PaintingEntityRendererMixin extends EntityRenderer<PaintingEntity> {
+  private final MinecraftClient client = MinecraftClient.getInstance();
+
   protected PaintingEntityRendererMixin(Context ctx) {
     super(ctx);
   }
 
   @Inject(method = "getTexture", at = @At(value = "RETURN"), cancellable = true)
   private void getTexture(PaintingEntity entity, CallbackInfoReturnable<Identifier> info) {
+    if (!(entity instanceof ExpandedPaintingEntity)) {
+      return;
+    }
+
     PaintingData paintingData = ((ExpandedPaintingEntity) entity).getCustomData();
 
     CustomPaintingManager paintingManager = CustomPaintingsClientMod.customPaintingManager;
-    if (paintingData.isEmpty() || !paintingManager.exists(paintingData.id())) {
+    if (paintingData.isEmpty() || paintingData.isVanilla() || !paintingManager.exists(paintingData.id())) {
       return;
     }
 
@@ -45,15 +54,23 @@ public abstract class PaintingEntityRendererMixin extends EntityRenderer<Paintin
 
     PaintingData paintingData = ((ExpandedPaintingEntity) entity).getCustomData();
 
-    CustomPaintingManager paintingManager = CustomPaintingsClientMod.customPaintingManager;
-    if (paintingData.isEmpty() || paintingData.isVanilla()) {
-      return;
-    }
-
     // 3 - width
     args.set(3, paintingData.getScaledWidth());
     // 4 - height
     args.set(4, paintingData.getScaledHeight());
+
+    CustomPaintingManager paintingManager = CustomPaintingsClientMod.customPaintingManager;
+    if (paintingData.isEmpty() || paintingData.isVanilla() || !paintingManager.exists(paintingData.id())) {
+      PaintingManager vanillaPaintingManager = client.getPaintingManager();
+
+      // 5 - front sprite
+      args.set(5, ((SpriteAtlasHolderAccessor) vanillaPaintingManager)
+          .invokeGetSprite(MissingSprite.getMissingSpriteId()));
+      // 6 - back sprite
+      args.set(6, vanillaPaintingManager.getBackSprite());
+      return;
+    }
+
     // 5 - front sprite
     args.set(5, paintingManager.getPaintingSprite(paintingData));
     // 6 - back sprite

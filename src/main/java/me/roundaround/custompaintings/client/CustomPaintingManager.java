@@ -25,6 +25,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.texture.MissingSprite;
 import net.minecraft.client.texture.Sprite;
 import net.minecraft.client.texture.SpriteAtlasHolder;
 import net.minecraft.client.texture.SpriteAtlasTexture;
@@ -98,6 +99,7 @@ public class CustomPaintingManager
       }
 
       spriteIds.add(PAINTING_BACK_ID);
+      spriteIds.add(MissingSprite.getMissingSpriteId());
 
       resource.getNamespaces(ResourceType.CLIENT_RESOURCES)
           .stream()
