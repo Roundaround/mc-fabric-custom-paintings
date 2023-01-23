@@ -22,5 +22,6 @@
   "custompaintings.filter.maxwidth": "Max width: %s blocks",
   "custompaintings.filter.minheight": "Min height: %s blocks",
   "custompaintings.filter.maxheight": "Max height: %s blocks",
-  "custompaintings.filter.reset": "Reset"
+  "custompaintings.filter.reset": "Reset",
+  "custompaintings.key.open_manage_screen": "Manage Custom Paintings"
 }
