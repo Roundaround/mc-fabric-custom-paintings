@@ -86,12 +86,12 @@ public class ClientNetworking {
   private static void handleEditPaintingPacket(
       MinecraftClient client,
       ClientPlayNetworkHandler handler,
-      PacketByteBuf buffer,
+      PacketByteBuf buf,
       PacketSender responseSender) {
-    UUID paintingUuid = buffer.readUuid();
-    int paintingId = buffer.readInt();
-    BlockPos pos = buffer.readBlockPos();
-    Direction facing = Direction.byId(buffer.readInt());
+    UUID paintingUuid = buf.readUuid();
+    int paintingId = buf.readInt();
+    BlockPos pos = buf.readBlockPos();
+    Direction facing = Direction.byId(buf.readInt());
 
     client.execute(() -> {
       PaintingEditState state = new PaintingEditState(
@@ -112,7 +112,7 @@ public class ClientNetworking {
   private static void handleOpenManageScreenPacket(
       MinecraftClient client,
       ClientPlayNetworkHandler handler,
-      PacketByteBuf buffer,
+      PacketByteBuf buf,
       PacketSender responseSender) {
     client.execute(() -> {
       client.setScreen(new ManagePaintingsScreen());
@@ -122,14 +122,14 @@ public class ClientNetworking {
   private static void handleResponseOutdatedPacket(
       MinecraftClient client,
       ClientPlayNetworkHandler handler,
-      PacketByteBuf buffer,
+      PacketByteBuf buf,
       PacketSender responseSender) {
-    int size = buffer.readInt();
+    int size = buf.readInt();
     HashSet<OutdatedPainting> outdatedPaintings = new HashSet<>(size);
     for (int i = 0; i < size; i++) {
-      UUID uuid = buffer.readUuid();
-      PaintingData currentData = PaintingData.fromPacketByteBuf(buffer);
-      PaintingData knownData = PaintingData.fromPacketByteBuf(buffer);
+      UUID uuid = buf.readUuid();
+      PaintingData currentData = PaintingData.fromPacketByteBuf(buf);
+      PaintingData knownData = PaintingData.fromPacketByteBuf(buf);
       outdatedPaintings.add(new OutdatedPainting(uuid, currentData, knownData));
     }
 
@@ -145,14 +145,17 @@ public class ClientNetworking {
   private static void handleResponseUnknownPacket(
       MinecraftClient client,
       ClientPlayNetworkHandler handler,
-      PacketByteBuf buffer,
+      PacketByteBuf buf,
       PacketSender responseSender) {
-    int size = buffer.readInt();
+    int size = buf.readInt();
     HashSet<UnknownPainting> unknownPaintings = new HashSet<>(size);
     for (int i = 0; i < size; i++) {
-      Identifier id = buffer.readIdentifier();
-      int count = buffer.readInt();
-      Identifier autoFixIdentifier = buffer.readIdentifier();
+      Identifier id = buf.readIdentifier();
+      int count = buf.readInt();
+      Identifier autoFixIdentifier = null;
+      if (buf.readBoolean()) {
+        autoFixIdentifier = buf.readIdentifier();
+      }
       unknownPaintings.add(new UnknownPainting(id, count, autoFixIdentifier));
     }
 

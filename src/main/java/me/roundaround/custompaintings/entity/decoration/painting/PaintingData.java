@@ -77,7 +77,7 @@ public record PaintingData(
       return Text.empty();
     }
 
-    if (!hasArtist()) {
+    if (!hasArtist() || isVanilla) {
       return Text.literal(name);
     }
 

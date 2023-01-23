@@ -37,7 +37,7 @@ public abstract class PaintingEntityRendererMixin extends EntityRenderer<Paintin
     PaintingData paintingData = ((ExpandedPaintingEntity) entity).getCustomData();
 
     CustomPaintingManager paintingManager = CustomPaintingsClientMod.customPaintingManager;
-    if (paintingData.isEmpty() || paintingData.isVanilla() || !paintingManager.exists(paintingData.id())) {
+    if (paintingData.isVanilla() || !paintingManager.exists(paintingData.id())) {
       return;
     }
 
@@ -54,7 +54,7 @@ public abstract class PaintingEntityRendererMixin extends EntityRenderer<Paintin
 
     PaintingData paintingData = ((ExpandedPaintingEntity) entity).getCustomData();
 
-    if (paintingData.isEmpty() || paintingData.isVanilla()) {
+    if (paintingData.isVanilla()) {
       return;
     }
 

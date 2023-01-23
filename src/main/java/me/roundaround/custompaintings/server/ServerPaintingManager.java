@@ -18,9 +18,15 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.util.OutdatedPainting;
 import me.roundaround.custompaintings.util.UnknownPainting;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.decoration.painting.PaintingEntity;
+import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.tag.PaintingVariantTags;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.util.registry.RegistryEntry;
+import net.minecraft.util.registry.RegistryKey;
 
 public class ServerPaintingManager {
   public static HashSet<UnknownPainting> getUnknownPaintings(ServerPlayerEntity player) {
@@ -32,16 +38,14 @@ public class ServerPaintingManager {
       return unknownPaintings;
     }
 
-    Map<Identifier, PaintingData> known = CustomPaintingsMod.knownPaintings.get(player.getUuid())
-        .stream()
-        .collect(Collectors.toMap(PaintingData::id, Function.identity()));
+    Map<Identifier, PaintingData> known = getKnownData(player);
 
     player.getServer().getWorlds().forEach((world) -> {
       world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
           .stream()
           .filter((entity) -> {
-            Identifier entityId = ((ExpandedPaintingEntity) entity).getCustomData().id();
-            return !known.containsKey(entityId);
+            PaintingData paintingData = ((ExpandedPaintingEntity) entity).getCustomData();
+            return !paintingData.isVanilla() && !known.containsKey(paintingData.id());
           })
           .forEach((entity) -> {
             ExpandedPaintingEntity painting = (ExpandedPaintingEntity) entity;
@@ -90,9 +94,7 @@ public class ServerPaintingManager {
       return outdatedPaintings;
     }
 
-    Map<Identifier, PaintingData> known = CustomPaintingsMod.knownPaintings.get(player.getUuid())
-        .stream()
-        .collect(Collectors.toMap(PaintingData::id, Function.identity()));
+    Map<Identifier, PaintingData> known = getKnownData(player);
 
     player.getServer().getWorlds().forEach((world) -> {
       world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
@@ -123,10 +125,7 @@ public class ServerPaintingManager {
 
   public static int autoFixPaintings(MinecraftServer server, ServerPlayerEntity player) {
     ArrayList<ExpandedPaintingEntity> missing = new ArrayList<>();
-
-    Map<Identifier, PaintingData> known = CustomPaintingsMod.knownPaintings.get(player.getUuid())
-        .stream()
-        .collect(Collectors.toMap(PaintingData::id, Function.identity()));
+    Map<Identifier, PaintingData> known = getKnownData(player);
 
     server.getWorlds().forEach((world) -> {
       world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
@@ -181,9 +180,7 @@ public class ServerPaintingManager {
   }
 
   public static void reassignIds(ServerPlayerEntity player, Identifier from, Identifier to, boolean fix) {
-    Map<Identifier, PaintingData> known = CustomPaintingsMod.knownPaintings.get(player.getUuid())
-        .stream()
-        .collect(Collectors.toMap(PaintingData::id, Function.identity()));
+    Map<Identifier, PaintingData> known = getKnownData(player);
 
     if (!known.containsKey(to)) {
       return;
@@ -216,9 +213,7 @@ public class ServerPaintingManager {
   }
 
   public static void updatePaintings(ServerPlayerEntity player, Collection<UUID> uuids) {
-    Map<Identifier, PaintingData> known = CustomPaintingsMod.knownPaintings.get(player.getUuid())
-        .stream()
-        .collect(Collectors.toMap(PaintingData::id, Function.identity()));
+    Map<Identifier, PaintingData> known = getKnownData(player);
 
     uuids.forEach((uuid) -> {
       player.getServer().getWorlds().forEach((world) -> {
@@ -246,5 +241,93 @@ public class ServerPaintingManager {
             });
       });
     });
+  }
+
+  public static void customifyVanillaPaintings(ServerPlayerEntity player) {
+    ArrayList<PaintingEntity> paintings = new ArrayList<>();
+
+    player.getServer().getWorlds().forEach((world) -> {
+      world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof PaintingEntity)
+          .stream()
+          .filter((entity) -> {
+            return !(entity instanceof ExpandedPaintingEntity)
+                || ((ExpandedPaintingEntity) entity).getCustomData().isEmpty();
+          })
+          .forEach((entity) -> {
+            paintings.add((PaintingEntity) entity);
+          });
+    });
+
+    if (paintings.isEmpty()) {
+      return;
+    }
+
+    HashMap<Identifier, PaintingData> placeable = new HashMap<>();
+    HashMap<Identifier, PaintingData> unplaceable = new HashMap<>();
+
+    Registry.PAINTING_VARIANT.stream()
+        .forEach((vanillaVariant) -> {
+          Identifier id = Registry.PAINTING_VARIANT.getId(vanillaVariant);
+          RegistryKey<PaintingVariant> key = RegistryKey.of(Registry.PAINTING_VARIANT_KEY, id);
+          Optional<RegistryEntry<PaintingVariant>> maybeEntry = Registry.PAINTING_VARIANT.getEntry(key);
+
+          if (!maybeEntry.isPresent()) {
+            return;
+          }
+
+          RegistryEntry<PaintingVariant> entry = maybeEntry.get();
+          boolean isPlaceable = entry.isIn(PaintingVariantTags.PLACEABLE);
+          HashMap<Identifier, PaintingData> map = isPlaceable ? placeable : unplaceable;
+          PaintingData paintingData = new PaintingData(vanillaVariant, map.size());
+          map.put(paintingData.id(), paintingData);
+        });
+
+    HashMap<Identifier, PaintingData> map = getVanillaPaintingData();
+    paintings.forEach((painting) -> {
+      Identifier id = Registry.PAINTING_VARIANT.getId(painting.getVariant().value());
+      PaintingData paintingData = map.get(id);
+      ((ExpandedPaintingEntity) painting).setCustomData(
+          paintingData.id(),
+          paintingData.index(),
+          paintingData.width(),
+          paintingData.height(),
+          paintingData.name(),
+          paintingData.artist());
+    });
+  }
+
+  public static Map<Identifier, PaintingData> getKnownData(ServerPlayerEntity player) {
+    Map<Identifier, PaintingData> known = CustomPaintingsMod.knownPaintings.get(player.getUuid())
+        .stream()
+        .collect(Collectors.toMap(PaintingData::id, Function.identity()));
+    known.putAll(getVanillaPaintingData());
+    return known;
+  }
+
+  public static HashMap<Identifier, PaintingData> getVanillaPaintingData() {
+    HashMap<Identifier, PaintingData> placeable = new HashMap<>();
+    HashMap<Identifier, PaintingData> unplaceable = new HashMap<>();
+
+    Registry.PAINTING_VARIANT.stream()
+        .forEach((vanillaVariant) -> {
+          Identifier id = Registry.PAINTING_VARIANT.getId(vanillaVariant);
+          RegistryKey<PaintingVariant> key = RegistryKey.of(Registry.PAINTING_VARIANT_KEY, id);
+          Optional<RegistryEntry<PaintingVariant>> maybeEntry = Registry.PAINTING_VARIANT.getEntry(key);
+
+          if (!maybeEntry.isPresent()) {
+            return;
+          }
+
+          RegistryEntry<PaintingVariant> entry = maybeEntry.get();
+          boolean isPlaceable = entry.isIn(PaintingVariantTags.PLACEABLE);
+          HashMap<Identifier, PaintingData> map = isPlaceable ? placeable : unplaceable;
+          PaintingData paintingData = new PaintingData(vanillaVariant, map.size());
+          map.put(paintingData.id(), paintingData);
+        });
+
+    HashMap<Identifier, PaintingData> datas = new HashMap<>();
+    datas.putAll(placeable);
+    datas.putAll(unplaceable);
+    return datas;
   }
 }

@@ -6,6 +6,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.server.ServerPaintingManager;
 import net.minecraft.network.ClientConnection;
 import net.minecraft.server.PlayerManager;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -15,5 +16,7 @@ public abstract class PlayerManagerMixin {
   @Inject(method = "onPlayerConnect", at = @At(value = "HEAD"))
   public void onPlayerConnect(ClientConnection connection, ServerPlayerEntity player, CallbackInfo info) {
     CustomPaintingsMod.knownPaintings.remove(player.getUuid());
+
+    ServerPaintingManager.customifyVanillaPaintings(player);
   }
 }

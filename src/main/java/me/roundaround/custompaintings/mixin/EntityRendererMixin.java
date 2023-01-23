@@ -42,11 +42,8 @@ public abstract class EntityRendererMixin<T extends Entity> {
     info.cancel();
 
     PaintingData paintingData = ((ExpandedPaintingEntity) entity).getCustomData();
-    if (paintingData == null || paintingData.isEmpty() || paintingData.isVanilla()) {
-      return;
-    }
 
-    if (!paintingData.hasName() || !paintingData.hasArtist()) {
+    if (!paintingData.hasLabel()) {
       return;
     }
 

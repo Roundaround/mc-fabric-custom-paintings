@@ -74,7 +74,12 @@ public class ServerNetworking {
     for (UnknownPainting unknownPainting : unknownPaintings) {
       buf.writeIdentifier(unknownPainting.id());
       buf.writeInt(unknownPainting.count());
-      buf.writeIdentifier(unknownPainting.autoFixId());
+
+      Identifier autoFixId = unknownPainting.autoFixId();
+      buf.writeBoolean(autoFixId != null);
+      if (autoFixId != null) {
+        buf.writeIdentifier(unknownPainting.autoFixId());
+      }
     }
     ServerPlayNetworking.send(player, NetworkPackets.RESPOND_UNKNOWN_PACKET, buf);
   }
@@ -101,32 +106,33 @@ public class ServerNetworking {
     UUID paintingUuid = buf.readUuid();
     PaintingData paintingData = PaintingData.fromPacketByteBuf(buf);
 
-    Entity entity = player.getWorld().getEntity(paintingUuid);
-    if (entity == null || !(entity instanceof PaintingEntity)) {
-      return;
-    }
+    server.execute(() -> {
+      Entity entity = player.getWorld().getEntity(paintingUuid);
+      if (entity == null || !(entity instanceof PaintingEntity)) {
+        return;
+      }
 
-    ExpandedPaintingEntity painting = (ExpandedPaintingEntity) entity;
-    if (painting.getEditor() == null || !painting.getEditor().equals(player.getUuid())) {
-      return;
-    }
+      ExpandedPaintingEntity painting = (ExpandedPaintingEntity) entity;
+      if (painting.getEditor() == null || !painting.getEditor().equals(player.getUuid())) {
+        return;
+      }
 
-    PaintingEntity basePainting = (PaintingEntity) entity;
-    if (paintingData.isEmpty()) {
-      entity.damage(DamageSource.player(player), 0f);
-      return;
-    }
+      PaintingEntity basePainting = (PaintingEntity) entity;
+      if (paintingData.isEmpty()) {
+        entity.damage(DamageSource.player(player), 0f);
+        return;
+      }
 
-    if (paintingData.isVanilla()) {
-      painting.setVariant(paintingData.id());
-      painting.setCustomData(PaintingData.EMPTY);
-    } else {
+      if (paintingData.isVanilla()) {
+        painting.setVariant(paintingData.id());
+      }
+
       painting.setCustomData(paintingData);
-    }
 
-    if (!basePainting.canStayAttached()) {
-      basePainting.damage(DamageSource.player(player), 0f);
-    }
+      if (!basePainting.canStayAttached()) {
+        basePainting.damage(DamageSource.player(player), 0f);
+      }
+    });
   }
 
   private static void handleDeclareKnownPaintings(
@@ -149,7 +155,9 @@ public class ServerNetworking {
       ServerPlayNetworkHandler handler,
       PacketByteBuf buf,
       PacketSender responseSender) {
-    sendResponseUnknownPacket(player, ServerPaintingManager.getUnknownPaintings(player));
+    server.execute(() -> {
+      sendResponseUnknownPacket(player, ServerPaintingManager.getUnknownPaintings(player));
+    });
   }
 
   private static void handleRequestOutdated(
@@ -158,7 +166,9 @@ public class ServerNetworking {
       ServerPlayNetworkHandler handler,
       PacketByteBuf buf,
       PacketSender responseSender) {
-    sendListOutdatedPaintingsPacket(player, ServerPaintingManager.getOutdatedPaintings(player));
+    server.execute(() -> {
+      sendListOutdatedPaintingsPacket(player, ServerPaintingManager.getOutdatedPaintings(player));
+    });
   }
 
   private static void handleReassignId(
@@ -171,7 +181,9 @@ public class ServerNetworking {
     Identifier to = buf.readIdentifier();
     boolean fix = buf.readBoolean();
 
-    ServerPaintingManager.reassignIds(player, from, to, fix);
+    server.execute(() -> {
+      ServerPaintingManager.reassignIds(player, from, to, fix);
+    });
   }
 
   private static void handleUpdatePaintingPacket(
@@ -181,7 +193,10 @@ public class ServerNetworking {
       PacketByteBuf buf,
       PacketSender responseSender) {
     UUID paintingUuid = buf.readUuid();
-    ServerPaintingManager.updatePainting(player, paintingUuid);
-    sendListOutdatedPaintingsPacket(player, ServerPaintingManager.getOutdatedPaintings(player));
+
+    server.execute(() -> {
+      ServerPaintingManager.updatePainting(player, paintingUuid);
+      sendListOutdatedPaintingsPacket(player, ServerPaintingManager.getOutdatedPaintings(player));
+    });
   }
 }

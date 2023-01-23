@@ -51,7 +51,7 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
 
   public Text getPaintingName() {
     PaintingData paintingData = getCustomData();
-    if (paintingData == null || paintingData.isEmpty() || paintingData.isVanilla()) {
+    if (paintingData == null) {
       return super.getDisplayName();
     }
 
