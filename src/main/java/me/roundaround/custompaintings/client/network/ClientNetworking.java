@@ -69,6 +69,14 @@ public class ClientNetworking {
         NetworkPackets.REQUEST_OUTDATED_PACKET, new PacketByteBuf(Unpooled.buffer()));
   }
 
+  public static void sendReassignIdPacket(Identifier oldId, Identifier newId) {
+    PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+    buf.writeIdentifier(oldId);
+    buf.writeIdentifier(newId);
+    buf.writeBoolean(true);
+    ClientPlayNetworking.send(NetworkPackets.REASSIGN_ID_PACKET, buf);
+  }
+
   private static void handleEditPaintingPacket(
       MinecraftClient client,
       ClientPlayNetworkHandler handler,

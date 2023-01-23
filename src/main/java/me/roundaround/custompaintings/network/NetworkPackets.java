@@ -28,4 +28,7 @@ public class NetworkPackets {
   public static final Identifier RESPOND_OUTDATED_PACKET = new Identifier(
       CustomPaintingsMod.MOD_ID,
       "respond_outdated_packet");
+  public static final Identifier REASSIGN_ID_PACKET = new Identifier(
+      CustomPaintingsMod.MOD_ID,
+      "reassign_id_packet");
 }

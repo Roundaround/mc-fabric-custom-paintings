@@ -19,6 +19,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.client.gui.screen.manage.KnownPaintingsTracker;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.fabricmc.api.EnvType;
@@ -132,6 +133,10 @@ public class CustomPaintingManager
 
     if (MINECRAFT.player != null) {
       sendKnownPaintingsToServer();
+    }
+
+    if (MINECRAFT.currentScreen instanceof KnownPaintingsTracker) {
+      ((KnownPaintingsTracker) MINECRAFT.currentScreen).onResourcesReloaded();
     }
 
     return super.prepare(resourceManager, profiler);

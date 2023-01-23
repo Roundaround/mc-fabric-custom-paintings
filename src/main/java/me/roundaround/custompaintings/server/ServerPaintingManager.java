@@ -149,6 +149,37 @@ public class ServerPaintingManager {
     return autoFixed;
   }
 
+  public static void reassignIds(ServerPlayerEntity player, Identifier from, Identifier to, boolean fix) {
+    Map<Identifier, PaintingData> known = CustomPaintingsMod.knownPaintings.get(player.getUuid())
+        .stream()
+        .collect(Collectors.toMap(PaintingData::id, Function.identity()));
+
+    if (!known.containsKey(to)) {
+      return;
+    }
+
+    player.getServer().getWorlds().forEach((world) -> {
+      world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
+          .stream()
+          .filter((entity) -> {
+            Identifier entityId = ((ExpandedPaintingEntity) entity).getCustomData().id();
+            return entityId.equals(from);
+          })
+          .forEach((entity) -> {
+            ExpandedPaintingEntity painting = (ExpandedPaintingEntity) entity;
+            PaintingData paintingData = fix ? known.get(to) : painting.getCustomData();
+
+            painting.setCustomData(
+                to,
+                paintingData.index(),
+                paintingData.width(),
+                paintingData.height(),
+                paintingData.name(),
+                paintingData.artist());
+          });
+    });
+  }
+
   public static record OutdatedPainting(
       UUID paintingUuid,
       PaintingData currentData,

@@ -37,6 +37,9 @@ public class ServerNetworking {
     ServerPlayNetworking.registerGlobalReceiver(
         NetworkPackets.REQUEST_OUTDATED_PACKET,
         ServerNetworking::handleRequestOutdated);
+    ServerPlayNetworking.registerGlobalReceiver(
+        NetworkPackets.REASSIGN_ID_PACKET,
+        ServerNetworking::handleReassignId);
   }
 
   public static void sendEditPaintingPacket(
@@ -152,5 +155,18 @@ public class ServerNetworking {
       PacketByteBuf buf,
       PacketSender responseSender) {
     sendResponseOutdatedPacket(player, ServerPaintingManager.getOutdatedPaintings(player));
+  }
+
+  private static void handleReassignId(
+      MinecraftServer server,
+      ServerPlayerEntity player,
+      ServerPlayNetworkHandler handler,
+      PacketByteBuf buf,
+      PacketSender responseSender) {
+    Identifier from = buf.readIdentifier();
+    Identifier to = buf.readIdentifier();
+    boolean fix = buf.readBoolean();
+
+    ServerPaintingManager.reassignIds(player, from, to, fix);
   }
 }
