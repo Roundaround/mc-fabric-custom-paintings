@@ -39,8 +39,6 @@ public abstract class EntityRendererMixin<T extends Entity> {
       return;
     }
 
-    info.cancel();
-
     PaintingData paintingData = ((ExpandedPaintingEntity) entity).getCustomData();
 
     if (!paintingData.hasLabel()) {
@@ -55,6 +53,8 @@ public abstract class EntityRendererMixin<T extends Entity> {
     if (MINECRAFT.targetedEntity != painting) {
       return;
     }
+
+    info.cancel();
 
     TextRenderer textRenderer = MINECRAFT.textRenderer;
 
