@@ -54,13 +54,22 @@ public abstract class PaintingEntityRendererMixin extends EntityRenderer<Paintin
 
     PaintingData paintingData = ((ExpandedPaintingEntity) entity).getCustomData();
 
+    if (paintingData.isEmpty() || paintingData.isVanilla()) {
+      return;
+    }
+
     // 3 - width
     args.set(3, paintingData.getScaledWidth());
     // 4 - height
     args.set(4, paintingData.getScaledHeight());
 
     CustomPaintingManager paintingManager = CustomPaintingsClientMod.customPaintingManager;
-    if (paintingData.isEmpty() || paintingData.isVanilla() || !paintingManager.exists(paintingData.id())) {
+    if (paintingManager.exists(paintingData.id())) {
+      // 5 - front sprite
+      args.set(5, paintingManager.getPaintingSprite(paintingData));
+      // 6 - back sprite
+      args.set(6, paintingManager.getBackSprite());
+    } else {
       PaintingManager vanillaPaintingManager = client.getPaintingManager();
 
       // 5 - front sprite
@@ -68,12 +77,6 @@ public abstract class PaintingEntityRendererMixin extends EntityRenderer<Paintin
           .invokeGetSprite(MissingSprite.getMissingSpriteId()));
       // 6 - back sprite
       args.set(6, vanillaPaintingManager.getBackSprite());
-      return;
     }
-
-    // 5 - front sprite
-    args.set(5, paintingManager.getPaintingSprite(paintingData));
-    // 6 - back sprite
-    args.set(6, paintingManager.getBackSprite());
   }
 }
