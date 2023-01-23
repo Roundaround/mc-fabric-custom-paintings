@@ -14,7 +14,7 @@ import me.roundaround.custompaintings.client.gui.screen.manage.OutdatedPaintings
 import me.roundaround.custompaintings.client.gui.screen.manage.UnknownPaintingsScreen;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.network.NetworkPackets;
-import me.roundaround.custompaintings.util.OutdatedPainting;
+import me.roundaround.custompaintings.util.MismatchedPainting;
 import me.roundaround.custompaintings.util.UnknownPainting;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
@@ -125,12 +125,12 @@ public class ClientNetworking {
       PacketByteBuf buf,
       PacketSender responseSender) {
     int size = buf.readInt();
-    HashSet<OutdatedPainting> outdatedPaintings = new HashSet<>(size);
+    HashSet<MismatchedPainting> outdatedPaintings = new HashSet<>(size);
     for (int i = 0; i < size; i++) {
       UUID uuid = buf.readUuid();
       PaintingData currentData = PaintingData.fromPacketByteBuf(buf);
       PaintingData knownData = PaintingData.fromPacketByteBuf(buf);
-      outdatedPaintings.add(new OutdatedPainting(uuid, currentData, knownData));
+      outdatedPaintings.add(new MismatchedPainting(uuid, currentData, knownData));
     }
 
     client.execute(() -> {

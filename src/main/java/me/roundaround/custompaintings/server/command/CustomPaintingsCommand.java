@@ -2,6 +2,7 @@ package me.roundaround.custompaintings.server.command;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -19,6 +20,7 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData.MismatchedCategory;
 import me.roundaround.custompaintings.network.ServerNetworking;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
+import me.roundaround.custompaintings.util.UnknownPainting;
 import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -54,9 +56,9 @@ public class CustomPaintingsCommand {
             .executes(context -> {
               return executeListKnown(context.getSource());
             }))
-        .then(CommandManager.literal("missing")
+        .then(CommandManager.literal("unknown")
             .executes(context -> {
-              return executeListMissing(context.getSource());
+              return executeListUnknown(context.getSource());
             }))
         .then(CommandManager.literal("mismatched")
             .executes(context -> {
@@ -77,7 +79,7 @@ public class CustomPaintingsCommand {
 
     LiteralArgumentBuilder<ServerCommandSource> removeSub = CommandManager
         .literal("remove")
-        .then(CommandManager.literal("missing")
+        .then(CommandManager.literal("unknown")
             .executes(context -> {
               return executeRemove(context.getSource(), Optional.empty());
             }))
@@ -257,10 +259,9 @@ public class CustomPaintingsCommand {
       return 0;
     }
 
-    List<String> ids = CustomPaintingsMod.knownPaintings
-        .get(uuid)
+    List<String> ids = ServerPaintingManager.getKnownPaintings(player)
+        .keySet()
         .stream()
-        .map(PaintingData::id)
         .map(Identifier::toString)
         .collect(Collectors.toList());
 
@@ -275,43 +276,24 @@ public class CustomPaintingsCommand {
     return ids.size();
   }
 
-  private static int executeListMissing(ServerCommandSource source) {
+  private static int executeListUnknown(ServerCommandSource source) {
     ServerPlayerEntity player = source.getPlayer();
-    UUID uuid = player.getUuid();
-    Set<Identifier> known = CustomPaintingsMod.knownPaintings.get(uuid)
-        .stream()
-        .map((data) -> data.id())
-        .collect(Collectors.toSet());
+    HashSet<UnknownPainting> unknown = ServerPaintingManager.getUnknownPaintings(player);
 
-    HashMap<String, Integer> missing = new HashMap<>();
-
-    source.getServer().getWorlds().forEach((world) -> {
-      world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
-          .stream()
-          .map((entity) -> ((ExpandedPaintingEntity) entity).getCustomData().id())
-          .filter((id) -> !known.contains(id))
-          .forEach((id) -> {
-            missing.put(id.toString(), missing.getOrDefault(id.toString(), 0) + 1);
-          });
-    });
-
-    if (missing.isEmpty()) {
-      source.sendFeedback(Text.translatable("custompaintings.command.list.missing.none"), true);
+    if (unknown.isEmpty()) {
+      source.sendFeedback(Text.translatable("custompaintings.command.list.unknown.none"), true);
     } else {
-      missing.forEach((id, count) -> {
-        source.sendFeedback(Text.literal(String.format("%s (%d)", id, count)), true);
+      unknown.forEach((entry) -> {
+        source.sendFeedback(Text.literal(String.format("%s (%d)", entry.id(), entry.count())), true);
       });
     }
 
-    return missing.size();
+    return unknown.size();
   }
 
   private static int executeListMismatched(ServerCommandSource source, MismatchedCategory category) {
     ServerPlayerEntity player = source.getPlayer();
-    UUID uuid = player.getUuid();
-    Map<Identifier, PaintingData> known = CustomPaintingsMod.knownPaintings.get(uuid)
-        .stream()
-        .collect(Collectors.toMap(PaintingData::id, Function.identity()));
+    Map<Identifier, PaintingData> known = ServerPaintingManager.getKnownPaintings(player);
 
     HashMap<String, Integer> mismatched = new HashMap<>();
 
@@ -353,10 +335,7 @@ public class CustomPaintingsCommand {
             });
       });
     } else {
-      Set<Identifier> known = CustomPaintingsMod.knownPaintings.get(player.getUuid())
-          .stream()
-          .map((data) -> data.id())
-          .collect(Collectors.toSet());
+      Set<Identifier> known = ServerPaintingManager.getKnownPaintings(player).keySet();
 
       source.getServer().getWorlds().forEach((world) -> {
         world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
@@ -418,9 +397,7 @@ public class CustomPaintingsCommand {
 
   private static int executeFixSizes(ServerCommandSource source, Identifier id) {
     ArrayList<ExpandedPaintingEntity> toUpdate = new ArrayList<>();
-    Map<Identifier, PaintingData> known = CustomPaintingsMod.knownPaintings.get(source.getPlayer().getUuid())
-        .stream()
-        .collect(Collectors.toMap(PaintingData::id, Function.identity()));
+    Map<Identifier, PaintingData> known = ServerPaintingManager.getKnownPaintings(source.getPlayer());
 
     source.getServer().getWorlds().forEach((world) -> {
       world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
@@ -457,9 +434,7 @@ public class CustomPaintingsCommand {
 
   private static int executeFixInfo(ServerCommandSource source, Identifier id) {
     ArrayList<ExpandedPaintingEntity> toUpdate = new ArrayList<>();
-    Map<Identifier, PaintingData> known = CustomPaintingsMod.knownPaintings.get(source.getPlayer().getUuid())
-        .stream()
-        .collect(Collectors.toMap(PaintingData::id, Function.identity()));
+    Map<Identifier, PaintingData> known = ServerPaintingManager.getKnownPaintings(source.getPlayer());
 
     source.getServer().getWorlds().forEach((world) -> {
       world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
@@ -496,9 +471,7 @@ public class CustomPaintingsCommand {
 
   private static int executeFixEverything(ServerCommandSource source, Identifier id) {
     ArrayList<ExpandedPaintingEntity> toUpdate = new ArrayList<>();
-    Map<Identifier, PaintingData> known = CustomPaintingsMod.knownPaintings.get(source.getPlayer().getUuid())
-        .stream()
-        .collect(Collectors.toMap(PaintingData::id, Function.identity()));
+    Map<Identifier, PaintingData> known = ServerPaintingManager.getKnownPaintings(source.getPlayer());
 
     source.getServer().getWorlds().forEach((world) -> {
       world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)

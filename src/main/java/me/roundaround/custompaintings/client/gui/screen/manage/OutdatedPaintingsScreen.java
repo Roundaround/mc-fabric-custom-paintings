@@ -3,7 +3,7 @@ package me.roundaround.custompaintings.client.gui.screen.manage;
 import java.util.HashSet;
 
 import me.roundaround.custompaintings.client.gui.widget.OutdatedPaintingListWidget;
-import me.roundaround.custompaintings.util.OutdatedPainting;
+import me.roundaround.custompaintings.util.MismatchedPainting;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.util.math.MatrixStack;
@@ -24,7 +24,7 @@ public class OutdatedPaintingsScreen extends Screen {
     this.parent = parent;
   }
 
-  public void setOutdatedPaintings(HashSet<OutdatedPainting> outdatedPaintings) {
+  public void setOutdatedPaintings(HashSet<MismatchedPainting> outdatedPaintings) {
     if (this.list != null) {
       this.list.receiveData(outdatedPaintings);
     }

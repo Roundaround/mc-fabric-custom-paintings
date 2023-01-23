@@ -15,7 +15,8 @@ import com.google.common.collect.ImmutableList;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.custompaintings.util.OutdatedPainting;
+import me.roundaround.custompaintings.entity.decoration.painting.PaintingData.MismatchedCategory;
+import me.roundaround.custompaintings.util.MismatchedPainting;
 import me.roundaround.custompaintings.util.UnknownPainting;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
@@ -38,7 +39,7 @@ public class ServerPaintingManager {
       return unknownPaintings;
     }
 
-    Map<Identifier, PaintingData> known = getKnownData(player);
+    Map<Identifier, PaintingData> known = getKnownPaintings(player);
 
     player.getServer().getWorlds().forEach((world) -> {
       world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
@@ -87,14 +88,19 @@ public class ServerPaintingManager {
     return unknownPaintings;
   }
 
-  public static HashSet<OutdatedPainting> getOutdatedPaintings(ServerPlayerEntity player) {
-    HashSet<OutdatedPainting> outdatedPaintings = new HashSet<>();
+  public static HashSet<MismatchedPainting> getMismatchedPaintings(ServerPlayerEntity player) {
+    return getMismatchedPaintings(player, MismatchedCategory.EVERYTHING);
+  }
+
+  public static HashSet<MismatchedPainting> getMismatchedPaintings(ServerPlayerEntity player,
+      MismatchedCategory category) {
+    HashSet<MismatchedPainting> mismatched = new HashSet<>();
 
     if (!CustomPaintingsMod.knownPaintings.containsKey(player.getUuid())) {
-      return outdatedPaintings;
+      return mismatched;
     }
 
-    Map<Identifier, PaintingData> known = getKnownData(player);
+    Map<Identifier, PaintingData> known = getKnownPaintings(player);
 
     player.getServer().getWorlds().forEach((world) -> {
       world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
@@ -110,8 +116,8 @@ public class ServerPaintingManager {
             if (known.containsKey(currentData.id())) {
               PaintingData knownData = known.get(currentData.id());
 
-              if (currentData.isMismatched(knownData)) {
-                outdatedPaintings.add(new OutdatedPainting(
+              if (currentData.isMismatched(knownData, category)) {
+                mismatched.add(new MismatchedPainting(
                     entity.getUuid(),
                     currentData,
                     knownData));
@@ -120,12 +126,12 @@ public class ServerPaintingManager {
           });
     });
 
-    return outdatedPaintings;
+    return mismatched;
   }
 
   public static int autoFixPaintings(MinecraftServer server, ServerPlayerEntity player) {
     ArrayList<ExpandedPaintingEntity> missing = new ArrayList<>();
-    Map<Identifier, PaintingData> known = getKnownData(player);
+    Map<Identifier, PaintingData> known = getKnownPaintings(player);
 
     server.getWorlds().forEach((world) -> {
       world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
@@ -180,7 +186,7 @@ public class ServerPaintingManager {
   }
 
   public static void reassignIds(ServerPlayerEntity player, Identifier from, Identifier to, boolean fix) {
-    Map<Identifier, PaintingData> known = getKnownData(player);
+    Map<Identifier, PaintingData> known = getKnownPaintings(player);
 
     if (!known.containsKey(to)) {
       return;
@@ -213,7 +219,7 @@ public class ServerPaintingManager {
   }
 
   public static void updatePaintings(ServerPlayerEntity player, Collection<UUID> uuids) {
-    Map<Identifier, PaintingData> known = getKnownData(player);
+    Map<Identifier, PaintingData> known = getKnownPaintings(player);
 
     uuids.forEach((uuid) -> {
       player.getServer().getWorlds().forEach((world) -> {
@@ -296,7 +302,7 @@ public class ServerPaintingManager {
     });
   }
 
-  public static Map<Identifier, PaintingData> getKnownData(ServerPlayerEntity player) {
+  public static Map<Identifier, PaintingData> getKnownPaintings(ServerPlayerEntity player) {
     Map<Identifier, PaintingData> known = CustomPaintingsMod.knownPaintings.get(player.getUuid())
         .stream()
         .collect(Collectors.toMap(PaintingData::id, Function.identity()));

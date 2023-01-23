@@ -7,7 +7,7 @@ import com.google.common.collect.ImmutableList;
 
 import me.roundaround.custompaintings.client.gui.screen.manage.OutdatedPaintingsScreen;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
-import me.roundaround.custompaintings.util.OutdatedPainting;
+import me.roundaround.custompaintings.util.MismatchedPainting;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
@@ -48,9 +48,9 @@ public class OutdatedPaintingListWidget extends ElementListWidget<OutdatedPainti
     addEntry(this.loadingEntry);
   }
 
-  public void receiveData(HashSet<OutdatedPainting> data) {
+  public void receiveData(HashSet<MismatchedPainting> data) {
     clearEntries();
-    for (OutdatedPainting outdatedPainting : data) {
+    for (MismatchedPainting outdatedPainting : data) {
       this.addEntry(new OutdatedPaintingEntry(this.client, outdatedPainting));
     }
     narrateScreenIfNarrationEnabled();
@@ -119,12 +119,12 @@ public class OutdatedPaintingListWidget extends ElementListWidget<OutdatedPainti
   @Environment(value = EnvType.CLIENT)
   public class OutdatedPaintingEntry extends Entry {
     private final MinecraftClient client;
-    private final OutdatedPainting outdatedPainting;
+    private final MismatchedPainting outdatedPainting;
     private final IconButtonWidget fixButton;
 
     public OutdatedPaintingEntry(
         MinecraftClient client,
-        OutdatedPainting outdatedPainting) {
+        MismatchedPainting outdatedPainting) {
       this.client = client;
       this.outdatedPainting = outdatedPainting;
 
@@ -139,7 +139,7 @@ public class OutdatedPaintingListWidget extends ElementListWidget<OutdatedPainti
           });
     }
 
-    public OutdatedPainting getOutdatedPainting() {
+    public MismatchedPainting getOutdatedPainting() {
       return outdatedPainting;
     }
 

@@ -8,7 +8,7 @@ import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
-import me.roundaround.custompaintings.util.OutdatedPainting;
+import me.roundaround.custompaintings.util.MismatchedPainting;
 import me.roundaround.custompaintings.util.UnknownPainting;
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -86,10 +86,10 @@ public class ServerNetworking {
 
   private static void sendListOutdatedPaintingsPacket(
       ServerPlayerEntity player,
-      HashSet<OutdatedPainting> outdatedPaintings) {
+      HashSet<MismatchedPainting> outdatedPaintings) {
     PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
     buf.writeInt(outdatedPaintings.size());
-    for (OutdatedPainting outdatedPainting : outdatedPaintings) {
+    for (MismatchedPainting outdatedPainting : outdatedPaintings) {
       buf.writeUuid(outdatedPainting.paintingUuid());
       outdatedPainting.currentData().writeToPacketByteBuf(buf);
       outdatedPainting.knownData().writeToPacketByteBuf(buf);
@@ -167,7 +167,7 @@ public class ServerNetworking {
       PacketByteBuf buf,
       PacketSender responseSender) {
     server.execute(() -> {
-      sendListOutdatedPaintingsPacket(player, ServerPaintingManager.getOutdatedPaintings(player));
+      sendListOutdatedPaintingsPacket(player, ServerPaintingManager.getMismatchedPaintings(player));
     });
   }
 
@@ -196,7 +196,7 @@ public class ServerNetworking {
 
     server.execute(() -> {
       ServerPaintingManager.updatePainting(player, paintingUuid);
-      sendListOutdatedPaintingsPacket(player, ServerPaintingManager.getOutdatedPaintings(player));
+      sendListOutdatedPaintingsPacket(player, ServerPaintingManager.getMismatchedPaintings(player));
     });
   }
 }
