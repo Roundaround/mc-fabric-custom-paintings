@@ -88,11 +88,13 @@ public class PaintingListWidget
       return;
     }
 
-    this.children().forEach((entry) -> {
+    for (PaintingEntry entry : this.children()) {
       if (entry.paintingData.id() == paintingData.id()) {
         this.setSelected(entry);
+        this.ensureSelectedEntryVisible();
+        return;
       }
-    });
+    }
   }
 
   public void selectFirst() {
