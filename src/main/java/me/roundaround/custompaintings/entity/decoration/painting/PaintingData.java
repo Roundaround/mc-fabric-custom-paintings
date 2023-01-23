@@ -148,4 +148,28 @@ public record PaintingData(
     boolean isVanilla = buf.readBoolean();
     return new PaintingData(id, index, width, height, name, artist, isVanilla);
   }
+
+  public boolean isMismatched(PaintingData knownData) {
+    return isMismatched(knownData, MismatchedCategory.EVERYTHING);
+  }
+
+  public boolean isMismatched(PaintingData knownData, MismatchedCategory category) {
+    switch (category) {
+      case SIZE:
+        return width() != knownData.width() || height() != knownData.height();
+      case INFO:
+        return !name().equals(knownData.name()) || !artist().equals(knownData.artist());
+      case EVERYTHING:
+        return width() != knownData.width() || height() != knownData.height()
+            || !name().equals(knownData.name()) || !artist().equals(knownData.artist());
+      default:
+        return false;
+    }
+  }
+
+  public enum MismatchedCategory {
+    SIZE,
+    INFO,
+    EVERYTHING
+  }
 }

@@ -1,4 +1,4 @@
-package me.roundaround.custompaintings.client.gui.screen;
+package me.roundaround.custompaintings.client.gui.screen.edit;
 
 import org.lwjgl.glfw.GLFW;
 

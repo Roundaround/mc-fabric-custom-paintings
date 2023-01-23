@@ -16,6 +16,9 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.entity.decoration.painting.PaintingData.MismatchedCategory;
+import me.roundaround.custompaintings.network.ServerNetworking;
+import me.roundaround.custompaintings.server.ServerPaintingManager;
 import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -131,11 +134,25 @@ public class CustomPaintingsCommand {
                       IdentifierArgumentType.getIdentifier(context, "id"));
                 })));
 
+    LiteralArgumentBuilder<ServerCommandSource> manageSub = CommandManager
+        .literal("manage")
+        .executes(context -> {
+          return executeManage(context.getSource());
+        });
+
+    LiteralArgumentBuilder<ServerCommandSource> autoFixSub = CommandManager
+        .literal("autofix")
+        .executes(context -> {
+          return executeAutoFix(context.getSource());
+        });
+
     LiteralArgumentBuilder<ServerCommandSource> finalCommand = baseCommand
         .then(identifySub)
         .then(listSub)
         .then(removeSub)
-        .then(fixSub);
+        .then(fixSub)
+        .then(manageSub)
+        .then(autoFixSub);
 
     dispatcher.register(finalCommand);
   }
@@ -201,9 +218,9 @@ public class CustomPaintingsCommand {
     if (!known.containsKey(paintingData.id())) {
       lines.add(Text.translatable("custompaintings.command.identify.missing"));
     } else {
-      if (isMismatched(paintingData, known.get(paintingData.id()), MismatchedCategory.INFO)) {
+      if (paintingData.isMismatched(known.get(paintingData.id()), MismatchedCategory.INFO)) {
         lines.add(Text.translatable("custompaintings.command.identify.mismatched.info"));
-      } else if (isMismatched(paintingData, known.get(paintingData.id()), MismatchedCategory.SIZE)) {
+      } else if (paintingData.isMismatched(known.get(paintingData.id()), MismatchedCategory.SIZE)) {
         lines.add(Text.translatable("custompaintings.command.identify.mismatched.size"));
       }
     }
@@ -289,26 +306,6 @@ public class CustomPaintingsCommand {
     return missing.size();
   }
 
-  private enum MismatchedCategory {
-    SIZE,
-    INFO,
-    EVERYTHING
-  }
-
-  private static boolean isMismatched(PaintingData data, PaintingData knownData, MismatchedCategory category) {
-    switch (category) {
-      case SIZE:
-        return data.width() != knownData.width() || data.height() != knownData.height();
-      case INFO:
-        return !data.name().equals(knownData.name()) || !data.artist().equals(knownData.artist());
-      case EVERYTHING:
-        return data.width() != knownData.width() || data.height() != knownData.height()
-            || !data.name().equals(knownData.name()) || !data.artist().equals(knownData.artist());
-      default:
-        return false;
-    }
-  }
-
   private static int executeListMismatched(ServerCommandSource source, MismatchedCategory category) {
     ServerPlayerEntity player = source.getPlayer();
     UUID uuid = player.getUuid();
@@ -325,7 +322,7 @@ public class CustomPaintingsCommand {
             PaintingData data = ((ExpandedPaintingEntity) entity).getCustomData();
             PaintingData knownData = known.get(data.id());
 
-            if (isMismatched(data, knownData, category)) {
+            if (data.isMismatched(knownData, category)) {
               mismatched.put(data.id().toString(), mismatched.getOrDefault(data.id().toString(), 0) + 1);
             }
           });
@@ -534,5 +531,20 @@ public class CustomPaintingsCommand {
     }
 
     return toUpdate.size();
+  }
+
+  private static int executeManage(ServerCommandSource source) {
+    ServerNetworking.sendOpenManageScreenPacket(source.getPlayer());
+    return 1;
+  }
+
+  private static int executeAutoFix(ServerCommandSource source) {
+    int fixed = ServerPaintingManager.autoFixPaintings(source.getServer(), source.getPlayer());
+    if (fixed == 0) {
+      source.sendFeedback(Text.translatable("custompaintings.command.autofix.none"), true);
+    } else {
+      source.sendFeedback(Text.translatable("custompaintings.command.autofix.success", fixed), true);
+    }
+    return fixed;
   }
 }

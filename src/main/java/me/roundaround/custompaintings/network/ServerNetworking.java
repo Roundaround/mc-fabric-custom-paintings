@@ -1,5 +1,6 @@
 package me.roundaround.custompaintings.network;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.UUID;
 
@@ -7,6 +8,8 @@ import io.netty.buffer.Unpooled;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.server.ServerPaintingManager;
+import me.roundaround.custompaintings.server.ServerPaintingManager.OutdatedPainting;
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.Entity;
@@ -16,6 +19,7 @@ import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 
@@ -25,8 +29,14 @@ public class ServerNetworking {
         NetworkPackets.SET_PAINTING_PACKET,
         ServerNetworking::handleSetPaintingPacket);
     ServerPlayNetworking.registerGlobalReceiver(
-        NetworkPackets.DECLARE_KNOWN_PAINTINGS,
+        NetworkPackets.DECLARE_KNOWN_PAINTINGS_PACKET,
         ServerNetworking::handleDeclareKnownPaintings);
+    ServerPlayNetworking.registerGlobalReceiver(
+        NetworkPackets.REQUEST_UNKNOWN_PACKET,
+        ServerNetworking::handleRequestUnknown);
+    ServerPlayNetworking.registerGlobalReceiver(
+        NetworkPackets.REQUEST_OUTDATED_PACKET,
+        ServerNetworking::handleRequestOutdated);
   }
 
   public static void sendEditPaintingPacket(
@@ -41,6 +51,38 @@ public class ServerNetworking {
     buf.writeBlockPos(pos);
     buf.writeInt(facing.getId());
     ServerPlayNetworking.send(player, NetworkPackets.EDIT_PAINTING_PACKET, buf);
+  }
+
+  public static void sendOpenManageScreenPacket(ServerPlayerEntity player) {
+    ServerPlayNetworking.send(
+        player,
+        NetworkPackets.OPEN_MANAGE_SCREEN_PACKET,
+        new PacketByteBuf(Unpooled.buffer()));
+  }
+
+  private static void sendResponseUnknownPacket(
+      ServerPlayerEntity player,
+      HashMap<Identifier, Integer> unknownPaintings) {
+    PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+    buf.writeInt(unknownPaintings.size());
+    for (Identifier id : unknownPaintings.keySet()) {
+      buf.writeIdentifier(id);
+      buf.writeInt(unknownPaintings.get(id));
+    }
+    ServerPlayNetworking.send(player, NetworkPackets.RESPOND_UNKNOWN_PACKET, buf);
+  }
+
+  private static void sendResponseOutdatedPacket(
+      ServerPlayerEntity player,
+      HashSet<OutdatedPainting> outdatedPaintings) {
+    PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+    buf.writeInt(outdatedPaintings.size());
+    for (OutdatedPainting outdatedPainting : outdatedPaintings) {
+      buf.writeUuid(outdatedPainting.paintingUuid());
+      outdatedPainting.currentData().writeToPacketByteBuf(buf);
+      outdatedPainting.knownData().writeToPacketByteBuf(buf);
+    }
+    ServerPlayNetworking.send(player, NetworkPackets.RESPOND_OUTDATED_PACKET, buf);
   }
 
   private static void handleSetPaintingPacket(
@@ -80,7 +122,7 @@ public class ServerNetworking {
     }
   }
 
-  public static void handleDeclareKnownPaintings(
+  private static void handleDeclareKnownPaintings(
       MinecraftServer server,
       ServerPlayerEntity player,
       ServerPlayNetworkHandler handler,
@@ -92,5 +134,23 @@ public class ServerNetworking {
     for (int i = 0; i < size; i++) {
       CustomPaintingsMod.knownPaintings.get(player.getUuid()).add(PaintingData.fromPacketByteBuf(buf));
     }
+  }
+
+  private static void handleRequestUnknown(
+      MinecraftServer server,
+      ServerPlayerEntity player,
+      ServerPlayNetworkHandler handler,
+      PacketByteBuf buf,
+      PacketSender responseSender) {
+    sendResponseUnknownPacket(player, ServerPaintingManager.getUnknownPaintings(player));
+  }
+
+  private static void handleRequestOutdated(
+      MinecraftServer server,
+      ServerPlayerEntity player,
+      ServerPlayNetworkHandler handler,
+      PacketByteBuf buf,
+      PacketSender responseSender) {
+    sendResponseOutdatedPacket(player, ServerPaintingManager.getOutdatedPaintings(player));
   }
 }
