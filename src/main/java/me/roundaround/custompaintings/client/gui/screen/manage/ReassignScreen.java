@@ -25,7 +25,7 @@ public class ReassignScreen extends Screen implements KnownPaintingsTracker {
   private Identifier selectedId = null;
 
   public ReassignScreen(Screen parent, Identifier id) {
-    super(Text.translatable("custompaintings.reassign.title"));
+    super(Text.translatable("custompaintings.reassign.title", id.toString()));
     this.parent = parent;
     this.currentId = id;
   }

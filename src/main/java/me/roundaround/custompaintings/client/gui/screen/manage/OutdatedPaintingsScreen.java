@@ -5,10 +5,16 @@ import java.util.HashSet;
 import me.roundaround.custompaintings.client.gui.widget.OutdatedPaintingListWidget;
 import me.roundaround.custompaintings.util.OutdatedPainting;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 
 public class OutdatedPaintingsScreen extends Screen {
+  private static final int BUTTON_WIDTH = 204;
+  private static final int BUTTON_HEIGHT = 20;
+  private static final int PADDING = 8;
+
   private final ManagePaintingsScreen parent;
 
   private OutdatedPaintingListWidget list;
@@ -34,6 +40,16 @@ public class OutdatedPaintingsScreen extends Screen {
         32,
         this.height - 32);
     addSelectableChild(this.list);
+
+    addDrawableChild(new ButtonWidget(
+        (this.width - BUTTON_WIDTH) / 2,
+        this.height - BUTTON_HEIGHT - PADDING,
+        BUTTON_WIDTH,
+        BUTTON_HEIGHT,
+        ScreenTexts.CANCEL,
+        (button) -> {
+          this.close();
+        }));
   }
 
   @Override

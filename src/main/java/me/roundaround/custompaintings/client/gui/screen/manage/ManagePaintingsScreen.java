@@ -3,12 +3,13 @@ package me.roundaround.custompaintings.client.gui.screen.manage;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 
 public class ManagePaintingsScreen extends Screen {
   private static final int BUTTON_WIDTH = 204;
   private static final int BUTTON_HEIGHT = 20;
-  private static final int SPACING = 8;
+  private static final int PADDING = 8;
 
   public ManagePaintingsScreen() {
     super(Text.translatable("custompaintings.manage.title"));
@@ -17,7 +18,7 @@ public class ManagePaintingsScreen extends Screen {
   @Override
   public void init() {
     int xPos = (this.width - BUTTON_WIDTH) / 2;
-    int yPos = this.height / 4 + SPACING;
+    int yPos = this.height / 4 + PADDING;
 
     addDrawableChild(new ButtonWidget(
         xPos,
@@ -29,7 +30,7 @@ public class ManagePaintingsScreen extends Screen {
           this.client.setScreen(new UnknownPaintingsScreen(this));
         }));
 
-    yPos += BUTTON_HEIGHT + SPACING;
+    yPos += BUTTON_HEIGHT + PADDING;
 
     addDrawableChild(new ButtonWidget(
         xPos,
@@ -41,8 +42,15 @@ public class ManagePaintingsScreen extends Screen {
           this.client.setScreen(new OutdatedPaintingsScreen(this));
         }));
 
-    // TODO: Screen for mass-changing painting IDs
-
+    addDrawableChild(new ButtonWidget(
+        (this.width - BUTTON_WIDTH) / 2,
+        this.height - BUTTON_HEIGHT - PADDING,
+        BUTTON_WIDTH,
+        BUTTON_HEIGHT,
+        ScreenTexts.DONE,
+        (button) -> {
+          this.close();
+        }));
   }
 
   @Override
