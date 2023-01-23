@@ -25,10 +25,13 @@ public class NetworkPackets {
   public static final Identifier REQUEST_OUTDATED_PACKET = new Identifier(
       CustomPaintingsMod.MOD_ID,
       "request_outdated_packet");
-  public static final Identifier RESPOND_OUTDATED_PACKET = new Identifier(
+  public static final Identifier LIST_OUTDATED_PAINTINGS_PACKET = new Identifier(
       CustomPaintingsMod.MOD_ID,
-      "respond_outdated_packet");
+      "list_outdated_paintings_packet");
   public static final Identifier REASSIGN_ID_PACKET = new Identifier(
       CustomPaintingsMod.MOD_ID,
       "reassign_id_packet");
+  public static final Identifier UPDATE_PAINTING_PACKET = new Identifier(
+      CustomPaintingsMod.MOD_ID,
+      "update_painting_packet");
 }

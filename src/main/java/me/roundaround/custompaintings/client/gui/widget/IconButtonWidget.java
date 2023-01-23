@@ -5,7 +5,7 @@ import java.util.function.Consumer;
 import com.mojang.blaze3d.systems.RenderSystem;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.util.math.MatrixStack;
@@ -26,10 +26,10 @@ public class IconButtonWidget extends ButtonWidget {
       CustomPaintingsMod.MOD_ID,
       "textures/gui/widgets.png");
 
-  protected int textureIndex;
+  protected final int textureIndex;
 
   public IconButtonWidget(
-      Screen parent,
+      MinecraftClient client,
       int x,
       int y,
       int textureIndex,
@@ -42,7 +42,7 @@ public class IconButtonWidget extends ButtonWidget {
         HEIGHT,
         tooltip,
         onPress,
-        new TooltipSupplier(parent, tooltip));
+        new TooltipSupplier(client, tooltip));
     this.textureIndex = textureIndex;
   }
 
@@ -93,17 +93,21 @@ public class IconButtonWidget extends ButtonWidget {
   }
 
   private static class TooltipSupplier implements ButtonWidget.TooltipSupplier {
-    private final Screen screen;
+    private final MinecraftClient client;
     private final Text tooltip;
 
-    public TooltipSupplier(Screen screen, Text tooltip) {
-      this.screen = screen;
+    public TooltipSupplier(MinecraftClient client, Text tooltip) {
+      this.client = client;
       this.tooltip = tooltip;
     }
 
     @Override
     public void onTooltip(ButtonWidget buttonWidget, MatrixStack matrixStack, int x, int y) {
-      screen.renderTooltip(matrixStack, this.tooltip, x, y);
+      this.client.currentScreen.renderOrderedTooltip(
+          matrixStack,
+          this.client.textRenderer.wrapLines(this.tooltip, 200),
+          x,
+          y);
     }
 
     @Override

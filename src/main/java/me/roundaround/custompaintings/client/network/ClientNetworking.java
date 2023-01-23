@@ -34,7 +34,7 @@ public class ClientNetworking {
         NetworkPackets.OPEN_MANAGE_SCREEN_PACKET,
         ClientNetworking::handleOpenManageScreenPacket);
     ClientPlayNetworking.registerGlobalReceiver(
-        NetworkPackets.RESPOND_OUTDATED_PACKET,
+        NetworkPackets.LIST_OUTDATED_PAINTINGS_PACKET,
         ClientNetworking::handleResponseOutdatedPacket);
     ClientPlayNetworking.registerGlobalReceiver(
         NetworkPackets.RESPOND_UNKNOWN_PACKET,
@@ -75,6 +75,12 @@ public class ClientNetworking {
     buf.writeIdentifier(newId);
     buf.writeBoolean(true);
     ClientPlayNetworking.send(NetworkPackets.REASSIGN_ID_PACKET, buf);
+  }
+
+  public static void sendUpdatePaintingPacket(UUID paintingUuid) {
+    PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+    buf.writeUuid(paintingUuid);
+    ClientPlayNetworking.send(NetworkPackets.UPDATE_PAINTING_PACKET, buf);
   }
 
   private static void handleEditPaintingPacket(

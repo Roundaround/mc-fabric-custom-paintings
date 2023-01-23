@@ -27,9 +27,6 @@ public class OutdatedPaintingListWidget extends ElementListWidget<OutdatedPainti
   private final OutdatedPaintingsScreen parent;
   private final LoadingEntry loadingEntry;
 
-  // TODO: Look at how the future-style implementation in WorldListWidget works
-  // TODO: Can we abstract this code to be shared with the unknown equivalent?
-
   public OutdatedPaintingListWidget(
       OutdatedPaintingsScreen parent,
       MinecraftClient minecraftClient,
@@ -123,12 +120,23 @@ public class OutdatedPaintingListWidget extends ElementListWidget<OutdatedPainti
   public class OutdatedPaintingEntry extends Entry {
     private final MinecraftClient client;
     private final OutdatedPainting outdatedPainting;
+    private final IconButtonWidget fixButton;
 
     public OutdatedPaintingEntry(
         MinecraftClient client,
         OutdatedPainting outdatedPainting) {
       this.client = client;
       this.outdatedPainting = outdatedPainting;
+
+      this.fixButton = new IconButtonWidget(
+          this.client,
+          OutdatedPaintingListWidget.this.getRowRight() - IconButtonWidget.WIDTH - 4,
+          0,
+          IconButtonWidget.RESET_ICON, // TODO: Swap to new icon when available
+          Text.translatable("custompaintings.outdated.fix"),
+          (button) -> {
+            ClientNetworking.sendUpdatePaintingPacket(this.outdatedPainting.paintingUuid());
+          });
     }
 
     public OutdatedPainting getOutdatedPainting() {
@@ -137,12 +145,12 @@ public class OutdatedPaintingListWidget extends ElementListWidget<OutdatedPainti
 
     @Override
     public List<? extends Element> children() {
-      return ImmutableList.of();
+      return ImmutableList.of(this.fixButton);
     }
 
     @Override
     public List<? extends Selectable> selectableChildren() {
-      return ImmutableList.of();
+      return ImmutableList.of(this.fixButton);
     }
 
     @Override
@@ -157,13 +165,16 @@ public class OutdatedPaintingListWidget extends ElementListWidget<OutdatedPainti
         int mouseY,
         boolean hovered,
         float partialTicks) {
-      drawCenteredTextWithShadow(
+      drawTextWithShadow(
           matrixStack,
           this.client.textRenderer,
-          Text.literal(this.outdatedPainting.paintingUuid().toString()).asOrderedText(),
-          this.client.currentScreen.width / 2,
+          Text.literal(this.outdatedPainting.paintingUuid().toString()),
+          x + 4,
           y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f),
           0xFFFFFF);
+
+      this.fixButton.y = y + (entryHeight - IconButtonWidget.HEIGHT) / 2;
+      this.fixButton.render(matrixStack, mouseX, mouseY, partialTicks);
     }
   }
 }

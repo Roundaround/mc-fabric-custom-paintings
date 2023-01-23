@@ -1,11 +1,16 @@
 package me.roundaround.custompaintings.server;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import com.google.common.collect.ImmutableList;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
@@ -203,6 +208,43 @@ public class ServerPaintingManager {
                 paintingData.name(),
                 paintingData.artist());
           });
+    });
+  }
+
+  public static void updatePainting(ServerPlayerEntity player, UUID uuid) {
+    updatePaintings(player, ImmutableList.of(uuid));
+  }
+
+  public static void updatePaintings(ServerPlayerEntity player, Collection<UUID> uuids) {
+    Map<Identifier, PaintingData> known = CustomPaintingsMod.knownPaintings.get(player.getUuid())
+        .stream()
+        .collect(Collectors.toMap(PaintingData::id, Function.identity()));
+
+    uuids.forEach((uuid) -> {
+      player.getServer().getWorlds().forEach((world) -> {
+        Optional.ofNullable(world.getEntity(uuid))
+            .ifPresent((entity) -> {
+              if (!(entity instanceof ExpandedPaintingEntity)) {
+                return;
+              }
+
+              ExpandedPaintingEntity painting = (ExpandedPaintingEntity) entity;
+              Identifier id = painting.getCustomData().id();
+
+              if (!known.containsKey(id)) {
+                return;
+              }
+
+              PaintingData knownData = known.get(id);
+              painting.setCustomData(
+                  id,
+                  knownData.index(),
+                  knownData.width(),
+                  knownData.height(),
+                  knownData.name(),
+                  knownData.artist());
+            });
+      });
     });
   }
 }

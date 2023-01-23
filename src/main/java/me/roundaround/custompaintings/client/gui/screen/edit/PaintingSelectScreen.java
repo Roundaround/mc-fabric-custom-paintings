@@ -136,7 +136,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     });
 
     IconButtonWidget filterButton = new IconButtonWidget(
-        this,
+        this.client,
         10 + this.searchBox.getWidth() + 4,
         this.searchBox.y,
         IconButtonWidget.FILTER_ICON,
@@ -159,7 +159,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         this.paintings);
 
     this.prevButton = new IconButtonWidget(
-        this,
+        this.client,
         this.rightPaneX + 8,
         this.height - footerHeight - 4 - BUTTON_HEIGHT,
         IconButtonWidget.LEFT_ICON,
@@ -169,7 +169,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         });
 
     this.nextButton = new IconButtonWidget(
-        this,
+        this.client,
         this.width - 8 - IconButtonWidget.WIDTH,
         this.height - footerHeight - 4 - BUTTON_HEIGHT,
         IconButtonWidget.RIGHT_ICON,

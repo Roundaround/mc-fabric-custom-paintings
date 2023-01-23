@@ -40,6 +40,9 @@ public class ServerNetworking {
     ServerPlayNetworking.registerGlobalReceiver(
         NetworkPackets.REASSIGN_ID_PACKET,
         ServerNetworking::handleReassignId);
+    ServerPlayNetworking.registerGlobalReceiver(
+        NetworkPackets.UPDATE_PAINTING_PACKET,
+        ServerNetworking::handleUpdatePaintingPacket);
   }
 
   public static void sendEditPaintingPacket(
@@ -76,7 +79,7 @@ public class ServerNetworking {
     ServerPlayNetworking.send(player, NetworkPackets.RESPOND_UNKNOWN_PACKET, buf);
   }
 
-  private static void sendResponseOutdatedPacket(
+  private static void sendListOutdatedPaintingsPacket(
       ServerPlayerEntity player,
       HashSet<OutdatedPainting> outdatedPaintings) {
     PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
@@ -86,7 +89,7 @@ public class ServerNetworking {
       outdatedPainting.currentData().writeToPacketByteBuf(buf);
       outdatedPainting.knownData().writeToPacketByteBuf(buf);
     }
-    ServerPlayNetworking.send(player, NetworkPackets.RESPOND_OUTDATED_PACKET, buf);
+    ServerPlayNetworking.send(player, NetworkPackets.LIST_OUTDATED_PAINTINGS_PACKET, buf);
   }
 
   private static void handleSetPaintingPacket(
@@ -155,7 +158,7 @@ public class ServerNetworking {
       ServerPlayNetworkHandler handler,
       PacketByteBuf buf,
       PacketSender responseSender) {
-    sendResponseOutdatedPacket(player, ServerPaintingManager.getOutdatedPaintings(player));
+    sendListOutdatedPaintingsPacket(player, ServerPaintingManager.getOutdatedPaintings(player));
   }
 
   private static void handleReassignId(
@@ -169,5 +172,16 @@ public class ServerNetworking {
     boolean fix = buf.readBoolean();
 
     ServerPaintingManager.reassignIds(player, from, to, fix);
+  }
+
+  private static void handleUpdatePaintingPacket(
+      MinecraftServer server,
+      ServerPlayerEntity player,
+      ServerPlayNetworkHandler handler,
+      PacketByteBuf buf,
+      PacketSender responseSender) {
+    UUID paintingUuid = buf.readUuid();
+    ServerPaintingManager.updatePainting(player, paintingUuid);
+    sendListOutdatedPaintingsPacket(player, ServerPaintingManager.getOutdatedPaintings(player));
   }
 }
