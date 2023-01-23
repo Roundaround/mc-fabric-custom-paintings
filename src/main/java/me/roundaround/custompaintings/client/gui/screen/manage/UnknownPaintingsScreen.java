@@ -1,8 +1,9 @@
 package me.roundaround.custompaintings.client.gui.screen.manage;
 
-import java.util.HashMap;
+import java.util.HashSet;
 
 import me.roundaround.custompaintings.client.gui.widget.UnknownPaintingListWidget;
+import me.roundaround.custompaintings.util.UnknownPainting;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.util.math.MatrixStack;
@@ -26,7 +27,7 @@ public class UnknownPaintingsScreen extends Screen {
     this.parent = parent;
   }
 
-  public void setUnknownPaintings(HashMap<Identifier, Integer> unknownPaintings) {
+  public void setUnknownPaintings(HashSet<UnknownPainting> unknownPaintings) {
     if (this.list != null) {
       this.list.receiveData(unknownPaintings);
     }

@@ -7,7 +7,7 @@ import com.google.common.collect.ImmutableList;
 
 import me.roundaround.custompaintings.client.gui.screen.manage.OutdatedPaintingsScreen;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
-import me.roundaround.custompaintings.server.ServerPaintingManager.OutdatedPainting;
+import me.roundaround.custompaintings.util.OutdatedPainting;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;

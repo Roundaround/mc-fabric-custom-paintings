@@ -4,21 +4,24 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.util.OutdatedPainting;
+import me.roundaround.custompaintings.util.UnknownPainting;
 import net.minecraft.entity.EntityType;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 
 public class ServerPaintingManager {
-  public static HashMap<Identifier, Integer> getUnknownPaintings(ServerPlayerEntity player) {
-    HashMap<Identifier, Integer> unknownPaintings = new HashMap<>();
+  public static HashSet<UnknownPainting> getUnknownPaintings(ServerPlayerEntity player) {
+    HashSet<UnknownPainting> unknownPaintings = new HashSet<>();
+    HashMap<Identifier, Integer> counts = new HashMap<>();
+    HashMap<Identifier, Identifier> autoFixIds = new HashMap<>();
 
     if (!CustomPaintingsMod.knownPaintings.containsKey(player.getUuid())) {
       return unknownPaintings;
@@ -38,15 +41,38 @@ public class ServerPaintingManager {
           .forEach((entity) -> {
             ExpandedPaintingEntity painting = (ExpandedPaintingEntity) entity;
             PaintingData currentData = painting.getCustomData();
+            Identifier currentId = currentData.id();
 
-            if (!known.containsKey(currentData.id())) {
-              if (unknownPaintings.containsKey(currentData.id())) {
-                unknownPaintings.put(currentData.id(), unknownPaintings.get(currentData.id()) + 1);
-              } else {
-                unknownPaintings.put(currentData.id(), 1);
-              }
+            if (known.containsKey(currentId)) {
+              return;
             }
+
+            if (counts.containsKey(currentId)) {
+              counts.put(currentId, counts.get(currentId) + 1);
+            } else {
+              counts.put(currentId, 1);
+            }
+
+            Identifier autoFixIdentifier = known.values().stream()
+                .filter((knownData) -> {
+                  return knownData.id().getPath().equals(currentId.getPath())
+                      && knownData.width() == currentData.width()
+                      && knownData.height() == currentData.height()
+                      && knownData.name().equals(currentData.name())
+                      && knownData.artist().equals(currentData.artist());
+                })
+                .map(PaintingData::id)
+                .findFirst()
+                .orElse(null);
+            autoFixIds.put(currentId, autoFixIdentifier);
           });
+    });
+
+    counts.forEach((id, count) -> {
+      unknownPaintings.add(new UnknownPainting(
+          id,
+          count,
+          autoFixIds.get(id)));
     });
 
     return unknownPaintings;
@@ -178,11 +204,5 @@ public class ServerPaintingManager {
                 paintingData.artist());
           });
     });
-  }
-
-  public static record OutdatedPainting(
-      UUID paintingUuid,
-      PaintingData currentData,
-      PaintingData knownData) {
   }
 }

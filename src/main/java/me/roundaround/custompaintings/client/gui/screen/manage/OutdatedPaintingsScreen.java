@@ -3,7 +3,7 @@ package me.roundaround.custompaintings.client.gui.screen.manage;
 import java.util.HashSet;
 
 import me.roundaround.custompaintings.client.gui.widget.OutdatedPaintingListWidget;
-import me.roundaround.custompaintings.server.ServerPaintingManager.OutdatedPainting;
+import me.roundaround.custompaintings.util.OutdatedPainting;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Text;

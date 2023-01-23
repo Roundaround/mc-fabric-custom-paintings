@@ -1,6 +1,5 @@
 package me.roundaround.custompaintings.network;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.UUID;
 
@@ -9,7 +8,8 @@ import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
-import me.roundaround.custompaintings.server.ServerPaintingManager.OutdatedPainting;
+import me.roundaround.custompaintings.util.OutdatedPainting;
+import me.roundaround.custompaintings.util.UnknownPainting;
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.Entity;
@@ -65,12 +65,13 @@ public class ServerNetworking {
 
   private static void sendResponseUnknownPacket(
       ServerPlayerEntity player,
-      HashMap<Identifier, Integer> unknownPaintings) {
+      HashSet<UnknownPainting> unknownPaintings) {
     PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
     buf.writeInt(unknownPaintings.size());
-    for (Identifier id : unknownPaintings.keySet()) {
-      buf.writeIdentifier(id);
-      buf.writeInt(unknownPaintings.get(id));
+    for (UnknownPainting unknownPainting : unknownPaintings) {
+      buf.writeIdentifier(unknownPainting.id());
+      buf.writeInt(unknownPainting.count());
+      buf.writeIdentifier(unknownPainting.autoFixId());
     }
     ServerPlayNetworking.send(player, NetworkPackets.RESPOND_UNKNOWN_PACKET, buf);
   }

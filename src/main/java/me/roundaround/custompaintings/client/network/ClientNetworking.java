@@ -1,6 +1,5 @@
 package me.roundaround.custompaintings.client.network;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
@@ -15,7 +14,8 @@ import me.roundaround.custompaintings.client.gui.screen.manage.OutdatedPaintings
 import me.roundaround.custompaintings.client.gui.screen.manage.UnknownPaintingsScreen;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.network.NetworkPackets;
-import me.roundaround.custompaintings.server.ServerPaintingManager.OutdatedPainting;
+import me.roundaround.custompaintings.util.OutdatedPainting;
+import me.roundaround.custompaintings.util.UnknownPainting;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
 import net.minecraft.client.MinecraftClient;
@@ -142,11 +142,12 @@ public class ClientNetworking {
       PacketByteBuf buffer,
       PacketSender responseSender) {
     int size = buffer.readInt();
-    HashMap<Identifier, Integer> unknownPaintings = new HashMap<>(size);
+    HashSet<UnknownPainting> unknownPaintings = new HashSet<>(size);
     for (int i = 0; i < size; i++) {
       Identifier id = buffer.readIdentifier();
       int count = buffer.readInt();
-      unknownPaintings.put(id, count);
+      Identifier autoFixIdentifier = buffer.readIdentifier();
+      unknownPaintings.add(new UnknownPainting(id, count, autoFixIdentifier));
     }
 
     client.execute(() -> {

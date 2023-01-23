@@ -1,12 +1,13 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
 import me.roundaround.custompaintings.client.gui.screen.manage.UnknownPaintingsScreen;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.util.UnknownPainting;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
@@ -47,10 +48,10 @@ public class UnknownPaintingListWidget
     addEntry(this.loadingEntry);
   }
 
-  public void receiveData(HashMap<Identifier, Integer> data) {
+  public void receiveData(HashSet<UnknownPainting> data) {
     clearEntries();
-    for (Identifier id : data.keySet()) {
-      addEntry(new UnknownPaintingEntry(this.client, id, data.get(id)));
+    for (UnknownPainting unknownPainting : data) {
+      addEntry(new UnknownPaintingEntry(this.client, unknownPainting));
     }
 
     // Get list of known painting ids
@@ -130,22 +131,23 @@ public class UnknownPaintingListWidget
   @Environment(value = EnvType.CLIENT)
   public class UnknownPaintingEntry extends Entry {
     private final MinecraftClient client;
-    private final Identifier id;
-    private final int count;
+    private final UnknownPainting unknownPainting;
 
     private long time;
 
     public UnknownPaintingEntry(
         MinecraftClient client,
-        Identifier id,
-        int count) {
+        UnknownPainting unknownPainting) {
       this.client = client;
-      this.id = id;
-      this.count = count;
+      this.unknownPainting = unknownPainting;
     }
 
     public Identifier getId() {
-      return this.id;
+      return this.unknownPainting.id();
+    }
+
+    public boolean canBeAutoFixed() {
+      return this.unknownPainting.autoFixId() != null;
     }
 
     @Override
@@ -163,7 +165,8 @@ public class UnknownPaintingListWidget
       drawCenteredTextWithShadow(
           matrixStack,
           this.client.textRenderer,
-          Text.literal(this.id.toString() + " (" + this.count + ")").asOrderedText(),
+          Text.literal(this.unknownPainting.id().toString() + " (" + this.unknownPainting.count() + ")")
+              .asOrderedText(),
           this.client.currentScreen.width / 2,
           y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f),
           0xFFFFFF);
@@ -171,7 +174,7 @@ public class UnknownPaintingListWidget
 
     @Override
     public Text getNarration() {
-      return Text.literal(this.id.toString());
+      return Text.literal(this.unknownPainting.id().toString());
     }
 
     @Override
