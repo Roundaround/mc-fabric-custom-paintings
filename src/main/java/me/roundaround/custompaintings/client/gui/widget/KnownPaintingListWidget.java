@@ -3,7 +3,6 @@ package me.roundaround.custompaintings.client.gui.widget;
 import java.util.Collection;
 
 import me.roundaround.custompaintings.client.gui.screen.manage.ReassignScreen;
-import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -11,10 +10,12 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Text;
+import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
 
 @Environment(value = EnvType.CLIENT)
-public class KnownPaintingListWidget extends AlwaysSelectedEntryListWidget<KnownPaintingListWidget.Entry> {
+public class KnownPaintingListWidget
+    extends AlwaysSelectedEntryListWidget<KnownPaintingListWidget.Entry> {
   private static final int ITEM_HEIGHT = 25;
 
   private final ReassignScreen parent;
@@ -37,15 +38,10 @@ public class KnownPaintingListWidget extends AlwaysSelectedEntryListWidget<Known
     }
   }
 
-  public void confirm() {
-    Entry selected = getSelectedOrNull();
-    if (selected == null) {
-      return;
-    }
-
-    ClientNetworking.sendReassignIdPacket(
-        KnownPaintingListWidget.this.parent.getCurrentId(),
-        selected.getPainting().id());
+  @Override
+  public void setSelected(Entry entry) {
+    super.setSelected(entry);
+    this.parent.setSelectedId(entry.getPainting().id());
   }
 
   @Environment(value = EnvType.CLIENT)
@@ -53,6 +49,8 @@ public class KnownPaintingListWidget extends AlwaysSelectedEntryListWidget<Known
       extends AlwaysSelectedEntryListWidget.Entry<Entry> {
     private final MinecraftClient client;
     private final PaintingData painting;
+
+    private long time;
 
     public Entry(MinecraftClient client, PaintingData painting) {
       this.client = client;
@@ -86,7 +84,20 @@ public class KnownPaintingListWidget extends AlwaysSelectedEntryListWidget<Known
 
     @Override
     public Text getNarration() {
-      return Text.empty();
+      return Text.literal(this.painting.id().toString());
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+      KnownPaintingListWidget.this.setSelected(this);
+
+      if (Util.getMeasuringTimeMs() - this.time < 250L) {
+        KnownPaintingListWidget.this.parent.confirmSelection();
+        return true;
+      }
+
+      this.time = Util.getMeasuringTimeMs();
+      return false;
     }
   }
 }

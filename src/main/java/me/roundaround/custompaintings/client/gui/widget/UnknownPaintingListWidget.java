@@ -1,24 +1,17 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.ImmutableList;
-
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
-import me.roundaround.custompaintings.client.gui.screen.manage.ReassignScreen;
 import me.roundaround.custompaintings.client.gui.screen.manage.UnknownPaintingsScreen;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.Element;
-import net.minecraft.client.gui.Selectable;
 import net.minecraft.client.gui.screen.LoadingDisplay;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.ElementListWidget;
+import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -26,7 +19,8 @@ import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
 
 @Environment(value = EnvType.CLIENT)
-public class UnknownPaintingListWidget extends ElementListWidget<UnknownPaintingListWidget.Entry> {
+public class UnknownPaintingListWidget
+    extends AlwaysSelectedEntryListWidget<UnknownPaintingListWidget.Entry> {
   private static final int ITEM_HEIGHT = 25;
 
   private final UnknownPaintingsScreen parent;
@@ -73,8 +67,17 @@ public class UnknownPaintingListWidget extends ElementListWidget<UnknownPainting
     this.parent.narrateScreenIfNarrationEnabled(true);
   }
 
+  @Override
+  public void setSelected(Entry entry) {
+    super.setSelected(entry);
+
+    if (entry instanceof UnknownPaintingEntry) {
+      this.parent.setSelectedId(((UnknownPaintingEntry) entry).getId());
+    }
+  }
+
   @Environment(value = EnvType.CLIENT)
-  public abstract class Entry extends ElementListWidget.Entry<Entry> {
+  public abstract class Entry extends AlwaysSelectedEntryListWidget.Entry<Entry> {
   }
 
   @Environment(value = EnvType.CLIENT)
@@ -85,16 +88,6 @@ public class UnknownPaintingListWidget extends ElementListWidget<UnknownPainting
 
     public LoadingEntry(MinecraftClient client) {
       this.client = client;
-    }
-
-    @Override
-    public List<? extends Element> children() {
-      return ImmutableList.of();
-    }
-
-    @Override
-    public List<? extends Selectable> selectableChildren() {
-      return ImmutableList.of();
     }
 
     @Override
@@ -127,6 +120,11 @@ public class UnknownPaintingListWidget extends ElementListWidget<UnknownPainting
           yPos + this.client.textRenderer.fontHeight,
           0x808080);
     }
+
+    @Override
+    public Text getNarration() {
+      return LOADING_LIST_TEXT;
+    }
   }
 
   @Environment(value = EnvType.CLIENT)
@@ -134,7 +132,8 @@ public class UnknownPaintingListWidget extends ElementListWidget<UnknownPainting
     private final MinecraftClient client;
     private final Identifier id;
     private final int count;
-    private final ButtonWidget button;
+
+    private long time;
 
     public UnknownPaintingEntry(
         MinecraftClient client,
@@ -143,25 +142,10 @@ public class UnknownPaintingListWidget extends ElementListWidget<UnknownPainting
       this.client = client;
       this.id = id;
       this.count = count;
-      this.button = new ButtonWidget(
-          0,
-          0,
-          UnknownPaintingListWidget.this.getRowWidth(),
-          20,
-          Text.literal(this.id.toString() + " (" + this.count + ")"),
-          (button) -> {
-            this.client.setScreen(new ReassignScreen(UnknownPaintingListWidget.this.parent, this.id));
-          });
     }
 
-    @Override
-    public List<? extends Element> children() {
-      return ImmutableList.of(this.button);
-    }
-
-    @Override
-    public List<? extends Selectable> selectableChildren() {
-      return ImmutableList.of(this.button);
+    public Identifier getId() {
+      return this.id;
     }
 
     @Override
@@ -176,8 +160,31 @@ public class UnknownPaintingListWidget extends ElementListWidget<UnknownPainting
         int mouseY,
         boolean hovered,
         float partialTicks) {
-      this.button.y = y + (entryHeight - 20) / 2;
-      this.button.render(matrixStack, mouseX, mouseY, partialTicks);
+      drawCenteredTextWithShadow(
+          matrixStack,
+          this.client.textRenderer,
+          Text.literal(this.id.toString() + " (" + this.count + ")").asOrderedText(),
+          this.client.currentScreen.width / 2,
+          y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f),
+          0xFFFFFF);
+    }
+
+    @Override
+    public Text getNarration() {
+      return Text.literal(this.id.toString());
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+      UnknownPaintingListWidget.this.setSelected(this);
+
+      if (Util.getMeasuringTimeMs() - this.time < 250L) {
+        UnknownPaintingListWidget.this.parent.confirmSelection();
+        return true;
+      }
+
+      this.time = Util.getMeasuringTimeMs();
+      return false;
     }
   }
 }
