@@ -257,7 +257,8 @@ public class ServerPaintingManager {
           .stream()
           .filter((entity) -> {
             return !(entity instanceof ExpandedPaintingEntity)
-                || ((ExpandedPaintingEntity) entity).getCustomData().isEmpty();
+                || ((ExpandedPaintingEntity) entity).getCustomData().isEmpty()
+                || ((ExpandedPaintingEntity) entity).getCustomData().isVanilla();
           })
           .forEach((entity) -> {
             paintings.add((PaintingEntity) entity);
@@ -268,37 +269,13 @@ public class ServerPaintingManager {
       return;
     }
 
-    HashMap<Identifier, PaintingData> placeable = new HashMap<>();
-    HashMap<Identifier, PaintingData> unplaceable = new HashMap<>();
-
-    Registry.PAINTING_VARIANT.stream()
-        .forEach((vanillaVariant) -> {
-          Identifier id = Registry.PAINTING_VARIANT.getId(vanillaVariant);
-          RegistryKey<PaintingVariant> key = RegistryKey.of(Registry.PAINTING_VARIANT_KEY, id);
-          Optional<RegistryEntry<PaintingVariant>> maybeEntry = Registry.PAINTING_VARIANT.getEntry(key);
-
-          if (!maybeEntry.isPresent()) {
-            return;
-          }
-
-          RegistryEntry<PaintingVariant> entry = maybeEntry.get();
-          boolean isPlaceable = entry.isIn(PaintingVariantTags.PLACEABLE);
-          HashMap<Identifier, PaintingData> map = isPlaceable ? placeable : unplaceable;
-          PaintingData paintingData = new PaintingData(vanillaVariant, map.size());
-          map.put(paintingData.id(), paintingData);
-        });
-
     HashMap<Identifier, PaintingData> map = getVanillaPaintingData();
     paintings.forEach((painting) -> {
       Identifier id = Registry.PAINTING_VARIANT.getId(painting.getVariant().value());
-      PaintingData paintingData = map.get(id);
-      ((ExpandedPaintingEntity) painting).setCustomData(
-          paintingData.id(),
-          paintingData.index(),
-          paintingData.width(),
-          paintingData.height(),
-          paintingData.name(),
-          paintingData.artist());
+      if (!map.containsKey(id)) {
+        return;
+      }
+      ((ExpandedPaintingEntity) painting).setCustomData(map.get(id));
     });
   }
 
