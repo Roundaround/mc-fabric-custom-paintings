@@ -26,13 +26,13 @@
   "custompaintings.key.open_manage_screen": "Manage Custom Paintings",
   "custompaintings.manage.title": "Manage custom paintings",
   "custompaintings.manage.unknown": "Paintings with an unknown ID",
-  "custompaintings.manage.outdated": "Paintings with outdated data",
+  "custompaintings.manage.mismatched": "Paintings with mismatched data",
   "custompaintings.unknown.title": "Select an unknown ID to reassign",
   "custompaintings.unknown.loading": "Loading...",
   "custompaintings.unknown.confirm": "Confirm",
   "custompaintings.reassign.title": "Choose a new ID for %s",
   "custompaintings.reassign.confirm": "Confirm",
-  "custompaintings.outdated.title": "Paintings with outdated data",
-  "custompaintings.outdated.loading": "Loading...",
-  "custompaintings.outdated.fix": "Update the painting with the data from the currently enabled resource pack"
+  "custompaintings.mismatched.title": "Paintings with mismatched data",
+  "custompaintings.mismatched.loading": "Loading...",
+  "custompaintings.mismatched.fix": "Update the painting with the data from the currently enabled resource pack"
 }

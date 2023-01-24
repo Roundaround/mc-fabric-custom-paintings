@@ -260,8 +260,7 @@ public class ServerPaintingManager {
           .stream()
           .filter((entity) -> {
             return !(entity instanceof ExpandedPaintingEntity)
-                || ((ExpandedPaintingEntity) entity).getCustomData().isEmpty()
-                || ((ExpandedPaintingEntity) entity).getCustomData().isVanilla();
+                || ((ExpandedPaintingEntity) entity).getCustomData().isEmpty();
           })
           .forEach((entity) -> {
             paintings.add((PaintingEntity) entity);

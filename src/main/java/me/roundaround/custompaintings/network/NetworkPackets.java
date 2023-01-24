@@ -19,15 +19,15 @@ public class NetworkPackets {
   public static final Identifier REQUEST_UNKNOWN_PACKET = new Identifier(
       CustomPaintingsMod.MOD_ID,
       "request_unknown_packet");
-  public static final Identifier RESPOND_UNKNOWN_PACKET = new Identifier(
+  public static final Identifier LIST_UNKNOWN_PACKET = new Identifier(
       CustomPaintingsMod.MOD_ID,
-      "respond_unknown_packet");
-  public static final Identifier REQUEST_OUTDATED_PACKET = new Identifier(
+      "list_unknown_packet");
+  public static final Identifier REQUEST_MISMATCHED_PACKET = new Identifier(
       CustomPaintingsMod.MOD_ID,
-      "request_outdated_packet");
-  public static final Identifier LIST_OUTDATED_PAINTINGS_PACKET = new Identifier(
+      "request_mismatched_packet");
+  public static final Identifier LIST_MISMATCHED_PACKET = new Identifier(
       CustomPaintingsMod.MOD_ID,
-      "list_outdated_paintings_packet");
+      "list_mismatched_packet");
   public static final Identifier REASSIGN_ID_PACKET = new Identifier(
       CustomPaintingsMod.MOD_ID,
       "reassign_id_packet");

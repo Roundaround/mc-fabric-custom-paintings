@@ -10,7 +10,7 @@ import me.roundaround.custompaintings.client.gui.screen.edit.GroupSelectScreen;
 import me.roundaround.custompaintings.client.gui.screen.edit.PaintingEditScreen;
 import me.roundaround.custompaintings.client.gui.screen.edit.PaintingSelectScreen;
 import me.roundaround.custompaintings.client.gui.screen.manage.ManagePaintingsScreen;
-import me.roundaround.custompaintings.client.gui.screen.manage.OutdatedPaintingsScreen;
+import me.roundaround.custompaintings.client.gui.screen.manage.MismatchedPaintingsScreen;
 import me.roundaround.custompaintings.client.gui.screen.manage.UnknownPaintingsScreen;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.network.NetworkPackets;
@@ -34,11 +34,11 @@ public class ClientNetworking {
         NetworkPackets.OPEN_MANAGE_SCREEN_PACKET,
         ClientNetworking::handleOpenManageScreenPacket);
     ClientPlayNetworking.registerGlobalReceiver(
-        NetworkPackets.LIST_OUTDATED_PAINTINGS_PACKET,
-        ClientNetworking::handleResponseOutdatedPacket);
+        NetworkPackets.LIST_MISMATCHED_PACKET,
+        ClientNetworking::handleListMismatchedPacket);
     ClientPlayNetworking.registerGlobalReceiver(
-        NetworkPackets.RESPOND_UNKNOWN_PACKET,
-        ClientNetworking::handleResponseUnknownPacket);
+        NetworkPackets.LIST_UNKNOWN_PACKET,
+        ClientNetworking::handleListUnknownPacket);
   }
 
   public static void sendSetPaintingPacket(UUID paintingUuid, PaintingData customPaintingInfo) {
@@ -66,7 +66,7 @@ public class ClientNetworking {
 
   public static void sendRequestMismatchedPacket() {
     ClientPlayNetworking.send(
-        NetworkPackets.REQUEST_OUTDATED_PACKET, new PacketByteBuf(Unpooled.buffer()));
+        NetworkPackets.REQUEST_MISMATCHED_PACKET, new PacketByteBuf(Unpooled.buffer()));
   }
 
   public static void sendReassignIdPacket(Identifier oldId, Identifier newId) {
@@ -119,30 +119,30 @@ public class ClientNetworking {
     });
   }
 
-  private static void handleResponseOutdatedPacket(
+  private static void handleListMismatchedPacket(
       MinecraftClient client,
       ClientPlayNetworkHandler handler,
       PacketByteBuf buf,
       PacketSender responseSender) {
     int size = buf.readInt();
-    HashSet<MismatchedPainting> outdatedPaintings = new HashSet<>(size);
+    HashSet<MismatchedPainting> mismatched = new HashSet<>(size);
     for (int i = 0; i < size; i++) {
       UUID uuid = buf.readUuid();
       PaintingData currentData = PaintingData.fromPacketByteBuf(buf);
       PaintingData knownData = PaintingData.fromPacketByteBuf(buf);
-      outdatedPaintings.add(new MismatchedPainting(uuid, currentData, knownData));
+      mismatched.add(new MismatchedPainting(uuid, currentData, knownData));
     }
 
     client.execute(() -> {
-      if (!(client.currentScreen instanceof OutdatedPaintingsScreen)) {
+      if (!(client.currentScreen instanceof MismatchedPaintingsScreen)) {
         return;
       }
-      OutdatedPaintingsScreen screen = (OutdatedPaintingsScreen) client.currentScreen;
-      screen.setOutdatedPaintings(outdatedPaintings);
+      MismatchedPaintingsScreen screen = (MismatchedPaintingsScreen) client.currentScreen;
+      screen.setMismatchedPaintings(mismatched);
     });
   }
 
-  private static void handleResponseUnknownPacket(
+  private static void handleListUnknownPacket(
       MinecraftClient client,
       ClientPlayNetworkHandler handler,
       PacketByteBuf buf,

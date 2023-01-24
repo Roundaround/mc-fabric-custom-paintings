@@ -37,9 +37,9 @@ public class ManagePaintingsScreen extends Screen {
         yPos,
         BUTTON_WIDTH,
         BUTTON_HEIGHT,
-        Text.translatable("custompaintings.manage.outdated"),
+        Text.translatable("custompaintings.manage.mismatched"),
         (button) -> {
-          this.client.setScreen(new OutdatedPaintingsScreen(this));
+          this.client.setScreen(new MismatchedPaintingsScreen(this));
         }));
 
     addDrawableChild(new ButtonWidget(

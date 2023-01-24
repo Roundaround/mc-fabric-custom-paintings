@@ -5,7 +5,7 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 
-import me.roundaround.custompaintings.client.gui.screen.manage.OutdatedPaintingsScreen;
+import me.roundaround.custompaintings.client.gui.screen.manage.MismatchedPaintingsScreen;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.util.MismatchedPainting;
 import net.fabricmc.api.EnvType;
@@ -24,11 +24,11 @@ import net.minecraft.util.math.MathHelper;
 public class MismatchedPaintingListWidget extends ElementListWidget<MismatchedPaintingListWidget.Entry> {
   private static final int ITEM_HEIGHT = 25;
 
-  private final OutdatedPaintingsScreen parent;
+  private final MismatchedPaintingsScreen parent;
   private final LoadingEntry loadingEntry;
 
   public MismatchedPaintingListWidget(
-      OutdatedPaintingsScreen parent,
+      MismatchedPaintingsScreen parent,
       MinecraftClient minecraftClient,
       int width,
       int height,
@@ -50,8 +50,8 @@ public class MismatchedPaintingListWidget extends ElementListWidget<MismatchedPa
 
   public void receiveData(HashSet<MismatchedPainting> data) {
     clearEntries();
-    for (MismatchedPainting outdatedPainting : data) {
-      this.addEntry(new OutdatedPaintingEntry(this.client, outdatedPainting));
+    for (MismatchedPainting mismatchedPainting : data) {
+      this.addEntry(new MismatchedPaintingEntry(this.client, mismatchedPainting));
     }
     narrateScreenIfNarrationEnabled();
   }
@@ -66,7 +66,7 @@ public class MismatchedPaintingListWidget extends ElementListWidget<MismatchedPa
 
   @Environment(value = EnvType.CLIENT)
   public class LoadingEntry extends Entry {
-    private static final Text LOADING_LIST_TEXT = Text.translatable("custompaintings.outdated.loading");
+    private static final Text LOADING_LIST_TEXT = Text.translatable("custompaintings.mismatched.loading");
 
     private final MinecraftClient client;
 
@@ -117,30 +117,30 @@ public class MismatchedPaintingListWidget extends ElementListWidget<MismatchedPa
   }
 
   @Environment(value = EnvType.CLIENT)
-  public class OutdatedPaintingEntry extends Entry {
+  public class MismatchedPaintingEntry extends Entry {
     private final MinecraftClient client;
-    private final MismatchedPainting outdatedPainting;
+    private final MismatchedPainting mismatchedPainting;
     private final IconButtonWidget fixButton;
 
-    public OutdatedPaintingEntry(
+    public MismatchedPaintingEntry(
         MinecraftClient client,
-        MismatchedPainting outdatedPainting) {
+        MismatchedPainting mismatchedPainting) {
       this.client = client;
-      this.outdatedPainting = outdatedPainting;
+      this.mismatchedPainting = mismatchedPainting;
 
       this.fixButton = new IconButtonWidget(
           this.client,
           MismatchedPaintingListWidget.this.getRowRight() - IconButtonWidget.WIDTH - 4,
           0,
           IconButtonWidget.RESET_ICON, // TODO: Swap to new icon when available
-          Text.translatable("custompaintings.outdated.fix"),
+          Text.translatable("custompaintings.mismatched.fix"),
           (button) -> {
-            ClientNetworking.sendUpdatePaintingPacket(this.outdatedPainting.uuid());
+            ClientNetworking.sendUpdatePaintingPacket(this.mismatchedPainting.uuid());
           });
     }
 
-    public MismatchedPainting getOutdatedPainting() {
-      return outdatedPainting;
+    public MismatchedPainting getMismatchedPainting() {
+      return mismatchedPainting;
     }
 
     @Override
@@ -168,7 +168,7 @@ public class MismatchedPaintingListWidget extends ElementListWidget<MismatchedPa
       drawTextWithShadow(
           matrixStack,
           this.client.textRenderer,
-          Text.literal(this.outdatedPainting.uuid().toString()),
+          Text.literal(this.mismatchedPainting.uuid().toString()),
           x + 4,
           y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f),
           0xFFFFFF);

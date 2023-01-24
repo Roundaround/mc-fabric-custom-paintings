@@ -10,7 +10,7 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 
-public class OutdatedPaintingsScreen extends Screen {
+public class MismatchedPaintingsScreen extends Screen {
   private static final int BUTTON_WIDTH = 204;
   private static final int BUTTON_HEIGHT = 20;
   private static final int PADDING = 8;
@@ -19,14 +19,14 @@ public class OutdatedPaintingsScreen extends Screen {
 
   private MismatchedPaintingListWidget list;
 
-  public OutdatedPaintingsScreen(ManagePaintingsScreen parent) {
-    super(Text.translatable("custompaintings.outdated.title"));
+  public MismatchedPaintingsScreen(ManagePaintingsScreen parent) {
+    super(Text.translatable("custompaintings.mismatched.title"));
     this.parent = parent;
   }
 
-  public void setOutdatedPaintings(HashSet<MismatchedPainting> outdatedPaintings) {
+  public void setMismatchedPaintings(HashSet<MismatchedPainting> mismatchedPaintings) {
     if (this.list != null) {
-      this.list.receiveData(outdatedPaintings);
+      this.list.receiveData(mismatchedPaintings);
     }
   }
 

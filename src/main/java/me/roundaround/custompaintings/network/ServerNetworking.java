@@ -30,16 +30,16 @@ public class ServerNetworking {
         ServerNetworking::handleSetPaintingPacket);
     ServerPlayNetworking.registerGlobalReceiver(
         NetworkPackets.DECLARE_KNOWN_PAINTINGS_PACKET,
-        ServerNetworking::handleDeclareKnownPaintings);
+        ServerNetworking::handleDeclareKnownPaintingsPacket);
     ServerPlayNetworking.registerGlobalReceiver(
         NetworkPackets.REQUEST_UNKNOWN_PACKET,
-        ServerNetworking::handleRequestUnknown);
+        ServerNetworking::handleRequestUnknownPacket);
     ServerPlayNetworking.registerGlobalReceiver(
-        NetworkPackets.REQUEST_OUTDATED_PACKET,
-        ServerNetworking::handleRequestOutdated);
+        NetworkPackets.REQUEST_MISMATCHED_PACKET,
+        ServerNetworking::handleRequestMismatchedPacket);
     ServerPlayNetworking.registerGlobalReceiver(
         NetworkPackets.REASSIGN_ID_PACKET,
-        ServerNetworking::handleReassignId);
+        ServerNetworking::handleReassignIdPacket);
     ServerPlayNetworking.registerGlobalReceiver(
         NetworkPackets.UPDATE_PAINTING_PACKET,
         ServerNetworking::handleUpdatePaintingPacket);
@@ -81,10 +81,10 @@ public class ServerNetworking {
         buf.writeIdentifier(unknownPainting.autoFixId());
       }
     }
-    ServerPlayNetworking.send(player, NetworkPackets.RESPOND_UNKNOWN_PACKET, buf);
+    ServerPlayNetworking.send(player, NetworkPackets.LIST_UNKNOWN_PACKET, buf);
   }
 
-  private static void sendListOutdatedPaintingsPacket(
+  private static void sendListMismatchedPaintingsPacket(
       ServerPlayerEntity player,
       HashSet<MismatchedPainting> mismatched) {
     PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
@@ -94,7 +94,7 @@ public class ServerNetworking {
       entry.currentData().writeToPacketByteBuf(buf);
       entry.knownData().writeToPacketByteBuf(buf);
     }
-    ServerPlayNetworking.send(player, NetworkPackets.LIST_OUTDATED_PAINTINGS_PACKET, buf);
+    ServerPlayNetworking.send(player, NetworkPackets.LIST_MISMATCHED_PACKET, buf);
   }
 
   private static void handleSetPaintingPacket(
@@ -135,7 +135,7 @@ public class ServerNetworking {
     });
   }
 
-  private static void handleDeclareKnownPaintings(
+  private static void handleDeclareKnownPaintingsPacket(
       MinecraftServer server,
       ServerPlayerEntity player,
       ServerPlayNetworkHandler handler,
@@ -149,7 +149,7 @@ public class ServerNetworking {
     }
   }
 
-  private static void handleRequestUnknown(
+  private static void handleRequestUnknownPacket(
       MinecraftServer server,
       ServerPlayerEntity player,
       ServerPlayNetworkHandler handler,
@@ -160,18 +160,18 @@ public class ServerNetworking {
     });
   }
 
-  private static void handleRequestOutdated(
+  private static void handleRequestMismatchedPacket(
       MinecraftServer server,
       ServerPlayerEntity player,
       ServerPlayNetworkHandler handler,
       PacketByteBuf buf,
       PacketSender responseSender) {
     server.execute(() -> {
-      sendListOutdatedPaintingsPacket(player, ServerPaintingManager.getMismatchedPaintings(player));
+      sendListMismatchedPaintingsPacket(player, ServerPaintingManager.getMismatchedPaintings(player));
     });
   }
 
-  private static void handleReassignId(
+  private static void handleReassignIdPacket(
       MinecraftServer server,
       ServerPlayerEntity player,
       ServerPlayNetworkHandler handler,
@@ -196,7 +196,7 @@ public class ServerNetworking {
 
     server.execute(() -> {
       ServerPaintingManager.updatePainting(player, paintingUuid);
-      sendListOutdatedPaintingsPacket(player, ServerPaintingManager.getMismatchedPaintings(player));
+      sendListMismatchedPaintingsPacket(player, ServerPaintingManager.getMismatchedPaintings(player));
     });
   }
 }

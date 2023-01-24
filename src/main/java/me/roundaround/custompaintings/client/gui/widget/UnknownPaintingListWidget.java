@@ -83,7 +83,7 @@ public class UnknownPaintingListWidget
 
   @Environment(value = EnvType.CLIENT)
   public class LoadingEntry extends Entry {
-    private static final Text LOADING_LIST_TEXT = Text.translatable("custompaintings.outdated.loading");
+    private static final Text LOADING_LIST_TEXT = Text.translatable("custompaintings.unknown.loading");
 
     private final MinecraftClient client;
 
