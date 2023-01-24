@@ -132,7 +132,7 @@ public class MismatchedPaintingListWidget extends ElementListWidget<MismatchedPa
           this.client,
           MismatchedPaintingListWidget.this.getRowRight() - IconButtonWidget.WIDTH - 4,
           0,
-          IconButtonWidget.RESET_ICON, // TODO: Swap to new icon when available
+          IconButtonWidget.WRENCH_ICON,
           Text.translatable("custompaintings.mismatched.fix"),
           (button) -> {
             ClientNetworking.sendUpdatePaintingPacket(this.mismatchedPainting.uuid());
