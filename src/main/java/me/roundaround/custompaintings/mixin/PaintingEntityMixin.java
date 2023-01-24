@@ -40,7 +40,7 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
   public void setCustomData(PaintingData paintingData) {
     dataTracker.set(CUSTOM_DATA, paintingData);
 
-    if (paintingData.hasName() && paintingData.hasArtist()) {
+    if (paintingData.hasLabel()) {
       setCustomNameVisible(true);
       setCustomName(getPaintingName());
     } else {
