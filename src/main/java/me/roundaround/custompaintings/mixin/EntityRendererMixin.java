@@ -35,9 +35,11 @@ public abstract class EntityRendererMixin<T extends Entity> {
       VertexConsumerProvider vertexConsumers,
       int light,
       CallbackInfo info) {
-    if (!(entity instanceof ExpandedPaintingEntity)) {
+    if (!(entity instanceof PaintingEntity) && !(entity instanceof ExpandedPaintingEntity)) {
       return;
     }
+
+    info.cancel();
 
     PaintingData paintingData = ((ExpandedPaintingEntity) entity).getCustomData();
 
@@ -53,8 +55,6 @@ public abstract class EntityRendererMixin<T extends Entity> {
     if (MINECRAFT.targetedEntity != painting) {
       return;
     }
-
-    info.cancel();
 
     TextRenderer textRenderer = MINECRAFT.textRenderer;
 
