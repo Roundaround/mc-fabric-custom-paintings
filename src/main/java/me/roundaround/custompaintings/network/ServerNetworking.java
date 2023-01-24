@@ -86,13 +86,13 @@ public class ServerNetworking {
 
   private static void sendListOutdatedPaintingsPacket(
       ServerPlayerEntity player,
-      HashSet<MismatchedPainting> outdatedPaintings) {
+      HashSet<MismatchedPainting> mismatched) {
     PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-    buf.writeInt(outdatedPaintings.size());
-    for (MismatchedPainting outdatedPainting : outdatedPaintings) {
-      buf.writeUuid(outdatedPainting.paintingUuid());
-      outdatedPainting.currentData().writeToPacketByteBuf(buf);
-      outdatedPainting.knownData().writeToPacketByteBuf(buf);
+    buf.writeInt(mismatched.size());
+    for (MismatchedPainting entry : mismatched) {
+      buf.writeUuid(entry.uuid());
+      entry.currentData().writeToPacketByteBuf(buf);
+      entry.knownData().writeToPacketByteBuf(buf);
     }
     ServerPlayNetworking.send(player, NetworkPackets.LIST_OUTDATED_PAINTINGS_PACKET, buf);
   }

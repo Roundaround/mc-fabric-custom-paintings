@@ -158,7 +158,8 @@ public record PaintingData(
       case SIZE:
         return width() != knownData.width() || height() != knownData.height();
       case INFO:
-        return !name().equals(knownData.name()) || !artist().equals(knownData.artist());
+        return !name().equals(knownData.name()) || !artist().equals(knownData.artist())
+            || isVanilla() != knownData.isVanilla();
       case EVERYTHING:
         return width() != knownData.width() || height() != knownData.height()
             || !name().equals(knownData.name()) || !artist().equals(knownData.artist());

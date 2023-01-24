@@ -2,7 +2,7 @@ package me.roundaround.custompaintings.client.gui.screen.manage;
 
 import java.util.HashSet;
 
-import me.roundaround.custompaintings.client.gui.widget.OutdatedPaintingListWidget;
+import me.roundaround.custompaintings.client.gui.widget.MismatchedPaintingListWidget;
 import me.roundaround.custompaintings.util.MismatchedPainting;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -17,7 +17,7 @@ public class OutdatedPaintingsScreen extends Screen {
 
   private final ManagePaintingsScreen parent;
 
-  private OutdatedPaintingListWidget list;
+  private MismatchedPaintingListWidget list;
 
   public OutdatedPaintingsScreen(ManagePaintingsScreen parent) {
     super(Text.translatable("custompaintings.outdated.title"));
@@ -32,7 +32,7 @@ public class OutdatedPaintingsScreen extends Screen {
 
   @Override
   public void init() {
-    this.list = new OutdatedPaintingListWidget(
+    this.list = new MismatchedPaintingListWidget(
         this,
         this.client,
         this.width,

@@ -1,13 +1,9 @@
 package me.roundaround.custompaintings.server.command;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -20,7 +16,6 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData.MismatchedCategory;
 import me.roundaround.custompaintings.network.ServerNetworking;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
-import me.roundaround.custompaintings.util.UnknownPainting;
 import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -49,33 +44,6 @@ public class CustomPaintingsCommand {
         .executes(context -> {
           return executeIdentify(context.getSource());
         });
-
-    LiteralArgumentBuilder<ServerCommandSource> listSub = CommandManager
-        .literal("list")
-        .then(CommandManager.literal("known")
-            .executes(context -> {
-              return executeListKnown(context.getSource());
-            }))
-        .then(CommandManager.literal("unknown")
-            .executes(context -> {
-              return executeListUnknown(context.getSource());
-            }))
-        .then(CommandManager.literal("mismatched")
-            .executes(context -> {
-              return executeListMismatched(context.getSource(), MismatchedCategory.EVERYTHING);
-            })
-            .then(CommandManager.literal("size")
-                .executes(context -> {
-                  return executeListMismatched(context.getSource(), MismatchedCategory.SIZE);
-                }))
-            .then(CommandManager.literal("info")
-                .executes(context -> {
-                  return executeListMismatched(context.getSource(), MismatchedCategory.INFO);
-                }))
-            .then(CommandManager.literal("everything")
-                .executes(context -> {
-                  return executeListMismatched(context.getSource(), MismatchedCategory.EVERYTHING);
-                })));
 
     LiteralArgumentBuilder<ServerCommandSource> removeSub = CommandManager
         .literal("remove")
@@ -150,7 +118,6 @@ public class CustomPaintingsCommand {
 
     LiteralArgumentBuilder<ServerCommandSource> finalCommand = baseCommand
         .then(identifySub)
-        .then(listSub)
         .then(removeSub)
         .then(fixSub)
         .then(manageSub)
@@ -248,77 +215,6 @@ public class CustomPaintingsCommand {
     for (Text line : lines) {
       source.sendFeedback(line, true);
     }
-  }
-
-  private static int executeListKnown(ServerCommandSource source) {
-    ServerPlayerEntity player = source.getPlayer();
-    UUID uuid = player.getUuid();
-
-    if (!CustomPaintingsMod.knownPaintings.containsKey(uuid)) {
-      source.sendFeedback(Text.translatable("custompaintings.command.list.known.none"), true);
-      return 0;
-    }
-
-    List<String> ids = ServerPaintingManager.getKnownPaintings(player)
-        .keySet()
-        .stream()
-        .map(Identifier::toString)
-        .collect(Collectors.toList());
-
-    if (ids.size() == 0) {
-      source.sendFeedback(Text.translatable("custompaintings.command.list.known.none"), true);
-    } else {
-      for (String id : ids) {
-        source.sendFeedback(Text.literal(id), true);
-      }
-    }
-
-    return ids.size();
-  }
-
-  private static int executeListUnknown(ServerCommandSource source) {
-    ServerPlayerEntity player = source.getPlayer();
-    HashSet<UnknownPainting> unknown = ServerPaintingManager.getUnknownPaintings(player);
-
-    if (unknown.isEmpty()) {
-      source.sendFeedback(Text.translatable("custompaintings.command.list.unknown.none"), true);
-    } else {
-      unknown.forEach((entry) -> {
-        source.sendFeedback(Text.literal(String.format("%s (%d)", entry.id(), entry.count())), true);
-      });
-    }
-
-    return unknown.size();
-  }
-
-  private static int executeListMismatched(ServerCommandSource source, MismatchedCategory category) {
-    ServerPlayerEntity player = source.getPlayer();
-    Map<Identifier, PaintingData> known = ServerPaintingManager.getKnownPaintings(player);
-
-    HashMap<String, Integer> mismatched = new HashMap<>();
-
-    source.getServer().getWorlds().forEach((world) -> {
-      world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
-          .stream()
-          .forEach((entity) -> {
-            PaintingData data = ((ExpandedPaintingEntity) entity).getCustomData();
-            PaintingData knownData = known.get(data.id());
-
-            if (data.isMismatched(knownData, category)) {
-              mismatched.put(data.id().toString(), mismatched.getOrDefault(data.id().toString(), 0) + 1);
-            }
-          });
-    });
-
-    if (mismatched.isEmpty()) {
-      source.sendFeedback(Text.translatable("custompaintings.command.list.mismatched.none"), true);
-    } else {
-      mismatched.forEach((id, count) -> {
-        source.sendFeedback(Text.literal(String.format("%s (%d)", id, count)), true);
-      });
-    }
-
-    return mismatched.size();
   }
 
   private static int executeRemove(ServerCommandSource source, Optional<Identifier> idToRemove) {

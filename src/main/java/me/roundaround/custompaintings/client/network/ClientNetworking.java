@@ -64,7 +64,7 @@ public class ClientNetworking {
         NetworkPackets.REQUEST_UNKNOWN_PACKET, new PacketByteBuf(Unpooled.buffer()));
   }
 
-  public static void sendRequestOutdatedPacket() {
+  public static void sendRequestMismatchedPacket() {
     ClientPlayNetworking.send(
         NetworkPackets.REQUEST_OUTDATED_PACKET, new PacketByteBuf(Unpooled.buffer()));
   }

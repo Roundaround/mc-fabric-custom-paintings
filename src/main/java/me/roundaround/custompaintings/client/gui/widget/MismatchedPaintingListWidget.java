@@ -21,13 +21,13 @@ import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
 
 @Environment(value = EnvType.CLIENT)
-public class OutdatedPaintingListWidget extends ElementListWidget<OutdatedPaintingListWidget.Entry> {
+public class MismatchedPaintingListWidget extends ElementListWidget<MismatchedPaintingListWidget.Entry> {
   private static final int ITEM_HEIGHT = 25;
 
   private final OutdatedPaintingsScreen parent;
   private final LoadingEntry loadingEntry;
 
-  public OutdatedPaintingListWidget(
+  public MismatchedPaintingListWidget(
       OutdatedPaintingsScreen parent,
       MinecraftClient minecraftClient,
       int width,
@@ -43,7 +43,7 @@ public class OutdatedPaintingListWidget extends ElementListWidget<OutdatedPainti
   }
 
   public void loadData() {
-    ClientNetworking.sendRequestOutdatedPacket();
+    ClientNetworking.sendRequestMismatchedPacket();
     clearEntries();
     addEntry(this.loadingEntry);
   }
@@ -130,12 +130,12 @@ public class OutdatedPaintingListWidget extends ElementListWidget<OutdatedPainti
 
       this.fixButton = new IconButtonWidget(
           this.client,
-          OutdatedPaintingListWidget.this.getRowRight() - IconButtonWidget.WIDTH - 4,
+          MismatchedPaintingListWidget.this.getRowRight() - IconButtonWidget.WIDTH - 4,
           0,
           IconButtonWidget.RESET_ICON, // TODO: Swap to new icon when available
           Text.translatable("custompaintings.outdated.fix"),
           (button) -> {
-            ClientNetworking.sendUpdatePaintingPacket(this.outdatedPainting.paintingUuid());
+            ClientNetworking.sendUpdatePaintingPacket(this.outdatedPainting.uuid());
           });
     }
 
@@ -168,7 +168,7 @@ public class OutdatedPaintingListWidget extends ElementListWidget<OutdatedPainti
       drawTextWithShadow(
           matrixStack,
           this.client.textRenderer,
-          Text.literal(this.outdatedPainting.paintingUuid().toString()),
+          Text.literal(this.outdatedPainting.uuid().toString()),
           x + 4,
           y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f),
           0xFFFFFF);

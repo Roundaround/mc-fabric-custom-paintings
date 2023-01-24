@@ -118,7 +118,7 @@ public class ServerPaintingManager {
 
               if (currentData.isMismatched(knownData, category)) {
                 mismatched.add(new MismatchedPainting(
-                    entity.getUuid(),
+                    entity,
                     currentData,
                     knownData));
               }
@@ -176,7 +176,8 @@ public class ServerPaintingManager {
             currentData.width(),
             currentData.height(),
             currentData.name(),
-            currentData.artist());
+            currentData.artist(),
+            newData.isVanilla());
 
         autoFixed++;
       }
@@ -209,7 +210,8 @@ public class ServerPaintingManager {
                 paintingData.width(),
                 paintingData.height(),
                 paintingData.name(),
-                paintingData.artist());
+                paintingData.artist(),
+                paintingData.isVanilla());
           });
     });
   }
@@ -243,7 +245,8 @@ public class ServerPaintingManager {
                   knownData.width(),
                   knownData.height(),
                   knownData.name(),
-                  knownData.artist());
+                  knownData.artist(),
+                  knownData.isVanilla());
             });
       });
     });
