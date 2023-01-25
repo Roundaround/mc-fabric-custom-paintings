@@ -68,7 +68,7 @@ public class ReassignScreen extends Screen implements KnownPaintingsTracker {
 
     this.searchBox = new TextFieldWidget(
         this.textRenderer,
-        this.width / 2 - 100 / 2,
+        (this.width - SEARCH_WIDTH) / 2,
         20,
         SEARCH_WIDTH,
         SEARCH_HEIGHT,
