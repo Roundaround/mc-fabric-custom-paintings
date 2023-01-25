@@ -1,6 +1,7 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
 import java.util.Collection;
+import java.util.HashSet;
 
 import me.roundaround.custompaintings.client.gui.screen.manage.ReassignScreen;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
@@ -20,6 +21,9 @@ public class KnownPaintingListWidget
 
   private final ReassignScreen parent;
 
+  private Collection<PaintingData> paintings = new HashSet<>();
+  private String filter = "";
+
   public KnownPaintingListWidget(
       ReassignScreen parent,
       MinecraftClient minecraftClient,
@@ -32,9 +36,21 @@ public class KnownPaintingListWidget
   }
 
   public void setPaintings(Collection<PaintingData> paintings) {
+    this.paintings = paintings;
+    populateList();
+  }
+
+  public void setFilter(String filter) {
+    this.filter = filter.toLowerCase();
+    populateList();
+  }
+
+  private void populateList() {
     clearEntries();
     for (PaintingData painting : paintings) {
-      addEntry(new Entry(this.client, painting));
+      if (painting.id().toString().toLowerCase().contains(filter)) {
+        addEntry(new Entry(this.client, painting));
+      }
     }
   }
 
