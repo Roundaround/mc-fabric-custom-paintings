@@ -1,12 +1,9 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
 import java.util.HashSet;
-import java.util.stream.Collectors;
 
-import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
 import me.roundaround.custompaintings.client.gui.screen.manage.UnknownPaintingsScreen;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
-import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.util.UnknownPainting;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -26,6 +23,7 @@ public class UnknownPaintingListWidget
 
   private final UnknownPaintingsScreen parent;
   private final LoadingEntry loadingEntry;
+  private final EmptyEntry emptyEntry;
 
   public UnknownPaintingListWidget(
       UnknownPaintingsScreen parent,
@@ -38,6 +36,7 @@ public class UnknownPaintingListWidget
 
     this.parent = parent;
     this.loadingEntry = new LoadingEntry(minecraftClient);
+    this.emptyEntry = new EmptyEntry(minecraftClient);
 
     this.loadData();
   }
@@ -53,14 +52,9 @@ public class UnknownPaintingListWidget
     for (UnknownPainting unknownPainting : data) {
       addEntry(new UnknownPaintingEntry(this.client, unknownPainting));
     }
-
-    // Get list of known painting ids
-    CustomPaintingsClientMod.customPaintingManager
-        .getEntries()
-        .stream()
-        .map(PaintingData::id)
-        .collect(Collectors.toList());
-
+    if (data.isEmpty()) {
+      addEntry(this.emptyEntry);
+    }
     narrateScreenIfNarrationEnabled();
   }
 
@@ -125,6 +119,43 @@ public class UnknownPaintingListWidget
     @Override
     public Text getNarration() {
       return LOADING_LIST_TEXT;
+    }
+  }
+
+  @Environment(value = EnvType.CLIENT)
+  public class EmptyEntry extends Entry {
+    private static final Text EMPTY_LIST_TEXT = Text.translatable("custompaintings.unknown.empty");
+
+    private final MinecraftClient client;
+
+    public EmptyEntry(MinecraftClient client) {
+      this.client = client;
+    }
+
+    @Override
+    public void render(
+        MatrixStack matrixStack,
+        int index,
+        int y,
+        int x,
+        int entryWidth,
+        int entryHeight,
+        int mouseX,
+        int mouseY,
+        boolean hovered,
+        float partialTicks) {
+      drawCenteredText(
+          matrixStack,
+          this.client.textRenderer,
+          EMPTY_LIST_TEXT,
+          this.client.currentScreen.width / 2,
+          y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f),
+          0xFFFFFF);
+    }
+
+    @Override
+    public Text getNarration() {
+      return EMPTY_LIST_TEXT;
     }
   }
 

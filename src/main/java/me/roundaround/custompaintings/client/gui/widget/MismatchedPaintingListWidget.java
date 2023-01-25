@@ -26,6 +26,7 @@ public class MismatchedPaintingListWidget extends ElementListWidget<MismatchedPa
 
   private final MismatchedPaintingsScreen parent;
   private final LoadingEntry loadingEntry;
+  private final EmptyEntry emptyEntry;
 
   public MismatchedPaintingListWidget(
       MismatchedPaintingsScreen parent,
@@ -38,6 +39,7 @@ public class MismatchedPaintingListWidget extends ElementListWidget<MismatchedPa
 
     this.parent = parent;
     this.loadingEntry = new LoadingEntry(minecraftClient);
+    this.emptyEntry = new EmptyEntry(minecraftClient);
 
     this.loadData();
   }
@@ -53,6 +55,9 @@ public class MismatchedPaintingListWidget extends ElementListWidget<MismatchedPa
     for (MismatchedPainting mismatchedPainting : data) {
       this.addEntry(new MismatchedPaintingEntry(this.client, mismatchedPainting));
     }
+    if (data.isEmpty()) {
+      this.addEntry(this.emptyEntry);
+    }
     narrateScreenIfNarrationEnabled();
   }
 
@@ -66,8 +71,6 @@ public class MismatchedPaintingListWidget extends ElementListWidget<MismatchedPa
 
   @Environment(value = EnvType.CLIENT)
   public class LoadingEntry extends Entry {
-    private static final Text LOADING_LIST_TEXT = Text.translatable("custompaintings.mismatched.loading");
-
     private final MinecraftClient client;
 
     public LoadingEntry(MinecraftClient client) {
@@ -101,7 +104,7 @@ public class MismatchedPaintingListWidget extends ElementListWidget<MismatchedPa
       drawCenteredText(
           matrixStack,
           this.client.textRenderer,
-          LOADING_LIST_TEXT,
+          Text.translatable("custompaintings.mismatched.loading"),
           this.client.currentScreen.width / 2,
           yPos,
           0xFFFFFF);
@@ -113,6 +116,46 @@ public class MismatchedPaintingListWidget extends ElementListWidget<MismatchedPa
           this.client.currentScreen.width / 2,
           yPos + this.client.textRenderer.fontHeight,
           0x808080);
+    }
+  }
+
+  @Environment(value = EnvType.CLIENT)
+  public class EmptyEntry extends Entry {
+    private final MinecraftClient client;
+
+    public EmptyEntry(MinecraftClient client) {
+      this.client = client;
+    }
+
+    @Override
+    public List<? extends Element> children() {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public List<? extends Selectable> selectableChildren() {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public void render(
+        MatrixStack matrixStack,
+        int index,
+        int y,
+        int x,
+        int entryWidth,
+        int entryHeight,
+        int mouseX,
+        int mouseY,
+        boolean hovered,
+        float partialTicks) {
+      drawCenteredText(
+          matrixStack,
+          this.client.textRenderer,
+          Text.translatable("custompaintings.mismatched.empty"),
+          this.client.currentScreen.width / 2,
+          y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f),
+          0xFFFFFF);
     }
   }
 
