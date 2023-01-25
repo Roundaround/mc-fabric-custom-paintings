@@ -7,10 +7,6 @@ import net.minecraft.util.Identifier;
 public interface ExpandedPaintingEntity {
   void setCustomData(PaintingData info);
 
-  default void setCustomData(Identifier id, int index, int width, int height, String name, String artist) {
-    setCustomData(id, index, width, height, name, artist, false);
-  }
-
   void setCustomData(Identifier id, int index, int width, int height, String name, String artist, boolean isVanilla);
 
   PaintingData getCustomData();

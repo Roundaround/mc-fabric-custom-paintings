@@ -279,7 +279,8 @@ public class CustomPaintingsCommand {
           data.width(),
           data.height(),
           data.name(),
-          data.artist());
+          data.artist(),
+          data.isVanilla());
     });
 
     if (toUpdate.isEmpty()) {
@@ -316,7 +317,8 @@ public class CustomPaintingsCommand {
           knownData.width(),
           knownData.height(),
           currentData.name(),
-          currentData.artist());
+          currentData.artist(),
+          currentData.isVanilla());
     });
 
     if (toUpdate.isEmpty()) {
@@ -353,7 +355,8 @@ public class CustomPaintingsCommand {
           currentData.width(),
           currentData.height(),
           knownData.name(),
-          knownData.artist());
+          knownData.artist(),
+          knownData.isVanilla());
     });
 
     if (toUpdate.isEmpty()) {
@@ -390,7 +393,8 @@ public class CustomPaintingsCommand {
           knownData.width(),
           knownData.height(),
           knownData.name(),
-          knownData.artist());
+          knownData.artist(),
+          knownData.isVanilla());
     });
 
     if (toUpdate.isEmpty()) {
