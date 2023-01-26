@@ -12,14 +12,15 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 public class UnknownPaintingsScreen extends Screen {
-  private static final int BUTTON_WIDTH = 150;
+  private static final int BUTTON_WIDTH = 100;
   private static final int BUTTON_HEIGHT = 20;
   private static final int PADDING = 8;
 
   private final ManagePaintingsScreen parent;
 
   private UnknownPaintingListWidget list;
-  private ButtonWidget confirmButton;
+  private ButtonWidget reassignButton;
+  private ButtonWidget removeButton;
   private Identifier selectedId = null;
 
   public UnknownPaintingsScreen(ManagePaintingsScreen parent) {
@@ -35,16 +36,23 @@ public class UnknownPaintingsScreen extends Screen {
 
   public void setSelectedId(Identifier id) {
     this.selectedId = id;
-    if (this.confirmButton != null) {
-      this.confirmButton.active = id != null;
+    if (this.reassignButton != null) {
+      this.reassignButton.active = id != null;
     }
   }
 
-  public void confirmSelection() {
+  public void reassignSelection() {
     if (this.selectedId == null) {
       return;
     }
     this.client.setScreen(new ReassignScreen(this, this.selectedId));
+  }
+
+  public void removeSelection() {
+    if (this.selectedId == null) {
+      return;
+    }
+
   }
 
   @Override
@@ -58,20 +66,31 @@ public class UnknownPaintingsScreen extends Screen {
         this.height - 32);
     addSelectableChild(this.list);
 
-    this.confirmButton = new ButtonWidget(
-        (this.width - PADDING) / 2 - BUTTON_WIDTH,
+    this.reassignButton = new ButtonWidget(
+        (this.width - BUTTON_WIDTH) / 2 - BUTTON_WIDTH - PADDING,
         this.height - BUTTON_HEIGHT - PADDING,
         BUTTON_WIDTH,
         BUTTON_HEIGHT,
-        Text.translatable("custompaintings.reassign.confirm"),
+        Text.translatable("custompaintings.unknown.reassign"),
         (button) -> {
-          confirmSelection();
+          reassignSelection();
         });
-    this.confirmButton.active = false;
-    addDrawableChild(this.confirmButton);
+    this.reassignButton.active = false;
+    addDrawableChild(this.reassignButton);
+
+    this.removeButton = new ButtonWidget(
+        (this.width - BUTTON_WIDTH) / 2,
+        this.height - BUTTON_HEIGHT - PADDING,
+        BUTTON_WIDTH,
+        BUTTON_HEIGHT,
+        Text.translatable("custompaintings.unknown.remove"),
+        (button) -> {
+        });
+    this.removeButton.active = false;
+    addDrawableChild(this.removeButton);
 
     addDrawableChild(new ButtonWidget(
-        (this.width + PADDING) / 2,
+        (this.width + BUTTON_WIDTH / 2 + PADDING),
         this.height - BUTTON_HEIGHT - PADDING,
         BUTTON_WIDTH,
         BUTTON_HEIGHT,

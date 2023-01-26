@@ -34,11 +34,11 @@ public class ClientNetworking {
         NetworkPackets.OPEN_MANAGE_SCREEN_PACKET,
         ClientNetworking::handleOpenManageScreenPacket);
     ClientPlayNetworking.registerGlobalReceiver(
-        NetworkPackets.LIST_MISMATCHED_PACKET,
-        ClientNetworking::handleListMismatchedPacket);
-    ClientPlayNetworking.registerGlobalReceiver(
         NetworkPackets.LIST_UNKNOWN_PACKET,
         ClientNetworking::handleListUnknownPacket);
+    ClientPlayNetworking.registerGlobalReceiver(
+        NetworkPackets.LIST_MISMATCHED_PACKET,
+        ClientNetworking::handleListMismatchedPacket);
   }
 
   public static void sendSetPaintingPacket(UUID paintingUuid, PaintingData customPaintingInfo) {
@@ -119,6 +119,35 @@ public class ClientNetworking {
     });
   }
 
+  private static void handleListUnknownPacket(
+      MinecraftClient client,
+      ClientPlayNetworkHandler handler,
+      PacketByteBuf buf,
+      PacketSender responseSender) {
+    int size = buf.readInt();
+    HashSet<UnknownPainting> unknownPaintings = new HashSet<>(size);
+    for (int i = 0; i < size; i++) {
+      UUID uuid = buf.readUuid();
+      PaintingData currentData = PaintingData.fromPacketByteBuf(buf);
+      PaintingData suggestedData = null;
+      if (buf.readBoolean()) {
+        suggestedData = PaintingData.fromPacketByteBuf(buf);
+      }
+      unknownPaintings.add(new UnknownPainting(
+          uuid,
+          currentData,
+          suggestedData));
+    }
+
+    client.execute(() -> {
+      if (!(client.currentScreen instanceof UnknownPaintingsScreen)) {
+        return;
+      }
+      UnknownPaintingsScreen screen = (UnknownPaintingsScreen) client.currentScreen;
+      screen.setUnknownPaintings(unknownPaintings);
+    });
+  }
+
   private static void handleListMismatchedPacket(
       MinecraftClient client,
       ClientPlayNetworkHandler handler,
@@ -130,7 +159,10 @@ public class ClientNetworking {
       UUID uuid = buf.readUuid();
       PaintingData currentData = PaintingData.fromPacketByteBuf(buf);
       PaintingData knownData = PaintingData.fromPacketByteBuf(buf);
-      mismatched.add(new MismatchedPainting(uuid, currentData, knownData));
+      mismatched.add(new MismatchedPainting(
+          uuid,
+          currentData,
+          knownData));
     }
 
     client.execute(() -> {
@@ -139,32 +171,6 @@ public class ClientNetworking {
       }
       MismatchedPaintingsScreen screen = (MismatchedPaintingsScreen) client.currentScreen;
       screen.setMismatchedPaintings(mismatched);
-    });
-  }
-
-  private static void handleListUnknownPacket(
-      MinecraftClient client,
-      ClientPlayNetworkHandler handler,
-      PacketByteBuf buf,
-      PacketSender responseSender) {
-    int size = buf.readInt();
-    HashSet<UnknownPainting> unknownPaintings = new HashSet<>(size);
-    for (int i = 0; i < size; i++) {
-      Identifier id = buf.readIdentifier();
-      int count = buf.readInt();
-      Identifier autoFixIdentifier = null;
-      if (buf.readBoolean()) {
-        autoFixIdentifier = buf.readIdentifier();
-      }
-      unknownPaintings.add(new UnknownPainting(id, count, autoFixIdentifier));
-    }
-
-    client.execute(() -> {
-      if (!(client.currentScreen instanceof UnknownPaintingsScreen)) {
-        return;
-      }
-      UnknownPaintingsScreen screen = (UnknownPaintingsScreen) client.currentScreen;
-      screen.setUnknownPaintings(unknownPaintings);
     });
   }
 }

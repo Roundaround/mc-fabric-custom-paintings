@@ -4,6 +4,7 @@ import java.util.HashSet;
 
 import me.roundaround.custompaintings.client.gui.screen.manage.UnknownPaintingsScreen;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
+import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.util.UnknownPainting;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -12,7 +13,6 @@ import net.minecraft.client.gui.screen.LoadingDisplay;
 import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
 
@@ -67,7 +67,7 @@ public class UnknownPaintingListWidget
     super.setSelected(entry);
 
     if (entry instanceof UnknownPaintingEntry) {
-      this.parent.setSelectedId(((UnknownPaintingEntry) entry).getId());
+      this.parent.setSelectedId(((UnknownPaintingEntry) entry).getUnknownPainting().currentData().id());
     }
   }
 
@@ -173,12 +173,8 @@ public class UnknownPaintingListWidget
       this.unknownPainting = unknownPainting;
     }
 
-    public Identifier getId() {
-      return this.unknownPainting.id();
-    }
-
-    public boolean canBeAutoFixed() {
-      return this.unknownPainting.autoFixId() != null;
+    public UnknownPainting getUnknownPainting() {
+      return this.unknownPainting;
     }
 
     @Override
@@ -193,19 +189,29 @@ public class UnknownPaintingListWidget
         int mouseY,
         boolean hovered,
         float partialTicks) {
-      drawCenteredTextWithShadow(
+      int centerY = y + entryHeight / 2;
+      PaintingData currentData = this.unknownPainting.currentData();
+
+      this.client.textRenderer.draw(
           matrixStack,
-          this.client.textRenderer,
-          Text.literal(this.unknownPainting.id().toString() + " (" + this.unknownPainting.count() + ")")
-              .asOrderedText(),
-          this.client.currentScreen.width / 2,
-          y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f),
-          0xFFFFFF);
+          Text.literal(currentData.id().toString()),
+          x,
+          centerY - this.client.textRenderer.fontHeight - 2,
+          0xFF8080);
+
+      if (currentData.hasLabel()) {
+        this.client.textRenderer.draw(
+            matrixStack,
+            currentData.getLabel(),
+            x,
+            centerY + 2,
+            0xFFFFFF);
+      }
     }
 
     @Override
     public Text getNarration() {
-      return Text.literal(this.unknownPainting.id().toString());
+      return Text.literal(this.unknownPainting.currentData().id().toString());
     }
 
     @Override
@@ -213,7 +219,7 @@ public class UnknownPaintingListWidget
       UnknownPaintingListWidget.this.setSelected(this);
 
       if (Util.getMeasuringTimeMs() - this.time < 250L) {
-        UnknownPaintingListWidget.this.parent.confirmSelection();
+        UnknownPaintingListWidget.this.parent.reassignSelection();
         return true;
       }
 

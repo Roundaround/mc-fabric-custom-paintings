@@ -66,25 +66,25 @@ public class ServerNetworking {
         new PacketByteBuf(Unpooled.buffer()));
   }
 
-  private static void sendResponseUnknownPacket(
+  private static void sendListUnknownPacket(
       ServerPlayerEntity player,
       HashSet<UnknownPainting> unknownPaintings) {
     PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
     buf.writeInt(unknownPaintings.size());
-    for (UnknownPainting unknownPainting : unknownPaintings) {
-      buf.writeIdentifier(unknownPainting.id());
-      buf.writeInt(unknownPainting.count());
+    for (UnknownPainting entry : unknownPaintings) {
+      buf.writeUuid(entry.uuid());
+      entry.currentData().writeToPacketByteBuf(buf);
 
-      Identifier autoFixId = unknownPainting.autoFixId();
-      buf.writeBoolean(autoFixId != null);
-      if (autoFixId != null) {
-        buf.writeIdentifier(unknownPainting.autoFixId());
+      PaintingData suggestedData = entry.suggestedData();
+      buf.writeBoolean(suggestedData != null);
+      if (suggestedData != null) {
+        suggestedData.writeToPacketByteBuf(buf);
       }
     }
     ServerPlayNetworking.send(player, NetworkPackets.LIST_UNKNOWN_PACKET, buf);
   }
 
-  private static void sendListMismatchedPaintingsPacket(
+  private static void sendListMismatchedPacket(
       ServerPlayerEntity player,
       HashSet<MismatchedPainting> mismatched) {
     PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
@@ -156,7 +156,7 @@ public class ServerNetworking {
       PacketByteBuf buf,
       PacketSender responseSender) {
     server.execute(() -> {
-      sendResponseUnknownPacket(player, ServerPaintingManager.getUnknownPaintings(player));
+      sendListUnknownPacket(player, ServerPaintingManager.getUnknownPaintings(player));
     });
   }
 
@@ -167,7 +167,7 @@ public class ServerNetworking {
       PacketByteBuf buf,
       PacketSender responseSender) {
     server.execute(() -> {
-      sendListMismatchedPaintingsPacket(player, ServerPaintingManager.getMismatchedPaintings(player));
+      sendListMismatchedPacket(player, ServerPaintingManager.getMismatchedPaintings(player));
     });
   }
 
@@ -196,7 +196,7 @@ public class ServerNetworking {
 
     server.execute(() -> {
       ServerPaintingManager.updatePainting(player, paintingUuid);
-      sendListMismatchedPaintingsPacket(player, ServerPaintingManager.getMismatchedPaintings(player));
+      sendListMismatchedPacket(player, ServerPaintingManager.getMismatchedPaintings(player));
     });
   }
 }

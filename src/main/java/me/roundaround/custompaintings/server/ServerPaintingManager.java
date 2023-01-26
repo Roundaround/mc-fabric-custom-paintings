@@ -31,68 +31,46 @@ import net.minecraft.util.registry.RegistryKey;
 
 public class ServerPaintingManager {
   public static HashSet<UnknownPainting> getUnknownPaintings(ServerPlayerEntity player) {
-    HashSet<UnknownPainting> unknownPaintings = new HashSet<>();
-    HashMap<Identifier, Integer> counts = new HashMap<>();
-    HashMap<Identifier, Identifier> autoFixIds = new HashMap<>();
-
-    if (!CustomPaintingsMod.knownPaintings.containsKey(player.getUuid())) {
-      return unknownPaintings;
-    }
-
+    HashSet<UnknownPainting> unknown = new HashSet<>();
     Map<Identifier, PaintingData> known = getKnownPaintings(player);
 
     player.getServer().getWorlds().forEach((world) -> {
-      world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
-          .stream()
-          .filter((entity) -> {
-            PaintingData paintingData = ((ExpandedPaintingEntity) entity).getCustomData();
-            return !paintingData.isVanilla() && !known.containsKey(paintingData.id());
-          })
-          .forEach((entity) -> {
-            ExpandedPaintingEntity painting = (ExpandedPaintingEntity) entity;
-            PaintingData currentData = painting.getCustomData();
-            Identifier currentId = currentData.id();
+      world.getEntitiesByType(EntityType.PAINTING, (painting) -> {
+        return painting instanceof ExpandedPaintingEntity &&
+            !known.containsKey(((ExpandedPaintingEntity) painting).getCustomData().id());
+      }).forEach((entity) -> {
+        ExpandedPaintingEntity painting = (ExpandedPaintingEntity) entity;
+        PaintingData currentData = painting.getCustomData();
+        Identifier currentId = currentData.id();
 
-            if (known.containsKey(currentId)) {
-              return;
-            }
+        PaintingData suggestedData = known.values().stream()
+            .filter((knownData) -> {
+              return knownData.id().getPath().equals(currentId.getPath())
+                  && knownData.width() == currentData.width()
+                  && knownData.height() == currentData.height()
+                  && knownData.name().equals(currentData.name())
+                  && knownData.artist().equals(currentData.artist());
+            })
+            .findFirst()
+            .orElse(null);
 
-            if (counts.containsKey(currentId)) {
-              counts.put(currentId, counts.get(currentId) + 1);
-            } else {
-              counts.put(currentId, 1);
-            }
-
-            Identifier autoFixIdentifier = known.values().stream()
-                .filter((knownData) -> {
-                  return knownData.id().getPath().equals(currentId.getPath())
-                      && knownData.width() == currentData.width()
-                      && knownData.height() == currentData.height()
-                      && knownData.name().equals(currentData.name())
-                      && knownData.artist().equals(currentData.artist());
-                })
-                .map(PaintingData::id)
-                .findFirst()
-                .orElse(null);
-            autoFixIds.put(currentId, autoFixIdentifier);
-          });
+        unknown.add(new UnknownPainting(
+            entity.getUuid(),
+            entity,
+            currentData,
+            suggestedData));
+      });
     });
 
-    counts.forEach((id, count) -> {
-      unknownPaintings.add(new UnknownPainting(
-          id,
-          count,
-          autoFixIds.get(id)));
-    });
-
-    return unknownPaintings;
+    return unknown;
   }
 
   public static HashSet<MismatchedPainting> getMismatchedPaintings(ServerPlayerEntity player) {
     return getMismatchedPaintings(player, MismatchedCategory.EVERYTHING);
   }
 
-  public static HashSet<MismatchedPainting> getMismatchedPaintings(ServerPlayerEntity player,
+  public static HashSet<MismatchedPainting> getMismatchedPaintings(
+      ServerPlayerEntity player,
       MismatchedCategory category) {
     HashSet<MismatchedPainting> mismatched = new HashSet<>();
 
@@ -103,12 +81,10 @@ public class ServerPaintingManager {
     Map<Identifier, PaintingData> known = getKnownPaintings(player);
 
     player.getServer().getWorlds().forEach((world) -> {
-      world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
-          .stream()
-          .filter((entity) -> {
-            Identifier entityId = ((ExpandedPaintingEntity) entity).getCustomData().id();
-            return known.containsKey(entityId);
-          })
+      world.getEntitiesByType(EntityType.PAINTING, entity -> {
+        return entity instanceof ExpandedPaintingEntity &&
+            known.containsKey(((ExpandedPaintingEntity) entity).getCustomData().id());
+      })
           .forEach((entity) -> {
             ExpandedPaintingEntity painting = (ExpandedPaintingEntity) entity;
             PaintingData currentData = painting.getCustomData();
@@ -134,12 +110,10 @@ public class ServerPaintingManager {
     Map<Identifier, PaintingData> known = getKnownPaintings(player);
 
     server.getWorlds().forEach((world) -> {
-      world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
-          .stream()
-          .filter((entity) -> {
-            Identifier entityId = ((ExpandedPaintingEntity) entity).getCustomData().id();
-            return known.containsKey(entityId);
-          })
+      world.getEntitiesByType(EntityType.PAINTING, entity -> {
+        return entity instanceof ExpandedPaintingEntity &&
+            known.containsKey(((ExpandedPaintingEntity) entity).getCustomData().id());
+      })
           .forEach((entity) -> {
             ExpandedPaintingEntity painting = (ExpandedPaintingEntity) entity;
             PaintingData currentData = painting.getCustomData();
@@ -194,12 +168,10 @@ public class ServerPaintingManager {
     }
 
     player.getServer().getWorlds().forEach((world) -> {
-      world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
-          .stream()
-          .filter((entity) -> {
-            Identifier entityId = ((ExpandedPaintingEntity) entity).getCustomData().id();
-            return entityId.equals(from);
-          })
+      world.getEntitiesByType(EntityType.PAINTING, entity -> {
+        return entity instanceof ExpandedPaintingEntity &&
+            ((ExpandedPaintingEntity) entity).getCustomData().id().equals(from);
+      })
           .forEach((entity) -> {
             ExpandedPaintingEntity painting = (ExpandedPaintingEntity) entity;
             PaintingData paintingData = fix ? known.get(to) : painting.getCustomData();
