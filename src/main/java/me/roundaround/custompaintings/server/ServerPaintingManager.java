@@ -160,24 +160,25 @@ public class ServerPaintingManager {
     return autoFixed;
   }
 
-  public static void reassignIds(ServerPlayerEntity player, Identifier from, Identifier to, boolean fix) {
+  public static void reassignId(ServerPlayerEntity player, UUID paintingUuid, Identifier id, boolean fix) {
     Map<Identifier, PaintingData> known = getKnownPaintings(player);
 
-    if (!known.containsKey(to)) {
+    if (!known.containsKey(id)) {
       return;
     }
 
+    // Find the painting with the given uuid and reassign its id.
     player.getServer().getWorlds().forEach((world) -> {
       world.getEntitiesByType(EntityType.PAINTING, entity -> {
         return entity instanceof ExpandedPaintingEntity &&
-            ((ExpandedPaintingEntity) entity).getCustomData().id().equals(from);
+            entity.getUuid().equals(paintingUuid);
       })
           .forEach((entity) -> {
             ExpandedPaintingEntity painting = (ExpandedPaintingEntity) entity;
-            PaintingData paintingData = fix ? known.get(to) : painting.getCustomData();
+            PaintingData paintingData = fix ? known.get(id) : painting.getCustomData();
 
             painting.setCustomData(
-                to,
+                id,
                 paintingData.index(),
                 paintingData.width(),
                 paintingData.height(),

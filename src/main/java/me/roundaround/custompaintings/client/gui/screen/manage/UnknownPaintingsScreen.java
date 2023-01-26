@@ -9,7 +9,6 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 
 public class UnknownPaintingsScreen extends Screen {
   private static final int BUTTON_WIDTH = 100;
@@ -21,7 +20,7 @@ public class UnknownPaintingsScreen extends Screen {
   private UnknownPaintingListWidget list;
   private ButtonWidget reassignButton;
   private ButtonWidget removeButton;
-  private Identifier selectedId = null;
+  private UnknownPainting selected = null;
 
   public UnknownPaintingsScreen(ManagePaintingsScreen parent) {
     super(Text.translatable("custompaintings.unknown.title"));
@@ -34,22 +33,22 @@ public class UnknownPaintingsScreen extends Screen {
     }
   }
 
-  public void setSelectedId(Identifier id) {
-    this.selectedId = id;
+  public void setSelected(UnknownPainting selected) {
+    this.selected = selected;
     if (this.reassignButton != null) {
-      this.reassignButton.active = id != null;
+      this.reassignButton.active = selected != null;
     }
   }
 
   public void reassignSelection() {
-    if (this.selectedId == null) {
+    if (this.selected == null) {
       return;
     }
-    this.client.setScreen(new ReassignScreen(this, this.selectedId));
+    this.client.setScreen(new ReassignScreen(this, this.selected));
   }
 
   public void removeSelection() {
-    if (this.selectedId == null) {
+    if (this.selected == null) {
       return;
     }
 
@@ -85,6 +84,7 @@ public class UnknownPaintingsScreen extends Screen {
         BUTTON_HEIGHT,
         Text.translatable("custompaintings.unknown.remove"),
         (button) -> {
+          removeSelection();
         });
     this.removeButton.active = false;
     addDrawableChild(this.removeButton);

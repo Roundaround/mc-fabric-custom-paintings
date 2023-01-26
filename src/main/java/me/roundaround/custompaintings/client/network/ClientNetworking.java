@@ -69,11 +69,11 @@ public class ClientNetworking {
         NetworkPackets.REQUEST_MISMATCHED_PACKET, new PacketByteBuf(Unpooled.buffer()));
   }
 
-  public static void sendReassignIdPacket(Identifier oldId, Identifier newId) {
+  public static void sendReassignIdPacket(UUID paintingUuid, Identifier id) {
     PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-    buf.writeIdentifier(oldId);
-    buf.writeIdentifier(newId);
-    buf.writeBoolean(true);
+    buf.writeUuid(paintingUuid);
+    buf.writeIdentifier(id);
+    buf.writeBoolean(false);
     ClientPlayNetworking.send(NetworkPackets.REASSIGN_ID_PACKET, buf);
   }
 

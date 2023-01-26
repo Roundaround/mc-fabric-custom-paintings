@@ -5,6 +5,7 @@ import java.util.HashMap;
 import me.roundaround.custompaintings.client.gui.widget.KnownPaintingListWidget;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.util.UnknownPainting;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
@@ -21,17 +22,17 @@ public class ReassignScreen extends Screen implements KnownPaintingsTracker {
   private static final int PADDING = 8;
 
   private final Screen parent;
-  private final Identifier currentId;
+  private final UnknownPainting target;
 
   private TextFieldWidget searchBox;
   private KnownPaintingListWidget list;
   private ButtonWidget confirmButton;
   private Identifier selectedId = null;
 
-  public ReassignScreen(Screen parent, Identifier id) {
-    super(Text.translatable("custompaintings.reassign.title", id.toString()));
+  public ReassignScreen(Screen parent, UnknownPainting target) {
+    super(Text.translatable("custompaintings.reassign.title"));
     this.parent = parent;
-    this.currentId = id;
+    this.target = target;
   }
 
   public void setSelectedId(Identifier id) {
@@ -46,7 +47,7 @@ public class ReassignScreen extends Screen implements KnownPaintingsTracker {
       return;
     }
     ClientNetworking.sendReassignIdPacket(
-        this.currentId,
+        this.target.uuid(),
         this.selectedId);
     this.client.setScreen(null);
   }

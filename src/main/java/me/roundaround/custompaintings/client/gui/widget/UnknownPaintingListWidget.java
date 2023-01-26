@@ -67,7 +67,7 @@ public class UnknownPaintingListWidget
     super.setSelected(entry);
 
     if (entry instanceof UnknownPaintingEntry) {
-      this.parent.setSelectedId(((UnknownPaintingEntry) entry).getUnknownPainting().currentData().id());
+      this.parent.setSelected(((UnknownPaintingEntry) entry).getUnknownPainting());
     }
   }
 

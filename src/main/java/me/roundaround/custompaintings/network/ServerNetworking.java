@@ -177,12 +177,12 @@ public class ServerNetworking {
       ServerPlayNetworkHandler handler,
       PacketByteBuf buf,
       PacketSender responseSender) {
-    Identifier from = buf.readIdentifier();
+    UUID paintingUuid = buf.readUuid();
     Identifier to = buf.readIdentifier();
     boolean fix = buf.readBoolean();
 
     server.execute(() -> {
-      ServerPaintingManager.reassignIds(player, from, to, fix);
+      ServerPaintingManager.reassignId(player, paintingUuid, to, fix);
     });
   }
 
