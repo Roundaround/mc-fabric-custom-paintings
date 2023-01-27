@@ -34,4 +34,7 @@ public class NetworkPackets {
   public static final Identifier UPDATE_PAINTING_PACKET = new Identifier(
       CustomPaintingsMod.MOD_ID,
       "update_painting_packet");
+  public static final Identifier APPLY_MIGRATION_PACKET = new Identifier(
+      CustomPaintingsMod.MOD_ID,
+      "apply_migration_packet");
 }

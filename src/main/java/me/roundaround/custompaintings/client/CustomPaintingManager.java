@@ -22,6 +22,7 @@ import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.gui.screen.manage.KnownPaintingsTracker;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.util.Migration;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
@@ -181,6 +182,13 @@ public class CustomPaintingManager
     return new ArrayList<>(packs.values());
   }
 
+  public List<Migration> getMigrations() {
+    return packs.values()
+        .stream()
+        .flatMap((pack) -> pack.migrations().stream())
+        .collect(Collectors.toList());
+  }
+
   public Sprite getPaintingSprite(PaintingData paintingData) {
     if (paintingData == null || paintingData.isEmpty()) {
       return this.getBackSprite();
@@ -217,6 +225,7 @@ public class CustomPaintingManager
     // Optional
     Optional<String> name = Optional.empty();
     ArrayList<Painting> paintings = new ArrayList<>();
+    List<Migration> migrations = new ArrayList<>();
 
     while (reader.hasNext()) {
       final String key = reader.nextName();
@@ -250,6 +259,19 @@ public class CustomPaintingManager
 
           reader.endArray();
           break;
+        case "migrations":
+          if (reader.peek() != JsonToken.BEGIN_ARRAY) {
+            throw new ParseException("Migrations must be an array.");
+          }
+
+          reader.beginArray();
+
+          while (reader.hasNext()) {
+            migrations.add(readMigration(reader, migrations.size()));
+          }
+
+          reader.endArray();
+          break;
         default:
           // Unknown key, skip it
           reader.skipValue();
@@ -262,7 +284,16 @@ public class CustomPaintingManager
       throw new ParseException("Pack ID is required.");
     }
 
-    return new Pack(id.get(), name.orElse(filename), List.copyOf(paintings));
+    String packId = id.get();
+    migrations = migrations.stream()
+        .map((migration) -> new Migration(migration.id(), packId, migration.index(), migration.pairs()))
+        .collect(Collectors.toList());
+
+    return new Pack(
+        packId,
+        name.orElse(filename),
+        paintings,
+        migrations);
   }
 
   private Painting readPainting(JsonReader reader, int index) throws IOException, ParseException {
@@ -337,6 +368,78 @@ public class CustomPaintingManager
     return new Painting(paintingId.get(), index, name, artist, height, width);
   }
 
+  private Migration readMigration(JsonReader reader, int index) throws IOException, ParseException {
+    if (reader.peek() != JsonToken.BEGIN_OBJECT) {
+      throw new ParseException("Each migration must be an object.");
+    }
+
+    // Required
+    Optional<String> id = Optional.empty();
+
+    // Optional
+    ArrayList<Pair<String, String>> pairs = new ArrayList<>();
+
+    reader.beginObject();
+
+    while (reader.hasNext()) {
+      final String key = reader.nextName();
+      switch (key) {
+        case "id":
+          if (reader.peek() != JsonToken.STRING) {
+            throw new ParseException("Migration id must be a string.");
+          }
+
+          id = Optional.of(reader.nextString());
+          break;
+        case "pairs":
+          if (reader.peek() != JsonToken.BEGIN_ARRAY) {
+            throw new ParseException("Migration pairs must be an array.");
+          }
+
+          reader.beginArray();
+
+          while (reader.hasNext()) {
+            if (reader.peek() != JsonToken.BEGIN_ARRAY) {
+              throw new ParseException("Each migration pair must be an array.");
+            }
+
+            reader.beginArray();
+
+            if (reader.peek() != JsonToken.STRING) {
+              throw new ParseException("Each migration pair must be an array of two strings.");
+            }
+
+            final String from = reader.nextString();
+
+            if (reader.peek() != JsonToken.STRING) {
+              throw new ParseException("Each migration pair must be an array of two strings.");
+            }
+
+            final String to = reader.nextString();
+
+            reader.endArray();
+
+            pairs.add(new Pair<>(from, to));
+          }
+
+          reader.endArray();
+          break;
+        default:
+          // Unknown key, skip it
+          reader.skipValue();
+      }
+    }
+
+    reader.endObject();
+
+    if (id.isEmpty()) {
+      throw new ParseException("Migration ID is required.");
+    }
+
+    // Pack ID to be filled later
+    return new Migration(id.get(), null, index, List.copyOf(pairs));
+  }
+
   public class ParseException extends Exception {
     private ParseException(String message) {
       super(message);
@@ -346,7 +449,8 @@ public class CustomPaintingManager
   public record Pack(
       String id,
       String name,
-      List<Painting> paintings) {
+      List<Painting> paintings,
+      List<Migration> migrations) {
   }
 
   public record Painting(

@@ -14,6 +14,7 @@ import me.roundaround.custompaintings.client.gui.screen.manage.MismatchedPaintin
 import me.roundaround.custompaintings.client.gui.screen.manage.UnknownPaintingsScreen;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.network.NetworkPackets;
+import me.roundaround.custompaintings.util.Migration;
 import me.roundaround.custompaintings.util.MismatchedPainting;
 import me.roundaround.custompaintings.util.UnknownPainting;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -22,6 +23,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 
@@ -81,6 +83,19 @@ public class ClientNetworking {
     PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
     buf.writeUuid(paintingUuid);
     ClientPlayNetworking.send(NetworkPackets.UPDATE_PAINTING_PACKET, buf);
+  }
+
+  public static void sendApplyMigrationPacket(Migration migration) {
+    PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+    buf.writeString(migration.id());
+    buf.writeString(migration.packId());
+    buf.writeInt(migration.index());
+    buf.writeInt(migration.pairs().size());
+    for (Pair<String, String> pair : migration.pairs()) {
+      buf.writeString(pair.getLeft());
+      buf.writeString(pair.getRight());
+    }
+    ClientPlayNetworking.send(NetworkPackets.APPLY_MIGRATION_PACKET, buf);
   }
 
   private static void handleEditPaintingPacket(

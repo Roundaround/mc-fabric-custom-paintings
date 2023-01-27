@@ -1,6 +1,8 @@
 package me.roundaround.custompaintings.network;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.UUID;
 
 import io.netty.buffer.Unpooled;
@@ -8,6 +10,7 @@ import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
+import me.roundaround.custompaintings.util.Migration;
 import me.roundaround.custompaintings.util.MismatchedPainting;
 import me.roundaround.custompaintings.util.UnknownPainting;
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
@@ -20,6 +23,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 
@@ -43,6 +47,9 @@ public class ServerNetworking {
     ServerPlayNetworking.registerGlobalReceiver(
         NetworkPackets.UPDATE_PAINTING_PACKET,
         ServerNetworking::handleUpdatePaintingPacket);
+    ServerPlayNetworking.registerGlobalReceiver(
+        NetworkPackets.APPLY_MIGRATION_PACKET,
+        ServerNetworking::handleApplyMigrationPacket);
   }
 
   public static void sendEditPaintingPacket(
@@ -197,6 +204,28 @@ public class ServerNetworking {
     server.execute(() -> {
       ServerPaintingManager.updatePainting(player, paintingUuid);
       sendListMismatchedPacket(player, ServerPaintingManager.getMismatchedPaintings(player));
+    });
+  }
+
+  private static void handleApplyMigrationPacket(
+      MinecraftServer server,
+      ServerPlayerEntity player,
+      ServerPlayNetworkHandler handler,
+      PacketByteBuf buf,
+      PacketSender responseSender) {
+    String id = buf.readString();
+    String packId = buf.readString();
+    int index = buf.readInt();
+    int size = buf.readInt();
+    List<Pair<String, String>> pairs = new ArrayList<>();
+    for (int i = 0; i < size; i++) {
+      pairs.add(new Pair<>(buf.readString(), buf.readString()));
+    }
+
+    Migration migration = new Migration(id, packId, index, pairs);
+
+    server.execute(() -> {
+      ServerPaintingManager.applyMigration(player, migration);
     });
   }
 }

@@ -16,6 +16,7 @@ import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData.MismatchedCategory;
+import me.roundaround.custompaintings.util.Migration;
 import me.roundaround.custompaintings.util.MismatchedPainting;
 import me.roundaround.custompaintings.util.UnknownPainting;
 import net.minecraft.entity.EntityType;
@@ -287,5 +288,52 @@ public class ServerPaintingManager {
     datas.putAll(placeable);
     datas.putAll(unplaceable);
     return datas;
+  }
+
+  public static void applyMigration(ServerPlayerEntity player, Migration migration) {
+    Map<Identifier, PaintingData> known = getKnownPaintings(player);
+
+    HashMap<Identifier, PaintingData> knownMappings = new HashMap<>();
+    HashMap<Identifier, Identifier> unknownMappings = new HashMap<>();
+
+    migration.pairs().forEach((pair) -> {
+      Identifier sourceId = new Identifier(pair.getLeft());
+      Identifier targetId = new Identifier(pair.getRight());
+      PaintingData targetData = known.getOrDefault(targetId, null);
+      if (targetData == null) {
+        unknownMappings.put(sourceId, targetId);
+      } else {
+        knownMappings.put(sourceId, targetData);
+      }
+    });
+
+    if (knownMappings.isEmpty() && unknownMappings.isEmpty()) {
+      return;
+    }
+
+    player.getServer().getWorlds().forEach((world) -> {
+      world.getEntitiesByType(EntityType.PAINTING, entity -> {
+        return entity instanceof ExpandedPaintingEntity &&
+            (knownMappings.containsKey(((ExpandedPaintingEntity) entity).getCustomData().id())
+                || unknownMappings.containsKey(((ExpandedPaintingEntity) entity).getCustomData().id()));
+      })
+          .forEach((entity) -> {
+            ExpandedPaintingEntity painting = (ExpandedPaintingEntity) entity;
+            PaintingData currentData = painting.getCustomData();
+            Identifier currentId = painting.getCustomData().id();
+            if (knownMappings.containsKey(currentId)) {
+              painting.setCustomData(knownMappings.get(currentId));
+            } else if (unknownMappings.containsKey(currentId)) {
+              painting.setCustomData(
+                  unknownMappings.get(currentId),
+                  currentData.index(),
+                  currentData.width(),
+                  currentData.height(),
+                  currentData.name(),
+                  currentData.artist(),
+                  currentData.isVanilla());
+            }
+          });
+    });
   }
 }
