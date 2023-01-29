@@ -35,6 +35,7 @@ import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.ResourceType;
 import net.minecraft.resource.ZipResourcePack;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.InvalidIdentifierException;
 import net.minecraft.util.Pair;
 import net.minecraft.util.profiler.Profiler;
 import net.minecraft.util.registry.Registry;
@@ -235,7 +236,6 @@ public class CustomPaintingManager
             throw new ParseException("Pack id must be a string.");
           }
 
-          // TODO: Additional validation
           id = Optional.of(reader.nextString());
           break;
         case "name":
@@ -243,7 +243,6 @@ public class CustomPaintingManager
             throw new ParseException("Pack name must be a string.");
           }
 
-          // TODO: Additional validation
           name = Optional.of(reader.nextString());
           break;
         case "paintings":
@@ -280,8 +279,16 @@ public class CustomPaintingManager
 
     reader.endObject();
 
+    // Pack ID is required
     if (id.isEmpty()) {
       throw new ParseException("Pack ID is required.");
+    }
+
+    // Pack ID must be a valid Identifier namespace
+    try {
+      new Identifier(id.get(), "dummy");
+    } catch (InvalidIdentifierException e) {
+      throw new ParseException("Non [a-z0-9_.-] character in pack ID (" + id.get() + ")");
     }
 
     String packId = id.get();
@@ -320,7 +327,6 @@ public class CustomPaintingManager
             throw new ParseException("Painting id must be a string.");
           }
 
-          // TODO: Additional validation
           paintingId = Optional.of(reader.nextString());
           break;
         case "name":
@@ -339,18 +345,16 @@ public class CustomPaintingManager
           break;
         case "height":
           if (reader.peek() != JsonToken.NUMBER) {
-            throw new ParseException("Paintings must be an array.");
+            throw new ParseException("Painting height must be a number.");
           }
 
-          // TODO: Additional validation
           height = Optional.of(reader.nextInt());
           break;
         case "width":
           if (reader.peek() != JsonToken.NUMBER) {
-            throw new ParseException("Paintings must be an array.");
+            throw new ParseException("Paintings width must be a number.");
           }
 
-          // TODO: Additional validation
           width = Optional.of(reader.nextInt());
           break;
         default:
@@ -361,8 +365,26 @@ public class CustomPaintingManager
 
     reader.endObject();
 
+    // Painting ID is required
     if (paintingId.isEmpty()) {
       throw new ParseException("Painting ID is required.");
+    }
+
+    // Painting ID must be a valid Identifier path
+    try {
+      new Identifier("dummy", paintingId.get());
+    } catch (InvalidIdentifierException e) {
+      throw new ParseException("Non [a-z0-9/._-] character in painting ID (" + paintingId.get() + ").");
+    }
+
+    // Height must be between 1 and 32
+    if (height.get() < 1 || height.get() > 32) {
+      throw new ParseException("Painting height must be between 1 and 32. (" + paintingId.get() + ").");
+    }
+
+    // Width must be between 1 and 32
+    if (width.get() < 1 || width.get() > 32) {
+      throw new ParseException("Painting width must be between 1 and 32. (" + paintingId.get() + ").");
     }
 
     return new Painting(paintingId.get(), index, name, artist, height, width);
@@ -432,6 +454,7 @@ public class CustomPaintingManager
 
     reader.endObject();
 
+    // Migration ID is required
     if (id.isEmpty()) {
       throw new ParseException("Migration ID is required.");
     }
