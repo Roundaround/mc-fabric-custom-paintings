@@ -293,7 +293,12 @@ public class CustomPaintingManager
 
     String packId = id.get();
     migrations = migrations.stream()
-        .map((migration) -> new Migration(migration.id(), packId, migration.index(), migration.pairs()))
+        .map((migration) -> new Migration(
+            migration.id(),
+            migration.description(),
+            packId,
+            migration.index(),
+            migration.pairs()))
         .collect(Collectors.toList());
 
     return new Pack(
@@ -399,6 +404,7 @@ public class CustomPaintingManager
     Optional<String> id = Optional.empty();
 
     // Optional
+    Optional<String> description = Optional.empty();
     ArrayList<Pair<String, String>> pairs = new ArrayList<>();
 
     reader.beginObject();
@@ -412,6 +418,13 @@ public class CustomPaintingManager
           }
 
           id = Optional.of(reader.nextString());
+          break;
+        case "description":
+          if (reader.peek() != JsonToken.STRING) {
+            throw new ParseException("Migration description must be a string.");
+          }
+
+          description = Optional.of(reader.nextString());
           break;
         case "pairs":
           if (reader.peek() != JsonToken.BEGIN_ARRAY) {
@@ -460,7 +473,7 @@ public class CustomPaintingManager
     }
 
     // Pack ID to be filled later
-    return new Migration(id.get(), null, index, List.copyOf(pairs));
+    return new Migration(id.get(), description.orElse(""), null, index, List.copyOf(pairs));
   }
 
   public class ParseException extends Exception {

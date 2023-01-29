@@ -214,6 +214,7 @@ public class ServerNetworking {
       PacketByteBuf buf,
       PacketSender responseSender) {
     String id = buf.readString();
+    String description = buf.readString();
     String packId = buf.readString();
     int index = buf.readInt();
     int size = buf.readInt();
@@ -222,7 +223,7 @@ public class ServerNetworking {
       pairs.add(new Pair<>(buf.readString(), buf.readString()));
     }
 
-    Migration migration = new Migration(id, packId, index, pairs);
+    Migration migration = new Migration(id, description, packId, index, pairs);
 
     server.execute(() -> {
       ServerPaintingManager.applyMigration(player, migration);

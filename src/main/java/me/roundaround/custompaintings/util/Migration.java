@@ -6,6 +6,7 @@ import net.minecraft.util.Pair;
 
 public record Migration(
     String id,
+    String description,
     String packId,
     int index,
     List<Pair<String, String>> pairs) {
