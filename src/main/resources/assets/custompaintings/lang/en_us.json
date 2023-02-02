@@ -38,5 +38,6 @@
   "custompaintings.mismatched.title": "Paintings with mismatched data",
   "custompaintings.mismatched.loading": "Loading...",
   "custompaintings.mismatched.empty": "Nothing to show!",
-  "custompaintings.mismatched.fix": "Update the painting with the data from the currently enabled resource pack"
+  "custompaintings.mismatched.fix": "Update the painting with the data from the currently enabled resource pack",
+  "custompaintings.command.count": "%s: %s"
 }

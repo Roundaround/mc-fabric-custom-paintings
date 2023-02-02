@@ -26,6 +26,7 @@ import net.minecraft.entity.projectile.ProjectileUtil;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.EntityHitResult;
@@ -44,6 +45,14 @@ public class CustomPaintingsCommand {
         .executes(context -> {
           return executeIdentify(context.getSource());
         });
+
+    LiteralArgumentBuilder<ServerCommandSource> countSub = CommandManager
+        .literal("count")
+        .then(CommandManager.argument("id", IdentifierArgumentType.identifier())
+            .suggests(new KnownPaintingIdentifierSuggestionProvider())
+            .executes(context -> {
+              return executeCount(context.getSource(), IdentifierArgumentType.getIdentifier(context, "id"));
+            }));
 
     LiteralArgumentBuilder<ServerCommandSource> removeSub = CommandManager
         .literal("remove")
@@ -118,6 +127,7 @@ public class CustomPaintingsCommand {
 
     LiteralArgumentBuilder<ServerCommandSource> finalCommand = baseCommand
         .then(identifySub)
+        .then(countSub)
         .then(removeSub)
         .then(fixSub)
         .then(manageSub)
@@ -215,6 +225,23 @@ public class CustomPaintingsCommand {
     for (Text line : lines) {
       source.sendFeedback(line, true);
     }
+  }
+
+  private static int executeCount(ServerCommandSource source, Identifier identifier) {
+    int count = 0;
+
+    for (ServerWorld world : source.getServer().getWorlds()) {
+      count += world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
+          .stream()
+          .filter((entity) -> ((ExpandedPaintingEntity) entity).getCustomData().id().equals(identifier))
+          .count();
+    }
+
+    source.sendFeedback(Text.translatable(
+        "custompaintings.command.count",
+        identifier.toString(),
+        count), true);
+    return count;
   }
 
   private static int executeRemove(ServerCommandSource source, Optional<Identifier> idToRemove) {
