@@ -22,7 +22,6 @@ import me.roundaround.custompaintings.util.UnknownPainting;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.tag.PaintingVariantTags;
 import net.minecraft.util.Identifier;
@@ -104,61 +103,6 @@ public class ServerPaintingManager {
     });
 
     return mismatched;
-  }
-
-  public static int autoFixPaintings(MinecraftServer server, ServerPlayerEntity player) {
-    ArrayList<ExpandedPaintingEntity> missing = new ArrayList<>();
-    Map<Identifier, PaintingData> known = getKnownPaintings(player);
-
-    server.getWorlds().forEach((world) -> {
-      world.getEntitiesByType(EntityType.PAINTING, entity -> {
-        return entity instanceof ExpandedPaintingEntity &&
-            known.containsKey(((ExpandedPaintingEntity) entity).getCustomData().id());
-      })
-          .forEach((entity) -> {
-            ExpandedPaintingEntity painting = (ExpandedPaintingEntity) entity;
-            PaintingData currentData = painting.getCustomData();
-
-            if (!known.containsKey(currentData.id())) {
-              missing.add(painting);
-            }
-          });
-    });
-
-    // Try to auto-fix missing paintings. If the same id (path) exists within
-    // another namespace with the same info and size, just change the id and
-    // index automatically.
-    int autoFixed = 0;
-    for (ExpandedPaintingEntity painting : missing) {
-      PaintingData currentData = painting.getCustomData();
-      Identifier currentId = currentData.id();
-
-      PaintingData newData = known.values().stream()
-          .filter((knownData) -> {
-            return knownData.id().getPath().equals(currentId.getPath())
-                && knownData.width() == currentData.width()
-                && knownData.height() == currentData.height()
-                && knownData.name().equals(currentData.name())
-                && knownData.artist().equals(currentData.artist());
-          })
-          .findFirst()
-          .orElse(null);
-
-      if (newData != null) {
-        painting.setCustomData(
-            newData.id(),
-            newData.index(),
-            currentData.width(),
-            currentData.height(),
-            currentData.name(),
-            currentData.artist(),
-            newData.isVanilla());
-
-        autoFixed++;
-      }
-    }
-
-    return autoFixed;
   }
 
   public static void reassignId(ServerPlayerEntity player, UUID paintingUuid, Identifier id, boolean fix) {

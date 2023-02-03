@@ -1,4 +1,4 @@
-package me.roundaround.custompaintings.server.command;
+package me.roundaround.custompaintings.server.command.suggest;
 
 import java.util.HashSet;
 import java.util.Set;
