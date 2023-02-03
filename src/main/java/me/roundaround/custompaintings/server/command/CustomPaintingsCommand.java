@@ -66,52 +66,31 @@ public class CustomPaintingsCommand {
                   Optional.of(IdentifierArgumentType.getIdentifier(context, "id")));
             }));
 
+    LiteralArgumentBuilder<ServerCommandSource> reassignSub = CommandManager
+        .literal("reassign")
+        .then(CommandManager.argument("from", IdentifierArgumentType.identifier())
+            .suggests(new ExistingPaintingIdentifierSuggestionProvider(true))
+            .then(CommandManager.argument("to", IdentifierArgumentType.identifier())
+                .suggests(new KnownPaintingIdentifierSuggestionProvider())
+                .executes(context -> {
+                  return executeReassign(
+                      context.getSource(),
+                      IdentifierArgumentType.getIdentifier(context, "from"),
+                      IdentifierArgumentType.getIdentifier(context, "to"));
+                })));
+
     LiteralArgumentBuilder<ServerCommandSource> fixSub = CommandManager
         .literal("fix")
-        .then(CommandManager.literal("id")
-            .then(CommandManager.argument("from", IdentifierArgumentType.identifier())
-                .suggests(new ExistingPaintingIdentifierSuggestionProvider(true))
-                .then(CommandManager.argument("to", IdentifierArgumentType.identifier())
-                    .suggests(new KnownPaintingIdentifierSuggestionProvider())
-                    .executes(context -> {
-                      return executeFixIds(
-                          context.getSource(),
-                          IdentifierArgumentType.getIdentifier(context, "from"),
-                          IdentifierArgumentType.getIdentifier(context, "to"));
-                    }))))
-        .then(CommandManager.literal("size")
+        .executes(context -> {
+          return executeFix(context.getSource(), null);
+        })
+        .then(CommandManager.argument("id", IdentifierArgumentType.identifier())
+            .suggests(new KnownPaintingIdentifierSuggestionProvider(true))
             .executes(context -> {
-              return executeFixSizes(context.getSource(), null);
-            })
-            .then(CommandManager.argument("id", IdentifierArgumentType.identifier())
-                .suggests(new KnownPaintingIdentifierSuggestionProvider(true))
-                .executes(context -> {
-                  return executeFixSizes(
-                      context.getSource(),
-                      IdentifierArgumentType.getIdentifier(context, "id"));
-                })))
-        .then(CommandManager.literal("info")
-            .executes(context -> {
-              return executeFixInfo(context.getSource(), null);
-            })
-            .then(CommandManager.argument("id", IdentifierArgumentType.identifier())
-                .suggests(new KnownPaintingIdentifierSuggestionProvider(true))
-                .executes(context -> {
-                  return executeFixInfo(
-                      context.getSource(),
-                      IdentifierArgumentType.getIdentifier(context, "id"));
-                })))
-        .then(CommandManager.literal("everything")
-            .executes(context -> {
-              return executeFixEverything(context.getSource(), null);
-            })
-            .then(CommandManager.argument("id", IdentifierArgumentType.identifier())
-                .suggests(new KnownPaintingIdentifierSuggestionProvider(true))
-                .executes(context -> {
-                  return executeFixEverything(
-                      context.getSource(),
-                      IdentifierArgumentType.getIdentifier(context, "id"));
-                })));
+              return executeFix(
+                  context.getSource(),
+                  IdentifierArgumentType.getIdentifier(context, "id"));
+            }));
 
     LiteralArgumentBuilder<ServerCommandSource> manageSub = CommandManager
         .literal("manage")
@@ -129,6 +108,7 @@ public class CustomPaintingsCommand {
         .then(identifySub)
         .then(countSub)
         .then(removeSub)
+        .then(reassignSub)
         .then(fixSub)
         .then(manageSub)
         .then(autoFixSub);
@@ -286,7 +266,7 @@ public class CustomPaintingsCommand {
     return toRemove.size();
   }
 
-  private static int executeFixIds(ServerCommandSource source, Identifier from, Identifier to) {
+  private static int executeReassign(ServerCommandSource source, Identifier from, Identifier to) {
     ArrayList<ExpandedPaintingEntity> toUpdate = new ArrayList<>();
 
     source.getServer().getWorlds().forEach((world) -> {
@@ -311,91 +291,15 @@ public class CustomPaintingsCommand {
     });
 
     if (toUpdate.isEmpty()) {
-      source.sendFeedback(Text.translatable("custompaintings.command.fix.none"), true);
+      source.sendFeedback(Text.translatable("custompaintings.command.reassign.none"), true);
     } else {
-      source.sendFeedback(Text.translatable("custompaintings.command.fix.success", toUpdate.size()), true);
+      source.sendFeedback(Text.translatable("custompaintings.command.reassign.success", toUpdate.size()), true);
     }
 
     return toUpdate.size();
   }
 
-  private static int executeFixSizes(ServerCommandSource source, Identifier id) {
-    ArrayList<ExpandedPaintingEntity> toUpdate = new ArrayList<>();
-    Map<Identifier, PaintingData> known = ServerPaintingManager.getKnownPaintings(source.getPlayer());
-
-    source.getServer().getWorlds().forEach((world) -> {
-      world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
-          .stream()
-          .filter((entity) -> {
-            Identifier entityId = ((ExpandedPaintingEntity) entity).getCustomData().id();
-            return (id == null || entityId.equals(id)) && known.containsKey(entityId);
-          })
-          .forEach((entity) -> {
-            toUpdate.add((ExpandedPaintingEntity) entity);
-          });
-    });
-
-    toUpdate.forEach((painting) -> {
-      PaintingData currentData = painting.getCustomData();
-      PaintingData knownData = known.get(currentData.id());
-      painting.setCustomData(
-          currentData.id(),
-          currentData.index(),
-          knownData.width(),
-          knownData.height(),
-          currentData.name(),
-          currentData.artist(),
-          currentData.isVanilla());
-    });
-
-    if (toUpdate.isEmpty()) {
-      source.sendFeedback(Text.translatable("custompaintings.command.fix.none"), true);
-    } else {
-      source.sendFeedback(Text.translatable("custompaintings.command.fix.success", toUpdate.size()), true);
-    }
-
-    return toUpdate.size();
-  }
-
-  private static int executeFixInfo(ServerCommandSource source, Identifier id) {
-    ArrayList<ExpandedPaintingEntity> toUpdate = new ArrayList<>();
-    Map<Identifier, PaintingData> known = ServerPaintingManager.getKnownPaintings(source.getPlayer());
-
-    source.getServer().getWorlds().forEach((world) -> {
-      world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
-          .stream()
-          .filter((entity) -> {
-            Identifier entityId = ((ExpandedPaintingEntity) entity).getCustomData().id();
-            return (id == null || entityId.equals(id)) && known.containsKey(entityId);
-          })
-          .forEach((entity) -> {
-            toUpdate.add((ExpandedPaintingEntity) entity);
-          });
-    });
-
-    toUpdate.forEach((painting) -> {
-      PaintingData currentData = painting.getCustomData();
-      PaintingData knownData = known.get(currentData.id());
-      painting.setCustomData(
-          currentData.id(),
-          knownData.index(),
-          currentData.width(),
-          currentData.height(),
-          knownData.name(),
-          knownData.artist(),
-          knownData.isVanilla());
-    });
-
-    if (toUpdate.isEmpty()) {
-      source.sendFeedback(Text.translatable("custompaintings.command.fix.none"), true);
-    } else {
-      source.sendFeedback(Text.translatable("custompaintings.command.fix.success", toUpdate.size()), true);
-    }
-
-    return toUpdate.size();
-  }
-
-  private static int executeFixEverything(ServerCommandSource source, Identifier id) {
+  private static int executeFix(ServerCommandSource source, Identifier id) {
     ArrayList<ExpandedPaintingEntity> toUpdate = new ArrayList<>();
     Map<Identifier, PaintingData> known = ServerPaintingManager.getKnownPaintings(source.getPlayer());
 
