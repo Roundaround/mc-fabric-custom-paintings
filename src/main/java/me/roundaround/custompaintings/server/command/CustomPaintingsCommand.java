@@ -311,9 +311,9 @@ public class CustomPaintingsCommand {
     });
 
     if (toUpdate.isEmpty()) {
-      source.sendFeedback(Text.translatable("custompaintings.command.fix.ids.none"), true);
+      source.sendFeedback(Text.translatable("custompaintings.command.fix.none"), true);
     } else {
-      source.sendFeedback(Text.translatable("custompaintings.command.fix.ids.success", toUpdate.size()), true);
+      source.sendFeedback(Text.translatable("custompaintings.command.fix.success", toUpdate.size()), true);
     }
 
     return toUpdate.size();
@@ -349,9 +349,9 @@ public class CustomPaintingsCommand {
     });
 
     if (toUpdate.isEmpty()) {
-      source.sendFeedback(Text.translatable("custompaintings.command.fix.sizes.none"), true);
+      source.sendFeedback(Text.translatable("custompaintings.command.fix.none"), true);
     } else {
-      source.sendFeedback(Text.translatable("custompaintings.command.fix.sizes.success", toUpdate.size()), true);
+      source.sendFeedback(Text.translatable("custompaintings.command.fix.success", toUpdate.size()), true);
     }
 
     return toUpdate.size();
@@ -387,9 +387,9 @@ public class CustomPaintingsCommand {
     });
 
     if (toUpdate.isEmpty()) {
-      source.sendFeedback(Text.translatable("custompaintings.command.fix.info.none"), true);
+      source.sendFeedback(Text.translatable("custompaintings.command.fix.none"), true);
     } else {
-      source.sendFeedback(Text.translatable("custompaintings.command.fix.info.success", toUpdate.size()), true);
+      source.sendFeedback(Text.translatable("custompaintings.command.fix.success", toUpdate.size()), true);
     }
 
     return toUpdate.size();
@@ -425,9 +425,9 @@ public class CustomPaintingsCommand {
     });
 
     if (toUpdate.isEmpty()) {
-      source.sendFeedback(Text.translatable("custompaintings.command.fix.everything.none"), true);
+      source.sendFeedback(Text.translatable("custompaintings.command.fix.none"), true);
     } else {
-      source.sendFeedback(Text.translatable("custompaintings.command.fix.everything.success", toUpdate.size()), true);
+      source.sendFeedback(Text.translatable("custompaintings.command.fix.success", toUpdate.size()), true);
     }
 
     return toUpdate.size();
