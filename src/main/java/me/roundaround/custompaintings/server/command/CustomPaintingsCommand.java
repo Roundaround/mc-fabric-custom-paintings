@@ -23,6 +23,7 @@ import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.entity.projectile.ProjectileUtil;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -48,6 +49,9 @@ public class CustomPaintingsCommand {
 
     LiteralArgumentBuilder<ServerCommandSource> countSub = CommandManager
         .literal("count")
+        .executes(context -> {
+          return executeCount(context.getSource());
+        })
         .then(CommandManager.argument("id", IdentifierArgumentType.identifier())
             .suggests(new KnownPaintingIdentifierSuggestionProvider())
             .executes(context -> {
@@ -129,35 +133,14 @@ public class CustomPaintingsCommand {
 
   private static int executeIdentify(ServerCommandSource source) {
     ServerPlayerEntity player = source.getPlayer();
+    Optional<PaintingEntity> maybePainting = getPaintingInCrosshair(player);
 
-    Entity camera = player.getCameraEntity();
-    double distance = 64;
-    Vec3d posVec = camera.getCameraPosVec(0f);
-    Vec3d rotationVec = camera.getRotationVec(1f);
-    Vec3d targetVec = posVec.add(
-        rotationVec.x * distance,
-        rotationVec.y * distance,
-        rotationVec.z * distance);
-
-    HitResult crosshairTarget = ProjectileUtil.raycast(
-        player.getCameraEntity(),
-        posVec,
-        targetVec,
-        camera.getBoundingBox().stretch(rotationVec.multiply(distance)).expand(1.0, 1.0, 1.0),
-        entity -> entity instanceof PaintingEntity,
-        distance * distance);
-    if (!(crosshairTarget instanceof EntityHitResult)) {
+    if (!maybePainting.isPresent()) {
       source.sendFeedback(Text.translatable("custompaintings.command.identify.none"), true);
       return 0;
     }
 
-    EntityHitResult entityHitResult = (EntityHitResult) crosshairTarget;
-    if (!(entityHitResult.getEntity() instanceof PaintingEntity)) {
-      source.sendFeedback(Text.translatable("custompaintings.command.identify.none"), true);
-      return 0;
-    }
-
-    PaintingEntity vanillaPainting = (PaintingEntity) entityHitResult.getEntity();
+    PaintingEntity vanillaPainting = maybePainting.get();
     if (!(vanillaPainting instanceof ExpandedPaintingEntity)) {
       identifyVanillaPainting(source, vanillaPainting);
       return 1;
@@ -182,6 +165,11 @@ public class CustomPaintingsCommand {
         paintingData.width(),
         paintingData.height()));
 
+    int count = countPaintings(source.getServer(), paintingData.id());
+    lines.add(Text.translatable(
+        "custompaintings.command.identify.count",
+        count));
+
     Map<Identifier, PaintingData> known = CustomPaintingsMod.knownPaintings.get(player.getUuid())
         .stream()
         .collect(Collectors.toMap(PaintingData::id, Function.identity()));
@@ -201,6 +189,35 @@ public class CustomPaintingsCommand {
     return 1;
   }
 
+  private static Optional<PaintingEntity> getPaintingInCrosshair(ServerPlayerEntity player) {
+    Entity camera = player.getCameraEntity();
+    double distance = 64;
+    Vec3d posVec = camera.getCameraPosVec(0f);
+    Vec3d rotationVec = camera.getRotationVec(1f);
+    Vec3d targetVec = posVec.add(
+        rotationVec.x * distance,
+        rotationVec.y * distance,
+        rotationVec.z * distance);
+
+    HitResult crosshairTarget = ProjectileUtil.raycast(
+        player.getCameraEntity(),
+        posVec,
+        targetVec,
+        camera.getBoundingBox().stretch(rotationVec.multiply(distance)).expand(1.0, 1.0, 1.0),
+        entity -> entity instanceof PaintingEntity,
+        distance * distance);
+    if (!(crosshairTarget instanceof EntityHitResult)) {
+      return Optional.empty();
+    }
+
+    EntityHitResult entityHitResult = (EntityHitResult) crosshairTarget;
+    if (!(entityHitResult.getEntity() instanceof PaintingEntity)) {
+      return Optional.empty();
+    }
+
+    return Optional.of((PaintingEntity) entityHitResult.getEntity());
+  }
+
   private static void identifyVanillaPainting(ServerCommandSource source, PaintingEntity painting) {
     ArrayList<Text> lines = new ArrayList<>();
 
@@ -218,20 +235,51 @@ public class CustomPaintingsCommand {
     }
   }
 
+  private static int executeCount(ServerCommandSource source) {
+    Optional<PaintingEntity> maybePainting = getPaintingInCrosshair(source.getPlayer());
+
+    if (!maybePainting.isPresent()) {
+      source.sendFeedback(Text.translatable("custompaintings.command.count.none"), true);
+      return 0;
+    }
+
+    PaintingEntity vanillaPainting = maybePainting.get();
+    if (!(vanillaPainting instanceof ExpandedPaintingEntity)) {
+      Identifier id = Registry.PAINTING_VARIANT.getId(vanillaPainting.getVariant().value());
+      return executeCount(source, id);
+    }
+
+    ExpandedPaintingEntity painting = (ExpandedPaintingEntity) vanillaPainting;
+    PaintingData paintingData = painting.getCustomData();
+    if (paintingData.isEmpty() || paintingData.isVanilla()) {
+      Identifier id = Registry.PAINTING_VARIANT.getId(vanillaPainting.getVariant().value());
+      return executeCount(source, id);
+    }
+
+    return executeCount(source, paintingData.id());
+  }
+
   private static int executeCount(ServerCommandSource source, Identifier identifier) {
+    int count = countPaintings(source.getServer(), identifier);
+
+    source.sendFeedback(Text.translatable(
+        "custompaintings.command.count.success",
+        identifier.toString(),
+        count), true);
+
+    return count;
+  }
+
+  private static int countPaintings(MinecraftServer server, Identifier identifier) {
     int count = 0;
 
-    for (ServerWorld world : source.getServer().getWorlds()) {
+    for (ServerWorld world : server.getWorlds()) {
       count += world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
           .stream()
           .filter((entity) -> ((ExpandedPaintingEntity) entity).getCustomData().id().equals(identifier))
           .count();
     }
 
-    source.sendFeedback(Text.translatable(
-        "custompaintings.command.count",
-        identifier.toString(),
-        count), true);
     return count;
   }
 
