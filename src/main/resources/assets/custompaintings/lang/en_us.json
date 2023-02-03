@@ -39,5 +39,15 @@
   "custompaintings.mismatched.loading": "Loading...",
   "custompaintings.mismatched.empty": "Nothing to show!",
   "custompaintings.mismatched.fix": "Update the painting with the data from the currently enabled resource pack",
-  "custompaintings.command.count": "%s: %s"
+  "custompaintings.command.identify.none": "No paintings found",
+  "custompaintings.command.identify.missing": "* Not found in enabled resource packs",
+  "custompaintings.command.identify.mismatched.info": "* Mismatched info",
+  "custompaintings.command.identify.mismatched.size": "* Mismatched size",
+  "custompaintings.command.count": "%s: %s",
+  "custompaintings.command.remove.none": "No paintings found",
+  "custompaintings.command.remove.success": "Removed %s paintings",
+  "custompaintings.command.fix.none": "No paintings found",
+  "custompaintings.command.fix.success": "Updated %s paintings",
+  "custompaintings.command.autofix.none": "No paintings found",
+  "custompaintings.command.autofix.success": "Updated %s paintings"
 }
