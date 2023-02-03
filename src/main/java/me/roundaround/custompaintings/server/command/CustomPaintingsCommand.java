@@ -69,7 +69,7 @@ public class CustomPaintingsCommand {
     LiteralArgumentBuilder<ServerCommandSource> reassignSub = CommandManager
         .literal("reassign")
         .then(CommandManager.argument("from", IdentifierArgumentType.identifier())
-            .suggests(new ExistingPaintingIdentifierSuggestionProvider(true))
+            .suggests(new ExistingPaintingIdentifierSuggestionProvider())
             .then(CommandManager.argument("to", IdentifierArgumentType.identifier())
                 .suggests(new KnownPaintingIdentifierSuggestionProvider())
                 .executes(context -> {
