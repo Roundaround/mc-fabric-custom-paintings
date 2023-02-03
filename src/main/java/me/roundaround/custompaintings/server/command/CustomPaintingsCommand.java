@@ -77,7 +77,18 @@ public class CustomPaintingsCommand {
                       context.getSource(),
                       IdentifierArgumentType.getIdentifier(context, "from"),
                       IdentifierArgumentType.getIdentifier(context, "to"));
-                })));
+                })))
+        .then(CommandManager.literal("id")
+            .then(CommandManager.argument("from", IdentifierArgumentType.identifier())
+                .suggests(new ExistingPaintingIdentifierSuggestionProvider())
+                .then(CommandManager.argument("to", IdentifierArgumentType.identifier())
+                    .suggests(new KnownPaintingIdentifierSuggestionProvider())
+                    .executes(context -> {
+                      return executeReassignId(
+                          context.getSource(),
+                          IdentifierArgumentType.getIdentifier(context, "from"),
+                          IdentifierArgumentType.getIdentifier(context, "to"));
+                    }))));
 
     LiteralArgumentBuilder<ServerCommandSource> fixSub = CommandManager
         .literal("fix")
@@ -267,6 +278,45 @@ public class CustomPaintingsCommand {
   }
 
   private static int executeReassign(ServerCommandSource source, Identifier from, Identifier to) {
+    ArrayList<ExpandedPaintingEntity> toUpdate = new ArrayList<>();
+    Map<Identifier, PaintingData> known = ServerPaintingManager.getKnownPaintings(source.getPlayer());
+
+    if (!known.containsKey(to)) {
+      source.sendFeedback(Text.translatable("custompaintings.command.reassign.unknown", to), true);
+      return 0;
+    }
+
+    source.getServer().getWorlds().forEach((world) -> {
+      world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
+          .stream()
+          .filter((entity) -> ((ExpandedPaintingEntity) entity).getCustomData().id().equals(from))
+          .forEach((entity) -> {
+            toUpdate.add((ExpandedPaintingEntity) entity);
+          });
+    });
+
+    PaintingData knownData = known.get(to);
+    toUpdate.forEach((painting) -> {
+      painting.setCustomData(
+          knownData.id(),
+          knownData.index(),
+          knownData.width(),
+          knownData.height(),
+          knownData.name(),
+          knownData.artist(),
+          knownData.isVanilla());
+    });
+
+    if (toUpdate.isEmpty()) {
+      source.sendFeedback(Text.translatable("custompaintings.command.reassign.none"), true);
+    } else {
+      source.sendFeedback(Text.translatable("custompaintings.command.reassign.success", toUpdate.size()), true);
+    }
+
+    return toUpdate.size();
+  }
+
+  private static int executeReassignId(ServerCommandSource source, Identifier from, Identifier to) {
     ArrayList<ExpandedPaintingEntity> toUpdate = new ArrayList<>();
 
     source.getServer().getWorlds().forEach((world) -> {

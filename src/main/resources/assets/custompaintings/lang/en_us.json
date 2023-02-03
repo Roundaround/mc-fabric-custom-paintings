@@ -46,6 +46,7 @@
   "custompaintings.command.count": "%s: %s",
   "custompaintings.command.remove.none": "No paintings found",
   "custompaintings.command.remove.success": "Removed %s paintings",
+  "custompaintings.command.reassign.unknown": "Unknown painting ID: %s",
   "custompaintings.command.reassign.none": "No paintings found",
   "custompaintings.command.reassign.success": "Updated %s paintings",
   "custompaintings.command.fix.none": "No paintings found",
