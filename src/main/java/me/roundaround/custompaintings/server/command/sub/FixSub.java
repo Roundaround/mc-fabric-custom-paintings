@@ -62,9 +62,9 @@ public class FixSub {
     });
 
     if (toUpdate.isEmpty()) {
-      source.sendFeedback(Text.translatable("custompaintings.command.fix.none"), true);
+      source.sendFeedback(Text.translatable("custompaintings.command.fix.none"), false);
     } else {
-      source.sendFeedback(Text.translatable("custompaintings.command.fix.success", toUpdate.size()), true);
+      source.sendFeedback(Text.translatable("custompaintings.command.fix.success", toUpdate.size()), false);
     }
 
     return toUpdate.size();

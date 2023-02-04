@@ -49,7 +49,7 @@ public class CountSub {
     Optional<PaintingEntity> maybePainting = IdentifySub.getPaintingInCrosshair(source.getPlayer());
 
     if (!maybePainting.isPresent()) {
-      source.sendFeedback(Text.translatable("custompaintings.command.count.none"), true);
+      source.sendFeedback(Text.translatable("custompaintings.command.count.none"), false);
       return 0;
     }
 
@@ -75,7 +75,7 @@ public class CountSub {
     source.sendFeedback(Text.translatable(
         "custompaintings.command.count.success",
         identifier.toString(),
-        count), true);
+        count), false);
 
     return count;
   }

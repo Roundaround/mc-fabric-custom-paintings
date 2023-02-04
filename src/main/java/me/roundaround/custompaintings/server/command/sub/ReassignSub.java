@@ -49,7 +49,7 @@ public class ReassignSub {
     Map<Identifier, PaintingData> known = ServerPaintingManager.getKnownPaintings(source.getPlayer());
 
     if (!known.containsKey(to)) {
-      source.sendFeedback(Text.translatable("custompaintings.command.reassign.unknown", to), true);
+      source.sendFeedback(Text.translatable("custompaintings.command.reassign.unknown", to), false);
       return 0;
     }
 
@@ -75,9 +75,9 @@ public class ReassignSub {
     });
 
     if (toUpdate.isEmpty()) {
-      source.sendFeedback(Text.translatable("custompaintings.command.reassign.none"), true);
+      source.sendFeedback(Text.translatable("custompaintings.command.reassign.none"), false);
     } else {
-      source.sendFeedback(Text.translatable("custompaintings.command.reassign.success", toUpdate.size()), true);
+      source.sendFeedback(Text.translatable("custompaintings.command.reassign.success", toUpdate.size()), false);
     }
 
     return toUpdate.size();
@@ -108,9 +108,9 @@ public class ReassignSub {
     });
 
     if (toUpdate.isEmpty()) {
-      source.sendFeedback(Text.translatable("custompaintings.command.reassign.none"), true);
+      source.sendFeedback(Text.translatable("custompaintings.command.reassign.none"), false);
     } else {
-      source.sendFeedback(Text.translatable("custompaintings.command.reassign.success", toUpdate.size()), true);
+      source.sendFeedback(Text.translatable("custompaintings.command.reassign.success", toUpdate.size()), false);
     }
 
     return toUpdate.size();

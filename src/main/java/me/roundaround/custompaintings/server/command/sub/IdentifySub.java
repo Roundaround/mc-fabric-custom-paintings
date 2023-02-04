@@ -69,7 +69,7 @@ public class IdentifySub {
     Optional<PaintingEntity> maybePainting = getPaintingInCrosshair(player);
 
     if (!maybePainting.isPresent()) {
-      source.sendFeedback(Text.translatable("custompaintings.command.identify.none"), true);
+      source.sendFeedback(Text.translatable("custompaintings.command.identify.none"), false);
       return 0;
     }
 
@@ -117,7 +117,7 @@ public class IdentifySub {
     }
 
     for (Text line : lines) {
-      source.sendFeedback(line, true);
+      source.sendFeedback(line, false);
     }
     return 1;
   }
@@ -135,7 +135,7 @@ public class IdentifySub {
         variant.getHeight() / 16));
 
     for (Text line : lines) {
-      source.sendFeedback(line, true);
+      source.sendFeedback(line, false);
     }
   }
 }

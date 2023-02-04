@@ -67,9 +67,9 @@ public class RemoveSub {
     });
 
     if (toRemove.isEmpty()) {
-      source.sendFeedback(Text.translatable("custompaintings.command.remove.none"), true);
+      source.sendFeedback(Text.translatable("custompaintings.command.remove.none"), false);
     } else {
-      source.sendFeedback(Text.translatable("custompaintings.command.remove.success", toRemove.size()), true);
+      source.sendFeedback(Text.translatable("custompaintings.command.remove.success", toRemove.size()), false);
     }
 
     return toRemove.size();

@@ -43,7 +43,7 @@ public class MoveSub {
     Optional<PaintingEntity> maybePainting = IdentifySub.getPaintingInCrosshair(source.getPlayer());
 
     if (!maybePainting.isPresent()) {
-      source.sendFeedback(Text.translatable("custompaintings.command.move.none"), true);
+      source.sendFeedback(Text.translatable("custompaintings.command.move.none"), false);
       return 0;
     }
 
@@ -105,11 +105,11 @@ public class MoveSub {
     painting.setPosition(newX, newY, newZ);
     if (!painting.canStayAttached()) {
       painting.setPosition(x, y, z);
-      source.sendFeedback(Text.translatable("custompaintings.command.move.invalid"), true);
+      source.sendFeedback(Text.translatable("custompaintings.command.move.invalid"), false);
       return 0;
     }
 
-    source.sendFeedback(Text.translatable("custompaintings.command.move.success", dir.toString(), amount), true);
+    source.sendFeedback(Text.translatable("custompaintings.command.move.success", dir.toString(), amount), false);
     return 1;
   }
 
