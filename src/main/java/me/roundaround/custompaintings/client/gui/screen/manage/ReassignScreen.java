@@ -14,7 +14,7 @@ import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
-public class ReassignScreen extends Screen implements KnownPaintingsTracker {
+public class ReassignScreen extends Screen implements PaintingPacksTracker {
   private static final int BUTTON_WIDTH = 150;
   private static final int BUTTON_HEIGHT = 20;
   private static final int SEARCH_WIDTH = 200;

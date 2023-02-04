@@ -19,7 +19,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.custompaintings.client.gui.screen.manage.KnownPaintingsTracker;
+import me.roundaround.custompaintings.client.gui.screen.manage.PaintingPacksTracker;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.util.Migration;
@@ -135,8 +135,8 @@ public class CustomPaintingManager
       sendKnownPaintingsToServer();
     }
 
-    if (MINECRAFT.currentScreen instanceof KnownPaintingsTracker) {
-      ((KnownPaintingsTracker) MINECRAFT.currentScreen).onResourcesReloaded();
+    if (MINECRAFT.currentScreen instanceof PaintingPacksTracker) {
+      ((PaintingPacksTracker) MINECRAFT.currentScreen).onResourcesReloaded();
     }
 
     return super.prepare(resourceManager, profiler);

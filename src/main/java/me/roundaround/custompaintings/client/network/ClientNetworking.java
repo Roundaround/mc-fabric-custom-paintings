@@ -87,9 +87,6 @@ public class ClientNetworking {
 
   public static void sendApplyMigrationPacket(Migration migration) {
     PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-    buf.writeString(migration.id());
-    buf.writeString(migration.packId());
-    buf.writeInt(migration.index());
     buf.writeInt(migration.pairs().size());
     for (Pair<String, String> pair : migration.pairs()) {
       buf.writeString(pair.getLeft());

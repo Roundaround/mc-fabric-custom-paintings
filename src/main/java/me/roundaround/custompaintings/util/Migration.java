@@ -10,4 +10,8 @@ public record Migration(
     String packId,
     int index,
     List<Pair<String, String>> pairs) {
+
+  public Migration(List<Pair<String, String>> pairs) {
+    this("", "", "", 0, pairs);
+  }
 }

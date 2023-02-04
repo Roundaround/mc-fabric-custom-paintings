@@ -8,7 +8,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
-import me.roundaround.custompaintings.network.ServerNetworking;
+import me.roundaround.custompaintings.server.network.ServerNetworking;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.entity.decoration.painting.PaintingVariants;
 import net.minecraft.item.DecorationItem;

@@ -1,4 +1,4 @@
-package me.roundaround.custompaintings.network;
+package me.roundaround.custompaintings.server.network;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -9,6 +9,7 @@ import io.netty.buffer.Unpooled;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.network.NetworkPackets;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
 import me.roundaround.custompaintings.util.Migration;
 import me.roundaround.custompaintings.util.MismatchedPainting;
@@ -213,20 +214,14 @@ public class ServerNetworking {
       ServerPlayNetworkHandler handler,
       PacketByteBuf buf,
       PacketSender responseSender) {
-    String id = buf.readString();
-    String description = buf.readString();
-    String packId = buf.readString();
-    int index = buf.readInt();
     int size = buf.readInt();
     List<Pair<String, String>> pairs = new ArrayList<>();
     for (int i = 0; i < size; i++) {
       pairs.add(new Pair<>(buf.readString(), buf.readString()));
     }
 
-    Migration migration = new Migration(id, description, packId, index, pairs);
-
     server.execute(() -> {
-      ServerPaintingManager.applyMigration(player, migration);
+      ServerPaintingManager.applyMigration(player, new Migration(pairs));
     });
   }
 }

@@ -8,9 +8,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.custompaintings.network.ServerNetworking;
 import me.roundaround.custompaintings.server.command.CustomPaintingsCommand;
 import me.roundaround.custompaintings.server.command.sub.MoveSub.MoveDirectionArgumentType;
+import me.roundaround.custompaintings.server.network.ServerNetworking;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.ArgumentTypeRegistry;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;

@@ -42,6 +42,18 @@ public class ManagePaintingsScreen extends Screen {
           this.client.setScreen(new MismatchedPaintingsScreen(this));
         }));
 
+    yPos += BUTTON_HEIGHT + PADDING;
+
+    addDrawableChild(new ButtonWidget(
+        xPos,
+        yPos,
+        BUTTON_WIDTH,
+        BUTTON_HEIGHT,
+        Text.translatable("custompaintings.manage.migrations"),
+        (button) -> {
+          this.client.setScreen(new MigrationsScreen(this));
+        }));
+
     addDrawableChild(new ButtonWidget(
         (this.width - BUTTON_WIDTH) / 2,
         this.height - BUTTON_HEIGHT - PADDING,
