@@ -2,6 +2,7 @@ package me.roundaround.custompaintings.server.command.sub;
 
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Optional;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
@@ -11,6 +12,7 @@ import me.roundaround.custompaintings.server.ServerPaintingManager;
 import me.roundaround.custompaintings.server.command.suggest.KnownPaintingIdentifierSuggestionProvider;
 import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
@@ -21,8 +23,12 @@ public class FixSub {
     return CommandManager
         .literal("fix")
         .executes(context -> {
-          return execute(context.getSource(), null);
+          return executeTargeted(context.getSource());
         })
+        .then(CommandManager.literal("all")
+            .executes(context -> {
+              return execute(context.getSource(), null);
+            }))
         .then(CommandManager.argument("id", IdentifierArgumentType.identifier())
             .suggests(new KnownPaintingIdentifierSuggestionProvider(true))
             .executes(context -> {
@@ -32,9 +38,42 @@ public class FixSub {
             }));
   }
 
+  private static int executeTargeted(ServerCommandSource source) {
+    Optional<PaintingEntity> maybePainting = IdentifySub.getPaintingInCrosshair(source.getPlayer());
+
+    if (!maybePainting.isPresent()) {
+      source.sendFeedback(Text.translatable("custompaintings.command.fix.none"), false);
+      return 0;
+    }
+
+    PaintingEntity vanillaPainting = maybePainting.get();
+    if (!(vanillaPainting instanceof ExpandedPaintingEntity)) {
+      source.sendFeedback(Text.translatable("custompaintings.command.fix.none"), false);
+      return 0;
+    }
+
+    Map<Identifier, PaintingData> known = ServerPaintingManager.getKnownPaintings(source.getPlayer());
+    ExpandedPaintingEntity painting = (ExpandedPaintingEntity) vanillaPainting;
+    PaintingData currentData = painting.getCustomData();
+
+    if (!known.containsKey(currentData.id())) {
+      source.sendFeedback(Text.translatable("custompaintings.command.fix.unknown", currentData.id()), false);
+      return 0;
+    }
+
+    source.sendFeedback(Text.translatable("custompaintings.command.fix.success", 1), false);
+    painting.setCustomData(known.get(currentData.id()));
+    return 1;
+  }
+
   private static int execute(ServerCommandSource source, Identifier id) {
     ArrayList<ExpandedPaintingEntity> toUpdate = new ArrayList<>();
     Map<Identifier, PaintingData> known = ServerPaintingManager.getKnownPaintings(source.getPlayer());
+
+    if (id != null && !known.containsKey(id)) {
+      source.sendFeedback(Text.translatable("custompaintings.command.fix.unknown", id), false);
+      return 0;
+    }
 
     source.getServer().getWorlds().forEach((world) -> {
       world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)

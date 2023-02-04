@@ -2,6 +2,7 @@ package me.roundaround.custompaintings.server.command.sub;
 
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Optional;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
@@ -12,6 +13,7 @@ import me.roundaround.custompaintings.server.command.suggest.ExistingPaintingIde
 import me.roundaround.custompaintings.server.command.suggest.KnownPaintingIdentifierSuggestionProvider;
 import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
@@ -21,27 +23,45 @@ public class ReassignSub {
   public static LiteralArgumentBuilder<ServerCommandSource> build() {
     return CommandManager
         .literal("reassign")
-        .then(CommandManager.argument("from", IdentifierArgumentType.identifier())
-            .suggests(new ExistingPaintingIdentifierSuggestionProvider())
-            .then(CommandManager.argument("to", IdentifierArgumentType.identifier())
-                .suggests(new KnownPaintingIdentifierSuggestionProvider())
-                .executes(context -> {
-                  return execute(
-                      context.getSource(),
-                      IdentifierArgumentType.getIdentifier(context, "from"),
-                      IdentifierArgumentType.getIdentifier(context, "to"));
-                })))
-        .then(CommandManager.literal("id")
+        .then(CommandManager.literal("all")
+            .then(CommandManager.literal("idonly")
+                .then(CommandManager.argument("from", IdentifierArgumentType.identifier())
+                    .suggests(new ExistingPaintingIdentifierSuggestionProvider())
+                    .then(CommandManager.argument("to", IdentifierArgumentType.identifier())
+                        .suggests(new KnownPaintingIdentifierSuggestionProvider())
+                        .executes(context -> {
+                          return executeIdOnly(
+                              context.getSource(),
+                              IdentifierArgumentType.getIdentifier(context, "from"),
+                              IdentifierArgumentType.getIdentifier(context, "to"));
+                        }))))
             .then(CommandManager.argument("from", IdentifierArgumentType.identifier())
                 .suggests(new ExistingPaintingIdentifierSuggestionProvider())
                 .then(CommandManager.argument("to", IdentifierArgumentType.identifier())
                     .suggests(new KnownPaintingIdentifierSuggestionProvider())
                     .executes(context -> {
-                      return executeIdOnly(
+                      return execute(
                           context.getSource(),
                           IdentifierArgumentType.getIdentifier(context, "from"),
                           IdentifierArgumentType.getIdentifier(context, "to"));
-                    }))));
+                    }))))
+        .then(CommandManager.literal("idonly")
+            .then(CommandManager.argument("to", IdentifierArgumentType.identifier())
+                .suggests(new KnownPaintingIdentifierSuggestionProvider())
+                .executes(context -> {
+                  return executeIdOnly(
+                      context.getSource(),
+                      null,
+                      IdentifierArgumentType.getIdentifier(context, "to"));
+                })))
+        .then(CommandManager.argument("to", IdentifierArgumentType.identifier())
+            .suggests(new KnownPaintingIdentifierSuggestionProvider())
+            .executes(context -> {
+              return execute(
+                  context.getSource(),
+                  null,
+                  IdentifierArgumentType.getIdentifier(context, "to"));
+            }));
   }
 
   private static int execute(ServerCommandSource source, Identifier from, Identifier to) {
@@ -53,14 +73,36 @@ public class ReassignSub {
       return 0;
     }
 
-    source.getServer().getWorlds().forEach((world) -> {
-      world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
-          .stream()
-          .filter((entity) -> ((ExpandedPaintingEntity) entity).getCustomData().id().equals(from))
-          .forEach((entity) -> {
-            toUpdate.add((ExpandedPaintingEntity) entity);
-          });
-    });
+    if (from == null) {
+      Optional<PaintingEntity> maybePainting = IdentifySub.getPaintingInCrosshair(source.getPlayer());
+
+      if (maybePainting.isEmpty()) {
+        source.sendFeedback(Text.translatable("custompaintings.command.reassign.none"), false);
+        return 0;
+      }
+
+      PaintingEntity painting = maybePainting.get();
+      if (!(painting instanceof ExpandedPaintingEntity)) {
+        source.sendFeedback(Text.translatable("custompaintings.command.reassign.none"), false);
+        return 0;
+      }
+
+      toUpdate.add((ExpandedPaintingEntity) painting);
+    } else {
+      source.getServer().getWorlds().forEach((world) -> {
+        world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
+            .stream()
+            .filter((entity) -> ((ExpandedPaintingEntity) entity).getCustomData().id().equals(from))
+            .forEach((entity) -> {
+              toUpdate.add((ExpandedPaintingEntity) entity);
+            });
+      });
+
+      if (toUpdate.isEmpty()) {
+        source.sendFeedback(Text.translatable("custompaintings.command.reassign.none"), false);
+        return 0;
+      }
+    }
 
     PaintingData knownData = known.get(to);
     toUpdate.forEach((painting) -> {
@@ -72,28 +114,49 @@ public class ReassignSub {
           knownData.name(),
           knownData.artist(),
           knownData.isVanilla());
+
+      if (knownData.isVanilla()) {
+        painting.setVariant(knownData.id());
+      }
     });
 
-    if (toUpdate.isEmpty()) {
-      source.sendFeedback(Text.translatable("custompaintings.command.reassign.none"), false);
-    } else {
-      source.sendFeedback(Text.translatable("custompaintings.command.reassign.success", toUpdate.size()), false);
-    }
-
+    source.sendFeedback(Text.translatable("custompaintings.command.reassign.success", toUpdate.size()), false);
     return toUpdate.size();
   }
 
   private static int executeIdOnly(ServerCommandSource source, Identifier from, Identifier to) {
     ArrayList<ExpandedPaintingEntity> toUpdate = new ArrayList<>();
 
-    source.getServer().getWorlds().forEach((world) -> {
-      world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
-          .stream()
-          .filter((entity) -> ((ExpandedPaintingEntity) entity).getCustomData().id().equals(from))
-          .forEach((entity) -> {
-            toUpdate.add((ExpandedPaintingEntity) entity);
-          });
-    });
+    if (from == null) {
+      Optional<PaintingEntity> maybePainting = IdentifySub.getPaintingInCrosshair(source.getPlayer());
+
+      if (maybePainting.isEmpty()) {
+        source.sendFeedback(Text.translatable("custompaintings.command.reassign.none"), false);
+        return 0;
+      }
+
+      PaintingEntity painting = maybePainting.get();
+      if (!(painting instanceof ExpandedPaintingEntity)) {
+        source.sendFeedback(Text.translatable("custompaintings.command.reassign.none"), false);
+        return 0;
+      }
+
+      toUpdate.add((ExpandedPaintingEntity) painting);
+    } else {
+      source.getServer().getWorlds().forEach((world) -> {
+        world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
+            .stream()
+            .filter((entity) -> ((ExpandedPaintingEntity) entity).getCustomData().id().equals(from))
+            .forEach((entity) -> {
+              toUpdate.add((ExpandedPaintingEntity) entity);
+            });
+      });
+
+      if (toUpdate.isEmpty()) {
+        source.sendFeedback(Text.translatable("custompaintings.command.reassign.none"), false);
+        return 0;
+      }
+    }
 
     toUpdate.forEach((painting) -> {
       PaintingData data = painting.getCustomData();
@@ -105,14 +168,13 @@ public class ReassignSub {
           data.name(),
           data.artist(),
           data.isVanilla());
+
+      if (data.isVanilla()) {
+        painting.setVariant(to);
+      }
     });
 
-    if (toUpdate.isEmpty()) {
-      source.sendFeedback(Text.translatable("custompaintings.command.reassign.none"), false);
-    } else {
-      source.sendFeedback(Text.translatable("custompaintings.command.reassign.success", toUpdate.size()), false);
-    }
-
+    source.sendFeedback(Text.translatable("custompaintings.command.reassign.success", toUpdate.size()), false);
     return toUpdate.size();
   }
 }
