@@ -90,7 +90,7 @@ public class UnknownPaintingsScreen extends Screen {
     addDrawableChild(this.removeButton);
 
     addDrawableChild(new ButtonWidget(
-        (this.width + BUTTON_WIDTH / 2 + PADDING),
+        (this.width + BUTTON_WIDTH) / 2 + PADDING,
         this.height - BUTTON_HEIGHT - PADDING,
         BUTTON_WIDTH,
         BUTTON_HEIGHT,
