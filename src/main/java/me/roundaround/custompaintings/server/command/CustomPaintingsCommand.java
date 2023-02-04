@@ -16,8 +16,10 @@ import net.minecraft.server.command.ServerCommandSource;
 public class CustomPaintingsCommand {
   public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
     dispatcher.register(CommandManager.literal(CustomPaintingsMod.MOD_ID)
-        .requires(source -> source.hasPermissionLevel(2))
-        .requires(source -> source.isExecutedByPlayer())
+        .requires(source -> {
+          return source.isExecutedByPlayer()
+              && (source.hasPermissionLevel(2) || source.getServer().isSingleplayer());
+        })
         .then(IdentifySub.build())
         .then(CountSub.build())
         .then(RemoveSub.build())
