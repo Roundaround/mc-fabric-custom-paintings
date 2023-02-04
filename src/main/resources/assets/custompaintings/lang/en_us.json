@@ -57,5 +57,5 @@
   "custompaintings.command.autofix.success": "Updated %s paintings",
   "custompaintings.command.move.none": "No painting found",
   "custompaintings.command.move.invalid": "Target destination is invalid",
-  "custompaintings.command.move.success": "Successfully moved painting %s %s block(s)"
+  "custompaintings.command.move.success": "Successfully moved %s %s block(s)"
 }
