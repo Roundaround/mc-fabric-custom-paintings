@@ -10,11 +10,15 @@ import org.apache.logging.log4j.Logger;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.network.ServerNetworking;
 import me.roundaround.custompaintings.server.command.CustomPaintingsCommand;
+import me.roundaround.custompaintings.server.command.sub.MoveSub.MoveDirectionArgumentType;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.ArgumentTypeRegistry;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.command.argument.serialize.ConstantArgumentSerializer;
 import net.minecraft.entity.data.TrackedDataHandler;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.util.Identifier;
 
 public final class CustomPaintingsMod implements ModInitializer {
   public static final String MOD_ID = "custompaintings";
@@ -38,6 +42,10 @@ public final class CustomPaintingsMod implements ModInitializer {
   public void onInitialize() {
     TrackedDataHandlerRegistry.register(CUSTOM_PAINTING_DATA_HANDLER);
     ServerNetworking.registerReceivers();
+
+    ArgumentTypeRegistry.registerArgumentType(new Identifier(CustomPaintingsMod.MOD_ID, "move_direction"),
+        MoveDirectionArgumentType.class,
+        ConstantArgumentSerializer.of(MoveDirectionArgumentType::direction));
 
     CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
       CustomPaintingsCommand.register(dispatcher);

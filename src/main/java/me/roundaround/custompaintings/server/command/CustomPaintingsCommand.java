@@ -7,6 +7,7 @@ import me.roundaround.custompaintings.server.command.sub.CountSub;
 import me.roundaround.custompaintings.server.command.sub.FixSub;
 import me.roundaround.custompaintings.server.command.sub.IdentifySub;
 import me.roundaround.custompaintings.server.command.sub.ManageSub;
+import me.roundaround.custompaintings.server.command.sub.MoveSub;
 import me.roundaround.custompaintings.server.command.sub.ReassignSub;
 import me.roundaround.custompaintings.server.command.sub.RemoveSub;
 import net.minecraft.server.command.CommandManager;
@@ -22,6 +23,7 @@ public class CustomPaintingsCommand {
         .then(RemoveSub.build())
         .then(ReassignSub.build())
         .then(FixSub.build())
-        .then(ManageSub.build()));
+        .then(ManageSub.build())
+        .then(MoveSub.build()));
   }
 }
