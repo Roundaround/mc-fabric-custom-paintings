@@ -11,8 +11,7 @@ import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 
 public class ApplyToAllScreen extends Screen {
-  private static final int BUTTON_WIDTH = 204;
-  private static final int DOUBLE_BUTTON_WIDTH = 150;
+  private static final int BUTTON_WIDTH = 150;
   private static final int BUTTON_HEIGHT = 20;
   private static final int PADDING = 8;
 
@@ -34,9 +33,9 @@ public class ApplyToAllScreen extends Screen {
   @Override
   public void init() {
     addDrawableChild(new ButtonWidget(
-        (this.width - PADDING) / 2 - DOUBLE_BUTTON_WIDTH,
-        (this.height - BUTTON_HEIGHT) / 2,
-        DOUBLE_BUTTON_WIDTH,
+        (this.width - PADDING) / 2 - BUTTON_WIDTH / 2,
+        this.height / 2,
+        BUTTON_WIDTH / 2,
         BUTTON_HEIGHT,
         ScreenTexts.YES,
         (button) -> {
@@ -46,8 +45,8 @@ public class ApplyToAllScreen extends Screen {
 
     addDrawableChild(new ButtonWidget(
         (this.width + PADDING) / 2,
-        (this.height - BUTTON_HEIGHT) / 2,
-        DOUBLE_BUTTON_WIDTH,
+        this.height / 2,
+        BUTTON_WIDTH / 2,
         BUTTON_HEIGHT,
         ScreenTexts.NO,
         (button) -> {
@@ -81,8 +80,8 @@ public class ApplyToAllScreen extends Screen {
         this.title,
         this.width / 2,
         40,
-        220,
-        0xFFFFFF);
+        0xFFFFFFFF,
+        BUTTON_WIDTH);
 
     super.render(matrixStack, mouseX, mouseY, partialTicks);
   }
