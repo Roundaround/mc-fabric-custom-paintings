@@ -201,6 +201,7 @@ public class ServerNetworking {
 
     server.execute(() -> {
       ServerPaintingManager.reassignId(player, paintingUuid, to, fix);
+      sendListUnknownPacket(player, ServerPaintingManager.getUnknownPaintings(player));
       sendListMismatchedPacket(player, ServerPaintingManager.getMismatchedPaintings(player));
     });
   }
@@ -217,6 +218,7 @@ public class ServerNetworking {
 
     server.execute(() -> {
       ServerPaintingManager.reassignIds(player, from, to, fix);
+      sendListUnknownPacket(player, ServerPaintingManager.getUnknownPaintings(player));
       sendListMismatchedPacket(player, ServerPaintingManager.getMismatchedPaintings(player));
     });
   }
@@ -245,6 +247,7 @@ public class ServerNetworking {
 
     server.execute(() -> {
       ServerPaintingManager.removePainting(player, paintingUuid);
+      sendListUnknownPacket(player, ServerPaintingManager.getUnknownPaintings(player));
       sendListMismatchedPacket(player, ServerPaintingManager.getMismatchedPaintings(player));
     });
   }
@@ -259,6 +262,7 @@ public class ServerNetworking {
 
     server.execute(() -> {
       ServerPaintingManager.removePaintings(player, id);
+      sendListUnknownPacket(player, ServerPaintingManager.getUnknownPaintings(player));
       sendListMismatchedPacket(player, ServerPaintingManager.getMismatchedPaintings(player));
     });
   }

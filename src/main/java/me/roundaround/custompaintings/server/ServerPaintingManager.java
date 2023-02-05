@@ -210,12 +210,6 @@ public class ServerPaintingManager {
   }
 
   public static void removePaintings(ServerPlayerEntity player, Identifier id) {
-    Map<Identifier, PaintingData> known = getKnownPaintings(player);
-
-    if (!known.containsKey(id)) {
-      return;
-    }
-
     player.getServer().getWorlds().forEach((world) -> {
       world.getEntitiesByType(EntityType.PAINTING, entity -> {
         return entity instanceof ExpandedPaintingEntity &&
