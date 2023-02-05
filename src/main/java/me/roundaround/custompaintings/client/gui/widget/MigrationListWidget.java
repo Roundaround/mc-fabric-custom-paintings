@@ -9,6 +9,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
+import net.minecraft.client.gui.widget.EntryListWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Text;
 import net.minecraft.util.Util;
@@ -59,9 +60,17 @@ public class MigrationListWidget
     }
   }
 
+  @Override
+  protected void moveSelection(EntryListWidget.MoveDirection direction) {
+    moveSelectionIf(direction, Entry::isSelectable);
+  }
+
   @Environment(value = EnvType.CLIENT)
   public abstract class Entry
       extends AlwaysSelectedEntryListWidget.Entry<Entry> {
+    public boolean isSelectable() {
+      return false;
+    }
   }
 
   @Environment(value = EnvType.CLIENT)
@@ -125,13 +134,26 @@ public class MigrationListWidget
         int mouseY,
         boolean hovered,
         float partialTicks) {
+      int yPos = this.packName != null && !this.packName.isEmpty()
+          ? y + entryHeight / 2 - this.client.textRenderer.fontHeight - 1
+          : y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f);
       drawCenteredTextWithShadow(
           matrixStack,
           this.client.textRenderer,
           Text.literal(this.packId).asOrderedText(),
           this.client.currentScreen.width / 2,
-          y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f),
+          yPos,
           0xFFFFFF);
+
+      if (this.packName != null && !this.packName.isEmpty()) {
+        drawCenteredTextWithShadow(
+            matrixStack,
+            this.client.textRenderer,
+            Text.literal(this.packName).asOrderedText(),
+            this.client.currentScreen.width / 2,
+            y + entryHeight / 2 + 1,
+            0xFFFFFF);
+      }
     }
 
     @Override
@@ -173,14 +195,14 @@ public class MigrationListWidget
           this.client.textRenderer,
           Text.literal(this.migration.id().toString()).asOrderedText(),
           this.client.currentScreen.width / 2,
-          y + 1,
+          y + entryHeight / 2 - this.client.textRenderer.fontHeight - 1,
           0xFFFFFF);
       drawCenteredTextWithShadow(
           matrixStack,
           this.client.textRenderer,
           Text.literal(this.migration.description()).asOrderedText(),
           this.client.currentScreen.width / 2,
-          y + entryHeight - 1 - this.client.textRenderer.fontHeight,
+          y + entryHeight / 2 + 1,
           0xFFFFFF);
     }
 
@@ -200,6 +222,11 @@ public class MigrationListWidget
 
       this.time = Util.getMeasuringTimeMs();
       return false;
+    }
+
+    @Override
+    public boolean isSelectable() {
+      return true;
     }
   }
 }
