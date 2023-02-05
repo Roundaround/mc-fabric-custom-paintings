@@ -1,7 +1,5 @@
 package me.roundaround.custompaintings.client;
 
-import org.lwjgl.glfw.GLFW;
-
 import me.roundaround.custompaintings.client.event.MinecraftClientEvents;
 import me.roundaround.custompaintings.client.gui.screen.manage.ManagePaintingsScreen;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
@@ -37,10 +35,9 @@ public class CustomPaintingsClientMod implements ClientModInitializer {
 
     openManageScreenKeyBinding = KeyBindingHelper.registerKeyBinding(
         new KeyBinding(
-            "custompaintings.key.open_manage_screen",
-            InputUtil.Type.KEYSYM,
-            GLFW.GLFW_KEY_K,
-            "key.categories.misc"));
+            "custompaintings.key.manage",
+            InputUtil.UNKNOWN_KEY.getCode(),
+            KeyBinding.MISC_CATEGORY));
 
     MinecraftClientEvents.ON_INPUT.register(() -> {
       MinecraftClient client = MinecraftClient.getInstance();

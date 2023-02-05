@@ -23,7 +23,7 @@
   "custompaintings.filter.minheight": "Min height: %s blocks",
   "custompaintings.filter.maxheight": "Max height: %s blocks",
   "custompaintings.filter.reset": "Reset",
-  "custompaintings.key.open_manage_screen": "Manage Custom Paintings",
+  "custompaintings.key.manage": "Manage Custom Paintings",
   "custompaintings.manage.title": "Manage custom paintings",
   "custompaintings.manage.unknown": "Paintings with an unknown ID",
   "custompaintings.manage.mismatched": "Paintings with mismatched data",
