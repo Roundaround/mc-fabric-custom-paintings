@@ -31,9 +31,18 @@ public class NetworkPackets {
   public static final Identifier REASSIGN_ID_PACKET = new Identifier(
       CustomPaintingsMod.MOD_ID,
       "reassign_id_packet");
+  public static final Identifier REASSIGN_ALL_IDS_PACKET = new Identifier(
+      CustomPaintingsMod.MOD_ID,
+      "reassign_all_ids_packet");
   public static final Identifier UPDATE_PAINTING_PACKET = new Identifier(
       CustomPaintingsMod.MOD_ID,
       "update_painting_packet");
+  public static final Identifier REMOVE_PAINTING_PACKET = new Identifier(
+      CustomPaintingsMod.MOD_ID,
+      "remove_painting_packet");
+  public static final Identifier REMOVE_ALL_PAINTINGS_PACKET = new Identifier(
+      CustomPaintingsMod.MOD_ID,
+      "remove_all_paintings_packet");
   public static final Identifier APPLY_MIGRATION_PACKET = new Identifier(
       CustomPaintingsMod.MOD_ID,
       "apply_migration_packet");

@@ -79,10 +79,30 @@ public class ClientNetworking {
     ClientPlayNetworking.send(NetworkPackets.REASSIGN_ID_PACKET, buf);
   }
 
+  public static void sendReassignAllIdsPacket(Identifier from, Identifier to) {
+    PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+    buf.writeIdentifier(from);
+    buf.writeIdentifier(to);
+    buf.writeBoolean(false);
+    ClientPlayNetworking.send(NetworkPackets.REASSIGN_ALL_IDS_PACKET, buf);
+  }
+
   public static void sendUpdatePaintingPacket(UUID paintingUuid) {
     PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
     buf.writeUuid(paintingUuid);
     ClientPlayNetworking.send(NetworkPackets.UPDATE_PAINTING_PACKET, buf);
+  }
+
+  public static void sendRemovePaintingPacket(UUID paintingUuid) {
+    PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+    buf.writeUuid(paintingUuid);
+    ClientPlayNetworking.send(NetworkPackets.REMOVE_PAINTING_PACKET, buf);
+  }
+
+  public static void sendRemoveAllPaintingsPacket(Identifier id) {
+    PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+    buf.writeIdentifier(id);
+    ClientPlayNetworking.send(NetworkPackets.REMOVE_ALL_PAINTINGS_PACKET, buf);
   }
 
   public static void sendApplyMigrationPacket(Migration migration) {

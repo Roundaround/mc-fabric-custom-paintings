@@ -47,8 +47,17 @@ public class ServerNetworking {
         NetworkPackets.REASSIGN_ID_PACKET,
         ServerNetworking::handleReassignIdPacket);
     ServerPlayNetworking.registerGlobalReceiver(
+        NetworkPackets.REASSIGN_ALL_IDS_PACKET,
+        ServerNetworking::handleReassignAllIdsPacket);
+    ServerPlayNetworking.registerGlobalReceiver(
         NetworkPackets.UPDATE_PAINTING_PACKET,
         ServerNetworking::handleUpdatePaintingPacket);
+    ServerPlayNetworking.registerGlobalReceiver(
+        NetworkPackets.REMOVE_PAINTING_PACKET,
+        ServerNetworking::handleRemovePaintingPacket);
+    ServerPlayNetworking.registerGlobalReceiver(
+        NetworkPackets.REMOVE_ALL_PAINTINGS_PACKET,
+        ServerNetworking::handleRemoveAllPaintingsPacket);
     ServerPlayNetworking.registerGlobalReceiver(
         NetworkPackets.APPLY_MIGRATION_PACKET,
         ServerNetworking::handleApplyMigrationPacket);
@@ -192,6 +201,23 @@ public class ServerNetworking {
 
     server.execute(() -> {
       ServerPaintingManager.reassignId(player, paintingUuid, to, fix);
+      sendListMismatchedPacket(player, ServerPaintingManager.getMismatchedPaintings(player));
+    });
+  }
+
+  private static void handleReassignAllIdsPacket(
+      MinecraftServer server,
+      ServerPlayerEntity player,
+      ServerPlayNetworkHandler handler,
+      PacketByteBuf buf,
+      PacketSender responseSender) {
+    Identifier from = buf.readIdentifier();
+    Identifier to = buf.readIdentifier();
+    boolean fix = buf.readBoolean();
+
+    server.execute(() -> {
+      ServerPaintingManager.reassignIds(player, from, to, fix);
+      sendListMismatchedPacket(player, ServerPaintingManager.getMismatchedPaintings(player));
     });
   }
 
@@ -205,6 +231,34 @@ public class ServerNetworking {
 
     server.execute(() -> {
       ServerPaintingManager.updatePainting(player, paintingUuid);
+      sendListMismatchedPacket(player, ServerPaintingManager.getMismatchedPaintings(player));
+    });
+  }
+
+  private static void handleRemovePaintingPacket(
+      MinecraftServer server,
+      ServerPlayerEntity player,
+      ServerPlayNetworkHandler handler,
+      PacketByteBuf buf,
+      PacketSender responseSender) {
+    UUID paintingUuid = buf.readUuid();
+
+    server.execute(() -> {
+      ServerPaintingManager.removePainting(player, paintingUuid);
+      sendListMismatchedPacket(player, ServerPaintingManager.getMismatchedPaintings(player));
+    });
+  }
+
+  private static void handleRemoveAllPaintingsPacket(
+      MinecraftServer server,
+      ServerPlayerEntity player,
+      ServerPlayNetworkHandler handler,
+      PacketByteBuf buf,
+      PacketSender responseSender) {
+    Identifier id = buf.readIdentifier();
+
+    server.execute(() -> {
+      ServerPaintingManager.removePaintings(player, id);
       sendListMismatchedPacket(player, ServerPaintingManager.getMismatchedPaintings(player));
     });
   }

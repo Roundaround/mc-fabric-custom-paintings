@@ -23,16 +23,18 @@ public class ReassignScreen extends Screen implements PaintingPacksTracker {
 
   private final Screen parent;
   private final UnknownPainting target;
+  private final boolean applyToAll;
 
   private TextFieldWidget searchBox;
   private KnownPaintingListWidget list;
   private ButtonWidget confirmButton;
   private Identifier selectedId = null;
 
-  public ReassignScreen(Screen parent, UnknownPainting target) {
+  public ReassignScreen(Screen parent, UnknownPainting target, boolean applyToAll) {
     super(Text.translatable("custompaintings.reassign.title"));
     this.parent = parent;
     this.target = target;
+    this.applyToAll = applyToAll;
   }
 
   public void setSelectedId(Identifier id) {
@@ -46,10 +48,18 @@ public class ReassignScreen extends Screen implements PaintingPacksTracker {
     if (this.selectedId == null) {
       return;
     }
-    ClientNetworking.sendReassignIdPacket(
-        this.target.uuid(),
-        this.selectedId);
-    this.client.setScreen(null);
+
+    if (applyToAll) {
+      ClientNetworking.sendReassignAllIdsPacket(
+          this.target.currentData().id(),
+          this.selectedId);
+    } else {
+      ClientNetworking.sendReassignIdPacket(
+          this.target.uuid(),
+          this.selectedId);
+    }
+
+    close();
   }
 
   private void setFilter(String filter) {

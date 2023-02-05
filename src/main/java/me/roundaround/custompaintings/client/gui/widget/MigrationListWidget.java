@@ -72,8 +72,7 @@ public class MigrationListWidget
 
   @Environment(value = EnvType.CLIENT)
   public abstract class Entry
-      extends AlwaysSelectedEntryListWidget.Entry<Entry>
-      implements DrawUtils {
+      extends AlwaysSelectedEntryListWidget.Entry<Entry> {
     public boolean isSelectable() {
       return false;
     }
@@ -158,7 +157,7 @@ public class MigrationListWidget
       boolean hasName = this.packName != null && !this.packName.isEmpty();
 
       if (hasName) {
-        drawTruncatedCenteredTextWithShadow(
+        DrawUtils.drawTruncatedCenteredTextWithShadow(
             matrixStack,
             this.client.textRenderer,
             Text.literal(this.packName),
@@ -171,7 +170,7 @@ public class MigrationListWidget
       int yPos = hasName
           ? y + MathHelper.ceil(entryHeight / 2) + 1
           : y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f);
-      drawTruncatedCenteredTextWithShadow(
+      DrawUtils.drawTruncatedCenteredTextWithShadow(
           matrixStack,
           this.client.textRenderer,
           Text.literal(this.packId)
@@ -218,7 +217,7 @@ public class MigrationListWidget
         int mouseY,
         boolean hovered,
         float partialTicks) {
-      drawTruncatedCenteredTextWithShadow(
+      DrawUtils.drawTruncatedCenteredTextWithShadow(
           matrixStack,
           this.client.textRenderer,
           Text.literal(this.migration.description()),
@@ -226,7 +225,7 @@ public class MigrationListWidget
           y + 1,
           0xFFFFFF,
           entryWidth - 4);
-      drawTruncatedCenteredTextWithShadow(
+      DrawUtils.drawTruncatedCenteredTextWithShadow(
           matrixStack,
           this.client.textRenderer,
           Text.literal(this.migration.id().toString())
@@ -235,7 +234,7 @@ public class MigrationListWidget
           y + this.client.textRenderer.fontHeight + 3,
           0xFFFFFF,
           entryWidth - 4);
-      drawTruncatedCenteredTextWithShadow(
+      DrawUtils.drawTruncatedCenteredTextWithShadow(
           matrixStack,
           this.client.textRenderer,
           Text.translatable("custompaintings.migrations.count", String.valueOf(this.migration.pairs().size())),

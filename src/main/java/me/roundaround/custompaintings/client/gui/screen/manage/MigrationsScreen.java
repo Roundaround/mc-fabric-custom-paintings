@@ -60,7 +60,7 @@ public class MigrationsScreen extends Screen implements PaintingPacksTracker {
     addSelectableChild(this.list);
 
     this.confirmButton = new ButtonWidget(
-        this.width / 2 - BUTTON_WIDTH - PADDING,
+        (this.width - PADDING) / 2 - BUTTON_WIDTH,
         this.height - BUTTON_HEIGHT - PADDING,
         BUTTON_WIDTH,
         BUTTON_HEIGHT,
@@ -70,7 +70,7 @@ public class MigrationsScreen extends Screen implements PaintingPacksTracker {
     addDrawableChild(this.confirmButton);
 
     addDrawableChild(new ButtonWidget(
-        this.width / 2 + PADDING,
+        (this.width + PADDING) / 2,
         this.height - BUTTON_HEIGHT - PADDING,
         BUTTON_WIDTH,
         BUTTON_HEIGHT,

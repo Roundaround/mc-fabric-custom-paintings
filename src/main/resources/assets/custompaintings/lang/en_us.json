@@ -34,6 +34,7 @@
   "custompaintings.unknown.reassign": "Reassign",
   "custompaintings.unknown.autofix": "Autofix",
   "custompaintings.unknown.remove": "Remove",
+  "custompaintings.applytoall.title": "%s paintings found with the same ID. Apply changes to all?",
   "custompaintings.reassign.title": "Choose a new ID",
   "custompaintings.reassign.confirm": "Confirm",
   "custompaintings.mismatched.title": "Paintings with mismatched data",

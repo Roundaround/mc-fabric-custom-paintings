@@ -21,6 +21,7 @@ import me.roundaround.custompaintings.util.Migration;
 import me.roundaround.custompaintings.util.MismatchedPainting;
 import me.roundaround.custompaintings.util.UnknownPainting;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -135,6 +136,34 @@ public class ServerPaintingManager {
     });
   }
 
+  public static void reassignIds(ServerPlayerEntity player, Identifier from, Identifier to, boolean fix) {
+    Map<Identifier, PaintingData> known = getKnownPaintings(player);
+
+    if (!known.containsKey(to)) {
+      return;
+    }
+
+    player.getServer().getWorlds().forEach((world) -> {
+      world.getEntitiesByType(EntityType.PAINTING, entity -> {
+        return entity instanceof ExpandedPaintingEntity &&
+            ((ExpandedPaintingEntity) entity).getCustomData().id().equals(from);
+      })
+          .forEach((entity) -> {
+            ExpandedPaintingEntity painting = (ExpandedPaintingEntity) entity;
+            PaintingData paintingData = fix ? known.get(to) : painting.getCustomData();
+
+            painting.setCustomData(
+                to,
+                paintingData.index(),
+                paintingData.width(),
+                paintingData.height(),
+                paintingData.name(),
+                paintingData.artist(),
+                paintingData.isVanilla());
+          });
+    });
+  }
+
   public static void updatePainting(ServerPlayerEntity player, UUID uuid) {
     updatePaintings(player, ImmutableList.of(uuid));
   }
@@ -168,6 +197,33 @@ public class ServerPaintingManager {
                   knownData.isVanilla());
             });
       });
+    });
+  }
+
+  public static void removePainting(ServerPlayerEntity player, UUID uuid) {
+    player.getServer().getWorlds().forEach((world) -> {
+      Optional.ofNullable(world.getEntity(uuid))
+          .ifPresent((entity) -> {
+            entity.damage(DamageSource.player(player), 0);
+          });
+    });
+  }
+
+  public static void removePaintings(ServerPlayerEntity player, Identifier id) {
+    Map<Identifier, PaintingData> known = getKnownPaintings(player);
+
+    if (!known.containsKey(id)) {
+      return;
+    }
+
+    player.getServer().getWorlds().forEach((world) -> {
+      world.getEntitiesByType(EntityType.PAINTING, entity -> {
+        return entity instanceof ExpandedPaintingEntity &&
+            ((ExpandedPaintingEntity) entity).getCustomData().id().equals(id);
+      })
+          .forEach((entity) -> {
+            entity.damage(DamageSource.player(player), 0);
+          });
     });
   }
 

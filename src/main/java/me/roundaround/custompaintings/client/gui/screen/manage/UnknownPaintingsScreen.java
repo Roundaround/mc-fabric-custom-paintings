@@ -3,6 +3,7 @@ package me.roundaround.custompaintings.client.gui.screen.manage;
 import java.util.HashSet;
 
 import me.roundaround.custompaintings.client.gui.widget.UnknownPaintingListWidget;
+import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.util.UnknownPainting;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -38,13 +39,29 @@ public class UnknownPaintingsScreen extends Screen {
     if (this.reassignButton != null) {
       this.reassignButton.active = selected != null;
     }
+    if (this.removeButton != null) {
+      this.removeButton.active = selected != null;
+    }
   }
 
   public void reassignSelection() {
     if (this.selected == null) {
       return;
     }
-    this.client.setScreen(new ReassignScreen(this, this.selected));
+
+    int count = this.list.getCountForId(this.selected.currentData().id());
+    if (count > 1) {
+      this.client.setScreen(new ApplyToAllScreen(
+          this,
+          count,
+          this.selected,
+          (selected, choice) -> {
+            this.client.setScreen(new ReassignScreen(this, this.selected, choice));
+          }));
+      return;
+    }
+
+    this.client.setScreen(new ReassignScreen(this, this.selected, false));
   }
 
   public void removeSelection() {
@@ -52,6 +69,23 @@ public class UnknownPaintingsScreen extends Screen {
       return;
     }
 
+    int count = this.list.getCountForId(this.selected.currentData().id());
+    if (count > 1) {
+      this.client.setScreen(new ApplyToAllScreen(
+          this,
+          count,
+          this.selected,
+          (selected, choice) -> {
+            if (choice) {
+              ClientNetworking.sendRemoveAllPaintingsPacket(this.selected.currentData().id());
+            } else {
+              ClientNetworking.sendRemovePaintingPacket(this.selected.uuid());
+            }
+          }));
+      return;
+    }
+
+    ClientNetworking.sendRemovePaintingPacket(this.selected.uuid());
   }
 
   @Override

@@ -31,6 +31,8 @@ import net.minecraft.util.math.MathHelper;
 @Environment(value = EnvType.CLIENT)
 public class PaintingListWidget
     extends AlwaysSelectedEntryListWidget<PaintingListWidget.PaintingEntry> {
+  private static final int ITEM_HEIGHT = 36;
+
   private final PaintingSelectScreen parent;
   private final PaintingEditState state;
 
@@ -43,7 +45,7 @@ public class PaintingListWidget
       int top,
       int bottom,
       ArrayList<PaintingData> paintings) {
-    super(minecraftClient, width, height, top, bottom, 36);
+    super(minecraftClient, width, height, top, bottom, ITEM_HEIGHT);
     this.parent = parent;
     this.state = state;
 

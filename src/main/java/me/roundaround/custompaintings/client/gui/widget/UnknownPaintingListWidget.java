@@ -1,5 +1,6 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
+import java.util.HashMap;
 import java.util.HashSet;
 
 import me.roundaround.custompaintings.client.gui.screen.manage.UnknownPaintingsScreen;
@@ -13,6 +14,7 @@ import net.minecraft.client.gui.screen.LoadingDisplay;
 import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
 
@@ -24,6 +26,7 @@ public class UnknownPaintingListWidget
   private final UnknownPaintingsScreen parent;
   private final LoadingEntry loadingEntry;
   private final EmptyEntry emptyEntry;
+  private final HashMap<Identifier, Integer> instanceCounts = new HashMap<>();
 
   public UnknownPaintingListWidget(
       UnknownPaintingsScreen parent,
@@ -44,18 +47,30 @@ public class UnknownPaintingListWidget
   public void loadData() {
     ClientNetworking.sendRequestUnknownPacket();
     clearEntries();
+    instanceCounts.clear();
     addEntry(this.loadingEntry);
   }
 
   public void receiveData(HashSet<UnknownPainting> data) {
     clearEntries();
+    instanceCounts.clear();
+
     for (UnknownPainting unknownPainting : data) {
       addEntry(new UnknownPaintingEntry(this.client, unknownPainting));
+
+      Identifier id = unknownPainting.currentData().id();
+      instanceCounts.put(id, instanceCounts.getOrDefault(id, 0) + 1);
     }
+
     if (data.isEmpty()) {
       addEntry(this.emptyEntry);
     }
+
     narrateScreenIfNarrationEnabled();
+  }
+
+  public int getCountForId(Identifier id) {
+    return instanceCounts.getOrDefault(id, 0);
   }
 
   private void narrateScreenIfNarrationEnabled() {
