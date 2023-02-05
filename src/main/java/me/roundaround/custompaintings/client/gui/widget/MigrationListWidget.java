@@ -2,6 +2,9 @@ package me.roundaround.custompaintings.client.gui.widget;
 
 import java.util.HashMap;
 
+import com.mojang.blaze3d.systems.RenderSystem;
+
+import me.roundaround.custompaintings.client.gui.DrawUtils;
 import me.roundaround.custompaintings.client.gui.screen.manage.MigrationsScreen;
 import me.roundaround.custompaintings.client.gui.screen.manage.PaintingPacksTracker.MigrationGroup;
 import me.roundaround.custompaintings.util.Migration;
@@ -11,14 +14,16 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.client.gui.widget.EntryListWidget;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
 
 @Environment(value = EnvType.CLIENT)
 public class MigrationListWidget
     extends AlwaysSelectedEntryListWidget<MigrationListWidget.Entry> {
-  private static final int ITEM_HEIGHT = 25;
+  private static final int ITEM_HEIGHT = 28;
 
   private final MigrationsScreen parent;
   private final EmptyEntry emptyEntry;
@@ -67,7 +72,8 @@ public class MigrationListWidget
 
   @Environment(value = EnvType.CLIENT)
   public abstract class Entry
-      extends AlwaysSelectedEntryListWidget.Entry<Entry> {
+      extends AlwaysSelectedEntryListWidget.Entry<Entry>
+      implements DrawUtils {
     public boolean isSelectable() {
       return false;
     }
@@ -134,26 +140,48 @@ public class MigrationListWidget
         int mouseY,
         boolean hovered,
         float partialTicks) {
-      int yPos = this.packName != null && !this.packName.isEmpty()
-          ? y + entryHeight / 2 - this.client.textRenderer.fontHeight - 1
-          : y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f);
-      drawCenteredTextWithShadow(
+      RenderSystem.setShaderColor(0.5f, 0.5f, 0.5f, 1f);
+      drawHorizontalLine(
           matrixStack,
-          this.client.textRenderer,
-          Text.literal(this.packId).asOrderedText(),
-          this.client.currentScreen.width / 2,
-          yPos,
-          0xFFFFFF);
+          x + 2,
+          x - 6 + entryWidth - 1,
+          y,
+          0xFFFFFFFF);
+      drawHorizontalLine(
+          matrixStack,
+          x + 2,
+          x - 6 + entryWidth - 1,
+          y + entryHeight - 1,
+          0xFFFFFFFF);
+      RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
 
-      if (this.packName != null && !this.packName.isEmpty()) {
-        drawCenteredTextWithShadow(
+      boolean hasName = this.packName != null && !this.packName.isEmpty();
+
+      if (hasName) {
+        drawTruncatedCenteredTextWithShadow(
             matrixStack,
             this.client.textRenderer,
-            Text.literal(this.packName).asOrderedText(),
+            Text.literal(this.packName),
             this.client.currentScreen.width / 2,
-            y + entryHeight / 2 + 1,
-            0xFFFFFF);
+            y + MathHelper.ceil(entryHeight / 2) - this.client.textRenderer.fontHeight - 1,
+            0xFFFFFF,
+            entryWidth - 4);
       }
+
+      int yPos = hasName
+          ? y + MathHelper.ceil(entryHeight / 2) + 1
+          : y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f);
+      drawTruncatedCenteredTextWithShadow(
+          matrixStack,
+          this.client.textRenderer,
+          Text.literal(this.packId)
+              .setStyle(Style.EMPTY
+                  .withItalic(hasName)
+                  .withColor(hasName ? Formatting.GRAY : Formatting.WHITE)),
+          this.client.currentScreen.width / 2,
+          yPos,
+          0xFFFFFF,
+          entryWidth - 4);
     }
 
     @Override
@@ -190,20 +218,23 @@ public class MigrationListWidget
         int mouseY,
         boolean hovered,
         float partialTicks) {
-      drawCenteredTextWithShadow(
+      drawTruncatedCenteredTextWithShadow(
           matrixStack,
           this.client.textRenderer,
-          Text.literal(this.migration.id().toString()).asOrderedText(),
+          Text.literal(this.migration.description()),
           this.client.currentScreen.width / 2,
-          y + entryHeight / 2 - this.client.textRenderer.fontHeight - 1,
-          0xFFFFFF);
-      drawCenteredTextWithShadow(
+          y + MathHelper.ceil(entryHeight / 2) - this.client.textRenderer.fontHeight - 1,
+          0xFFFFFF,
+          entryWidth - 4);
+      drawTruncatedCenteredTextWithShadow(
           matrixStack,
           this.client.textRenderer,
-          Text.literal(this.migration.description()).asOrderedText(),
+          Text.literal(this.migration.id().toString())
+              .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)),
           this.client.currentScreen.width / 2,
-          y + entryHeight / 2 + 1,
-          0xFFFFFF);
+          y + MathHelper.ceil(entryHeight / 2) + 1,
+          0xFFFFFF,
+          entryWidth - 4);
     }
 
     @Override
