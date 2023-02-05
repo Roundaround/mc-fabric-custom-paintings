@@ -23,7 +23,7 @@ import net.minecraft.util.math.MathHelper;
 @Environment(value = EnvType.CLIENT)
 public class MigrationListWidget
     extends AlwaysSelectedEntryListWidget<MigrationListWidget.Entry> {
-  private static final int ITEM_HEIGHT = 28;
+  private static final int ITEM_HEIGHT = 36;
 
   private final MigrationsScreen parent;
   private final EmptyEntry emptyEntry;
@@ -145,13 +145,13 @@ public class MigrationListWidget
           matrixStack,
           x + 2,
           x - 6 + entryWidth - 1,
-          y,
+          y + 1,
           0xFFFFFFFF);
       drawHorizontalLine(
           matrixStack,
           x + 2,
           x - 6 + entryWidth - 1,
-          y + entryHeight - 1,
+          y - 1 + entryHeight - 1,
           0xFFFFFFFF);
       RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
 
@@ -223,7 +223,7 @@ public class MigrationListWidget
           this.client.textRenderer,
           Text.literal(this.migration.description()),
           this.client.currentScreen.width / 2,
-          y + MathHelper.ceil(entryHeight / 2) - this.client.textRenderer.fontHeight - 1,
+          y + 1,
           0xFFFFFF,
           entryWidth - 4);
       drawTruncatedCenteredTextWithShadow(
@@ -232,7 +232,15 @@ public class MigrationListWidget
           Text.literal(this.migration.id().toString())
               .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)),
           this.client.currentScreen.width / 2,
-          y + MathHelper.ceil(entryHeight / 2) + 1,
+          y + this.client.textRenderer.fontHeight + 3,
+          0xFFFFFF,
+          entryWidth - 4);
+      drawTruncatedCenteredTextWithShadow(
+          matrixStack,
+          this.client.textRenderer,
+          Text.translatable("custompaintings.migrations.count", String.valueOf(this.migration.pairs().size())),
+          this.client.currentScreen.width / 2,
+          y + 2 * this.client.textRenderer.fontHeight + 3,
           0xFFFFFF,
           entryWidth - 4);
     }
