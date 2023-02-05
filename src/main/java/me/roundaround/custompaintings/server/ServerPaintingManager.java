@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -234,7 +235,7 @@ public class ServerPaintingManager {
     return datas;
   }
 
-  public static void applyMigration(ServerPlayerEntity player, Migration migration) {
+  public static int applyMigration(ServerPlayerEntity player, Migration migration) {
     Map<Identifier, PaintingData> known = getKnownPaintings(player);
 
     HashMap<Identifier, PaintingData> knownMappings = new HashMap<>();
@@ -252,8 +253,10 @@ public class ServerPaintingManager {
     });
 
     if (knownMappings.isEmpty() && unknownMappings.isEmpty()) {
-      return;
+      return 0;
     }
+
+    AtomicInteger count = new AtomicInteger(0);
 
     player.getServer().getWorlds().forEach((world) -> {
       world.getEntitiesByType(EntityType.PAINTING, entity -> {
@@ -267,6 +270,7 @@ public class ServerPaintingManager {
             Identifier currentId = painting.getCustomData().id();
             if (knownMappings.containsKey(currentId)) {
               painting.setCustomData(knownMappings.get(currentId));
+              count.incrementAndGet();
             } else if (unknownMappings.containsKey(currentId)) {
               painting.setCustomData(
                   unknownMappings.get(currentId),
@@ -276,8 +280,11 @@ public class ServerPaintingManager {
                   currentData.name(),
                   currentData.artist(),
                   currentData.isVanilla());
+              count.incrementAndGet();
             }
           });
     });
+
+    return count.get();
   }
 }

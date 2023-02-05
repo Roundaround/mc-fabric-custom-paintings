@@ -23,6 +23,7 @@ import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
@@ -221,7 +222,12 @@ public class ServerNetworking {
     }
 
     server.execute(() -> {
-      ServerPaintingManager.applyMigration(player, new Migration(pairs));
+      int updated = ServerPaintingManager.applyMigration(player, new Migration(pairs));
+      if (updated == 0) {
+        player.sendMessage(Text.translatable("custompaintings.migrations.none"), false);
+      } else {
+        player.sendMessage(Text.translatable("custompaintings.migrations.success", updated), false);
+      }
     });
   }
 }
