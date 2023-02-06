@@ -3,6 +3,7 @@ package me.roundaround.custompaintings.server.command.sub;
 import java.util.Optional;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
 import me.roundaround.custompaintings.server.ServerPaintingManager;
@@ -47,6 +48,29 @@ public class SetSub {
                           context.getSource(),
                           IntegerArgumentType.getInteger(context, "width"),
                           IntegerArgumentType.getInteger(context, "height"));
+                    }))))
+        .then(CommandManager.literal("name")
+            .then(CommandManager.argument("name", StringArgumentType.string())
+                .executes(context -> {
+                  return executeSetName(
+                      context.getSource(),
+                      StringArgumentType.getString(context, "name"));
+                })))
+        .then(CommandManager.literal("artist")
+            .then(CommandManager.argument("artist", StringArgumentType.string())
+                .executes(context -> {
+                  return executeSetArtist(
+                      context.getSource(),
+                      StringArgumentType.getString(context, "artist"));
+                })))
+        .then(CommandManager.literal("label")
+            .then(CommandManager.argument("name", StringArgumentType.string())
+                .then(CommandManager.argument("artist", StringArgumentType.string())
+                    .executes(context -> {
+                      return executeSetLabel(
+                          context.getSource(),
+                          StringArgumentType.getString(context, "name"),
+                          StringArgumentType.getString(context, "artist"));
                     }))));
   }
 
@@ -136,6 +160,73 @@ public class SetSub {
     }
 
     source.sendFeedback(Text.translatable("custompaintings.command.set.size.success"), false);
+    return 1;
+  }
+
+  private static int executeSetName(ServerCommandSource source, String name) {
+    Optional<PaintingEntity> maybePainting = ServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
+
+    if (maybePainting.isEmpty()) {
+      source.sendFeedback(Text.translatable("custompaintings.command.set.none"), false);
+      return 0;
+    }
+
+    int updated = ServerPaintingManager.setName(
+        source.getPlayer(),
+        maybePainting.get(),
+        name);
+
+    if (updated == 0) {
+      source.sendFeedback(Text.translatable("custompaintings.command.set.none"), false);
+      return 0;
+    }
+
+    source.sendFeedback(Text.translatable("custompaintings.command.set.name.success"), false);
+    return 1;
+  }
+
+  private static int executeSetArtist(ServerCommandSource source, String artist) {
+    Optional<PaintingEntity> maybePainting = ServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
+
+    if (maybePainting.isEmpty()) {
+      source.sendFeedback(Text.translatable("custompaintings.command.set.none"), false);
+      return 0;
+    }
+
+    int updated = ServerPaintingManager.setArtist(
+        source.getPlayer(),
+        maybePainting.get(),
+        artist);
+
+    if (updated == 0) {
+      source.sendFeedback(Text.translatable("custompaintings.command.set.none"), false);
+      return 0;
+    }
+
+    source.sendFeedback(Text.translatable("custompaintings.command.set.artist.success"), false);
+    return 1;
+  }
+
+  private static int executeSetLabel(ServerCommandSource source, String name, String artist) {
+    Optional<PaintingEntity> maybePainting = ServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
+
+    if (maybePainting.isEmpty()) {
+      source.sendFeedback(Text.translatable("custompaintings.command.set.none"), false);
+      return 0;
+    }
+
+    int updated = ServerPaintingManager.setLabel(
+        source.getPlayer(),
+        maybePainting.get(),
+        name,
+        artist);
+
+    if (updated == 0) {
+      source.sendFeedback(Text.translatable("custompaintings.command.set.none"), false);
+      return 0;
+    }
+
+    source.sendFeedback(Text.translatable("custompaintings.command.set.label.success"), false);
     return 1;
   }
 }
