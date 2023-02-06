@@ -1,28 +1,42 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
+import com.mojang.blaze3d.systems.RenderSystem;
 
+import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
 import me.roundaround.custompaintings.client.gui.screen.manage.MismatchedPaintingsScreen;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
+import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.entity.decoration.painting.PaintingData.MismatchedCategory;
 import me.roundaround.custompaintings.util.MismatchedPainting;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.Selectable;
 import net.minecraft.client.gui.screen.LoadingDisplay;
 import net.minecraft.client.gui.widget.ElementListWidget;
+import net.minecraft.client.render.GameRenderer;
+import net.minecraft.client.texture.Sprite;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.text.StringVisitable;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.Language;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
 
 @Environment(value = EnvType.CLIENT)
-public class MismatchedPaintingListWidget extends ElementListWidget<MismatchedPaintingListWidget.Entry> {
-  private static final int ITEM_HEIGHT = 25;
+public class MismatchedPaintingListWidget
+    extends ElementListWidget<MismatchedPaintingListWidget.Entry> {
+  private static final int ITEM_HEIGHT = 36;
 
   private final MismatchedPaintingsScreen parent;
   private final LoadingEntry loadingEntry;
@@ -164,12 +178,14 @@ public class MismatchedPaintingListWidget extends ElementListWidget<MismatchedPa
     private final MinecraftClient client;
     private final MismatchedPainting mismatchedPainting;
     private final IconButtonWidget fixButton;
+    private final Sprite sprite;
 
     public MismatchedPaintingEntry(
         MinecraftClient client,
         MismatchedPainting mismatchedPainting) {
       this.client = client;
       this.mismatchedPainting = mismatchedPainting;
+      this.sprite = CustomPaintingsClientMod.customPaintingManager.getPaintingSprite(mismatchedPainting.currentData());
 
       this.fixButton = new IconButtonWidget(
           this.client,
@@ -208,13 +224,88 @@ public class MismatchedPaintingListWidget extends ElementListWidget<MismatchedPa
         int mouseY,
         boolean hovered,
         float partialTicks) {
-      drawTextWithShadow(
+      PaintingData paintingData = this.mismatchedPainting.currentData();
+      int maxHeight = entryHeight - 4;
+      int maxWidth = maxHeight;
+
+      int scaledWidth = paintingData.getScaledWidth(maxWidth, maxHeight);
+      int scaledHeight = paintingData.getScaledHeight(maxWidth, maxHeight);
+
+      RenderSystem.setShader(GameRenderer::getPositionTexShader);
+
+      RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+      RenderSystem.setShaderTexture(0, this.sprite.getAtlas().getId());
+      drawSprite(
           matrixStack,
-          this.client.textRenderer,
-          Text.literal(this.mismatchedPainting.uuid().toString()),
-          x + 4,
-          y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f),
-          0xFFFFFF);
+          x + 4 + (maxWidth - scaledWidth) / 2,
+          y + (entryHeight - scaledHeight) / 2,
+          1,
+          scaledWidth,
+          scaledHeight,
+          this.sprite);
+
+      TextRenderer textRenderer = this.client.textRenderer;
+      int textWidth = entryWidth - 4 - maxWidth - 4 - 8 - 4 - IconButtonWidget.WIDTH - 4;
+      int posX = x + maxWidth + 4 + 4;
+      int posY = y + MathHelper.ceil((entryHeight - 3 * textRenderer.fontHeight - 2 * 2) / 2f);
+
+      if (paintingData.hasLabel()) {
+        StringVisitable label = paintingData.getLabel();
+        if (textRenderer.getWidth(label) > textWidth) {
+          Text ellipsis = Text.literal("...");
+          label = StringVisitable.concat(
+              textRenderer.trimToWidth(label, textWidth - textRenderer.getWidth(ellipsis)),
+              ellipsis);
+        }
+
+        textRenderer.draw(
+            matrixStack,
+            Language.getInstance().reorder(label),
+            posX,
+            posY,
+            0xFFFFFFFF);
+
+        posY += textRenderer.fontHeight + 2;
+      }
+
+      StringVisitable id = Text.literal("(" + paintingData.id().toString() + ")")
+          .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
+      if (textRenderer.getWidth(id) > textWidth) {
+        Text ellipsis = Text.literal("...")
+            .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
+        id = StringVisitable.concat(
+            textRenderer.trimToWidth(id, textWidth - textRenderer.getWidth(ellipsis)),
+            ellipsis);
+      }
+
+      textRenderer.draw(
+          matrixStack,
+          Language.getInstance().reorder(id),
+          posX,
+          posY,
+          0xFFFFFFFF);
+
+      posY += textRenderer.fontHeight + 2;
+
+      ArrayList<Text> outdated = new ArrayList<>();
+      PaintingData knownData = this.mismatchedPainting.knownData();
+      if (paintingData.isMismatched(knownData, MismatchedCategory.SIZE)) {
+        outdated.add(Text.translatable("custompaintings.mismatched.outdated.size"));
+      }
+      if (paintingData.isMismatched(knownData, MismatchedCategory.INFO)) {
+        outdated.add(Text.translatable("custompaintings.mismatched.outdated.info"));
+      }
+
+      String outdatedString = outdated.stream()
+          .map(Text::getString)
+          .collect(Collectors.joining(", "));
+
+      textRenderer.draw(
+          matrixStack,
+          Text.translatable("custompaintings.mismatched.outdated", outdatedString),
+          posX,
+          posY,
+          0xFFFFFFFF);
 
       this.fixButton.y = y + (entryHeight - IconButtonWidget.HEIGHT) / 2;
       this.fixButton.render(matrixStack, mouseX, mouseY, partialTicks);
