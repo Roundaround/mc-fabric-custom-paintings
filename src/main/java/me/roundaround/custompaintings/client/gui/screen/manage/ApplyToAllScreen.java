@@ -81,7 +81,7 @@ public class ApplyToAllScreen extends Screen {
         this.width / 2,
         40,
         0xFFFFFFFF,
-        BUTTON_WIDTH);
+        BUTTON_WIDTH + PADDING);
 
     super.render(matrixStack, mouseX, mouseY, partialTicks);
   }
