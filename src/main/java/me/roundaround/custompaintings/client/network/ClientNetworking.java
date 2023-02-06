@@ -71,18 +71,18 @@ public class ClientNetworking {
         NetworkPackets.REQUEST_MISMATCHED_PACKET, new PacketByteBuf(Unpooled.buffer()));
   }
 
-  public static void sendReassignIdPacket(UUID paintingUuid, Identifier id) {
+  public static void sendReassignPacket(UUID paintingUuid, Identifier id) {
     PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
     buf.writeUuid(paintingUuid);
     buf.writeIdentifier(id);
-    ClientPlayNetworking.send(NetworkPackets.REASSIGN_ID_PACKET, buf);
+    ClientPlayNetworking.send(NetworkPackets.REASSIGN_PACKET, buf);
   }
 
-  public static void sendReassignAllIdsPacket(Identifier from, Identifier to) {
+  public static void sendReassignAllPacket(Identifier from, Identifier to) {
     PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
     buf.writeIdentifier(from);
     buf.writeIdentifier(to);
-    ClientPlayNetworking.send(NetworkPackets.REASSIGN_ALL_IDS_PACKET, buf);
+    ClientPlayNetworking.send(NetworkPackets.REASSIGN_ALL_PACKET, buf);
   }
 
   public static void sendUpdatePaintingPacket(UUID paintingUuid) {

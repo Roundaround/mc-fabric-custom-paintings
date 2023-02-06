@@ -44,11 +44,11 @@ public class ServerNetworking {
         NetworkPackets.REQUEST_MISMATCHED_PACKET,
         ServerNetworking::handleRequestMismatchedPacket);
     ServerPlayNetworking.registerGlobalReceiver(
-        NetworkPackets.REASSIGN_ID_PACKET,
-        ServerNetworking::handleReassignIdPacket);
+        NetworkPackets.REASSIGN_PACKET,
+        ServerNetworking::handleReassignPacket);
     ServerPlayNetworking.registerGlobalReceiver(
-        NetworkPackets.REASSIGN_ALL_IDS_PACKET,
-        ServerNetworking::handleReassignAllIdsPacket);
+        NetworkPackets.REASSIGN_ALL_PACKET,
+        ServerNetworking::handleReassignAllPacket);
     ServerPlayNetworking.registerGlobalReceiver(
         NetworkPackets.UPDATE_PAINTING_PACKET,
         ServerNetworking::handleUpdatePaintingPacket);
@@ -189,7 +189,7 @@ public class ServerNetworking {
     });
   }
 
-  private static void handleReassignIdPacket(
+  private static void handleReassignPacket(
       MinecraftServer server,
       ServerPlayerEntity player,
       ServerPlayNetworkHandler handler,
@@ -199,13 +199,13 @@ public class ServerNetworking {
     Identifier id = buf.readIdentifier();
 
     server.execute(() -> {
-      ServerPaintingManager.setId(player, paintingUuid, id);
+      ServerPaintingManager.reassign(player, paintingUuid, id);
       sendListUnknownPacket(player, ServerPaintingManager.getUnknownPaintings(player));
       sendListMismatchedPacket(player, ServerPaintingManager.getMismatchedPaintings(player));
     });
   }
 
-  private static void handleReassignAllIdsPacket(
+  private static void handleReassignAllPacket(
       MinecraftServer server,
       ServerPlayerEntity player,
       ServerPlayNetworkHandler handler,

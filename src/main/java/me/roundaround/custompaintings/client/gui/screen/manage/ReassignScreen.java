@@ -50,11 +50,11 @@ public class ReassignScreen extends Screen implements PaintingPacksTracker {
     }
 
     if (applyToAll) {
-      ClientNetworking.sendReassignAllIdsPacket(
+      ClientNetworking.sendReassignAllPacket(
           this.target.currentData().id(),
           this.selectedId);
     } else {
-      ClientNetworking.sendReassignIdPacket(
+      ClientNetworking.sendReassignPacket(
           this.target.uuid(),
           this.selectedId);
     }

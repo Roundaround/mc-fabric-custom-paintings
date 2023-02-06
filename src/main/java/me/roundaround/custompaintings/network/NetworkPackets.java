@@ -28,12 +28,12 @@ public class NetworkPackets {
   public static final Identifier LIST_MISMATCHED_PACKET = new Identifier(
       CustomPaintingsMod.MOD_ID,
       "list_mismatched_packet");
-  public static final Identifier REASSIGN_ID_PACKET = new Identifier(
+  public static final Identifier REASSIGN_PACKET = new Identifier(
       CustomPaintingsMod.MOD_ID,
-      "reassign_id_packet");
-  public static final Identifier REASSIGN_ALL_IDS_PACKET = new Identifier(
+      "reassign_packet");
+  public static final Identifier REASSIGN_ALL_PACKET = new Identifier(
       CustomPaintingsMod.MOD_ID,
-      "reassign_all_ids_packet");
+      "reassign_all_packet");
   public static final Identifier UPDATE_PAINTING_PACKET = new Identifier(
       CustomPaintingsMod.MOD_ID,
       "update_painting_packet");
