@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -365,17 +366,25 @@ public class ServerPaintingManager {
   }
 
   public static int removePainting(ServerPlayerEntity player, UUID uuid) {
-    AtomicInteger count = new AtomicInteger(0);
+    Optional<PaintingEntity> paintingEntity = StreamSupport.stream(player.getServer().getWorlds().spliterator(), false)
+        .flatMap((world) -> {
+          return world.getEntitiesByType(EntityType.PAINTING, (entity) -> {
+            return entity.getUuid().equals(uuid);
+          }).stream();
+        })
+        .map((entity) -> (PaintingEntity) entity)
+        .findFirst();
 
-    player.getServer().getWorlds().forEach((world) -> {
-      Optional.ofNullable(world.getEntity(uuid))
-          .ifPresent((entity) -> {
-            entity.damage(DamageSource.player(player), 0);
-            count.incrementAndGet();
-          });
-    });
+    if (!paintingEntity.isPresent()) {
+      return 0;
+    }
 
-    return count.get();
+    return removePainting(player, paintingEntity.get());
+  }
+
+  public static int removePainting(ServerPlayerEntity player, PaintingEntity paintingEntity) {
+    paintingEntity.damage(DamageSource.player(player), 0);
+    return 1;
   }
 
   public static int removePaintings(ServerPlayerEntity player, Identifier id) {
@@ -388,6 +397,27 @@ public class ServerPaintingManager {
       })
           .forEach((entity) -> {
             entity.damage(DamageSource.player(player), 0);
+            count.incrementAndGet();
+          });
+    });
+
+    return count.get();
+  }
+
+  public static int removeUnknownPaintings(ServerPlayerEntity player) {
+    Set<Identifier> known = ServerPaintingManager.getKnownPaintings(player).keySet();
+
+    AtomicInteger count = new AtomicInteger(0);
+
+    player.getServer().getWorlds().forEach((world) -> {
+      world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
+          .stream()
+          .filter((entity) -> {
+            Identifier id = ((ExpandedPaintingEntity) entity).getCustomData().id();
+            return !known.contains(id);
+          })
+          .forEach((entity) -> {
+            entity.damage(DamageSource.player(player), 0f);
             count.incrementAndGet();
           });
     });

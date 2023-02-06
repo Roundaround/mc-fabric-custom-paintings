@@ -1,20 +1,14 @@
 package me.roundaround.custompaintings.server.command.sub;
 
-import java.util.ArrayList;
 import java.util.Optional;
-import java.util.Set;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
-import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
 import net.minecraft.command.argument.IdentifierArgumentType;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
@@ -22,56 +16,59 @@ public class RemoveSub {
   public static LiteralArgumentBuilder<ServerCommandSource> build() {
     return CommandManager
         .literal("remove")
+        .executes(context -> {
+          return executeTargeted(context.getSource());
+        })
         .then(CommandManager.literal("unknown")
             .executes(context -> {
-              return execute(context.getSource(), Optional.empty());
+              return execute(context.getSource());
             }))
         .then(CommandManager.argument("id", IdentifierArgumentType.identifier())
             .executes(context -> {
-              return execute(context.getSource(),
-                  Optional.of(IdentifierArgumentType.getIdentifier(context, "id")));
+              return execute(context.getSource(), IdentifierArgumentType.getIdentifier(context, "id"));
             }));
   }
 
-  private static int execute(ServerCommandSource source, Optional<Identifier> idToRemove) {
-    ServerPlayerEntity player = source.getPlayer();
-    ArrayList<PaintingEntity> toRemove = new ArrayList<>();
+  private static int executeTargeted(ServerCommandSource source) {
+    Optional<PaintingEntity> maybePainting = IdentifySub.getPaintingInCrosshair(source.getPlayer());
 
-    if (idToRemove.isPresent()) {
-      source.getServer().getWorlds().forEach((world) -> {
-        world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
-            .stream()
-            .filter((entity) -> ((ExpandedPaintingEntity) entity).getCustomData().id().equals(idToRemove.get()))
-            .forEach((entity) -> {
-              toRemove.add((PaintingEntity) entity);
-            });
-      });
-    } else {
-      Set<Identifier> known = ServerPaintingManager.getKnownPaintings(player).keySet();
-
-      source.getServer().getWorlds().forEach((world) -> {
-        world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
-            .stream()
-            .filter((entity) -> {
-              Identifier id = ((ExpandedPaintingEntity) entity).getCustomData().id();
-              return !known.contains(id);
-            })
-            .forEach((entity) -> {
-              toRemove.add((PaintingEntity) entity);
-            });
-      });
+    if (!maybePainting.isPresent()) {
+      source.sendFeedback(Text.translatable("custompaintings.command.remove.none"), false);
+      return 0;
     }
 
-    toRemove.forEach((painting) -> {
-      painting.damage(DamageSource.player(player), 0f);
-    });
+    int removed = ServerPaintingManager.removePainting(source.getPlayer(), maybePainting.get());
 
-    if (toRemove.isEmpty()) {
+    if (removed == 0) {
       source.sendFeedback(Text.translatable("custompaintings.command.remove.none"), false);
     } else {
-      source.sendFeedback(Text.translatable("custompaintings.command.remove.success", toRemove.size()), false);
+      source.sendFeedback(Text.translatable("custompaintings.command.remove.success", removed), false);
     }
 
-    return toRemove.size();
+    return removed;
+  }
+
+  private static int execute(ServerCommandSource source) {
+    int removed = ServerPaintingManager.removeUnknownPaintings(source.getPlayer());
+
+    if (removed == 0) {
+      source.sendFeedback(Text.translatable("custompaintings.command.remove.none"), false);
+    } else {
+      source.sendFeedback(Text.translatable("custompaintings.command.remove.success", removed), false);
+    }
+
+    return removed;
+  }
+
+  private static int execute(ServerCommandSource source, Identifier id) {
+    int removed = ServerPaintingManager.removePaintings(source.getPlayer(), id);
+
+    if (removed == 0) {
+      source.sendFeedback(Text.translatable("custompaintings.command.remove.none"), false);
+    } else {
+      source.sendFeedback(Text.translatable("custompaintings.command.remove.success", removed), false);
+    }
+
+    return removed;
   }
 }
