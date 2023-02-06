@@ -110,7 +110,7 @@ public class MoveSub {
       return 0;
     }
 
-    source.sendFeedback(Text.translatable("custompaintings.command.move.success", dir.toString(), amount), false);
+    source.sendFeedback(Text.translatable("custompaintings.command.move.success", dir.toString().toLowerCase(), amount), false);
     return 1;
   }
 
