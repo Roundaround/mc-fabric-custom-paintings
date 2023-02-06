@@ -69,5 +69,13 @@
   "custompaintings.command.autofix.success": "Updated %s painting(s)",
   "custompaintings.command.move.none": "No paintings found",
   "custompaintings.command.move.invalid": "Target destination is invalid",
-  "custompaintings.command.move.success": "Successfully moved %s %s block(s)"
+  "custompaintings.command.move.success": "Successfully moved %s %s block(s)",
+  "custompaintings.command.set.none": "No paintings found",
+  "custompaintings.command.set.id.success": "Updated ID",
+  "custompaintings.command.set.width.success": "Updated width",
+  "custompaintings.command.set.height.success": "Updated height",
+  "custompaintings.command.set.size.success": "Updated width and height",
+  "custompaintings.command.set.name.success": "Updated name",
+  "custompaintings.command.set.artist.success": "Updated artist",
+  "custompaintings.command.set.label.success": "Updated name and artist"
 }
