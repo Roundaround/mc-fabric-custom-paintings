@@ -13,6 +13,8 @@ public interface MinecraftClientEvents {
       (listeners) -> () -> Arrays.stream(listeners).forEach(MinecraftClientEvents::interact));
   Event<MinecraftClientEvents> ON_CLOSE = EventFactory.createArrayBacked(MinecraftClientEvents.class,
       (listeners) -> () -> Arrays.stream(listeners).forEach(MinecraftClientEvents::interact));
+  Event<MinecraftClientEvents> ON_INPUT = EventFactory.createArrayBacked(MinecraftClientEvents.class,
+      (listeners) -> () -> Arrays.stream(listeners).forEach(MinecraftClientEvents::interact));
 
   void interact();
 }

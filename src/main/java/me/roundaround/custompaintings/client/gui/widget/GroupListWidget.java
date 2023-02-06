@@ -1,17 +1,18 @@
-package me.roundaround.custompaintings.client.gui;
+package me.roundaround.custompaintings.client.gui.widget;
 
 import java.util.Collection;
+import java.util.function.Consumer;
 
 import org.lwjgl.glfw.GLFW;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 
-import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen;
-import me.roundaround.custompaintings.client.gui.screen.PaintingEditScreen.Group;
+import me.roundaround.custompaintings.client.gui.PaintingEditState.Group;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawableHelper;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.EntryListWidget;
 import net.minecraft.client.render.BufferBuilder;
@@ -24,19 +25,24 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.sound.SoundEvents;
 
 @Environment(value = EnvType.CLIENT)
-public class GroupsListWidget extends EntryListWidget<GroupsListWidget.GroupEntry> {
-  private final PaintingEditScreen parent;
+public class GroupListWidget extends EntryListWidget<GroupListWidget.GroupEntry> {
+  private static final int ITEM_HEIGHT = 20;
+
+  private final Screen parent;
+  private final Consumer<String> onGroupSelect;
   private boolean hovered = false;
 
-  public GroupsListWidget(
-      PaintingEditScreen parent,
+  public GroupListWidget(
+      Screen parent,
       MinecraftClient minecraftClient,
       int width,
       int height,
       int top,
-      int bottom) {
-    super(minecraftClient, width, height, top, bottom, 20);
+      int bottom,
+      Consumer<String> onGroupSelect) {
+    super(minecraftClient, width, height, top, bottom, ITEM_HEIGHT);
     this.parent = parent;
+    this.onGroupSelect = onGroupSelect;
     setRenderBackground(false);
     setRenderHeader(false, 0);
   }
@@ -193,7 +199,7 @@ public class GroupsListWidget extends EntryListWidget<GroupsListWidget.GroupEntr
 
     private void press() {
       client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1f));
-      parent.selectGroup(group.id());
+      GroupListWidget.this.onGroupSelect.accept(group.id());
     }
   }
 }

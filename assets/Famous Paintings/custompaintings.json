@@ -1,0 +1,27 @@
+{
+  "id": "famouspaintings",
+  "name": "Famous Real Paintings",
+  "paintings": [
+    {
+      "id": "davinci_mona_lisa",
+      "name": "Mona Lisa",
+      "artist": "Leonardo da Vinci",
+      "width": 1,
+      "height": 2
+    },
+    {
+      "id": "monet_water_lilies",
+      "name": "Water Lilies",
+      "artist": "Claude Monet",
+      "width": 4,
+      "height": 4
+    },
+    {
+      "id": "vangogh_starry_night",
+      "name": "Starry Night",
+      "artist": "Vincent van Gogh",
+      "width": 4,
+      "height": 3
+    }
+  ]
+}

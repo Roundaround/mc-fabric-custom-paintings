@@ -11,8 +11,11 @@
   ],
   "client": [
     "DebugRendererMixin",
+    "EntityRendererMixin",
+    "GameRendererMixin",
     "MinecraftClientMixin",
-    "PaintingEntityRendererMixin"
+    "PaintingEntityRendererMixin",
+    "SpriteAtlasHolderAccessor"
   ],
   "server": [],
   "injectors": {

@@ -19,6 +19,7 @@ import net.minecraft.entity.decoration.AbstractDecorationEntity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.world.World;
@@ -36,13 +37,34 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
   }
 
   @Override
-  public void setCustomData(PaintingData info) {
-    dataTracker.set(CUSTOM_DATA, info);
+  public void setCustomData(Identifier id, int index, int width, int height, String name, String artist, boolean isVanilla) {
+    setCustomData(new PaintingData(id, index, width, height, name, artist, isVanilla));
   }
 
   @Override
-  public void setCustomData(Identifier id, int width, int height) {
-    setCustomData(new PaintingData(id, width, height));
+  public void setCustomData(PaintingData paintingData) {
+    dataTracker.set(CUSTOM_DATA, paintingData);
+
+    if (paintingData.hasLabel()) {
+      setCustomNameVisible(true);
+      setCustomName(getPaintingName());
+    } else {
+      setCustomNameVisible(false);
+      setCustomName(null);
+    }
+  }
+
+  public Text getPaintingName() {
+    PaintingData paintingData = getCustomData();
+    if (paintingData == null) {
+      return super.getDisplayName();
+    }
+
+    if (!paintingData.hasLabel()) {
+      return super.getDisplayName();
+    }
+
+    return paintingData.getLabel();
   }
 
   @Override

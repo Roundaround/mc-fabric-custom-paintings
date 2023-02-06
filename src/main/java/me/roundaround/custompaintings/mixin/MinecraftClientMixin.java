@@ -14,4 +14,9 @@ public abstract class MinecraftClientMixin {
   private void close(CallbackInfo info) {
     MinecraftClientEvents.ON_CLOSE.invoker().interact();
   }
+
+  @Inject(method = "handleInputEvents", at = @At(value = "HEAD"))
+  public void handleInputEvents(CallbackInfo info) {
+    MinecraftClientEvents.ON_INPUT.invoker().interact();
+  }
 }
