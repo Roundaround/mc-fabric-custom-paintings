@@ -5,6 +5,7 @@ import java.util.Optional;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
 import me.roundaround.custompaintings.server.ServerPaintingManager;
+import me.roundaround.custompaintings.server.command.suggest.KnownPaintingIdentifierSuggestionProvider;
 import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.server.command.CommandManager;
@@ -24,6 +25,7 @@ public class RemoveSub {
               return execute(context.getSource());
             }))
         .then(CommandManager.argument("id", IdentifierArgumentType.identifier())
+            .suggests(new KnownPaintingIdentifierSuggestionProvider())
             .executes(context -> {
               return execute(context.getSource(), IdentifierArgumentType.getIdentifier(context, "id"));
             }));
