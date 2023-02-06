@@ -2,6 +2,7 @@ package me.roundaround.custompaintings.server.command.sub;
 
 import java.util.Optional;
 
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
 import me.roundaround.custompaintings.server.ServerPaintingManager;
@@ -25,27 +26,27 @@ public class SetSub {
                       IdentifierArgumentType.getIdentifier(context, "id"));
                 })))
         .then(CommandManager.literal("width")
-            .then(CommandManager.argument("width", IdentifierArgumentType.identifier())
+            .then(CommandManager.argument("width", IntegerArgumentType.integer(1, 32))
                 .executes(context -> {
                   return executeSetWidth(
                       context.getSource(),
-                      Integer.parseInt(IdentifierArgumentType.getIdentifier(context, "width").toString()));
+                      IntegerArgumentType.getInteger(context, "width"));
                 })))
         .then(CommandManager.literal("height")
-            .then(CommandManager.argument("height", IdentifierArgumentType.identifier())
+            .then(CommandManager.argument("height", IntegerArgumentType.integer(1, 32))
                 .executes(context -> {
                   return executeSetHeight(
                       context.getSource(),
-                      Integer.parseInt(IdentifierArgumentType.getIdentifier(context, "height").toString()));
+                      IntegerArgumentType.getInteger(context, "height"));
                 })))
         .then(CommandManager.literal("size")
-            .then(CommandManager.argument("width", IdentifierArgumentType.identifier())
-                .then(CommandManager.argument("height", IdentifierArgumentType.identifier())
+            .then(CommandManager.argument("width", IntegerArgumentType.integer(1, 32))
+                .then(CommandManager.argument("height", IntegerArgumentType.integer(1, 32))
                     .executes(context -> {
                       return executeSetSize(
                           context.getSource(),
-                          Integer.parseInt(IdentifierArgumentType.getIdentifier(context, "width").toString()),
-                          Integer.parseInt(IdentifierArgumentType.getIdentifier(context, "height").toString()));
+                          IntegerArgumentType.getInteger(context, "width"),
+                          IntegerArgumentType.getInteger(context, "height"));
                     }))));
   }
 
