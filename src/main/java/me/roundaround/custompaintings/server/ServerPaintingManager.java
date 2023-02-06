@@ -10,6 +10,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import com.google.common.collect.ImmutableList;
 
@@ -107,41 +108,200 @@ public class ServerPaintingManager {
     return mismatched;
   }
 
-  public static void reassignId(ServerPlayerEntity player, UUID paintingUuid, Identifier id, boolean fix) {
+  public static int setId(ServerPlayerEntity player, UUID paintingUuid, Identifier id) {
+    Optional<PaintingEntity> paintingEntity = StreamSupport.stream(player.getServer().getWorlds().spliterator(), false)
+        .flatMap((world) -> {
+          return world.getEntitiesByType(EntityType.PAINTING, (entity) -> {
+            return entity.getUuid().equals(paintingUuid);
+          }).stream();
+        })
+        .map((entity) -> (PaintingEntity) entity)
+        .findFirst();
+
+    if (!paintingEntity.isPresent()) {
+      return 0;
+    }
+
+    return setId(player, paintingEntity.get(), id);
+  }
+
+  public static int setId(ServerPlayerEntity player, PaintingEntity paintingEntity, Identifier id) {
+    if (!(paintingEntity instanceof ExpandedPaintingEntity)) {
+      return 0;
+    }
+
+    ExpandedPaintingEntity painting = (ExpandedPaintingEntity) paintingEntity;
+    PaintingData paintingData = painting.getCustomData();
+
+    painting.setCustomData(
+        id,
+        paintingData.index(),
+        paintingData.width(),
+        paintingData.height(),
+        paintingData.name(),
+        paintingData.artist(),
+        paintingData.isVanilla());
+    return 1;
+  }
+
+  public static int setWidth(ServerPlayerEntity player, UUID paintingUuid, int width) {
+    Optional<PaintingEntity> paintingEntity = StreamSupport.stream(player.getServer().getWorlds().spliterator(), false)
+        .flatMap((world) -> {
+          return world.getEntitiesByType(EntityType.PAINTING, (entity) -> {
+            return entity.getUuid().equals(paintingUuid);
+          }).stream();
+        })
+        .map((entity) -> (PaintingEntity) entity)
+        .findFirst();
+
+    if (!paintingEntity.isPresent()) {
+      return 0;
+    }
+
+    return setWidth(player, paintingEntity.get(), width);
+  }
+
+  public static int setWidth(ServerPlayerEntity player, PaintingEntity paintingEntity, int width) {
+    if (!(paintingEntity instanceof ExpandedPaintingEntity)) {
+      return 0;
+    }
+
+    ExpandedPaintingEntity painting = (ExpandedPaintingEntity) paintingEntity;
+    PaintingData paintingData = painting.getCustomData();
+
+    painting.setCustomData(
+        paintingData.id(),
+        paintingData.index(),
+        width,
+        paintingData.height(),
+        paintingData.name(),
+        paintingData.artist(),
+        paintingData.isVanilla());
+    return 1;
+  }
+
+  public static int setHeight(ServerPlayerEntity player, UUID paintingUuid, int height) {
+    Optional<PaintingEntity> paintingEntity = StreamSupport.stream(player.getServer().getWorlds().spliterator(), false)
+        .flatMap((world) -> {
+          return world.getEntitiesByType(EntityType.PAINTING, (entity) -> {
+            return entity.getUuid().equals(paintingUuid);
+          }).stream();
+        })
+        .map((entity) -> (PaintingEntity) entity)
+        .findFirst();
+
+    if (!paintingEntity.isPresent()) {
+      return 0;
+    }
+
+    return setHeight(player, paintingEntity.get(), height);
+  }
+
+  public static int setHeight(ServerPlayerEntity player, PaintingEntity paintingEntity, int height) {
+    if (!(paintingEntity instanceof ExpandedPaintingEntity)) {
+      return 0;
+    }
+
+    ExpandedPaintingEntity painting = (ExpandedPaintingEntity) paintingEntity;
+    PaintingData paintingData = painting.getCustomData();
+
+    painting.setCustomData(
+        paintingData.id(),
+        paintingData.index(),
+        paintingData.width(),
+        height,
+        paintingData.name(),
+        paintingData.artist(),
+        paintingData.isVanilla());
+    return 1;
+  }
+
+  public static int setSize(ServerPlayerEntity player, UUID paintingUuid, int width, int height) {
+    Optional<PaintingEntity> paintingEntity = StreamSupport.stream(player.getServer().getWorlds().spliterator(), false)
+        .flatMap((world) -> {
+          return world.getEntitiesByType(EntityType.PAINTING, (entity) -> {
+            return entity.getUuid().equals(paintingUuid);
+          }).stream();
+        })
+        .map((entity) -> (PaintingEntity) entity)
+        .findFirst();
+
+    if (!paintingEntity.isPresent()) {
+      return 0;
+    }
+
+    return setSize(player, paintingEntity.get(), width, height);
+  }
+
+  public static int setSize(ServerPlayerEntity player, PaintingEntity paintingEntity, int width, int height) {
+    if (!(paintingEntity instanceof ExpandedPaintingEntity)) {
+      return 0;
+    }
+
+    ExpandedPaintingEntity painting = (ExpandedPaintingEntity) paintingEntity;
+    PaintingData paintingData = painting.getCustomData();
+
+    painting.setCustomData(
+        paintingData.id(),
+        paintingData.index(),
+        width,
+        height,
+        paintingData.name(),
+        paintingData.artist(),
+        paintingData.isVanilla());
+    return 1;
+  }
+
+  public static int reassign(ServerPlayerEntity player, UUID paintingUuid, Identifier id) {
+    Optional<PaintingEntity> paintingEntity = StreamSupport.stream(player.getServer().getWorlds().spliterator(), false)
+        .flatMap((world) -> {
+          return world.getEntitiesByType(EntityType.PAINTING, (entity) -> {
+            return entity.getUuid().equals(paintingUuid);
+          }).stream();
+        })
+        .map((entity) -> (PaintingEntity) entity)
+        .findFirst();
+
+    if (!paintingEntity.isPresent()) {
+      return 0;
+    }
+
+    return reassign(player, paintingEntity.get(), id);
+  }
+
+  public static int reassign(ServerPlayerEntity player, PaintingEntity paintingEntity, Identifier id) {
+    if (!(paintingEntity instanceof ExpandedPaintingEntity)) {
+      return 0;
+    }
+
     Map<Identifier, PaintingData> known = getKnownPaintings(player);
 
     if (!known.containsKey(id)) {
-      return;
+      return -1;
     }
 
-    // Find the painting with the given uuid and reassign its id.
-    player.getServer().getWorlds().forEach((world) -> {
-      world.getEntitiesByType(EntityType.PAINTING, entity -> {
-        return entity instanceof ExpandedPaintingEntity &&
-            entity.getUuid().equals(paintingUuid);
-      })
-          .forEach((entity) -> {
-            ExpandedPaintingEntity painting = (ExpandedPaintingEntity) entity;
-            PaintingData paintingData = fix ? known.get(id) : painting.getCustomData();
+    ExpandedPaintingEntity painting = (ExpandedPaintingEntity) paintingEntity;
+    PaintingData paintingData = known.get(id);
 
-            painting.setCustomData(
-                id,
-                paintingData.index(),
-                paintingData.width(),
-                paintingData.height(),
-                paintingData.name(),
-                paintingData.artist(),
-                paintingData.isVanilla());
-          });
-    });
+    painting.setCustomData(
+        id,
+        paintingData.index(),
+        paintingData.width(),
+        paintingData.height(),
+        paintingData.name(),
+        paintingData.artist(),
+        paintingData.isVanilla());
+    return 1;
   }
 
-  public static void reassignIds(ServerPlayerEntity player, Identifier from, Identifier to, boolean fix) {
+  public static int reassign(ServerPlayerEntity player, Identifier from, Identifier to) {
     Map<Identifier, PaintingData> known = getKnownPaintings(player);
 
     if (!known.containsKey(to)) {
-      return;
+      return -1;
     }
+
+    AtomicInteger count = new AtomicInteger(0);
 
     player.getServer().getWorlds().forEach((world) -> {
       world.getEntitiesByType(EntityType.PAINTING, entity -> {
@@ -150,7 +310,7 @@ public class ServerPaintingManager {
       })
           .forEach((entity) -> {
             ExpandedPaintingEntity painting = (ExpandedPaintingEntity) entity;
-            PaintingData paintingData = fix ? known.get(to) : painting.getCustomData();
+            PaintingData paintingData = known.get(to);
 
             painting.setCustomData(
                 to,
@@ -160,8 +320,12 @@ public class ServerPaintingManager {
                 paintingData.name(),
                 paintingData.artist(),
                 paintingData.isVanilla());
+
+            count.incrementAndGet();
           });
     });
+
+    return count.get();
   }
 
   public static void updatePainting(ServerPlayerEntity player, UUID uuid) {
@@ -200,16 +364,23 @@ public class ServerPaintingManager {
     });
   }
 
-  public static void removePainting(ServerPlayerEntity player, UUID uuid) {
+  public static int removePainting(ServerPlayerEntity player, UUID uuid) {
+    AtomicInteger count = new AtomicInteger(0);
+
     player.getServer().getWorlds().forEach((world) -> {
       Optional.ofNullable(world.getEntity(uuid))
           .ifPresent((entity) -> {
             entity.damage(DamageSource.player(player), 0);
+            count.incrementAndGet();
           });
     });
+
+    return count.get();
   }
 
-  public static void removePaintings(ServerPlayerEntity player, Identifier id) {
+  public static int removePaintings(ServerPlayerEntity player, Identifier id) {
+    AtomicInteger count = new AtomicInteger(0);
+
     player.getServer().getWorlds().forEach((world) -> {
       world.getEntitiesByType(EntityType.PAINTING, entity -> {
         return entity instanceof ExpandedPaintingEntity &&
@@ -217,8 +388,11 @@ public class ServerPaintingManager {
       })
           .forEach((entity) -> {
             entity.damage(DamageSource.player(player), 0);
+            count.incrementAndGet();
           });
     });
+
+    return count.get();
   }
 
   public static void customifyVanillaPaintings(ServerPlayerEntity player) {

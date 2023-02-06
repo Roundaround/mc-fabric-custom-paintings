@@ -28,14 +28,14 @@ public class FixSub {
         .then(CommandManager.literal("all")
             .executes(context -> {
               return execute(context.getSource(), null);
-            }))
-        .then(CommandManager.argument("id", IdentifierArgumentType.identifier())
-            .suggests(new KnownPaintingIdentifierSuggestionProvider(true))
-            .executes(context -> {
-              return execute(
-                  context.getSource(),
-                  IdentifierArgumentType.getIdentifier(context, "id"));
-            }));
+            })
+            .then(CommandManager.argument("id", IdentifierArgumentType.identifier())
+                .suggests(new KnownPaintingIdentifierSuggestionProvider(true))
+                .executes(context -> {
+                  return execute(
+                      context.getSource(),
+                      IdentifierArgumentType.getIdentifier(context, "id"));
+                })));
   }
 
   private static int executeTargeted(ServerCommandSource source) {

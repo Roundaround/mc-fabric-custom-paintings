@@ -75,7 +75,6 @@ public class ClientNetworking {
     PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
     buf.writeUuid(paintingUuid);
     buf.writeIdentifier(id);
-    buf.writeBoolean(false);
     ClientPlayNetworking.send(NetworkPackets.REASSIGN_ID_PACKET, buf);
   }
 
@@ -83,7 +82,6 @@ public class ClientNetworking {
     PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
     buf.writeIdentifier(from);
     buf.writeIdentifier(to);
-    buf.writeBoolean(false);
     ClientPlayNetworking.send(NetworkPackets.REASSIGN_ALL_IDS_PACKET, buf);
   }
 

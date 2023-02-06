@@ -196,11 +196,10 @@ public class ServerNetworking {
       PacketByteBuf buf,
       PacketSender responseSender) {
     UUID paintingUuid = buf.readUuid();
-    Identifier to = buf.readIdentifier();
-    boolean fix = buf.readBoolean();
+    Identifier id = buf.readIdentifier();
 
     server.execute(() -> {
-      ServerPaintingManager.reassignId(player, paintingUuid, to, fix);
+      ServerPaintingManager.setId(player, paintingUuid, id);
       sendListUnknownPacket(player, ServerPaintingManager.getUnknownPaintings(player));
       sendListMismatchedPacket(player, ServerPaintingManager.getMismatchedPaintings(player));
     });
@@ -214,10 +213,9 @@ public class ServerNetworking {
       PacketSender responseSender) {
     Identifier from = buf.readIdentifier();
     Identifier to = buf.readIdentifier();
-    boolean fix = buf.readBoolean();
 
     server.execute(() -> {
-      ServerPaintingManager.reassignIds(player, from, to, fix);
+      ServerPaintingManager.reassign(player, from, to);
       sendListUnknownPacket(player, ServerPaintingManager.getUnknownPaintings(player));
       sendListMismatchedPacket(player, ServerPaintingManager.getMismatchedPaintings(player));
     });
