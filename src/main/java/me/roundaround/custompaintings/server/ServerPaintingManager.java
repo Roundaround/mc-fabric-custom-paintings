@@ -405,6 +405,11 @@ public class ServerPaintingManager {
         paintingData.name(),
         paintingData.artist(),
         paintingData.isVanilla());
+
+    if (paintingData.isVanilla()) {
+      painting.setVariant(id);
+    }
+
     return 1;
   }
 
@@ -434,6 +439,10 @@ public class ServerPaintingManager {
                 paintingData.name(),
                 paintingData.artist(),
                 paintingData.isVanilla());
+
+            if (paintingData.isVanilla()) {
+              painting.setVariant(to);
+            }
 
             count.incrementAndGet();
           });
@@ -473,6 +482,10 @@ public class ServerPaintingManager {
                   knownData.name(),
                   knownData.artist(),
                   knownData.isVanilla());
+
+              if (knownData.isVanilla()) {
+                painting.setVariant(id);
+              }
             });
       });
     });
