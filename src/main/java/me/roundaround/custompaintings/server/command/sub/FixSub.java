@@ -39,7 +39,7 @@ public class FixSub {
   }
 
   private static int executeTargeted(ServerCommandSource source) {
-    Optional<PaintingEntity> maybePainting = IdentifySub.getPaintingInCrosshair(source.getPlayer());
+    Optional<PaintingEntity> maybePainting = ServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
 
     if (!maybePainting.isPresent()) {
       source.sendFeedback(Text.translatable("custompaintings.command.fix.none"), false);

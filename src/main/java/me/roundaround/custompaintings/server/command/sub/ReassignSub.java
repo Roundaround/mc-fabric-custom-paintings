@@ -39,7 +39,7 @@ public class ReassignSub {
   }
 
   private static int execute(ServerCommandSource source, Identifier id) {
-    Optional<PaintingEntity> maybePainting = IdentifySub.getPaintingInCrosshair(source.getPlayer());
+    Optional<PaintingEntity> maybePainting = ServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
 
     if (maybePainting.isEmpty()) {
       source.sendFeedback(Text.translatable("custompaintings.command.reassign.none"), false);

@@ -22,13 +22,18 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingData.Mi
 import me.roundaround.custompaintings.util.Migration;
 import me.roundaround.custompaintings.util.MismatchedPainting;
 import me.roundaround.custompaintings.util.UnknownPainting;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
+import net.minecraft.entity.projectile.ProjectileUtil;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.tag.PaintingVariantTags;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.hit.EntityHitResult;
+import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.util.registry.RegistryEntry;
 import net.minecraft.util.registry.RegistryKey;
@@ -540,5 +545,34 @@ public class ServerPaintingManager {
     });
 
     return count.get();
+  }
+
+  public static Optional<PaintingEntity> getPaintingInCrosshair(ServerPlayerEntity player) {
+    Entity camera = player.getCameraEntity();
+    double distance = 64;
+    Vec3d posVec = camera.getCameraPosVec(0f);
+    Vec3d rotationVec = camera.getRotationVec(1f);
+    Vec3d targetVec = posVec.add(
+        rotationVec.x * distance,
+        rotationVec.y * distance,
+        rotationVec.z * distance);
+
+    HitResult crosshairTarget = ProjectileUtil.raycast(
+        player.getCameraEntity(),
+        posVec,
+        targetVec,
+        camera.getBoundingBox().stretch(rotationVec.multiply(distance)).expand(1.0, 1.0, 1.0),
+        entity -> entity instanceof PaintingEntity,
+        distance * distance);
+    if (!(crosshairTarget instanceof EntityHitResult)) {
+      return Optional.empty();
+    }
+
+    EntityHitResult entityHitResult = (EntityHitResult) crosshairTarget;
+    if (!(entityHitResult.getEntity() instanceof PaintingEntity)) {
+      return Optional.empty();
+    }
+
+    return Optional.of((PaintingEntity) entityHitResult.getEntity());
   }
 }

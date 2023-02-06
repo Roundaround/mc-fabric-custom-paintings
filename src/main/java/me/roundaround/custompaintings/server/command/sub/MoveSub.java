@@ -17,6 +17,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 
+import me.roundaround.custompaintings.server.ServerPaintingManager;
 import net.minecraft.command.CommandSource;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.server.command.CommandManager;
@@ -40,7 +41,7 @@ public class MoveSub {
   }
 
   private static int execute(ServerCommandSource source, MoveDirection dir, int amount) {
-    Optional<PaintingEntity> maybePainting = IdentifySub.getPaintingInCrosshair(source.getPlayer());
+    Optional<PaintingEntity> maybePainting = ServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
 
     if (!maybePainting.isPresent()) {
       source.sendFeedback(Text.translatable("custompaintings.command.move.none"), false);

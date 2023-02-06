@@ -12,18 +12,14 @@ import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData.MismatchedCategory;
-import net.minecraft.entity.Entity;
+import me.roundaround.custompaintings.server.ServerPaintingManager;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
-import net.minecraft.entity.projectile.ProjectileUtil;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.hit.EntityHitResult;
-import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.registry.Registry;
 
 public class IdentifySub {
@@ -35,38 +31,9 @@ public class IdentifySub {
         });
   }
 
-  public static Optional<PaintingEntity> getPaintingInCrosshair(ServerPlayerEntity player) {
-    Entity camera = player.getCameraEntity();
-    double distance = 64;
-    Vec3d posVec = camera.getCameraPosVec(0f);
-    Vec3d rotationVec = camera.getRotationVec(1f);
-    Vec3d targetVec = posVec.add(
-        rotationVec.x * distance,
-        rotationVec.y * distance,
-        rotationVec.z * distance);
-
-    HitResult crosshairTarget = ProjectileUtil.raycast(
-        player.getCameraEntity(),
-        posVec,
-        targetVec,
-        camera.getBoundingBox().stretch(rotationVec.multiply(distance)).expand(1.0, 1.0, 1.0),
-        entity -> entity instanceof PaintingEntity,
-        distance * distance);
-    if (!(crosshairTarget instanceof EntityHitResult)) {
-      return Optional.empty();
-    }
-
-    EntityHitResult entityHitResult = (EntityHitResult) crosshairTarget;
-    if (!(entityHitResult.getEntity() instanceof PaintingEntity)) {
-      return Optional.empty();
-    }
-
-    return Optional.of((PaintingEntity) entityHitResult.getEntity());
-  }
-
   private static int execute(ServerCommandSource source) {
     ServerPlayerEntity player = source.getPlayer();
-    Optional<PaintingEntity> maybePainting = getPaintingInCrosshair(player);
+    Optional<PaintingEntity> maybePainting = ServerPaintingManager.getPaintingInCrosshair(player);
 
     if (!maybePainting.isPresent()) {
       source.sendFeedback(Text.translatable("custompaintings.command.identify.none"), false);

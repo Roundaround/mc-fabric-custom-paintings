@@ -51,7 +51,7 @@ public class SetSub {
   }
 
   private static int executeSetId(ServerCommandSource source, Identifier id) {
-    Optional<PaintingEntity> maybePainting = IdentifySub.getPaintingInCrosshair(source.getPlayer());
+    Optional<PaintingEntity> maybePainting = ServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
 
     if (maybePainting.isEmpty()) {
       source.sendFeedback(Text.translatable("custompaintings.command.set.none"), false);
@@ -73,7 +73,7 @@ public class SetSub {
   }
 
   private static int executeSetWidth(ServerCommandSource source, int width) {
-    Optional<PaintingEntity> maybePainting = IdentifySub.getPaintingInCrosshair(source.getPlayer());
+    Optional<PaintingEntity> maybePainting = ServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
 
     if (maybePainting.isEmpty()) {
       source.sendFeedback(Text.translatable("custompaintings.command.set.none"), false);
@@ -95,7 +95,7 @@ public class SetSub {
   }
 
   private static int executeSetHeight(ServerCommandSource source, int height) {
-    Optional<PaintingEntity> maybePainting = IdentifySub.getPaintingInCrosshair(source.getPlayer());
+    Optional<PaintingEntity> maybePainting = ServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
 
     if (maybePainting.isEmpty()) {
       source.sendFeedback(Text.translatable("custompaintings.command.set.none"), false);
@@ -117,7 +117,7 @@ public class SetSub {
   }
 
   private static int executeSetSize(ServerCommandSource source, int width, int height) {
-    Optional<PaintingEntity> maybePainting = IdentifySub.getPaintingInCrosshair(source.getPlayer());
+    Optional<PaintingEntity> maybePainting = ServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
 
     if (maybePainting.isEmpty()) {
       source.sendFeedback(Text.translatable("custompaintings.command.set.none"), false);
