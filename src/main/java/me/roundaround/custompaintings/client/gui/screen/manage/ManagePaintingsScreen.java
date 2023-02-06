@@ -1,5 +1,6 @@
 package me.roundaround.custompaintings.client.gui.screen.manage;
 
+import me.roundaround.custompaintings.client.gui.widget.ButtonListWidget;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.util.math.MatrixStack;
@@ -11,48 +12,40 @@ public class ManagePaintingsScreen extends Screen {
   private static final int BUTTON_HEIGHT = 20;
   private static final int PADDING = 8;
 
+  private ButtonListWidget buttonList;
+
   public ManagePaintingsScreen() {
     super(Text.translatable("custompaintings.manage.title"));
   }
 
   @Override
   public void init() {
-    int xPos = (this.width - BUTTON_WIDTH) / 2;
-    int yPos = this.height / 4 + PADDING;
+    this.buttonList = new ButtonListWidget(
+        this.client,
+        this.width,
+        this.height,
+        32,
+        this.height - 32);
 
-    addDrawableChild(new ButtonWidget(
-        xPos,
-        yPos,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
+    this.buttonList.addEntry(
         Text.translatable("custompaintings.manage.unknown"),
         (button) -> {
           this.client.setScreen(new UnknownPaintingsScreen(this));
-        }));
+        });
 
-    yPos += BUTTON_HEIGHT + PADDING;
-
-    addDrawableChild(new ButtonWidget(
-        xPos,
-        yPos,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
+    this.buttonList.addEntry(
         Text.translatable("custompaintings.manage.mismatched"),
         (button) -> {
           this.client.setScreen(new MismatchedPaintingsScreen(this));
-        }));
+        });
 
-    yPos += BUTTON_HEIGHT + PADDING;
-
-    addDrawableChild(new ButtonWidget(
-        xPos,
-        yPos,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
+    this.buttonList.addEntry(
         Text.translatable("custompaintings.manage.migrations"),
         (button) -> {
           this.client.setScreen(new MigrationsScreen(this));
-        }));
+        });
+    
+    addSelectableChild(this.buttonList);
 
     addDrawableChild(new ButtonWidget(
         (this.width - BUTTON_WIDTH) / 2,
@@ -67,8 +60,9 @@ public class ManagePaintingsScreen extends Screen {
 
   @Override
   public void render(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-    renderBackgroundTexture(0);
-    drawCenteredText(matrixStack, this.textRenderer, this.title, this.width / 2, 40, 0xFFFFFF);
+    renderBackground(matrixStack);
+    this.buttonList.render(matrixStack, mouseX, mouseY, partialTicks);
+    drawCenteredText(matrixStack, this.textRenderer, this.title, this.width / 2, 20, 0xFFFFFF);
     super.render(matrixStack, mouseX, mouseY, partialTicks);
   }
 }
