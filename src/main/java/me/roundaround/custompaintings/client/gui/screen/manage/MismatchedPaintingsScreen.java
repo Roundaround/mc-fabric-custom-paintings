@@ -41,15 +41,14 @@ public class MismatchedPaintingsScreen extends Screen {
         this.height - 32);
     addSelectableChild(this.list);
 
-    addDrawableChild(new ButtonWidget(
-        (this.width - BUTTON_WIDTH) / 2,
-        this.height - BUTTON_HEIGHT - PADDING,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
+    addDrawableChild(ButtonWidget.builder(
         ScreenTexts.CANCEL,
         (button) -> {
           this.close();
-        }));
+        })
+        .position((this.width - BUTTON_WIDTH) / 2, this.height - BUTTON_HEIGHT - PADDING)
+        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+        .build());
   }
 
   @Override

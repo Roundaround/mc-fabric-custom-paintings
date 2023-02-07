@@ -31,6 +31,7 @@ import net.minecraft.client.texture.Sprite;
 import net.minecraft.client.texture.SpriteAtlasHolder;
 import net.minecraft.client.texture.SpriteAtlasTexture;
 import net.minecraft.client.texture.TextureManager;
+import net.minecraft.registry.Registries;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.ResourceType;
 import net.minecraft.resource.ZipResourcePack;
@@ -38,7 +39,6 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.InvalidIdentifierException;
 import net.minecraft.util.Pair;
 import net.minecraft.util.profiler.Profiler;
-import net.minecraft.util.registry.Registry;
 
 @Environment(value = EnvType.CLIENT)
 public class CustomPaintingManager
@@ -53,7 +53,7 @@ public class CustomPaintingManager
   private final HashSet<Identifier> spriteIds = new HashSet<>();
 
   public CustomPaintingManager(TextureManager manager) {
-    super(manager, new Identifier("textures/atlas/custompaintings.png"), "painting");
+    super(manager, new Identifier("textures/atlas/custompaintings.png"), new Identifier(CustomPaintingsMod.MOD_ID, "painting"));
   }
 
   @Override
@@ -165,7 +165,7 @@ public class CustomPaintingManager
   }
 
   public Identifier getAtlasId() {
-    return getBackSprite().getAtlas().getId();
+    return getBackSprite().getAtlasId();
   }
 
   public boolean exists(Identifier id) {
@@ -196,7 +196,7 @@ public class CustomPaintingManager
     }
     if (paintingData.isVanilla()) {
       return MINECRAFT.getPaintingManager()
-          .getPaintingSprite(Registry.PAINTING_VARIANT.get(paintingData.id()));
+          .getPaintingSprite(Registries.PAINTING_VARIANT.get(paintingData.id()));
     }
     return this.getSprite(paintingData.id());
   }

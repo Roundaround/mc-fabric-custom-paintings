@@ -19,9 +19,9 @@ import net.minecraft.entity.decoration.AbstractDecorationEntity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
+import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.registry.Registry;
 import net.minecraft.world.World;
 
 @Mixin(PaintingEntity.class)
@@ -37,7 +37,8 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
   }
 
   @Override
-  public void setCustomData(Identifier id, int index, int width, int height, String name, String artist, boolean isVanilla) {
+  public void setCustomData(Identifier id, int index, int width, int height, String name, String artist,
+      boolean isVanilla) {
     setCustomData(new PaintingData(id, index, width, height, name, artist, isVanilla));
   }
 
@@ -84,14 +85,14 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
 
   @Override
   public void setVariant(Identifier id) {
-    Registry.PAINTING_VARIANT.streamEntries()
+    Registries.PAINTING_VARIANT.streamEntries()
         .filter((ref) -> ref.matchesId(id))
         .map((ref) -> ref.getKey())
         .filter(Optional::isPresent)
         .map(Optional::get)
         .findFirst()
         .ifPresent((key) -> {
-          Registry.PAINTING_VARIANT.getEntry(key)
+          Registries.PAINTING_VARIANT.getEntry(key)
               .ifPresent((entry) -> {
                 ((PaintingEntityAccessor) this).invokeSetVariant(entry);
               });

@@ -59,25 +59,23 @@ public class MigrationsScreen extends Screen implements PaintingPacksTracker {
     this.list.setMigrations(getMigrations());
     addSelectableChild(this.list);
 
-    this.confirmButton = new ButtonWidget(
-        (this.width - PADDING) / 2 - BUTTON_WIDTH,
-        this.height - BUTTON_HEIGHT - PADDING,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
+    this.confirmButton = ButtonWidget.builder(
         Text.translatable("custompaintings.migrations.confirm"),
-        (button) -> this.confirmSelection());
+        (button) -> this.confirmSelection())
+        .position((this.width - PADDING) / 2 - BUTTON_WIDTH, this.height - BUTTON_HEIGHT - PADDING)
+        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+        .build();
     this.confirmButton.active = false;
     addDrawableChild(this.confirmButton);
 
-    addDrawableChild(new ButtonWidget(
-        (this.width + PADDING) / 2,
-        this.height - BUTTON_HEIGHT - PADDING,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
+    addDrawableChild(ButtonWidget.builder(
         ScreenTexts.CANCEL,
         (button) -> {
           this.close();
-        }));
+        })
+        .position((this.width + PADDING) / 2, this.height - BUTTON_HEIGHT - PADDING)
+        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+        .build());
   }
 
   @Override

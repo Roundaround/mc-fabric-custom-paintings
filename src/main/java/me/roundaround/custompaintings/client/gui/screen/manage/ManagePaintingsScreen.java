@@ -44,18 +44,17 @@ public class ManagePaintingsScreen extends Screen {
         (button) -> {
           this.client.setScreen(new MigrationsScreen(this));
         });
-    
+
     addSelectableChild(this.buttonList);
 
-    addDrawableChild(new ButtonWidget(
-        (this.width - BUTTON_WIDTH) / 2,
-        this.height - BUTTON_HEIGHT - PADDING,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
+    addDrawableChild(ButtonWidget.builder(
         ScreenTexts.DONE,
         (button) -> {
           this.close();
-        }));
+        })
+        .position((this.width - BUTTON_WIDTH) / 2, this.height - BUTTON_HEIGHT - PADDING)
+        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+        .build());
   }
 
   @Override

@@ -187,15 +187,16 @@ public class MismatchedPaintingListWidget
       this.mismatchedPainting = mismatchedPainting;
       this.sprite = CustomPaintingsClientMod.customPaintingManager.getPaintingSprite(mismatchedPainting.currentData());
 
-      this.fixButton = new IconButtonWidget(
-          this.client,
-          MismatchedPaintingListWidget.this.getRowRight() - IconButtonWidget.WIDTH - 4,
-          0,
-          IconButtonWidget.WRENCH_ICON,
+      this.fixButton = IconButtonWidget.builder(
           Text.translatable("custompaintings.mismatched.fix"),
           (button) -> {
             ClientNetworking.sendUpdatePaintingPacket(this.mismatchedPainting.uuid());
-          });
+          },
+          IconButtonWidget.WRENCH_ICON)
+          .position(
+              MismatchedPaintingListWidget.this.getRowRight() - IconButtonWidget.WIDTH - 4,
+              0)
+          .build();
     }
 
     public MismatchedPainting getMismatchedPainting() {
@@ -231,10 +232,10 @@ public class MismatchedPaintingListWidget
       int scaledWidth = paintingData.getScaledWidth(maxWidth, maxHeight);
       int scaledHeight = paintingData.getScaledHeight(maxWidth, maxHeight);
 
-      RenderSystem.setShader(GameRenderer::getPositionTexShader);
+      RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
 
       RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-      RenderSystem.setShaderTexture(0, this.sprite.getAtlas().getId());
+      RenderSystem.setShaderTexture(0, this.sprite.getAtlasId());
       drawSprite(
           matrixStack,
           x + 4 + (maxWidth - scaledWidth) / 2,
@@ -307,7 +308,7 @@ public class MismatchedPaintingListWidget
           posY,
           0xFFFFFFFF);
 
-      this.fixButton.y = y + (entryHeight - IconButtonWidget.HEIGHT) / 2;
+      this.fixButton.setY(y + (entryHeight - IconButtonWidget.HEIGHT) / 2);
       this.fixButton.render(matrixStack, mouseX, mouseY, partialTicks);
     }
   }

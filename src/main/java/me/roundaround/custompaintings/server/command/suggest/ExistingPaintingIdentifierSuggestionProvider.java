@@ -16,9 +16,9 @@ import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintin
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.registry.Registry;
 
 public class ExistingPaintingIdentifierSuggestionProvider implements SuggestionProvider<ServerCommandSource> {
   private final boolean missingOnly;
@@ -45,7 +45,7 @@ public class ExistingPaintingIdentifierSuggestionProvider implements SuggestionP
       world.getEntitiesByType(EntityType.PAINTING, (entity) -> true).forEach((entity) -> {
         if (isVanillaPainting(entity)) {
           if (!this.missingOnly) {
-            builder.suggest(Registry.PAINTING_VARIANT.getId(entity.getVariant().value()).toString());
+            builder.suggest(Registries.PAINTING_VARIANT.getId(entity.getVariant().value()).toString());
           }
           return;
         }

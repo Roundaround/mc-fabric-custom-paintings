@@ -1,17 +1,12 @@
 package me.roundaround.custompaintings.client.gui.screen.edit;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.lwjgl.glfw.GLFW;
 
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.widget.FilterListWidget;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.util.OrderableTooltip;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.screen.ScreenTexts;
-import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 
 public class FiltersScreen extends PaintingEditScreen {
@@ -32,26 +27,24 @@ public class FiltersScreen extends PaintingEditScreen {
         this.getHeaderHeight(),
         this.height - this.getFooterHeight());
 
-    ButtonWidget resetButton = new ButtonWidget(
-        width / 2 - BUTTON_WIDTH - 2,
-        height - BUTTON_HEIGHT - 10,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
+    ButtonWidget resetButton = ButtonWidget.builder(
         Text.translatable("custompaintings.filter.reset"),
         (button) -> {
           this.state.getFilters().reset();
           this.filtersListWidget.updateFilters();
-        });
+        })
+        .position(width / 2 - BUTTON_WIDTH - 2, height - BUTTON_HEIGHT - 10)
+        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+        .build();
 
-    ButtonWidget doneButton = new ButtonWidget(
-        width / 2 + 2,
-        height - BUTTON_HEIGHT - 10,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
+    ButtonWidget doneButton = ButtonWidget.builder(
         ScreenTexts.DONE,
         (button) -> {
           this.client.setScreen(new PaintingSelectScreen(this.state));
-        });
+        })
+        .position(width / 2 + 2, height - BUTTON_HEIGHT - 10)
+        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+        .build();
 
     addSelectableChild(this.filtersListWidget);
     addDrawableChild(resetButton);
@@ -98,19 +91,6 @@ public class FiltersScreen extends PaintingEditScreen {
         width / 2,
         11,
         0xFFFFFFFF);
-
-    List<OrderedText> tooltip = this.filtersListWidget.getHoveredElement(mouseX, mouseY)
-        .map((element) -> {
-          if (element instanceof OrderableTooltip) {
-            return ((OrderableTooltip) element).getOrderedTooltip();
-          }
-          return new ArrayList<OrderedText>();
-        })
-        .orElse(new ArrayList<OrderedText>());
-
-    if (!tooltip.isEmpty()) {
-      renderOrderedTooltip(matrixStack, tooltip, mouseX, mouseY);
-    }
   }
 
   private int getHeaderHeight() {

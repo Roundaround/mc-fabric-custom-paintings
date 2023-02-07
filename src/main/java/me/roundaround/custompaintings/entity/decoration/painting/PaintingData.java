@@ -3,10 +3,10 @@ package me.roundaround.custompaintings.entity.decoration.painting;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.registry.Registries;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.registry.Registry;
 
 public record PaintingData(
     Identifier id,
@@ -29,11 +29,11 @@ public record PaintingData(
 
   public PaintingData(PaintingVariant vanillaVariant, int index) {
     this(
-        Registry.PAINTING_VARIANT.getId(vanillaVariant),
+        Registries.PAINTING_VARIANT.getId(vanillaVariant),
         index,
         vanillaVariant.getWidth() / 16,
         vanillaVariant.getHeight() / 16,
-        Registry.PAINTING_VARIANT.getId(vanillaVariant).getPath(),
+        Registries.PAINTING_VARIANT.getId(vanillaVariant).getPath(),
         "",
         true);
   }

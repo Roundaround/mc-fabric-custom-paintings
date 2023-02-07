@@ -1,7 +1,6 @@
 package me.roundaround.custompaintings.client.gui.screen.edit;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 import org.lwjgl.glfw.GLFW;
@@ -12,11 +11,11 @@ import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.PaintingEditState.Group;
 import me.roundaround.custompaintings.client.gui.PaintingEditState.PaintingChangeListener;
-import me.roundaround.custompaintings.client.gui.widget.ButtonWithDisabledTooltipWidget;
 import me.roundaround.custompaintings.client.gui.widget.IconButtonWidget;
 import me.roundaround.custompaintings.client.gui.widget.PaintingListWidget;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.minecraft.client.gui.Element;
+import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.render.GameRenderer;
@@ -25,7 +24,6 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.util.math.Rect2i;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.MutableText;
-import net.minecraft.text.OrderedText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
@@ -35,14 +33,14 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
   private PaintingListWidget paintingList;
   private IconButtonWidget prevButton;
   private IconButtonWidget nextButton;
-  private ButtonWithDisabledTooltipWidget doneButton;
+  private ButtonWidget doneButton;
   private int paneWidth;
   private int rightPaneX;
   private double scrollAmount;
   private ArrayList<PaintingData> paintings = new ArrayList<>();
   private boolean hasHiddenPaintings = false;
+  private PaintingData paintingData;
   private boolean canStay = true;
-  private List<OrderedText> tooBigTooltip = List.of();
   private Sprite paintingSprite = null;
   private Rect2i paintingRect = new Rect2i(0, 0, 0, 0);
 
@@ -66,13 +64,8 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
 
   @Override
   public void onPaintingChange(PaintingData paintingData) {
+    this.paintingData = paintingData;
     this.canStay = this.state.canStay(paintingData);
-    this.tooBigTooltip = this.textRenderer.wrapLines(
-        Text.translatable(
-            "custompaintings.painting.big",
-            paintingData.width(),
-            paintingData.height()),
-        200);
     this.paintingSprite = CustomPaintingsClientMod.customPaintingManager
         .getPaintingSprite(paintingData);
 
@@ -101,7 +94,14 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
 
     if (this.doneButton != null) {
       this.doneButton.active = this.canStay;
-      this.doneButton.disabledTooltip = this.tooBigTooltip;
+      if (!this.canStay) {
+        this.doneButton.setTooltip(Tooltip.of(Text.translatable(
+            "custompaintings.painting.big",
+            paintingData.width(),
+            paintingData.height())));
+      } else {
+        this.doneButton.setTooltip(null);
+      }
     }
   }
 
@@ -135,17 +135,16 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
       onSearchBoxChanged(search);
     });
 
-    IconButtonWidget filterButton = new IconButtonWidget(
-        this.client,
-        10 + this.searchBox.getWidth() + 4,
-        this.searchBox.y,
-        IconButtonWidget.FILTER_ICON,
+    IconButtonWidget filterButton = IconButtonWidget.builder(
         Text.translatable("custompaintings.painting.filter"),
         (button) -> {
           this.client.setScreen(new FiltersScreen(this.state));
-        });
+        },
+        IconButtonWidget.FILTER_ICON)
+        .position(10 + this.searchBox.getWidth() + 4, this.searchBox.getY())
+        .build();
 
-    int listTop = this.searchBox.y + this.searchBox.getHeight() + 4;
+    int listTop = this.searchBox.getY() + this.searchBox.getHeight() + 4;
     int listBottom = this.height - footerHeight - 4;
     int listHeight = listBottom - listTop;
     this.paintingList = new PaintingListWidget(
@@ -158,34 +157,30 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         listBottom,
         this.paintings);
 
-    this.prevButton = new IconButtonWidget(
-        this.client,
-        this.rightPaneX + 8,
-        this.height - footerHeight - 4 - BUTTON_HEIGHT,
-        IconButtonWidget.LEFT_ICON,
+    this.prevButton = IconButtonWidget.builder(
         Text.translatable("custompaintings.painting.previous"),
         (button) -> {
           previousPainting();
-        });
+        },
+        IconButtonWidget.LEFT_ICON)
+        .position(this.rightPaneX + 8, this.height - footerHeight - 4 - BUTTON_HEIGHT)
+        .build();
 
-    this.nextButton = new IconButtonWidget(
-        this.client,
-        this.width - 8 - IconButtonWidget.WIDTH,
-        this.height - footerHeight - 4 - BUTTON_HEIGHT,
-        IconButtonWidget.RIGHT_ICON,
+    this.nextButton = IconButtonWidget.builder(
         Text.translatable("custompaintings.painting.next"),
         (button) -> {
           nextPainting();
-        });
+        },
+        IconButtonWidget.RIGHT_ICON)
+        .position(
+            this.width - 8 - IconButtonWidget.WIDTH,
+            this.height - footerHeight - 4 - BUTTON_HEIGHT)
+        .build();
 
     this.prevButton.active = hasMultiplePaintings();
     this.nextButton.active = hasMultiplePaintings();
 
-    ButtonWidget cancelButton = new ButtonWidget(
-        width / 2 - BUTTON_WIDTH - 2,
-        height - BUTTON_HEIGHT - 10,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
+    ButtonWidget cancelButton = ButtonWidget.builder(
         this.state.hasMultipleGroups() ? ScreenTexts.BACK : ScreenTexts.CANCEL,
         (button) -> {
           if (this.state.hasMultipleGroups()) {
@@ -193,21 +188,28 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
           } else {
             saveEmpty();
           }
-        });
+        })
+        .position(width / 2 - BUTTON_WIDTH - 2, height - BUTTON_HEIGHT - 10)
+        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+        .build();
 
-    this.doneButton = new ButtonWithDisabledTooltipWidget(
-        this,
-        width / 2 + 2,
-        height - BUTTON_HEIGHT - 10,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
+    this.doneButton = ButtonWidget.builder(
         ScreenTexts.DONE,
         (button) -> {
           saveCurrentSelection();
-        });
+        })
+        .position(width / 2 + 2, height - BUTTON_HEIGHT - 10)
+        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+        .build();
 
-    this.doneButton.active = this.canStay;
-    this.doneButton.disabledTooltip = this.tooBigTooltip;
+    if (!this.canStay) {
+      this.doneButton.setTooltip(Tooltip.of(Text.translatable(
+          "custompaintings.painting.big",
+          this.paintingData.width(),
+          this.paintingData.height())));
+    } else {
+      this.doneButton.setTooltip(null);
+    }
 
     addSelectableChild(this.searchBox);
     addDrawableChild(filterButton);
@@ -396,20 +398,10 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
 
     fill(matrixStack, x, y, x + width, y + height, 0xFF000000);
 
-    RenderSystem.setShader(GameRenderer::getPositionTexShader);
+    RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
     RenderSystem.setShaderColor(color, color, color, 1f);
-    RenderSystem.setShaderTexture(0, this.paintingSprite.getAtlas().getId());
+    RenderSystem.setShaderTexture(0, this.paintingSprite.getAtlasId());
     drawSprite(matrixStack, x + 1, y + 1, 0, width - 2, height - 2, this.paintingSprite);
-
-    if (!this.canStay
-        && mouseX >= x && mouseX < x + width
-        && mouseY >= y && mouseY < y + height) {
-      renderOrderedTooltip(
-          matrixStack,
-          this.tooBigTooltip,
-          mouseX,
-          mouseY);
-    }
   }
 
   @Override

@@ -18,6 +18,7 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.Selectable;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
+import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.CyclingButtonWidget;
 import net.minecraft.client.gui.widget.ElementListWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
@@ -306,7 +307,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
             if (tooltip == null || tooltip == Text.EMPTY) {
               return null;
             }
-            return FilterListWidget.this.textRenderer.wrapLines(tooltip, 200);
+            return Tooltip.of(tooltip);
           })
           .build(
               getControlLeft(),
@@ -331,7 +332,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
         int mouseY,
         boolean hovered,
         float partialTicks) {
-      this.button.y = y + (entryHeight - CONTROL_HEIGHT) / 2;
+      this.button.setY(y + (entryHeight - CONTROL_HEIGHT) / 2);
       this.button.render(matrixStack, mouseX, mouseY, partialTicks);
     }
 
@@ -404,7 +405,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
           y + MathHelper.ceil((entryHeight - FilterListWidget.this.textRenderer.fontHeight) / 2f),
           0xFFFFFF);
 
-      this.textField.y = y + (entryHeight - CONTROL_HEIGHT) / 2;
+      this.textField.setY(y + (entryHeight - CONTROL_HEIGHT) / 2);
       this.textField.render(matrixStack, mouseX, mouseY, partialTicks);
     }
 
@@ -488,10 +489,10 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
         int mouseY,
         boolean hovered,
         float partialTicks) {
-      this.lowSlider.y = y + (entryHeight - CONTROL_HEIGHT) / 2;
+      this.lowSlider.setY(y + (entryHeight - CONTROL_HEIGHT) / 2);
       this.lowSlider.render(matrixStack, mouseX, mouseY, partialTicks);
 
-      this.highSlider.y = y + (entryHeight - CONTROL_HEIGHT) / 2;
+      this.highSlider.setY(y + (entryHeight - CONTROL_HEIGHT) / 2);
       this.highSlider.render(matrixStack, mouseX, mouseY, partialTicks);
     }
 

@@ -19,14 +19,14 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.AbstractDecorationEntity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
-import net.minecraft.tag.PaintingVariantTags;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.registry.tag.PaintingVariantTags;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.util.registry.RegistryEntry;
-import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.world.World;
 
 public class PaintingEditState {
@@ -141,11 +141,11 @@ public class PaintingEditState {
       return;
     }
 
-    Registry.PAINTING_VARIANT.stream()
+    Registries.PAINTING_VARIANT.stream()
         .forEach((vanillaVariant) -> {
-          Identifier id = Registry.PAINTING_VARIANT.getId(vanillaVariant);
-          RegistryKey<PaintingVariant> key = RegistryKey.of(Registry.PAINTING_VARIANT_KEY, id);
-          Optional<RegistryEntry<PaintingVariant>> maybeEntry = Registry.PAINTING_VARIANT.getEntry(key);
+          Identifier id = Registries.PAINTING_VARIANT.getId(vanillaVariant);
+          RegistryKey<PaintingVariant> key = RegistryKey.of(Registries.PAINTING_VARIANT.getKey(), id);
+          Optional<RegistryEntry.Reference<PaintingVariant>> maybeEntry = Registries.PAINTING_VARIANT.getEntry(key);
 
           if (!maybeEntry.isPresent()) {
             return;
