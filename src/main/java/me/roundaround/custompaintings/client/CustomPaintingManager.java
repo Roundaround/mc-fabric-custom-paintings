@@ -13,6 +13,8 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.google.gson.stream.JsonReader;
@@ -27,6 +29,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.texture.MissingSprite;
 import net.minecraft.client.texture.Sprite;
 import net.minecraft.client.texture.SpriteAtlasTexture;
 import net.minecraft.client.texture.SpriteContents;
@@ -49,8 +52,7 @@ import net.minecraft.util.profiler.Profiler;
 @Environment(value = EnvType.CLIENT)
 public class CustomPaintingManager implements IdentifiableResourceReloadListener, AutoCloseable {
   private static final MinecraftClient MINECRAFT = MinecraftClient.getInstance();
-  // private static final Pattern PATTERN =
-  // Pattern.compile("(?:\\w*/)*?(\\w+)\\.png");
+  private static final Pattern PATTERN = Pattern.compile("(?:\\w*/)*?(\\w+)\\.png");
   private static final Identifier PAINTING_BACK_ID = new Identifier(Identifier.DEFAULT_NAMESPACE, "back");
 
   private final SpriteAtlasTexture atlas;
@@ -127,9 +129,19 @@ public class CustomPaintingManager implements IdentifiableResourceReloadListener
                 namespace,
                 "textures/painting",
                 (id, supplier) -> {
-                  if (id.getPath().endsWith(".png")) {
+                  if (!id.getPath().endsWith(".png")) {
                     return;
                   }
+
+                  String paintingNamespace = id.getNamespace();
+                  String paintingPath = id.getPath();
+
+                  Matcher matcher = PATTERN.matcher(paintingPath);
+                  if (matcher.find()) {
+                    paintingPath = matcher.group(1);
+                  }
+
+                  id = new Identifier(paintingNamespace, paintingPath);
 
                   spriteIds.add(id);
                   spriteResources.add(new Pair<>(id, new Resource(resourcePack, supplier)));
@@ -151,6 +163,13 @@ public class CustomPaintingManager implements IdentifiableResourceReloadListener
         return SpriteLoader.load(pair.getLeft(), pair.getRight());
       });
     });
+
+    spriteIds.add(MissingSprite.getMissingSpriteId());
+    suppliers.add(MissingSprite::createSpriteContents);
+
+    spriteIds.add(PAINTING_BACK_ID);
+    suppliers.add(() -> SpriteLoader.load(PAINTING_BACK_ID, new Resource(MINECRAFT.getDefaultResourcePack(), MINECRAFT
+        .getDefaultResourcePack().open(ResourceType.CLIENT_RESOURCES, new Identifier("textures/painting/back.png")))));
 
     SpriteLoader loader = SpriteLoader.fromAtlas(this.atlas);
     return SpriteLoader.method_47664(suppliers, prepareExecutor)
