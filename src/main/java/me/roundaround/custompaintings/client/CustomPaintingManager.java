@@ -10,10 +10,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
@@ -28,11 +28,17 @@ import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.texture.Sprite;
-import net.minecraft.client.texture.SpriteAtlasHolder;
 import net.minecraft.client.texture.SpriteAtlasTexture;
+import net.minecraft.client.texture.SpriteContents;
+import net.minecraft.client.texture.SpriteLoader;
 import net.minecraft.client.texture.TextureManager;
 import net.minecraft.registry.Registries;
+import net.minecraft.resource.DirectoryResourcePack;
+import net.minecraft.resource.InputSupplier;
+import net.minecraft.resource.Resource;
 import net.minecraft.resource.ResourceManager;
+import net.minecraft.resource.ResourcePack;
+import net.minecraft.resource.ResourceReloader;
 import net.minecraft.resource.ResourceType;
 import net.minecraft.resource.ZipResourcePack;
 import net.minecraft.util.Identifier;
@@ -41,43 +47,50 @@ import net.minecraft.util.Pair;
 import net.minecraft.util.profiler.Profiler;
 
 @Environment(value = EnvType.CLIENT)
-public class CustomPaintingManager
-    extends SpriteAtlasHolder
-    implements IdentifiableResourceReloadListener {
+public class CustomPaintingManager implements IdentifiableResourceReloadListener, AutoCloseable {
   private static final MinecraftClient MINECRAFT = MinecraftClient.getInstance();
-  private static final Pattern PATTERN = Pattern.compile("(?:\\w*/)*?(\\w+)\\.png");
+  // private static final Pattern PATTERN =
+  // Pattern.compile("(?:\\w*/)*?(\\w+)\\.png");
   private static final Identifier PAINTING_BACK_ID = new Identifier(Identifier.DEFAULT_NAMESPACE, "back");
 
+  private final SpriteAtlasTexture atlas;
   private final HashMap<String, Pack> packs = new HashMap<>();
   private final HashMap<Identifier, PaintingData> data = new HashMap<>();
   private final HashSet<Identifier> spriteIds = new HashSet<>();
 
   public CustomPaintingManager(TextureManager manager) {
-    super(manager, new Identifier("textures/atlas/custompaintings.png"), new Identifier(CustomPaintingsMod.MOD_ID, "painting"));
+    this.atlas = new SpriteAtlasTexture(new Identifier("textures/atlas/custompaintings.png"));
+    manager.registerTexture(this.atlas.getId(), this.atlas);
   }
 
   @Override
-  protected SpriteAtlasTexture.Data prepare(ResourceManager resourceManager, Profiler profiler) {
+  public CompletableFuture<Void> reload(
+      ResourceReloader.Synchronizer synchronizer,
+      ResourceManager manager,
+      Profiler prepareProfiler,
+      Profiler applyProfiler,
+      Executor prepareExecutor,
+      Executor applyExecutor) {
     packs.clear();
     data.clear();
     spriteIds.clear();
 
-    resourceManager.streamResourcePacks().filter((resource) -> {
-      // Can we find a way to include non-zip packs without throwing everytime
-      // on the fabric pack?
-      return resource instanceof ZipResourcePack;
-    }).filter((resource) -> {
-      return resource.getNamespaces(ResourceType.CLIENT_RESOURCES)
+    ArrayList<Pair<Identifier, Resource>> spriteResources = new ArrayList<>();
+
+    manager.streamResourcePacks().filter((resourcePack) -> {
+      return resourcePack instanceof ZipResourcePack || resourcePack instanceof DirectoryResourcePack;
+    }).filter((resourcePack) -> {
+      return resourcePack.getNamespaces(ResourceType.CLIENT_RESOURCES)
           .stream()
           .filter((namespace) -> {
             return !Identifier.DEFAULT_NAMESPACE.equals(namespace)
                 && !Identifier.REALMS_NAMESPACE.equals(namespace);
           })
           .count() > 0;
-    }).forEach((resource) -> {
-      try (InputStream stream = resource.openRoot("custompaintings.json")) {
+    }).forEach((resourcePack) -> {
+      try (InputStream stream = resourcePack.openRoot("custompaintings.json").get()) {
         try (JsonReader reader = new JsonReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
-          Pack pack = readPack(reader, resource.getName());
+          Pack pack = readPack(reader, resourcePack.getName());
 
           if (packs.containsKey(pack.id())) {
             throw new ParseException("Multiple packs detected with id '" + pack.id() + "'! Pack id must be unique.");
@@ -102,33 +115,26 @@ public class CustomPaintingManager
 
       spriteIds.add(PAINTING_BACK_ID);
 
-      resource.getNamespaces(ResourceType.CLIENT_RESOURCES)
+      resourcePack.getNamespaces(ResourceType.CLIENT_RESOURCES)
           .stream()
           .filter((namespace) -> {
             return !Identifier.DEFAULT_NAMESPACE.equals(namespace)
                 && !Identifier.REALMS_NAMESPACE.equals(namespace);
           })
-          .flatMap((namespace) -> {
-            return resource.findResources(
+          .forEach((namespace) -> {
+            resourcePack.findResources(
                 ResourceType.CLIENT_RESOURCES,
                 namespace,
                 "textures/painting",
-                (id) -> id.getPath().endsWith(".png"))
-                .stream();
-          })
-          .map((id) -> {
-            String namespace = id.getNamespace();
-            String path = id.getPath();
+                (id, supplier) -> {
+                  if (id.getPath().endsWith(".png")) {
+                    return;
+                  }
 
-            Matcher matcher = PATTERN.matcher(path);
-            if (matcher.find()) {
-              path = matcher.group(1);
-            }
-
-            return new Identifier(namespace, path);
-          })
-          .filter((id) -> data.containsKey(id))
-          .forEach(spriteIds::add);
+                  spriteIds.add(id);
+                  spriteResources.add(new Pair<>(id, new Resource(resourcePack, supplier)));
+                });
+          });
     });
 
     if (MINECRAFT.player != null) {
@@ -139,17 +145,36 @@ public class CustomPaintingManager
       ((PaintingPacksTracker) MINECRAFT.currentScreen).onResourcesReloaded();
     }
 
-    return super.prepare(resourceManager, profiler);
+    List<Supplier<SpriteContents>> suppliers = new ArrayList<>();
+    spriteResources.forEach((pair) -> {
+      suppliers.add(() -> {
+        return SpriteLoader.load(pair.getLeft(), pair.getRight());
+      });
+    });
+
+    SpriteLoader loader = SpriteLoader.fromAtlas(this.atlas);
+    return SpriteLoader.method_47664(suppliers, prepareExecutor)
+        .thenApply((list) -> loader.method_47663(list, 0, prepareExecutor))
+        .thenCompose(synchronizer::whenPrepared)
+        .thenAcceptAsync(stitchResult -> afterReload(stitchResult, applyProfiler), applyExecutor);
+  }
+
+  private void afterReload(SpriteLoader.StitchResult stitchResult, Profiler profiler) {
+    profiler.startTick();
+    profiler.push("upload");
+    this.atlas.upload(stitchResult);
+    profiler.pop();
+    profiler.endTick();
+  }
+
+  @Override
+  public void close() {
+    this.atlas.clear();
   }
 
   @Override
   public Identifier getFabricId() {
     return new Identifier(CustomPaintingsMod.MOD_ID, "custom_paintings");
-  }
-
-  @Override
-  protected Stream<Identifier> getSprites() {
-    return spriteIds.stream();
   }
 
   public void sendKnownPaintingsToServer() {
@@ -160,12 +185,16 @@ public class CustomPaintingManager
     }
   }
 
+  public Sprite getSprite(Identifier id) {
+    return atlas.getSprite(id);
+  }
+
   public Optional<Pack> getPack(String id) {
     return Optional.ofNullable(packs.get(id));
   }
 
   public Identifier getAtlasId() {
-    return getBackSprite().getAtlasId();
+    return this.atlas.getId();
   }
 
   public boolean exists(Identifier id) {
@@ -192,13 +221,13 @@ public class CustomPaintingManager
 
   public Sprite getPaintingSprite(PaintingData paintingData) {
     if (paintingData == null || paintingData.isEmpty()) {
-      return this.getBackSprite();
+      return getBackSprite();
     }
     if (paintingData.isVanilla()) {
       return MINECRAFT.getPaintingManager()
           .getPaintingSprite(Registries.PAINTING_VARIANT.get(paintingData.id()));
     }
-    return this.getSprite(paintingData.id());
+    return getSprite(paintingData.id());
   }
 
   public Pair<Integer, Integer> getPaintingDimensions(Identifier id) {
@@ -210,7 +239,7 @@ public class CustomPaintingManager
   }
 
   public Sprite getBackSprite() {
-    return this.getSprite(PAINTING_BACK_ID);
+    return getSprite(PAINTING_BACK_ID);
   }
 
   private Pack readPack(JsonReader reader, String filename) throws IOException, ParseException {
@@ -496,5 +525,11 @@ public class CustomPaintingManager
       Optional<String> artist,
       Optional<Integer> height,
       Optional<Integer> width) {
+  }
+
+  public record SpriteReference(
+      Identifier id,
+      ResourcePack pack,
+      InputSupplier<InputStream> supplier) {
   }
 }
