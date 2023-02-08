@@ -31,6 +31,7 @@ import net.minecraft.client.texture.Sprite;
 import net.minecraft.client.texture.SpriteAtlasHolder;
 import net.minecraft.client.texture.SpriteAtlasTexture;
 import net.minecraft.client.texture.TextureManager;
+import net.minecraft.resource.DirectoryResourcePack;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.ResourceType;
 import net.minecraft.resource.ZipResourcePack;
@@ -63,9 +64,7 @@ public class CustomPaintingManager
     spriteIds.clear();
 
     resourceManager.streamResourcePacks().filter((resource) -> {
-      // Can we find a way to include non-zip packs without throwing everytime
-      // on the fabric pack?
-      return resource instanceof ZipResourcePack;
+      return resource instanceof ZipResourcePack || resource instanceof DirectoryResourcePack;
     }).filter((resource) -> {
       return resource.getNamespaces(ResourceType.CLIENT_RESOURCES)
           .stream()
