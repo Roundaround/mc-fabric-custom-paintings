@@ -73,107 +73,110 @@ public class CustomPaintingManager implements IdentifiableResourceReloadListener
       Profiler applyProfiler,
       Executor prepareExecutor,
       Executor applyExecutor) {
-    packs.clear();
-    data.clear();
-    spriteIds.clear();
+    return CompletableFuture.supplyAsync(() -> {
+      packs.clear();
+      data.clear();
+      spriteIds.clear();
 
-    ArrayList<Pair<Identifier, Resource>> spriteResources = new ArrayList<>();
+      ArrayList<Pair<Identifier, Resource>> spriteResources = new ArrayList<>();
 
-    manager.streamResourcePacks().filter((resourcePack) -> {
-      return resourcePack instanceof ZipResourcePack || resourcePack instanceof DirectoryResourcePack;
-    }).filter((resourcePack) -> {
-      return resourcePack.getNamespaces(ResourceType.CLIENT_RESOURCES)
-          .stream()
-          .filter((namespace) -> {
-            return !Identifier.DEFAULT_NAMESPACE.equals(namespace)
-                && !Identifier.REALMS_NAMESPACE.equals(namespace);
-          })
-          .count() > 0;
-    }).forEach((resourcePack) -> {
-      try (InputStream stream = resourcePack.openRoot("custompaintings.json").get()) {
-        try (JsonReader reader = new JsonReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
-          Pack pack = readPack(reader, resourcePack.getName());
+      manager.streamResourcePacks().filter((resourcePack) -> {
+        return resourcePack instanceof ZipResourcePack || resourcePack instanceof DirectoryResourcePack;
+      }).filter((resourcePack) -> {
+        return resourcePack.getNamespaces(ResourceType.CLIENT_RESOURCES)
+            .stream()
+            .filter((namespace) -> {
+              return !Identifier.DEFAULT_NAMESPACE.equals(namespace)
+                  && !Identifier.REALMS_NAMESPACE.equals(namespace);
+            })
+            .count() > 0;
+      }).forEach((resourcePack) -> {
+        try (InputStream stream = resourcePack.openRoot("custompaintings.json").get()) {
+          try (JsonReader reader = new JsonReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+            Pack pack = readPack(reader, resourcePack.getName());
 
-          if (packs.containsKey(pack.id())) {
-            throw new ParseException("Multiple packs detected with id '" + pack.id() + "'! Pack id must be unique.");
+            if (packs.containsKey(pack.id())) {
+              throw new ParseException("Multiple packs detected with id '" + pack.id() + "'! Pack id must be unique.");
+            }
+            packs.put(pack.id(), pack);
+
+            pack.paintings().forEach((painting) -> {
+              Identifier id = new Identifier(pack.id(), painting.id());
+              data.put(id, new PaintingData(
+                  id,
+                  painting.index(),
+                  painting.width().orElse(1),
+                  painting.height().orElse(1),
+                  painting.name().orElse(""),
+                  painting.artist().orElse("")));
+            });
           }
-          packs.put(pack.id(), pack);
-
-          pack.paintings().forEach((painting) -> {
-            Identifier id = new Identifier(pack.id(), painting.id());
-            data.put(id, new PaintingData(
-                id,
-                painting.index(),
-                painting.width().orElse(1),
-                painting.height().orElse(1),
-                painting.name().orElse(""),
-                painting.artist().orElse("")));
-          });
+        } catch (Exception e) {
+          CustomPaintingsMod.LOGGER.error("Error reading custom painting pack, skipping...", e);
+          return;
         }
-      } catch (Exception e) {
-        CustomPaintingsMod.LOGGER.error("Error reading custom painting pack, skipping...", e);
-        return;
+
+        spriteIds.add(PAINTING_BACK_ID);
+
+        resourcePack.getNamespaces(ResourceType.CLIENT_RESOURCES)
+            .stream()
+            .filter((namespace) -> {
+              return !Identifier.DEFAULT_NAMESPACE.equals(namespace)
+                  && !Identifier.REALMS_NAMESPACE.equals(namespace);
+            })
+            .forEach((namespace) -> {
+              resourcePack.findResources(
+                  ResourceType.CLIENT_RESOURCES,
+                  namespace,
+                  "textures/painting",
+                  (id, supplier) -> {
+                    if (!id.getPath().endsWith(".png")) {
+                      return;
+                    }
+
+                    String paintingNamespace = id.getNamespace();
+                    String paintingPath = id.getPath();
+
+                    Matcher matcher = PATTERN.matcher(paintingPath);
+                    if (matcher.find()) {
+                      paintingPath = matcher.group(1);
+                    }
+
+                    id = new Identifier(paintingNamespace, paintingPath);
+
+                    spriteIds.add(id);
+                    spriteResources.add(new Pair<>(id, new Resource(resourcePack, supplier)));
+                  });
+            });
+      });
+
+      if (MINECRAFT.player != null) {
+        sendKnownPaintingsToServer();
       }
 
-      spriteIds.add(PAINTING_BACK_ID);
+      if (MINECRAFT.currentScreen instanceof PaintingPacksTracker) {
+        ((PaintingPacksTracker) MINECRAFT.currentScreen).onResourcesReloaded();
+      }
 
-      resourcePack.getNamespaces(ResourceType.CLIENT_RESOURCES)
-          .stream()
-          .filter((namespace) -> {
-            return !Identifier.DEFAULT_NAMESPACE.equals(namespace)
-                && !Identifier.REALMS_NAMESPACE.equals(namespace);
-          })
-          .forEach((namespace) -> {
-            resourcePack.findResources(
-                ResourceType.CLIENT_RESOURCES,
-                namespace,
-                "textures/painting",
-                (id, supplier) -> {
-                  if (!id.getPath().endsWith(".png")) {
-                    return;
-                  }
-
-                  String paintingNamespace = id.getNamespace();
-                  String paintingPath = id.getPath();
-
-                  Matcher matcher = PATTERN.matcher(paintingPath);
-                  if (matcher.find()) {
-                    paintingPath = matcher.group(1);
-                  }
-
-                  id = new Identifier(paintingNamespace, paintingPath);
-
-                  spriteIds.add(id);
-                  spriteResources.add(new Pair<>(id, new Resource(resourcePack, supplier)));
-                });
-          });
-    });
-
-    if (MINECRAFT.player != null) {
-      sendKnownPaintingsToServer();
-    }
-
-    if (MINECRAFT.currentScreen instanceof PaintingPacksTracker) {
-      ((PaintingPacksTracker) MINECRAFT.currentScreen).onResourcesReloaded();
-    }
-
-    List<Supplier<SpriteContents>> suppliers = new ArrayList<>();
-    spriteResources.forEach((pair) -> {
-      suppliers.add(() -> {
-        return SpriteLoader.load(pair.getLeft(), pair.getRight());
+      List<Supplier<SpriteContents>> suppliers = new ArrayList<>();
+      spriteResources.forEach((pair) -> {
+        suppliers.add(() -> {
+          return SpriteLoader.load(pair.getLeft(), pair.getRight());
+        });
       });
-    });
 
-    spriteIds.add(MissingSprite.getMissingSpriteId());
-    suppliers.add(MissingSprite::createSpriteContents);
+      spriteIds.add(MissingSprite.getMissingSpriteId());
+      suppliers.add(MissingSprite::createSpriteContents);
 
-    spriteIds.add(PAINTING_BACK_ID);
-    suppliers.add(() -> SpriteLoader.load(PAINTING_BACK_ID, new Resource(MINECRAFT.getDefaultResourcePack(), MINECRAFT
-        .getDefaultResourcePack().open(ResourceType.CLIENT_RESOURCES, new Identifier("textures/painting/back.png")))));
+      spriteIds.add(PAINTING_BACK_ID);
+      suppliers.add(() -> SpriteLoader.load(PAINTING_BACK_ID, new Resource(MINECRAFT.getDefaultResourcePack(), MINECRAFT
+          .getDefaultResourcePack()
+          .open(ResourceType.CLIENT_RESOURCES, new Identifier("textures/painting/back.png")))));
 
-    SpriteLoader loader = SpriteLoader.fromAtlas(this.atlas);
-    return SpriteLoader.method_47664(suppliers, prepareExecutor)
-        .thenApply((list) -> loader.method_47663(list, 0, prepareExecutor))
+      return suppliers;
+    }, prepareExecutor)
+        .thenCompose((suppliers) -> SpriteLoader.method_47664(suppliers, prepareExecutor))
+        .thenApply((list) -> SpriteLoader.fromAtlas(this.atlas).method_47663(list, 0, prepareExecutor))
         .thenCompose(synchronizer::whenPrepared)
         .thenAcceptAsync(stitchResult -> afterReload(stitchResult, applyProfiler), applyExecutor);
   }
