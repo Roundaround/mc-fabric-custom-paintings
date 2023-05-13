@@ -32,37 +32,34 @@ public class ApplyToAllScreen extends Screen {
 
   @Override
   public void init() {
-    addDrawableChild(new ButtonWidget(
-        (this.width - PADDING) / 2 - BUTTON_WIDTH / 2,
-        this.height / 2,
-        BUTTON_WIDTH / 2,
-        BUTTON_HEIGHT,
+    addDrawableChild(ButtonWidget.builder(
         ScreenTexts.YES,
         (button) -> {
           this.client.setScreen(this.parent);
           this.callback.accept(this.selected, true);
-        }));
+        })
+        .position((this.width - PADDING) / 2 - BUTTON_WIDTH / 2, this.height / 2)
+        .size(BUTTON_WIDTH / 2, BUTTON_HEIGHT)
+        .build());
 
-    addDrawableChild(new ButtonWidget(
-        (this.width + PADDING) / 2,
-        this.height / 2,
-        BUTTON_WIDTH / 2,
-        BUTTON_HEIGHT,
+    addDrawableChild(ButtonWidget.builder(
         ScreenTexts.NO,
         (button) -> {
           this.client.setScreen(this.parent);
           this.callback.accept(this.selected, false);
-        }));
+        })
+        .position((this.width + PADDING) / 2, this.height / 2)
+        .size(BUTTON_WIDTH / 2, BUTTON_HEIGHT)
+        .build());
 
-    addDrawableChild(new ButtonWidget(
-        (this.width - BUTTON_WIDTH) / 2,
-        this.height - BUTTON_HEIGHT - PADDING,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
+    addDrawableChild(ButtonWidget.builder(
         ScreenTexts.CANCEL,
         (button) -> {
           this.close();
-        }));
+        })
+        .position((this.width - BUTTON_WIDTH) / 2, this.height - BUTTON_HEIGHT - PADDING)
+        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+        .build());
   }
 
   @Override

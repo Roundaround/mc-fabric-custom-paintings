@@ -75,8 +75,6 @@ public class ReassignScreen extends Screen implements PaintingPacksTracker {
 
   @Override
   public void init() {
-    this.client.keyboard.setRepeatEvents(true);
-
     this.searchBox = new TextFieldWidget(
         this.textRenderer,
         (this.width - SEARCH_WIDTH) / 2,
@@ -98,27 +96,25 @@ public class ReassignScreen extends Screen implements PaintingPacksTracker {
     this.list.setPaintings(getKnownPaintings().values());
     addSelectableChild(this.list);
 
-    this.confirmButton = new ButtonWidget(
-        (this.width - PADDING) / 2 - BUTTON_WIDTH,
-        this.height - BUTTON_HEIGHT - PADDING,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
+    this.confirmButton = ButtonWidget.builder(
         Text.translatable("custompaintings.reassign.confirm"),
         (button) -> {
           confirmSelection();
-        });
+        })
+        .position((this.width - PADDING) / 2 - BUTTON_WIDTH, this.height - BUTTON_HEIGHT - PADDING)
+        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+        .build();
     this.confirmButton.active = false;
     addDrawableChild(this.confirmButton);
 
-    addDrawableChild(new ButtonWidget(
-        (this.width + PADDING) / 2,
-        this.height - BUTTON_HEIGHT - PADDING,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
+    addDrawableChild(ButtonWidget.builder(
         ScreenTexts.CANCEL,
         (button) -> {
           this.close();
-        }));
+        })
+        .position((this.width + PADDING) / 2, this.height - BUTTON_HEIGHT - PADDING)
+        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+        .build());
 
     setInitialFocus(this.searchBox);
   }

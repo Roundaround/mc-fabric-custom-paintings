@@ -176,10 +176,10 @@ public class PaintingListWidget
       int scaledWidth = paintingData.getScaledWidth(maxWidth, maxHeight);
       int scaledHeight = paintingData.getScaledHeight(maxWidth, maxHeight);
 
-      RenderSystem.setShader(GameRenderer::getPositionTexShader);
+      RenderSystem.setShader(GameRenderer::getPositionColorTexProgram);
 
       RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-      RenderSystem.setShaderTexture(0, this.sprite.getAtlas().getId());
+      RenderSystem.setShaderTexture(0, this.sprite.getAtlasId());
       drawSprite(
           matrixStack,
           x + 4 + (maxWidth - scaledWidth) / 2,

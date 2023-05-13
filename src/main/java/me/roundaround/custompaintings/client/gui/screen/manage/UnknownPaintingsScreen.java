@@ -99,39 +99,42 @@ public class UnknownPaintingsScreen extends Screen {
         this.height - 32);
     addSelectableChild(this.list);
 
-    this.reassignButton = new ButtonWidget(
-        (this.width - BUTTON_WIDTH) / 2 - BUTTON_WIDTH - PADDING,
-        this.height - BUTTON_HEIGHT - PADDING,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
+    this.reassignButton = ButtonWidget.builder(
         Text.translatable("custompaintings.unknown.reassign"),
         (button) -> {
           reassignSelection();
-        });
+        })
+        .position(
+            (this.width - BUTTON_WIDTH) / 2 - BUTTON_WIDTH - PADDING,
+            this.height - BUTTON_HEIGHT - PADDING)
+        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+        .build();
     this.reassignButton.active = false;
     addDrawableChild(this.reassignButton);
 
-    this.removeButton = new ButtonWidget(
-        (this.width - BUTTON_WIDTH) / 2,
-        this.height - BUTTON_HEIGHT - PADDING,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
+    this.removeButton = ButtonWidget.builder(
         Text.translatable("custompaintings.unknown.remove"),
         (button) -> {
           removeSelection();
-        });
+        })
+        .position(
+            (this.width - BUTTON_WIDTH) / 2,
+            this.height - BUTTON_HEIGHT - PADDING)
+        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+        .build();
     this.removeButton.active = false;
     addDrawableChild(this.removeButton);
 
-    addDrawableChild(new ButtonWidget(
-        (this.width + BUTTON_WIDTH) / 2 + PADDING,
-        this.height - BUTTON_HEIGHT - PADDING,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
+    addDrawableChild(ButtonWidget.builder(
         ScreenTexts.CANCEL,
         (button) -> {
           this.close();
-        }));
+        })
+        .position(
+            (this.width + BUTTON_WIDTH) / 2 + PADDING,
+            this.height - BUTTON_HEIGHT - PADDING)
+        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+        .build());
   }
 
   @Override

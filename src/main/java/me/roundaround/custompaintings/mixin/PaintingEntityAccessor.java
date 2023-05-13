@@ -5,7 +5,7 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
-import net.minecraft.util.registry.RegistryEntry;
+import net.minecraft.registry.entry.RegistryEntry;
 
 @Mixin(PaintingEntity.class)
 public interface PaintingEntityAccessor {

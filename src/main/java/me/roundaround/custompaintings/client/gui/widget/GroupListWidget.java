@@ -115,7 +115,7 @@ public class GroupListWidget extends EntryListWidget<GroupListWidget.GroupEntry>
     Tessellator tessellator = Tessellator.getInstance();
     BufferBuilder bufferBuilder = tessellator.getBuffer();
 
-    RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
+    RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
     RenderSystem.setShaderTexture(0, DrawableHelper.OPTIONS_BACKGROUND_TEXTURE);
     RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
 

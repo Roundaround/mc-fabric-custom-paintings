@@ -15,12 +15,12 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingData.Mi
 import me.roundaround.custompaintings.server.ServerPaintingManager;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.registry.Registry;
 
 public class IdentifySub {
   public static LiteralArgumentBuilder<ServerCommandSource> build() {
@@ -93,7 +93,7 @@ public class IdentifySub {
     ArrayList<Text> lines = new ArrayList<>();
 
     PaintingVariant variant = painting.getVariant().value();
-    String id = Registry.PAINTING_VARIANT.getId(variant).toString();
+    String id = Registries.PAINTING_VARIANT.getId(variant).toString();
 
     lines.add(Text.literal(id));
     lines.add(Text.translatable(

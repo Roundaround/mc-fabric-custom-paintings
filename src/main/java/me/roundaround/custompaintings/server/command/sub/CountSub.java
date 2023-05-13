@@ -11,13 +11,13 @@ import me.roundaround.custompaintings.server.command.suggest.KnownPaintingIdenti
 import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.registry.Registry;
 
 public class CountSub {
   public static LiteralArgumentBuilder<ServerCommandSource> build() {
@@ -56,14 +56,14 @@ public class CountSub {
 
     PaintingEntity vanillaPainting = maybePainting.get();
     if (!(vanillaPainting instanceof ExpandedPaintingEntity)) {
-      Identifier id = Registry.PAINTING_VARIANT.getId(vanillaPainting.getVariant().value());
+      Identifier id = Registries.PAINTING_VARIANT.getId(vanillaPainting.getVariant().value());
       return execute(source, id);
     }
 
     ExpandedPaintingEntity painting = (ExpandedPaintingEntity) vanillaPainting;
     PaintingData paintingData = painting.getCustomData();
     if (paintingData.isEmpty() || paintingData.isVanilla()) {
-      Identifier id = Registry.PAINTING_VARIANT.getId(vanillaPainting.getVariant().value());
+      Identifier id = Registries.PAINTING_VARIANT.getId(vanillaPainting.getVariant().value());
       return execute(source, id);
     }
 

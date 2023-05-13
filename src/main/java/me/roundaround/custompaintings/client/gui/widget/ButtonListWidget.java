@@ -30,13 +30,10 @@ public class ButtonListWidget extends ElementListWidget<ButtonListWidget.Entry> 
   }
 
   public void addEntry(Text text, ButtonWidget.PressAction action) {
-    this.addEntry(new Entry(new ButtonWidget(
-        (this.width - BUTTON_WIDTH) / 2,
-        0,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
-        text,
-        action)));
+    this.addEntry(new Entry(ButtonWidget.builder(text, action)
+        .position((this.width - BUTTON_WIDTH) / 2, 0)
+        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+        .build()));
   }
 
   @Environment(value = EnvType.CLIENT)
@@ -59,7 +56,7 @@ public class ButtonListWidget extends ElementListWidget<ButtonListWidget.Entry> 
         int mouseY,
         boolean hovered,
         float partialTicks) {
-      this.button.y = y + (entryHeight - BUTTON_HEIGHT) / 2;
+      this.button.setY(y + (entryHeight - BUTTON_HEIGHT) / 2);
       this.button.render(matrixStack, mouseX, mouseY, partialTicks);
     }
 

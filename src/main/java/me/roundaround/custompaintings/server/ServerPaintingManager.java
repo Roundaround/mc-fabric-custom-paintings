@@ -28,15 +28,15 @@ import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.entity.projectile.ProjectileUtil;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.registry.tag.PaintingVariantTags;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.tag.PaintingVariantTags;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.util.registry.RegistryEntry;
-import net.minecraft.util.registry.RegistryKey;
 
 public class ServerPaintingManager {
   public static HashSet<UnknownPainting> getUnknownPaintings(ServerPlayerEntity player) {
@@ -572,7 +572,7 @@ public class ServerPaintingManager {
 
     HashMap<Identifier, PaintingData> map = getVanillaPaintingData();
     paintings.forEach((painting) -> {
-      Identifier id = Registry.PAINTING_VARIANT.getId(painting.getVariant().value());
+      Identifier id = Registries.PAINTING_VARIANT.getId(painting.getVariant().value());
       if (!map.containsKey(id)) {
         return;
       }
@@ -592,11 +592,11 @@ public class ServerPaintingManager {
     HashMap<Identifier, PaintingData> placeable = new HashMap<>();
     HashMap<Identifier, PaintingData> unplaceable = new HashMap<>();
 
-    Registry.PAINTING_VARIANT.stream()
+    Registries.PAINTING_VARIANT.stream()
         .forEach((vanillaVariant) -> {
-          Identifier id = Registry.PAINTING_VARIANT.getId(vanillaVariant);
-          RegistryKey<PaintingVariant> key = RegistryKey.of(Registry.PAINTING_VARIANT_KEY, id);
-          Optional<RegistryEntry<PaintingVariant>> maybeEntry = Registry.PAINTING_VARIANT.getEntry(key);
+          Identifier id = Registries.PAINTING_VARIANT.getId(vanillaVariant);
+          RegistryKey<PaintingVariant> key = RegistryKey.of(Registries.PAINTING_VARIANT.getKey(), id);
+          Optional<RegistryEntry.Reference<PaintingVariant>> maybeEntry = Registries.PAINTING_VARIANT.getEntry(key);
 
           if (!maybeEntry.isPresent()) {
             return;

@@ -15,9 +15,9 @@ import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintin
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.registry.Registry;
 
 public class KnownPaintingIdentifierSuggestionProvider implements SuggestionProvider<ServerCommandSource> {
   public final boolean existingOnly;
@@ -41,7 +41,7 @@ public class KnownPaintingIdentifierSuggestionProvider implements SuggestionProv
       context.getSource().getServer().getWorlds().forEach((world) -> {
         world.getEntitiesByType(EntityType.PAINTING, (entity) -> true).forEach((entity) -> {
           if (isVanillaPainting(entity)) {
-            existing.add(Registry.PAINTING_VARIANT.getId(entity.getVariant().value()));
+            existing.add(Registries.PAINTING_VARIANT.getId(entity.getVariant().value()));
             return;
           }
           existing.add(((ExpandedPaintingEntity) entity).getCustomData().id());
@@ -49,8 +49,8 @@ public class KnownPaintingIdentifierSuggestionProvider implements SuggestionProv
       });
     }
 
-    Registry.PAINTING_VARIANT.forEach((paintingVariant) -> {
-      Identifier id = Registry.PAINTING_VARIANT.getId(paintingVariant);
+    Registries.PAINTING_VARIANT.forEach((paintingVariant) -> {
+      Identifier id = Registries.PAINTING_VARIANT.getId(paintingVariant);
       if (this.existingOnly && !existing.contains(id)) {
         return;
       }

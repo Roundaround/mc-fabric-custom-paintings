@@ -32,16 +32,14 @@ public class GroupSelectScreen extends PaintingEditScreen {
     this.groupsListWidget.setGroups(this.state.getGroups());
 
     addSelectableChild(this.groupsListWidget);
-    addDrawableChild(
-        new ButtonWidget(
-            (this.width - BUTTON_WIDTH) / 2,
-            this.height - BUTTON_HEIGHT - 10,
-            BUTTON_WIDTH,
-            BUTTON_HEIGHT,
-            ScreenTexts.CANCEL,
-            (button) -> {
-              saveEmpty();
-            }));
+    addDrawableChild(ButtonWidget.builder(
+        ScreenTexts.CANCEL,
+        (button) -> {
+          saveEmpty();
+        })
+        .position((this.width - BUTTON_WIDTH) / 2, this.height - BUTTON_HEIGHT - 10)
+        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+        .build());
   }
 
   @Override

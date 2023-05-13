@@ -1,17 +1,18 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
-import java.util.function.Consumer;
-
 import com.mojang.blaze3d.systems.RenderSystem;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import net.minecraft.client.MinecraftClient;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
+@Environment(value = EnvType.CLIENT)
 public class IconButtonWidget extends ButtonWidget {
   public static final int FILTER_ICON = 0;
   public static final int RESET_ICON = 1;
@@ -29,13 +30,24 @@ public class IconButtonWidget extends ButtonWidget {
 
   protected final int textureIndex;
 
-  public IconButtonWidget(
-      MinecraftClient client,
+  public static Builder builder(Text tooltip, PressAction onPress, int textureIndex) {
+    return new Builder(tooltip, onPress, textureIndex);
+  }
+
+  /**
+   * @deprecated Use {@link #builder(Text, PressAction, int)} instead.
+   */
+  public static ButtonWidget.Builder builder(Text message, PressAction onPress) {
+    throw new UnsupportedOperationException();
+  }
+
+  protected IconButtonWidget(
       int x,
       int y,
       int textureIndex,
       Text tooltip,
-      PressAction onPress) {
+      PressAction onPress,
+      NarrationSupplier narrationSupplier) {
     super(
         x,
         y,
@@ -43,13 +55,14 @@ public class IconButtonWidget extends ButtonWidget {
         HEIGHT,
         tooltip,
         onPress,
-        new TooltipSupplier(client, tooltip));
+        narrationSupplier);
     this.textureIndex = textureIndex;
+    setTooltip(Tooltip.of(tooltip));
   }
 
   @Override
   public void renderButton(MatrixStack matrixStack, int mouseX, int mouseY, float delta) {
-    RenderSystem.setShader(GameRenderer::getPositionTexShader);
+    RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
     RenderSystem.enableBlend();
     RenderSystem.defaultBlendFunc();
     RenderSystem.enableDepthTest();
@@ -59,16 +72,16 @@ public class IconButtonWidget extends ButtonWidget {
     int vOffset = (this.isHovered() ? 2 : 1) * HEIGHT;
     drawTexture(
         matrixStack,
-        this.x,
-        this.y,
+        this.getX(),
+        this.getY(),
         0,
         46 + vOffset,
         WIDTH / 2,
         HEIGHT);
     drawTexture(
         matrixStack,
-        this.x + WIDTH / 2,
-        this.y,
+        this.getX() + WIDTH / 2,
+        this.getY(),
         200 - WIDTH / 2,
         46 + vOffset,
         WIDTH / 2,
@@ -79,41 +92,51 @@ public class IconButtonWidget extends ButtonWidget {
     RenderSystem.setShaderTexture(0, WIDGETS_TEXTURE);
     drawTexture(
         matrixStack,
-        this.x,
-        this.y,
+        this.getX(),
+        this.getY(),
         uIndex * WIDTH,
         vIndex * HEIGHT,
         WIDTH,
         HEIGHT,
         WIDTH * 5,
         HEIGHT * 3);
-
-    if (hovered) {
-      renderTooltip(matrixStack, mouseX, mouseY);
-    }
   }
 
-  private static class TooltipSupplier implements ButtonWidget.TooltipSupplier {
-    private final MinecraftClient client;
+  @Environment(value = EnvType.CLIENT)
+  public static class Builder {
+    private final PressAction onPress;
     private final Text tooltip;
+    private final int textureIndex;
 
-    public TooltipSupplier(MinecraftClient client, Text tooltip) {
-      this.client = client;
+    private int x;
+    private int y;
+    private NarrationSupplier narrationSupplier = DEFAULT_NARRATION_SUPPLIER;
+
+    public Builder(Text tooltip, PressAction onPress, int textureIndex) {
+      this.onPress = onPress;
       this.tooltip = tooltip;
+      this.textureIndex = textureIndex;
     }
 
-    @Override
-    public void onTooltip(ButtonWidget buttonWidget, MatrixStack matrixStack, int x, int y) {
-      this.client.currentScreen.renderOrderedTooltip(
-          matrixStack,
-          this.client.textRenderer.wrapLines(this.tooltip, 200),
+    public Builder position(int x, int y) {
+      this.x = x;
+      this.y = y;
+      return this;
+    }
+
+    public Builder narrationSupplier(NarrationSupplier narrationSupplier) {
+      this.narrationSupplier = narrationSupplier;
+      return this;
+    }
+
+    public IconButtonWidget build() {
+      return new IconButtonWidget(
           x,
-          y);
-    }
-
-    @Override
-    public void supply(Consumer<Text> consumer) {
-      consumer.accept(this.tooltip);
+          y,
+          this.textureIndex,
+          this.tooltip,
+          this.onPress,
+          narrationSupplier);
     }
   }
 }

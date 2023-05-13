@@ -13,10 +13,10 @@ import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.entity.decoration.painting.PaintingVariants;
 import net.minecraft.item.DecorationItem;
 import net.minecraft.item.ItemUsageContext;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import net.minecraft.util.registry.Registry;
 import net.minecraft.world.World;
 
 @Mixin(DecorationItem.class)
@@ -33,7 +33,7 @@ public abstract class DecorationItemMixin {
     }
 
     PaintingEntity entity = new PaintingEntity(world, pos, facing,
-        Registry.PAINTING_VARIANT.getEntry(PaintingVariants.KEBAB).get());
+        Registries.PAINTING_VARIANT.getEntry(PaintingVariants.KEBAB).get());
 
     if (!entity.canStayAttached()) {
       return Optional.empty();
