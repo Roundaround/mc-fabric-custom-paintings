@@ -3,7 +3,7 @@
   "id": "custompaintings",
   "version": "${version}",
   "name": "Custom Paintings",
-  "description": "Add your own custom paintings to Minecraft.",
+  "description": "Add your own custom paintings to Minecraft.\n${library}",
   "authors": [
     "Roundaround"
   ],
