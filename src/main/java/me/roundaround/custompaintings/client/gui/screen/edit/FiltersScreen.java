@@ -84,7 +84,7 @@ public class FiltersScreen extends PaintingEditScreen {
 
   @Override
   public void renderForeground(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-    drawCenteredText(
+    drawCenteredTextWithShadow(
         matrixStack,
         textRenderer,
         Text.translatable("custompaintings.filter.title"),

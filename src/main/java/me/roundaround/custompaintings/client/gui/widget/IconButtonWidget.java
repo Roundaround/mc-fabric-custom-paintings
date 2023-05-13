@@ -1,7 +1,6 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -21,24 +20,15 @@ public class IconButtonWidget extends ButtonWidget {
   public static final int WRENCH_ICON = 4;
   public static final int WIDTH = 20;
   public static final int HEIGHT = 20;
-  protected static final Identifier BACKGROUND_TEXTURE = new Identifier(
-      Identifier.DEFAULT_NAMESPACE,
-      "textures/gui/widgets.png");
-  protected static final Identifier WIDGETS_TEXTURE = new Identifier(
-      CustomPaintingsMod.MOD_ID,
-      "textures/gui/widgets.png");
+  protected static final Identifier BACKGROUND_TEXTURE =
+      new Identifier(Identifier.DEFAULT_NAMESPACE, "textures/gui/widgets.png");
+  protected static final Identifier WIDGETS_TEXTURE =
+      new Identifier(CustomPaintingsMod.MOD_ID, "textures/gui/widgets.png");
 
   protected final int textureIndex;
 
   public static Builder builder(Text tooltip, PressAction onPress, int textureIndex) {
     return new Builder(tooltip, onPress, textureIndex);
-  }
-
-  /**
-   * @deprecated Use {@link #builder(Text, PressAction, int)} instead.
-   */
-  public static ButtonWidget.Builder builder(Text message, PressAction onPress) {
-    throw new UnsupportedOperationException();
   }
 
   protected IconButtonWidget(
@@ -48,14 +38,7 @@ public class IconButtonWidget extends ButtonWidget {
       Text tooltip,
       PressAction onPress,
       NarrationSupplier narrationSupplier) {
-    super(
-        x,
-        y,
-        WIDTH,
-        HEIGHT,
-        tooltip,
-        onPress,
-        narrationSupplier);
+    super(x, y, WIDTH, HEIGHT, tooltip, onPress, narrationSupplier);
     this.textureIndex = textureIndex;
     setTooltip(Tooltip.of(tooltip));
   }
@@ -70,16 +53,8 @@ public class IconButtonWidget extends ButtonWidget {
 
     RenderSystem.setShaderTexture(0, BACKGROUND_TEXTURE);
     int vOffset = (this.isHovered() ? 2 : 1) * HEIGHT;
-    drawTexture(
-        matrixStack,
-        this.getX(),
-        this.getY(),
-        0,
-        46 + vOffset,
-        WIDTH / 2,
-        HEIGHT);
-    drawTexture(
-        matrixStack,
+    drawTexture(matrixStack, this.getX(), this.getY(), 0, 46 + vOffset, WIDTH / 2, HEIGHT);
+    drawTexture(matrixStack,
         this.getX() + WIDTH / 2,
         this.getY(),
         200 - WIDTH / 2,
@@ -90,8 +65,7 @@ public class IconButtonWidget extends ButtonWidget {
     int uIndex = this.textureIndex % 5;
     int vIndex = this.textureIndex / 5;
     RenderSystem.setShaderTexture(0, WIDGETS_TEXTURE);
-    drawTexture(
-        matrixStack,
+    drawTexture(matrixStack,
         this.getX(),
         this.getY(),
         uIndex * WIDTH,
@@ -130,8 +104,7 @@ public class IconButtonWidget extends ButtonWidget {
     }
 
     public IconButtonWidget build() {
-      return new IconButtonWidget(
-          x,
+      return new IconButtonWidget(x,
           y,
           this.textureIndex,
           this.tooltip,

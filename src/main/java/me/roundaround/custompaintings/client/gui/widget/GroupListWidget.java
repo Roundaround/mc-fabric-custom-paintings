@@ -3,6 +3,8 @@ package me.roundaround.custompaintings.client.gui.widget;
 import java.util.Collection;
 import java.util.function.Consumer;
 
+import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
+import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -25,7 +27,7 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.sound.SoundEvents;
 
 @Environment(value = EnvType.CLIENT)
-public class GroupListWidget extends EntryListWidget<GroupListWidget.GroupEntry> {
+public class GroupListWidget extends AlwaysSelectedEntryListWidget<GroupListWidget.GroupEntry> {
   private static final int ITEM_HEIGHT = 20;
 
   private final Screen parent;
@@ -56,37 +58,14 @@ public class GroupListWidget extends EntryListWidget<GroupListWidget.GroupEntry>
 
   @Override
   public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-    GroupEntry entry = (GroupEntry) getSelectedOrNull();
+    GroupEntry entry = getSelectedOrNull();
     return entry != null && entry.keyPressed(keyCode, scanCode, modifiers)
         || super.keyPressed(keyCode, scanCode, modifiers);
   }
 
   @Override
-  public boolean changeFocus(boolean lookForwards) {
-    if (getEntryCount() == 0) {
-      return false;
-    }
-
-    GroupEntry previouslySelected = !isFocused() ? null : getSelectedOrNull();
-
-    if (previouslySelected == null) {
-      setSelected(getEntry(lookForwards ? 0 : getEntryCount() - 1));
-    } else {
-      moveSelection(lookForwards ? MoveDirection.DOWN : MoveDirection.UP);
-    }
-
-    GroupEntry nowSelected = getSelectedOrNull();
-    if (nowSelected == null || nowSelected.equals(previouslySelected)) {
-      return false;
-    }
-
-    ensureSelectedEntryVisible();
-    return true;
-  }
-
-  @Override
-  protected boolean isFocused() {
-    return parent.getFocused() == this;
+  public boolean isFocused() {
+    return this.parent.getFocused() == this;
   }
 
   @Override
@@ -146,7 +125,7 @@ public class GroupListWidget extends EntryListWidget<GroupListWidget.GroupEntry>
   }
 
   @Environment(value = EnvType.CLIENT)
-  public class GroupEntry extends EntryListWidget.Entry<GroupEntry> {
+  public class GroupEntry extends AlwaysSelectedEntryListWidget.Entry<GroupEntry> {
     private final Group group;
 
     public GroupEntry(Group group) {
@@ -165,7 +144,7 @@ public class GroupListWidget extends EntryListWidget<GroupListWidget.GroupEntry>
         int mouseY,
         boolean hovered,
         float partialTicks) {
-      drawCenteredText(
+      drawCenteredTextWithShadow(
           matrixStack,
           client.textRenderer,
           group.name(),
@@ -193,8 +172,8 @@ public class GroupListWidget extends EntryListWidget<GroupListWidget.GroupEntry>
     }
 
     @Override
-    public boolean changeFocus(boolean lookForwards) {
-      return false;
+    public Text getNarration() {
+      return Text.literal(group.name());
     }
 
     private void press() {

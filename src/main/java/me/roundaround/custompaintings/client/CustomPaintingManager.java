@@ -159,9 +159,9 @@ public class CustomPaintingManager implements IdentifiableResourceReloadListener
 
           return suppliers;
         }, prepareExecutor)
-        .thenCompose((suppliers) -> SpriteLoader.method_47664(suppliers, prepareExecutor))
+        .thenCompose((suppliers) -> SpriteLoader.loadAll(suppliers, prepareExecutor))
         .thenApply((list) -> SpriteLoader.fromAtlas(this.atlas)
-            .method_47663(list, 0, prepareExecutor))
+            .stitch(list, 0, prepareExecutor))
         .thenCompose(synchronizer::whenPrepared)
         .thenAcceptAsync(stitchResult -> afterReload(stitchResult, applyProfiler), applyExecutor);
   }

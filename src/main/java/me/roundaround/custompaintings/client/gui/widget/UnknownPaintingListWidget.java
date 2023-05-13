@@ -1,8 +1,5 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
-import java.util.HashMap;
-import java.util.HashSet;
-
 import me.roundaround.custompaintings.client.gui.screen.manage.UnknownPaintingsScreen;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
@@ -17,6 +14,9 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
+
+import java.util.HashMap;
+import java.util.HashSet;
 
 @Environment(value = EnvType.CLIENT)
 public class UnknownPaintingListWidget
@@ -92,7 +92,8 @@ public class UnknownPaintingListWidget
 
   @Environment(value = EnvType.CLIENT)
   public class LoadingEntry extends Entry {
-    private static final Text LOADING_LIST_TEXT = Text.translatable("custompaintings.unknown.loading");
+    private static final Text LOADING_LIST_TEXT =
+        Text.translatable("custompaintings.unknown.loading");
 
     private final MinecraftClient client;
 
@@ -114,16 +115,14 @@ public class UnknownPaintingListWidget
         float partialTicks) {
       int yPos = y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f);
 
-      drawCenteredText(
-          matrixStack,
+      drawCenteredTextWithShadow(matrixStack,
           this.client.textRenderer,
           LOADING_LIST_TEXT,
           this.client.currentScreen.width / 2,
           yPos,
           0xFFFFFF);
 
-      drawCenteredText(
-          matrixStack,
+      drawCenteredTextWithShadow(matrixStack,
           this.client.textRenderer,
           LoadingDisplay.get(Util.getMeasuringTimeMs()),
           this.client.currentScreen.width / 2,
@@ -159,8 +158,7 @@ public class UnknownPaintingListWidget
         int mouseY,
         boolean hovered,
         float partialTicks) {
-      drawCenteredText(
-          matrixStack,
+      drawCenteredTextWithShadow(matrixStack,
           this.client.textRenderer,
           EMPTY_LIST_TEXT,
           this.client.currentScreen.width / 2,
@@ -182,8 +180,7 @@ public class UnknownPaintingListWidget
     private long time;
 
     public UnknownPaintingEntry(
-        MinecraftClient client,
-        UnknownPainting unknownPainting) {
+        MinecraftClient client, UnknownPainting unknownPainting) {
       this.client = client;
       this.unknownPainting = unknownPainting;
     }
@@ -207,16 +204,14 @@ public class UnknownPaintingListWidget
       int centerY = y + entryHeight / 2;
       PaintingData currentData = this.unknownPainting.currentData();
 
-      this.client.textRenderer.draw(
-          matrixStack,
+      this.client.textRenderer.draw(matrixStack,
           Text.literal(currentData.id().toString()),
           x,
           centerY - this.client.textRenderer.fontHeight - 2,
           0xFF8080);
 
       if (currentData.hasLabel()) {
-        this.client.textRenderer.draw(
-            matrixStack,
+        this.client.textRenderer.draw(matrixStack,
             currentData.getLabel(),
             x,
             centerY + 2,

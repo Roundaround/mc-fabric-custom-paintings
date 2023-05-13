@@ -1,7 +1,5 @@
 package me.roundaround.custompaintings.client.gui.screen.manage;
 
-import java.util.HashMap;
-
 import me.roundaround.custompaintings.client.gui.widget.MigrationListWidget;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.util.Migration;
@@ -10,6 +8,8 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
+
+import java.util.HashMap;
 
 public class MigrationsScreen extends Screen implements PaintingPacksTracker {
   private static final int BUTTON_WIDTH = 150;
@@ -49,28 +49,22 @@ public class MigrationsScreen extends Screen implements PaintingPacksTracker {
 
   @Override
   public void init() {
-    this.list = new MigrationListWidget(
-        this,
-        this.client,
-        this.width,
-        this.height,
-        32,
-        this.height - 32);
+    this.list =
+        new MigrationListWidget(this, this.client, this.width, this.height, 32, this.height - 32);
     this.list.setMigrations(getMigrations());
     addSelectableChild(this.list);
 
-    this.confirmButton = ButtonWidget.builder(
-        Text.translatable("custompaintings.migrations.confirm"),
-        (button) -> this.confirmSelection())
-        .position((this.width - PADDING) / 2 - BUTTON_WIDTH, this.height - BUTTON_HEIGHT - PADDING)
-        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
-        .build();
+    this.confirmButton =
+        ButtonWidget.builder(Text.translatable("custompaintings.migrations.confirm"),
+                (button) -> this.confirmSelection())
+            .position((this.width - PADDING) / 2 - BUTTON_WIDTH,
+                this.height - BUTTON_HEIGHT - PADDING)
+            .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+            .build();
     this.confirmButton.active = false;
     addDrawableChild(this.confirmButton);
 
-    addDrawableChild(ButtonWidget.builder(
-        ScreenTexts.CANCEL,
-        (button) -> {
+    addDrawableChild(ButtonWidget.builder(ScreenTexts.CANCEL, (button) -> {
           this.close();
         })
         .position((this.width + PADDING) / 2, this.height - BUTTON_HEIGHT - PADDING)
@@ -87,7 +81,12 @@ public class MigrationsScreen extends Screen implements PaintingPacksTracker {
   public void render(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
     this.list.render(matrixStack, mouseX, mouseY, partialTicks);
 
-    drawCenteredText(matrixStack, this.textRenderer, this.title, this.width / 2, PADDING, 0xFFFFFF);
+    drawCenteredTextWithShadow(matrixStack,
+        this.textRenderer,
+        this.title,
+        this.width / 2,
+        PADDING,
+        0xFFFFFF);
 
     super.render(matrixStack, mouseX, mouseY, partialTicks);
   }

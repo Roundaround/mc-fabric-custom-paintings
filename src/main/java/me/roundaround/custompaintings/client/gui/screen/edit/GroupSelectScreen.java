@@ -70,7 +70,7 @@ public class GroupSelectScreen extends PaintingEditScreen {
 
   @Override
   public void renderForeground(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-    drawCenteredText(
+    drawCenteredTextWithShadow(
         matrixStack,
         textRenderer,
         Text.translatable("custompaintings.group.title"),

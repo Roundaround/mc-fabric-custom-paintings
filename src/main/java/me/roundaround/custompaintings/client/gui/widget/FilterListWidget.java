@@ -354,7 +354,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
     @Override
     public void unselect() {
       if (this.button.isFocused()) {
-        this.button.changeFocus(false);
+        this.button.setFocused(false);
       }
     }
   }
@@ -431,7 +431,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
 
     @Override
     public void unselect() {
-      this.textField.setTextFieldFocused(false);
+      this.textField.setFocused(false);
     }
   }
 
@@ -515,10 +515,10 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
     @Override
     public void unselect() {
       if (this.lowSlider.isFocused()) {
-        this.lowSlider.changeFocus(false);
+        this.lowSlider.setFocused(false);
       }
       if (this.highSlider.isFocused()) {
-        this.highSlider.changeFocus(false);
+        this.highSlider.setFocused(false);
       }
     }
   }

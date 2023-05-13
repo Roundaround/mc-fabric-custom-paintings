@@ -1,7 +1,5 @@
 package me.roundaround.custompaintings.client.gui.screen.manage;
 
-import java.util.HashMap;
-
 import me.roundaround.custompaintings.client.gui.widget.KnownPaintingListWidget;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
@@ -13,6 +11,8 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+
+import java.util.HashMap;
 
 public class ReassignScreen extends Screen implements PaintingPacksTracker {
   private static final int BUTTON_WIDTH = 150;
@@ -50,13 +50,9 @@ public class ReassignScreen extends Screen implements PaintingPacksTracker {
     }
 
     if (applyToAll) {
-      ClientNetworking.sendReassignAllPacket(
-          this.target.currentData().id(),
-          this.selectedId);
+      ClientNetworking.sendReassignAllPacket(this.target.currentData().id(), this.selectedId);
     } else {
-      ClientNetworking.sendReassignPacket(
-          this.target.uuid(),
-          this.selectedId);
+      ClientNetworking.sendReassignPacket(this.target.uuid(), this.selectedId);
     }
 
     close();
@@ -75,8 +71,7 @@ public class ReassignScreen extends Screen implements PaintingPacksTracker {
 
   @Override
   public void init() {
-    this.searchBox = new TextFieldWidget(
-        this.textRenderer,
+    this.searchBox = new TextFieldWidget(this.textRenderer,
         (this.width - SEARCH_WIDTH) / 2,
         20,
         SEARCH_WIDTH,
@@ -86,8 +81,7 @@ public class ReassignScreen extends Screen implements PaintingPacksTracker {
     this.searchBox.setChangedListener(this::setFilter);
     addSelectableChild(this.searchBox);
 
-    this.list = new KnownPaintingListWidget(
-        this,
+    this.list = new KnownPaintingListWidget(this,
         this.client,
         this.width,
         this.height,
@@ -96,20 +90,18 @@ public class ReassignScreen extends Screen implements PaintingPacksTracker {
     this.list.setPaintings(getKnownPaintings().values());
     addSelectableChild(this.list);
 
-    this.confirmButton = ButtonWidget.builder(
-        Text.translatable("custompaintings.reassign.confirm"),
-        (button) -> {
-          confirmSelection();
-        })
-        .position((this.width - PADDING) / 2 - BUTTON_WIDTH, this.height - BUTTON_HEIGHT - PADDING)
-        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
-        .build();
+    this.confirmButton =
+        ButtonWidget.builder(Text.translatable("custompaintings.reassign.confirm"), (button) -> {
+              confirmSelection();
+            })
+            .position((this.width - PADDING) / 2 - BUTTON_WIDTH,
+                this.height - BUTTON_HEIGHT - PADDING)
+            .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+            .build();
     this.confirmButton.active = false;
     addDrawableChild(this.confirmButton);
 
-    addDrawableChild(ButtonWidget.builder(
-        ScreenTexts.CANCEL,
-        (button) -> {
+    addDrawableChild(ButtonWidget.builder(ScreenTexts.CANCEL, (button) -> {
           this.close();
         })
         .position((this.width + PADDING) / 2, this.height - BUTTON_HEIGHT - PADDING)
@@ -147,7 +139,12 @@ public class ReassignScreen extends Screen implements PaintingPacksTracker {
     this.list.render(matrixStack, mouseX, mouseY, partialTicks);
     this.searchBox.render(matrixStack, mouseX, mouseY, partialTicks);
 
-    drawCenteredText(matrixStack, this.textRenderer, this.title, this.width / 2, PADDING, 0xFFFFFF);
+    drawCenteredTextWithShadow(matrixStack,
+        this.textRenderer,
+        this.title,
+        this.width / 2,
+        PADDING,
+        0xFFFFFF);
 
     super.render(matrixStack, mouseX, mouseY, partialTicks);
   }

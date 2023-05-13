@@ -1,12 +1,6 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
-import java.util.ArrayList;
-import java.util.Optional;
-
-import org.lwjgl.glfw.GLFW;
-
 import com.mojang.blaze3d.systems.RenderSystem;
-
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.screen.edit.PaintingSelectScreen;
@@ -15,6 +9,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.navigation.NavigationDirection;
 import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.texture.Sprite;
@@ -27,6 +22,10 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.Language;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
+import org.lwjgl.glfw.GLFW;
+
+import java.util.ArrayList;
+import java.util.Optional;
 
 @Environment(value = EnvType.CLIENT)
 public class PaintingListWidget
@@ -59,13 +58,11 @@ public class PaintingListWidget
     boolean selected = false;
 
     for (PaintingData paintingData : paintings) {
-      PaintingEntry entry = paintingData.isEmpty()
-          ? new EmptyPaintingEntry()
-          : new PaintingEntry(paintingData);
+      PaintingEntry entry =
+          paintingData.isEmpty() ? new EmptyPaintingEntry() : new PaintingEntry(paintingData);
 
       this.addEntry(entry);
-      if (!paintingData.isEmpty()
-          && this.state.getCurrentPainting().id() == paintingData.id()) {
+      if (!paintingData.isEmpty() && this.state.getCurrentPainting().id() == paintingData.id()) {
         this.setSelected(entry);
         selected = true;
       }
@@ -93,7 +90,7 @@ public class PaintingListWidget
     for (PaintingEntry entry : this.children()) {
       if (entry.paintingData.id() == paintingData.id()) {
         this.setSelected(entry);
-        this.ensureSelectedEntryVisible();
+        this.ensureVisible(entry);
         return;
       }
     }
@@ -133,14 +130,13 @@ public class PaintingListWidget
 
   @Override
   public int getRowWidth() {
-    return this.width - (Math.max(0, this.getMaxPosition() - (this.bottom - this.top - 4)) > 0 ? 18 : 12);
+    return this.width -
+        (Math.max(0, this.getMaxPosition() - (this.bottom - this.top - 4)) > 0 ? 18 : 12);
   }
 
   @Override
-  protected void moveSelection(MoveDirection direction) {
-    moveSelectionIf(direction, (entry) -> {
-      return !entry.paintingData.isEmpty();
-    });
+  protected PaintingEntry getNeighboringEntry(NavigationDirection direction) {
+    return this.getNeighboringEntry(direction, (entry) -> !entry.paintingData.isEmpty());
   }
 
   @Environment(value = EnvType.CLIENT)
@@ -180,8 +176,7 @@ public class PaintingListWidget
 
       RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
       RenderSystem.setShaderTexture(0, this.sprite.getAtlasId());
-      drawSprite(
-          matrixStack,
+      drawSprite(matrixStack,
           x + 4 + (maxWidth - scaledWidth) / 2,
           y + (entryHeight - scaledHeight) / 2,
           1,
@@ -198,13 +193,11 @@ public class PaintingListWidget
         StringVisitable label = paintingData.getLabel();
         if (textRenderer.getWidth(label) > textWidth) {
           Text ellipsis = Text.literal("...");
-          label = StringVisitable.concat(
-              textRenderer.trimToWidth(label, textWidth - textRenderer.getWidth(ellipsis)),
-              ellipsis);
+          label = StringVisitable.concat(textRenderer.trimToWidth(label,
+              textWidth - textRenderer.getWidth(ellipsis)), ellipsis);
         }
 
-        textRenderer.draw(
-            matrixStack,
+        textRenderer.draw(matrixStack,
             Language.getInstance().reorder(label),
             posX,
             posY,
@@ -216,26 +209,18 @@ public class PaintingListWidget
       StringVisitable id = Text.literal("(" + paintingData.id().toString() + ")")
           .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
       if (textRenderer.getWidth(id) > textWidth) {
-        Text ellipsis = Text.literal("...")
-            .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
-        id = StringVisitable.concat(
-            textRenderer.trimToWidth(id, textWidth - textRenderer.getWidth(ellipsis)),
-            ellipsis);
+        Text ellipsis =
+            Text.literal("...").setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
+        id = StringVisitable.concat(textRenderer.trimToWidth(id,
+            textWidth - textRenderer.getWidth(ellipsis)), ellipsis);
       }
 
-      textRenderer.draw(
-          matrixStack,
-          Language.getInstance().reorder(id),
-          posX,
-          posY,
-          0xFFFFFFFF);
+      textRenderer.draw(matrixStack, Language.getInstance().reorder(id), posX, posY, 0xFFFFFFFF);
 
       posY += textRenderer.fontHeight + 2;
 
-      textRenderer.draw(
-          matrixStack,
-          Text.translatable(
-              "custompaintings.painting.dimensions",
+      textRenderer.draw(matrixStack,
+          Text.translatable("custompaintings.painting.dimensions",
               paintingData.width(),
               paintingData.height()),
           posX,
@@ -308,8 +293,7 @@ public class PaintingListWidget
         boolean hovered,
         float partialTicks) {
       TextRenderer textRenderer = PaintingListWidget.this.client.textRenderer;
-      drawCenteredText(
-          matrixStack,
+      drawCenteredTextWithShadow(matrixStack,
           textRenderer,
           text,
           x + entryWidth / 2,

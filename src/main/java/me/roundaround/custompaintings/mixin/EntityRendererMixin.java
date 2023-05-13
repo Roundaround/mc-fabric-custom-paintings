@@ -1,12 +1,5 @@
 package me.roundaround.custompaintings.mixin;
 
-import org.joml.Matrix4f;
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.minecraft.client.MinecraftClient;
@@ -19,6 +12,12 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.RotationAxis;
+import org.joml.Matrix4f;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(EntityRenderer.class)
 public abstract class EntityRendererMixin<T extends Entity> {
@@ -59,7 +58,8 @@ public abstract class EntityRendererMixin<T extends Entity> {
     TextRenderer textRenderer = MINECRAFT.textRenderer;
 
     matrices.push();
-    matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180f - painting.getHorizontalFacing().asRotation()));
+    matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(
+        180f - painting.getHorizontalFacing().asRotation()));
     matrices.translate(0, 0.5f - paintingData.height() / 2f, -0.125f);
     matrices.scale(-0.025f, -0.025f, 0.025f);
 
@@ -67,8 +67,26 @@ public abstract class EntityRendererMixin<T extends Entity> {
     float opacity = MINECRAFT.options.getTextBackgroundOpacity(0.25f);
     int color = (int) (opacity * 255f) << 24;
     float posX = -textRenderer.getWidth(text) / 2;
-    textRenderer.draw(text, posX, 0, 0x20FFFFFF, false, matrix4f, vertexConsumers, true, color, light);
-    textRenderer.draw(text, posX, 0, -1, false, matrix4f, vertexConsumers, false, 0, light);
+    textRenderer.draw(text,
+        posX,
+        0,
+        0x20FFFFFF,
+        false,
+        matrix4f,
+        vertexConsumers,
+        TextRenderer.TextLayerType.SEE_THROUGH,
+        color,
+        light);
+    textRenderer.draw(text,
+        posX,
+        0,
+        -1,
+        false,
+        matrix4f,
+        vertexConsumers,
+        TextRenderer.TextLayerType.NORMAL,
+        0,
+        light);
 
     matrices.pop();
   }

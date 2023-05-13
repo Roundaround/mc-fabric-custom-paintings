@@ -1,12 +1,6 @@
 package me.roundaround.custompaintings.client.gui.screen.edit;
 
-import java.util.ArrayList;
-import java.util.Optional;
-
-import org.lwjgl.glfw.GLFW;
-
 import com.mojang.blaze3d.systems.RenderSystem;
-
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.PaintingEditState.Group;
@@ -27,6 +21,10 @@ import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import org.lwjgl.glfw.GLFW;
+
+import java.util.ArrayList;
+import java.util.Optional;
 
 public class PaintingSelectScreen extends PaintingEditScreen implements PaintingChangeListener {
   private TextFieldWidget searchBox;
@@ -66,15 +64,15 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
   public void onPaintingChange(PaintingData paintingData) {
     this.paintingData = paintingData;
     this.canStay = this.state.canStay(paintingData);
-    this.paintingSprite = CustomPaintingsClientMod.customPaintingManager
-        .getPaintingSprite(paintingData);
+    this.paintingSprite =
+        CustomPaintingsClientMod.customPaintingManager.getPaintingSprite(paintingData);
 
     int headerHeight = getHeaderHeight();
     int footerHeight = getFooterHeight();
 
-    int paintingTop = headerHeight + 8
-        + (paintingData.hasLabel() ? 3 : 2) * textRenderer.fontHeight
-        + (paintingData.hasLabel() ? 2 : 1) * 2;
+    int paintingTop =
+        headerHeight + 8 + (paintingData.hasLabel() ? 3 : 2) * textRenderer.fontHeight +
+            (paintingData.hasLabel() ? 2 : 1) * 2;
     int paintingBottom = this.height - footerHeight - 8 - BUTTON_HEIGHT;
 
     int maxWidth = paneWidth - 2 * 8;
@@ -95,8 +93,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     if (this.doneButton != null) {
       this.doneButton.active = this.canStay;
       if (!this.canStay) {
-        this.doneButton.setTooltip(Tooltip.of(Text.translatable(
-            "custompaintings.painting.big",
+        this.doneButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.painting.big",
             paintingData.width(),
             paintingData.height())));
       } else {
@@ -122,8 +119,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     int footerHeight = getFooterHeight();
 
     // 10px padding on each side, 4px between search box and filter button
-    this.searchBox = new TextFieldWidget(
-        this.textRenderer,
+    this.searchBox = new TextFieldWidget(this.textRenderer,
         10,
         headerHeight + 4,
         this.paneWidth - IconButtonWidget.WIDTH - 24,
@@ -135,20 +131,17 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
       onSearchBoxChanged(search);
     });
 
-    IconButtonWidget filterButton = IconButtonWidget.builder(
-        Text.translatable("custompaintings.painting.filter"),
-        (button) -> {
-          this.client.setScreen(new FiltersScreen(this.state));
-        },
-        IconButtonWidget.FILTER_ICON)
-        .position(10 + this.searchBox.getWidth() + 4, this.searchBox.getY())
-        .build();
+    IconButtonWidget filterButton =
+        IconButtonWidget.builder(Text.translatable("custompaintings.painting.filter"), (button) -> {
+              this.client.setScreen(new FiltersScreen(this.state));
+            }, IconButtonWidget.FILTER_ICON)
+            .position(10 + this.searchBox.getWidth() + 4, this.searchBox.getY())
+            .build();
 
     int listTop = this.searchBox.getY() + this.searchBox.getHeight() + 4;
     int listBottom = this.height - footerHeight - 4;
     int listHeight = listBottom - listTop;
-    this.paintingList = new PaintingListWidget(
-        this,
+    this.paintingList = new PaintingListWidget(this,
         this.state,
         this.client,
         this.paneWidth,
@@ -157,45 +150,40 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         listBottom,
         this.paintings);
 
-    this.prevButton = IconButtonWidget.builder(
-        Text.translatable("custompaintings.painting.previous"),
-        (button) -> {
-          previousPainting();
-        },
-        IconButtonWidget.LEFT_ICON)
-        .position(this.rightPaneX + 8, this.height - footerHeight - 4 - BUTTON_HEIGHT)
-        .build();
+    this.prevButton =
+        IconButtonWidget.builder(Text.translatable("custompaintings.painting.previous"),
+                (button) -> {
+                  previousPainting();
+                },
+                IconButtonWidget.LEFT_ICON)
+            .position(this.rightPaneX + 8, this.height - footerHeight - 4 - BUTTON_HEIGHT)
+            .build();
 
-    this.nextButton = IconButtonWidget.builder(
-        Text.translatable("custompaintings.painting.next"),
-        (button) -> {
-          nextPainting();
-        },
-        IconButtonWidget.RIGHT_ICON)
-        .position(
-            this.width - 8 - IconButtonWidget.WIDTH,
-            this.height - footerHeight - 4 - BUTTON_HEIGHT)
-        .build();
+    this.nextButton =
+        IconButtonWidget.builder(Text.translatable("custompaintings.painting.next"), (button) -> {
+              nextPainting();
+            }, IconButtonWidget.RIGHT_ICON)
+            .position(this.width - 8 - IconButtonWidget.WIDTH,
+                this.height - footerHeight - 4 - BUTTON_HEIGHT)
+            .build();
 
     this.prevButton.active = hasMultiplePaintings();
     this.nextButton.active = hasMultiplePaintings();
 
-    ButtonWidget cancelButton = ButtonWidget.builder(
-        this.state.hasMultipleGroups() ? ScreenTexts.BACK : ScreenTexts.CANCEL,
-        (button) -> {
-          if (this.state.hasMultipleGroups()) {
-            this.client.setScreen(new GroupSelectScreen(this.state));
-          } else {
-            saveEmpty();
-          }
-        })
-        .position(width / 2 - BUTTON_WIDTH - 2, height - BUTTON_HEIGHT - 10)
-        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
-        .build();
+    ButtonWidget cancelButton =
+        ButtonWidget.builder(this.state.hasMultipleGroups() ? ScreenTexts.BACK : ScreenTexts.CANCEL,
+                (button) -> {
+                  if (this.state.hasMultipleGroups()) {
+                    this.client.setScreen(new GroupSelectScreen(this.state));
+                  } else {
+                    saveEmpty();
+                  }
+                })
+            .position(width / 2 - BUTTON_WIDTH - 2, height - BUTTON_HEIGHT - 10)
+            .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+            .build();
 
-    this.doneButton = ButtonWidget.builder(
-        ScreenTexts.DONE,
-        (button) -> {
+    this.doneButton = ButtonWidget.builder(ScreenTexts.DONE, (button) -> {
           saveCurrentSelection();
         })
         .position(width / 2 + 2, height - BUTTON_HEIGHT - 10)
@@ -203,8 +191,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         .build();
 
     if (!this.canStay) {
-      this.doneButton.setTooltip(Tooltip.of(Text.translatable(
-          "custompaintings.painting.big",
+      this.doneButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.painting.big",
           this.paintingData.width(),
           this.paintingData.height())));
     } else {
@@ -270,10 +257,10 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
           Element focused = getFocused();
           if (focused != this.searchBox) {
             if (focused != null) {
-              focused.changeFocus(false);
+              focused.setFocused(false);
             }
 
-            setInitialFocus(this.searchBox);
+            this.setFocused(this.searchBox);
             return true;
           }
         }
@@ -289,12 +276,14 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
   }
 
   @Override
-  public void renderBackground(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
+  public void renderBackground(
+      MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
     renderBackgroundInRegion(0, height, 0, width);
   }
 
   @Override
-  public void renderForeground(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
+  public void renderForeground(
+      MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
     this.paintingList.render(matrixStack, mouseX, mouseY, partialTicks);
     this.searchBox.render(matrixStack, mouseX, mouseY, partialTicks);
 
@@ -307,13 +296,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
       title = Text.literal(this.state.getCurrentGroup().name() + " - ").append(title);
     }
 
-    drawCenteredText(
-        matrixStack,
-        textRenderer,
-        title,
-        width / 2,
-        11,
-        0xFFFFFFFF);
+    drawCenteredTextWithShadow(matrixStack, textRenderer, title, width / 2, 11, 0xFFFFFFFF);
 
     PaintingData paintingData = this.state.getCurrentPainting();
 
@@ -322,8 +305,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
       int posX = this.rightPaneX + paneWidth / 2;
       int posY = getHeaderHeight() + (paneHeight - this.textRenderer.fontHeight) / 2;
 
-      drawCenteredText(
-          matrixStack,
+      drawCenteredTextWithShadow(matrixStack,
           textRenderer,
           Text.translatable("custompaintings.painting.none")
               .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)),
@@ -337,8 +319,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
       int posY = getHeaderHeight() + 4;
 
       if (paintingData.hasLabel()) {
-        drawCenteredText(
-            matrixStack,
+        drawCenteredTextWithShadow(matrixStack,
             textRenderer,
             paintingData.getLabel(),
             posX,
@@ -348,8 +329,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         posY += textRenderer.fontHeight + 2;
       }
 
-      drawCenteredText(
-          matrixStack,
+      drawCenteredTextWithShadow(matrixStack,
           textRenderer,
           Text.literal("(" + paintingData.id().toString() + ")")
               .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)),
@@ -359,30 +339,23 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
 
       posY += textRenderer.fontHeight + 2;
 
-      drawCenteredText(
-          matrixStack,
+      drawCenteredTextWithShadow(matrixStack,
           textRenderer,
-          Text.translatable(
-              "custompaintings.painting.dimensions",
+          Text.translatable("custompaintings.painting.dimensions",
               paintingData.width(),
               paintingData.height()),
           posX,
           posY,
           0xFFFFFFFF);
 
-      drawCenteredText(
-          matrixStack,
+      drawCenteredTextWithShadow(matrixStack,
           textRenderer,
-          Text.translatable(
-              "custompaintings.painting.number",
+          Text.translatable("custompaintings.painting.number",
               currentPaintingIndex + 1,
               currentGroup.paintings().size()),
           posX,
-          this.height
-              - getFooterHeight()
-              - 4
-              - BUTTON_HEIGHT
-              + (BUTTON_HEIGHT - textRenderer.fontHeight) / 2,
+          this.height - getFooterHeight() - 4 - BUTTON_HEIGHT +
+              (BUTTON_HEIGHT - textRenderer.fontHeight) / 2,
           0xFFFFFFFF);
 
       renderPainting(matrixStack, mouseX, mouseY);
@@ -435,7 +408,8 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
       }
     });
 
-    this.hasHiddenPaintings = this.paintings.size() < this.state.getCurrentGroup().paintings().size();
+    this.hasHiddenPaintings =
+        this.paintings.size() < this.state.getCurrentGroup().paintings().size();
     if (this.hasHiddenPaintings) {
       this.paintings.add(PaintingData.EMPTY);
     }

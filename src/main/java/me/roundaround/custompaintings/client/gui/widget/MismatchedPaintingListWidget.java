@@ -1,13 +1,7 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.ImmutableList;
 import com.mojang.blaze3d.systems.RenderSystem;
-
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
 import me.roundaround.custompaintings.client.gui.screen.manage.MismatchedPaintingsScreen;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
@@ -32,6 +26,11 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Language;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Environment(value = EnvType.CLIENT)
 public class MismatchedPaintingListWidget
@@ -115,7 +114,7 @@ public class MismatchedPaintingListWidget
         float partialTicks) {
       int yPos = y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f);
 
-      drawCenteredText(
+      drawCenteredTextWithShadow(
           matrixStack,
           this.client.textRenderer,
           Text.translatable("custompaintings.mismatched.loading"),
@@ -123,7 +122,7 @@ public class MismatchedPaintingListWidget
           yPos,
           0xFFFFFF);
 
-      drawCenteredText(
+      drawCenteredTextWithShadow(
           matrixStack,
           this.client.textRenderer,
           LoadingDisplay.get(Util.getMeasuringTimeMs()),
@@ -163,7 +162,7 @@ public class MismatchedPaintingListWidget
         int mouseY,
         boolean hovered,
         float partialTicks) {
-      drawCenteredText(
+      drawCenteredTextWithShadow(
           matrixStack,
           this.client.textRenderer,
           Text.translatable("custompaintings.mismatched.empty"),

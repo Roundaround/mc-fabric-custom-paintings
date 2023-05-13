@@ -1,10 +1,5 @@
 package me.roundaround.custompaintings.server.network;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.UUID;
-
 import io.netty.buffer.Unpooled;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
@@ -17,7 +12,6 @@ import me.roundaround.custompaintings.util.UnknownPainting;
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
@@ -29,37 +23,32 @@ import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.UUID;
+
 public class ServerNetworking {
   public static void registerReceivers() {
-    ServerPlayNetworking.registerGlobalReceiver(
-        NetworkPackets.SET_PAINTING_PACKET,
+    ServerPlayNetworking.registerGlobalReceiver(NetworkPackets.SET_PAINTING_PACKET,
         ServerNetworking::handleSetPaintingPacket);
-    ServerPlayNetworking.registerGlobalReceiver(
-        NetworkPackets.DECLARE_KNOWN_PAINTINGS_PACKET,
+    ServerPlayNetworking.registerGlobalReceiver(NetworkPackets.DECLARE_KNOWN_PAINTINGS_PACKET,
         ServerNetworking::handleDeclareKnownPaintingsPacket);
-    ServerPlayNetworking.registerGlobalReceiver(
-        NetworkPackets.REQUEST_UNKNOWN_PACKET,
+    ServerPlayNetworking.registerGlobalReceiver(NetworkPackets.REQUEST_UNKNOWN_PACKET,
         ServerNetworking::handleRequestUnknownPacket);
-    ServerPlayNetworking.registerGlobalReceiver(
-        NetworkPackets.REQUEST_MISMATCHED_PACKET,
+    ServerPlayNetworking.registerGlobalReceiver(NetworkPackets.REQUEST_MISMATCHED_PACKET,
         ServerNetworking::handleRequestMismatchedPacket);
-    ServerPlayNetworking.registerGlobalReceiver(
-        NetworkPackets.REASSIGN_PACKET,
+    ServerPlayNetworking.registerGlobalReceiver(NetworkPackets.REASSIGN_PACKET,
         ServerNetworking::handleReassignPacket);
-    ServerPlayNetworking.registerGlobalReceiver(
-        NetworkPackets.REASSIGN_ALL_PACKET,
+    ServerPlayNetworking.registerGlobalReceiver(NetworkPackets.REASSIGN_ALL_PACKET,
         ServerNetworking::handleReassignAllPacket);
-    ServerPlayNetworking.registerGlobalReceiver(
-        NetworkPackets.UPDATE_PAINTING_PACKET,
+    ServerPlayNetworking.registerGlobalReceiver(NetworkPackets.UPDATE_PAINTING_PACKET,
         ServerNetworking::handleUpdatePaintingPacket);
-    ServerPlayNetworking.registerGlobalReceiver(
-        NetworkPackets.REMOVE_PAINTING_PACKET,
+    ServerPlayNetworking.registerGlobalReceiver(NetworkPackets.REMOVE_PAINTING_PACKET,
         ServerNetworking::handleRemovePaintingPacket);
-    ServerPlayNetworking.registerGlobalReceiver(
-        NetworkPackets.REMOVE_ALL_PAINTINGS_PACKET,
+    ServerPlayNetworking.registerGlobalReceiver(NetworkPackets.REMOVE_ALL_PAINTINGS_PACKET,
         ServerNetworking::handleRemoveAllPaintingsPacket);
-    ServerPlayNetworking.registerGlobalReceiver(
-        NetworkPackets.APPLY_MIGRATION_PACKET,
+    ServerPlayNetworking.registerGlobalReceiver(NetworkPackets.APPLY_MIGRATION_PACKET,
         ServerNetworking::handleApplyMigrationPacket);
   }
 
@@ -78,15 +67,13 @@ public class ServerNetworking {
   }
 
   public static void sendOpenManageScreenPacket(ServerPlayerEntity player) {
-    ServerPlayNetworking.send(
-        player,
+    ServerPlayNetworking.send(player,
         NetworkPackets.OPEN_MANAGE_SCREEN_PACKET,
         new PacketByteBuf(Unpooled.buffer()));
   }
 
   private static void sendListUnknownPacket(
-      ServerPlayerEntity player,
-      HashSet<UnknownPainting> unknownPaintings) {
+      ServerPlayerEntity player, HashSet<UnknownPainting> unknownPaintings) {
     PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
     buf.writeInt(unknownPaintings.size());
     for (UnknownPainting entry : unknownPaintings) {
@@ -103,8 +90,7 @@ public class ServerNetworking {
   }
 
   private static void sendListMismatchedPacket(
-      ServerPlayerEntity player,
-      HashSet<MismatchedPainting> mismatched) {
+      ServerPlayerEntity player, HashSet<MismatchedPainting> mismatched) {
     PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
     buf.writeInt(mismatched.size());
     for (MismatchedPainting entry : mismatched) {
@@ -137,7 +123,7 @@ public class ServerNetworking {
 
       PaintingEntity basePainting = (PaintingEntity) entity;
       if (paintingData.isEmpty()) {
-        entity.damage(DamageSource.player(player), 0f);
+        entity.damage(player.getDamageSources().playerAttack(player), 0f);
         return;
       }
 
@@ -148,7 +134,7 @@ public class ServerNetworking {
       painting.setCustomData(paintingData);
 
       if (!basePainting.canStayAttached()) {
-        basePainting.damage(DamageSource.player(player), 0f);
+        basePainting.damage(player.getDamageSources().playerAttack(player), 0f);
       }
     });
   }
@@ -163,7 +149,8 @@ public class ServerNetworking {
 
     int size = buf.readInt();
     for (int i = 0; i < size; i++) {
-      CustomPaintingsMod.knownPaintings.get(player.getUuid()).add(PaintingData.fromPacketByteBuf(buf));
+      CustomPaintingsMod.knownPaintings.get(player.getUuid())
+          .add(PaintingData.fromPacketByteBuf(buf));
     }
   }
 

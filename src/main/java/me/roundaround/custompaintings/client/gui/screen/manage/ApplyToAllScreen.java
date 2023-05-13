@@ -1,7 +1,5 @@
 package me.roundaround.custompaintings.client.gui.screen.manage;
 
-import java.util.function.BiConsumer;
-
 import me.roundaround.custompaintings.client.gui.DrawUtils;
 import me.roundaround.custompaintings.util.UnknownPainting;
 import net.minecraft.client.gui.screen.Screen;
@@ -9,6 +7,8 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
+
+import java.util.function.BiConsumer;
 
 public class ApplyToAllScreen extends Screen {
   private static final int BUTTON_WIDTH = 150;
@@ -32,9 +32,7 @@ public class ApplyToAllScreen extends Screen {
 
   @Override
   public void init() {
-    addDrawableChild(ButtonWidget.builder(
-        ScreenTexts.YES,
-        (button) -> {
+    addDrawableChild(ButtonWidget.builder(ScreenTexts.YES, (button) -> {
           this.client.setScreen(this.parent);
           this.callback.accept(this.selected, true);
         })
@@ -42,9 +40,7 @@ public class ApplyToAllScreen extends Screen {
         .size(BUTTON_WIDTH / 2, BUTTON_HEIGHT)
         .build());
 
-    addDrawableChild(ButtonWidget.builder(
-        ScreenTexts.NO,
-        (button) -> {
+    addDrawableChild(ButtonWidget.builder(ScreenTexts.NO, (button) -> {
           this.client.setScreen(this.parent);
           this.callback.accept(this.selected, false);
         })
@@ -52,9 +48,7 @@ public class ApplyToAllScreen extends Screen {
         .size(BUTTON_WIDTH / 2, BUTTON_HEIGHT)
         .build());
 
-    addDrawableChild(ButtonWidget.builder(
-        ScreenTexts.CANCEL,
-        (button) -> {
+    addDrawableChild(ButtonWidget.builder(ScreenTexts.CANCEL, (button) -> {
           this.close();
         })
         .position((this.width - BUTTON_WIDTH) / 2, this.height - BUTTON_HEIGHT - PADDING)
@@ -69,10 +63,9 @@ public class ApplyToAllScreen extends Screen {
 
   @Override
   public void render(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-    renderBackgroundTexture(0);
+    renderBackgroundTexture(matrixStack);
 
-    DrawUtils.drawWrappedCenteredTextWithShadow(
-        matrixStack,
+    DrawUtils.drawWrappedCenteredTextWithShadow(matrixStack,
         this.textRenderer,
         this.title,
         this.width / 2,

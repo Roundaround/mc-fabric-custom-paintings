@@ -1,7 +1,5 @@
 package me.roundaround.custompaintings.client.gui.screen.manage;
 
-import java.util.HashSet;
-
 import me.roundaround.custompaintings.client.gui.widget.UnknownPaintingListWidget;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.util.UnknownPainting;
@@ -10,6 +8,8 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
+
+import java.util.HashSet;
 
 public class UnknownPaintingsScreen extends Screen {
   private static final int BUTTON_WIDTH = 100;
@@ -51,13 +51,9 @@ public class UnknownPaintingsScreen extends Screen {
 
     int count = this.list.getCountForId(this.selected.currentData().id());
     if (count > 1) {
-      this.client.setScreen(new ApplyToAllScreen(
-          this,
-          count,
-          this.selected,
-          (selected, choice) -> {
-            this.client.setScreen(new ReassignScreen(this, this.selected, choice));
-          }));
+      this.client.setScreen(new ApplyToAllScreen(this, count, this.selected, (selected, choice) -> {
+        this.client.setScreen(new ReassignScreen(this, this.selected, choice));
+      }));
       return;
     }
 
@@ -71,17 +67,13 @@ public class UnknownPaintingsScreen extends Screen {
 
     int count = this.list.getCountForId(this.selected.currentData().id());
     if (count > 1) {
-      this.client.setScreen(new ApplyToAllScreen(
-          this,
-          count,
-          this.selected,
-          (selected, choice) -> {
-            if (choice) {
-              ClientNetworking.sendRemoveAllPaintingsPacket(this.selected.currentData().id());
-            } else {
-              ClientNetworking.sendRemovePaintingPacket(this.selected.uuid());
-            }
-          }));
+      this.client.setScreen(new ApplyToAllScreen(this, count, this.selected, (selected, choice) -> {
+        if (choice) {
+          ClientNetworking.sendRemoveAllPaintingsPacket(this.selected.currentData().id());
+        } else {
+          ClientNetworking.sendRemovePaintingPacket(this.selected.uuid());
+        }
+      }));
       return;
     }
 
@@ -90,8 +82,7 @@ public class UnknownPaintingsScreen extends Screen {
 
   @Override
   public void init() {
-    this.list = new UnknownPaintingListWidget(
-        this,
+    this.list = new UnknownPaintingListWidget(this,
         this.client,
         this.width,
         this.height,
@@ -99,40 +90,31 @@ public class UnknownPaintingsScreen extends Screen {
         this.height - 32);
     addSelectableChild(this.list);
 
-    this.reassignButton = ButtonWidget.builder(
-        Text.translatable("custompaintings.unknown.reassign"),
-        (button) -> {
-          reassignSelection();
-        })
-        .position(
-            (this.width - BUTTON_WIDTH) / 2 - BUTTON_WIDTH - PADDING,
-            this.height - BUTTON_HEIGHT - PADDING)
-        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
-        .build();
+    this.reassignButton =
+        ButtonWidget.builder(Text.translatable("custompaintings.unknown.reassign"), (button) -> {
+              reassignSelection();
+            })
+            .position((this.width - BUTTON_WIDTH) / 2 - BUTTON_WIDTH - PADDING,
+                this.height - BUTTON_HEIGHT - PADDING)
+            .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+            .build();
     this.reassignButton.active = false;
     addDrawableChild(this.reassignButton);
 
-    this.removeButton = ButtonWidget.builder(
-        Text.translatable("custompaintings.unknown.remove"),
-        (button) -> {
-          removeSelection();
-        })
-        .position(
-            (this.width - BUTTON_WIDTH) / 2,
-            this.height - BUTTON_HEIGHT - PADDING)
-        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
-        .build();
+    this.removeButton =
+        ButtonWidget.builder(Text.translatable("custompaintings.unknown.remove"), (button) -> {
+              removeSelection();
+            })
+            .position((this.width - BUTTON_WIDTH) / 2, this.height - BUTTON_HEIGHT - PADDING)
+            .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+            .build();
     this.removeButton.active = false;
     addDrawableChild(this.removeButton);
 
-    addDrawableChild(ButtonWidget.builder(
-        ScreenTexts.CANCEL,
-        (button) -> {
+    addDrawableChild(ButtonWidget.builder(ScreenTexts.CANCEL, (button) -> {
           this.close();
         })
-        .position(
-            (this.width + BUTTON_WIDTH) / 2 + PADDING,
-            this.height - BUTTON_HEIGHT - PADDING)
+        .position((this.width + BUTTON_WIDTH) / 2 + PADDING, this.height - BUTTON_HEIGHT - PADDING)
         .size(BUTTON_WIDTH, BUTTON_HEIGHT)
         .build());
   }
@@ -146,7 +128,12 @@ public class UnknownPaintingsScreen extends Screen {
   public void render(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
     this.list.render(matrixStack, mouseX, mouseY, partialTicks);
 
-    drawCenteredText(matrixStack, this.textRenderer, this.title, this.width / 2, 8, 0xFFFFFF);
+    drawCenteredTextWithShadow(matrixStack,
+        this.textRenderer,
+        this.title,
+        this.width / 2,
+        8,
+        0xFFFFFF);
 
     super.render(matrixStack, mouseX, mouseY, partialTicks);
   }
