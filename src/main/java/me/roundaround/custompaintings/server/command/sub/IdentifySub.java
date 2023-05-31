@@ -1,13 +1,6 @@
 package me.roundaround.custompaintings.server.command.sub;
 
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
@@ -22,13 +15,17 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 public class IdentifySub {
   public static LiteralArgumentBuilder<ServerCommandSource> build() {
-    return CommandManager
-        .literal("identify")
-        .executes(context -> {
-          return execute(context.getSource());
-        });
+    return CommandManager.literal("identify").executes(context -> {
+      return execute(context.getSource());
+    });
   }
 
   private static int execute(ServerCommandSource source) {
@@ -36,7 +33,7 @@ public class IdentifySub {
     Optional<PaintingEntity> maybePainting = ServerPaintingManager.getPaintingInCrosshair(player);
 
     if (!maybePainting.isPresent()) {
-      source.sendFeedback(Text.translatable("custompaintings.command.identify.none"), false);
+      source.sendFeedback(() -> Text.translatable("custompaintings.command.identify.none"), false);
       return 0;
     }
 
@@ -60,15 +57,12 @@ public class IdentifySub {
       lines.add(paintingData.getLabel());
     }
 
-    lines.add(Text.translatable(
-        "custompaintings.painting.dimensions",
+    lines.add(Text.translatable("custompaintings.painting.dimensions",
         paintingData.width(),
         paintingData.height()));
 
     int count = CountSub.countPaintings(source.getServer(), paintingData.id());
-    lines.add(Text.translatable(
-        "custompaintings.command.identify.count",
-        count));
+    lines.add(Text.translatable("custompaintings.command.identify.count", count));
 
     Map<Identifier, PaintingData> known = CustomPaintingsMod.knownPaintings.get(player.getUuid())
         .stream()
@@ -84,7 +78,7 @@ public class IdentifySub {
     }
 
     for (Text line : lines) {
-      source.sendFeedback(line, false);
+      source.sendFeedback(() -> line, false);
     }
     return 1;
   }
@@ -96,13 +90,12 @@ public class IdentifySub {
     String id = Registries.PAINTING_VARIANT.getId(variant).toString();
 
     lines.add(Text.literal(id));
-    lines.add(Text.translatable(
-        "custompaintings.painting.dimensions",
+    lines.add(Text.translatable("custompaintings.painting.dimensions",
         variant.getWidth() / 16,
         variant.getHeight() / 16));
 
     for (Text line : lines) {
-      source.sendFeedback(line, false);
+      source.sendFeedback(() -> line, false);
     }
   }
 }

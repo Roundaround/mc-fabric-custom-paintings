@@ -4,10 +4,9 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.render.GameRenderer;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
@@ -20,8 +19,6 @@ public class IconButtonWidget extends ButtonWidget {
   public static final int WRENCH_ICON = 4;
   public static final int WIDTH = 20;
   public static final int HEIGHT = 20;
-  protected static final Identifier BACKGROUND_TEXTURE =
-      new Identifier(Identifier.DEFAULT_NAMESPACE, "textures/gui/widgets.png");
   protected static final Identifier WIDGETS_TEXTURE =
       new Identifier(CustomPaintingsMod.MOD_ID, "textures/gui/widgets.png");
 
@@ -38,42 +35,30 @@ public class IconButtonWidget extends ButtonWidget {
       Text tooltip,
       PressAction onPress,
       NarrationSupplier narrationSupplier) {
-    super(x, y, WIDTH, HEIGHT, tooltip, onPress, narrationSupplier);
+    super(x, y, WIDTH, HEIGHT, Text.empty(), onPress, narrationSupplier);
     this.textureIndex = textureIndex;
     setTooltip(Tooltip.of(tooltip));
   }
 
   @Override
-  public void renderButton(MatrixStack matrixStack, int mouseX, int mouseY, float delta) {
-    RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-    RenderSystem.enableBlend();
-    RenderSystem.defaultBlendFunc();
-    RenderSystem.enableDepthTest();
-    RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+  public void renderButton(DrawContext drawContext, int mouseX, int mouseY, float delta) {
+    super.renderButton(drawContext, mouseX, mouseY, delta);
 
-    RenderSystem.setShaderTexture(0, BACKGROUND_TEXTURE);
-    int vOffset = (this.isHovered() ? 2 : 1) * HEIGHT;
-    drawTexture(matrixStack, this.getX(), this.getY(), 0, 46 + vOffset, WIDTH / 2, HEIGHT);
-    drawTexture(matrixStack,
-        this.getX() + WIDTH / 2,
-        this.getY(),
-        200 - WIDTH / 2,
-        46 + vOffset,
-        WIDTH / 2,
-        HEIGHT);
-
+    float brightness = this.active ? 1f : 0.6f;
     int uIndex = this.textureIndex % 5;
     int vIndex = this.textureIndex / 5;
-    RenderSystem.setShaderTexture(0, WIDGETS_TEXTURE);
-    drawTexture(matrixStack,
-        this.getX(),
-        this.getY(),
+
+    RenderSystem.setShaderColor(brightness, brightness, brightness, 1f);
+    drawContext.drawTexture(WIDGETS_TEXTURE,
+        getX(),
+        getY(),
         uIndex * WIDTH,
         vIndex * HEIGHT,
-        WIDTH,
-        HEIGHT,
-        WIDTH * 5,
-        HEIGHT * 3);
+        this.width,
+        this.height,
+        100,
+        60);
+    RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
   }
 
   @Environment(value = EnvType.CLIENT)

@@ -7,9 +7,9 @@ import me.roundaround.custompaintings.util.UnknownPainting;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.LoadingDisplay;
 import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
@@ -103,7 +103,7 @@ public class UnknownPaintingListWidget
 
     @Override
     public void render(
-        MatrixStack matrixStack,
+        DrawContext drawContext,
         int index,
         int y,
         int x,
@@ -115,15 +115,13 @@ public class UnknownPaintingListWidget
         float partialTicks) {
       int yPos = y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f);
 
-      drawCenteredTextWithShadow(matrixStack,
-          this.client.textRenderer,
+      drawContext.drawCenteredTextWithShadow(this.client.textRenderer,
           LOADING_LIST_TEXT,
           this.client.currentScreen.width / 2,
           yPos,
           0xFFFFFF);
 
-      drawCenteredTextWithShadow(matrixStack,
-          this.client.textRenderer,
+      drawContext.drawCenteredTextWithShadow(this.client.textRenderer,
           LoadingDisplay.get(Util.getMeasuringTimeMs()),
           this.client.currentScreen.width / 2,
           yPos + this.client.textRenderer.fontHeight,
@@ -148,7 +146,7 @@ public class UnknownPaintingListWidget
 
     @Override
     public void render(
-        MatrixStack matrixStack,
+        DrawContext drawContext,
         int index,
         int y,
         int x,
@@ -158,8 +156,7 @@ public class UnknownPaintingListWidget
         int mouseY,
         boolean hovered,
         float partialTicks) {
-      drawCenteredTextWithShadow(matrixStack,
-          this.client.textRenderer,
+      drawContext.drawCenteredTextWithShadow(this.client.textRenderer,
           EMPTY_LIST_TEXT,
           this.client.currentScreen.width / 2,
           y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f),
@@ -191,7 +188,7 @@ public class UnknownPaintingListWidget
 
     @Override
     public void render(
-        MatrixStack matrixStack,
+        DrawContext drawContext,
         int index,
         int y,
         int x,
@@ -204,18 +201,20 @@ public class UnknownPaintingListWidget
       int centerY = y + entryHeight / 2;
       PaintingData currentData = this.unknownPainting.currentData();
 
-      this.client.textRenderer.draw(matrixStack,
+      drawContext.drawText(this.client.textRenderer,
           Text.literal(currentData.id().toString()),
           x,
           centerY - this.client.textRenderer.fontHeight - 2,
-          0xFF8080);
+          0xFF8080,
+          false);
 
       if (currentData.hasLabel()) {
-        this.client.textRenderer.draw(matrixStack,
+        drawContext.drawText(this.client.textRenderer,
             currentData.getLabel(),
             x,
             centerY + 2,
-            0xFFFFFF);
+            0xFFFFFF,
+            false);
       }
     }
 

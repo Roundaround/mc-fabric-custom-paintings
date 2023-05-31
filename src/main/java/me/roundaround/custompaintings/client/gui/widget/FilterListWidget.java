@@ -1,20 +1,12 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Queue;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
 import com.google.common.collect.ImmutableList;
-
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.Selectable;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
@@ -22,10 +14,17 @@ import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.CyclingButtonWidget;
 import net.minecraft.client.gui.widget.ElementListWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.MathHelper;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Queue;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 @Environment(value = EnvType.CLIENT)
 public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterEntry> {
@@ -60,15 +59,13 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
       }
     }
 
-    addEntry(new SectionTitleEntry(
-        Text.translatable("custompaintings.filter.section.search")));
+    addEntry(new SectionTitleEntry(Text.translatable("custompaintings.filter.section.search")));
 
     TextFilterEntry previousAnyFilterEntry = null;
     if (!previousEntries.isEmpty()) {
       previousAnyFilterEntry = previousEntries.remove();
     }
-    addEntry(new TextFilterEntry(
-        Text.translatable("custompaintings.filter.any"),
+    addEntry(new TextFilterEntry(Text.translatable("custompaintings.filter.any"),
         previousAnyFilterEntry,
         () -> state.getFilters().getSearch(),
         (value) -> state.getFilters().setSearch(value)));
@@ -77,8 +74,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
     if (!previousEntries.isEmpty()) {
       previousNameFilterEntry = previousEntries.remove();
     }
-    addEntry(new TextFilterEntry(
-        Text.translatable("custompaintings.filter.name"),
+    addEntry(new TextFilterEntry(Text.translatable("custompaintings.filter.name"),
         previousNameFilterEntry,
         () -> state.getFilters().getNameSearch(),
         (value) -> state.getFilters().setNameSearch(value)));
@@ -87,26 +83,23 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
     if (!previousEntries.isEmpty()) {
       previousArtistFilterEntry = previousEntries.remove();
     }
-    addEntry(new TextFilterEntry(
-        Text.translatable("custompaintings.filter.artist"),
+    addEntry(new TextFilterEntry(Text.translatable("custompaintings.filter.artist"),
         previousArtistFilterEntry,
         () -> state.getFilters().getArtistSearch(),
         (value) -> state.getFilters().setArtistSearch(value)));
 
     // TODO: Name/artist is empty
 
-    addEntry(new SectionTitleEntry(
-        Text.translatable("custompaintings.filter.section.size")));
+    addEntry(new SectionTitleEntry(Text.translatable("custompaintings.filter.section.size")));
 
-    addEntry(new ToggleFilterEntry(
-        Text.translatable("custompaintings.filter.canstay"),
+    addEntry(new ToggleFilterEntry(Text.translatable("custompaintings.filter.canstay"),
         ScreenTexts.ON,
         ScreenTexts.OFF,
         () -> state.getFilters().getCanStayOnly(),
         (value) -> state.getFilters().setCanStayOnly(value)));
 
-    addEntry(new IntRangeFilterEntry(
-        (value) -> Text.translatable("custompaintings.filter.minwidth", value),
+    addEntry(new IntRangeFilterEntry((value) -> Text.translatable("custompaintings.filter.minwidth",
+        value),
         (value) -> Text.translatable("custompaintings.filter.maxwidth", value),
         () -> state.getFilters().getMinWidth(),
         () -> state.getFilters().getMaxWidth(),
@@ -115,8 +108,8 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
         1,
         32));
 
-    addEntry(new IntRangeFilterEntry(
-        (value) -> Text.translatable("custompaintings.filter.minheight", value),
+    addEntry(new IntRangeFilterEntry((value) -> Text.translatable("custompaintings.filter.minheight",
+        value),
         (value) -> Text.translatable("custompaintings.filter.maxheight", value),
         () -> state.getFilters().getMinHeight(),
         () -> state.getFilters().getMaxHeight(),
@@ -257,7 +250,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
 
     @Override
     public void render(
-        MatrixStack matrixStack,
+        DrawContext drawContext,
         int index,
         int y,
         int x,
@@ -267,9 +260,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
         int mouseY,
         boolean hovered,
         float partialTicks) {
-      drawCenteredTextWithShadow(
-          matrixStack,
-          FilterListWidget.this.textRenderer,
+      drawContext.drawCenteredTextWithShadow(FilterListWidget.this.textRenderer,
           label.asOrderedText(),
           getRowCenter(),
           y + MathHelper.ceil((entryHeight - FilterListWidget.this.textRenderer.fontHeight) / 2f),
@@ -309,8 +300,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
             }
             return Tooltip.of(tooltip);
           })
-          .build(
-              getControlLeft(),
+          .build(getControlLeft(),
               0,
               CONTROL_FULL_WIDTH,
               CONTROL_HEIGHT,
@@ -322,7 +312,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
 
     @Override
     public void render(
-        MatrixStack matrixStack,
+        DrawContext drawContext,
         int index,
         int y,
         int x,
@@ -333,7 +323,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
         boolean hovered,
         float partialTicks) {
       this.button.setY(y + (entryHeight - CONTROL_HEIGHT) / 2);
-      this.button.render(matrixStack, mouseX, mouseY, partialTicks);
+      this.button.render(drawContext, mouseX, mouseY, partialTicks);
     }
 
     @Override
@@ -373,8 +363,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
       this.label = label;
       this.getter = getter;
 
-      this.textField = new TextFieldWidget(
-          FilterListWidget.this.textRenderer,
+      this.textField = new TextFieldWidget(FilterListWidget.this.textRenderer,
           getControlInnerLeft(),
           0,
           CONTROL_HALF_WIDTH,
@@ -387,7 +376,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
 
     @Override
     public void render(
-        MatrixStack matrixStack,
+        DrawContext drawContext,
         int index,
         int y,
         int x,
@@ -397,16 +386,14 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
         int mouseY,
         boolean hovered,
         float partialTicks) {
-      drawTextWithShadow(
-          matrixStack,
-          FilterListWidget.this.textRenderer,
+      drawContext.drawTextWithShadow(FilterListWidget.this.textRenderer,
           this.label,
           getControlLeft(),
           y + MathHelper.ceil((entryHeight - FilterListWidget.this.textRenderer.fontHeight) / 2f),
           0xFFFFFF);
 
       this.textField.setY(y + (entryHeight - CONTROL_HEIGHT) / 2);
-      this.textField.render(matrixStack, mouseX, mouseY, partialTicks);
+      this.textField.render(drawContext, mouseX, mouseY, partialTicks);
     }
 
     @Override
@@ -454,8 +441,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
       this.getLow = getLow;
       this.getHigh = getHigh;
 
-      this.lowSlider = new IntSliderWidget(
-          getControlLeft(),
+      this.lowSlider = new IntSliderWidget(getControlLeft(),
           0,
           CONTROL_HALF_WIDTH,
           CONTROL_HEIGHT,
@@ -465,8 +451,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
           lowLabelFactory,
           setLow);
 
-      this.highSlider = new IntSliderWidget(
-          getControlInnerLeft(),
+      this.highSlider = new IntSliderWidget(getControlInnerLeft(),
           0,
           CONTROL_HALF_WIDTH,
           CONTROL_HEIGHT,
@@ -479,7 +464,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
 
     @Override
     public void render(
-        MatrixStack matrixStack,
+        DrawContext drawContext,
         int index,
         int y,
         int x,
@@ -490,10 +475,10 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
         boolean hovered,
         float partialTicks) {
       this.lowSlider.setY(y + (entryHeight - CONTROL_HEIGHT) / 2);
-      this.lowSlider.render(matrixStack, mouseX, mouseY, partialTicks);
+      this.lowSlider.render(drawContext, mouseX, mouseY, partialTicks);
 
       this.highSlider.setY(y + (entryHeight - CONTROL_HEIGHT) / 2);
-      this.highSlider.render(matrixStack, mouseX, mouseY, partialTicks);
+      this.highSlider.render(drawContext, mouseX, mouseY, partialTicks);
     }
 
     @Override

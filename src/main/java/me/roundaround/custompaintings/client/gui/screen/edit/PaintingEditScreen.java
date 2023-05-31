@@ -1,16 +1,12 @@
 package me.roundaround.custompaintings.client.gui.screen.edit;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.render.BufferBuilder;
-import net.minecraft.client.render.GameRenderer;
-import net.minecraft.client.render.Tessellator;
-import net.minecraft.client.render.VertexFormat;
-import net.minecraft.client.render.VertexFormats;
+import net.minecraft.client.render.*;
 import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.sound.SoundEvents;
@@ -33,20 +29,23 @@ public abstract class PaintingEditScreen extends Screen {
     return this.state;
   }
 
-  public void renderBackground(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
+  public void renderBackground(
+      DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
   }
 
-  public void renderForeground(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
+  public void renderForeground(
+      DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
   }
 
   @Override
-  public void render(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-    renderBackground(matrixStack, mouseX, mouseY, partialTicks);
+  public void render(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
+    renderBackground(drawContext, mouseX, mouseY, partialTicks);
 
+    MatrixStack matrixStack = drawContext.getMatrices();
     matrixStack.push();
     matrixStack.translate(0, 0, 12);
-    renderForeground(matrixStack, mouseX, mouseY, partialTicks);
-    super.render(matrixStack, mouseX, mouseY, partialTicks);
+    renderForeground(drawContext, mouseX, mouseY, partialTicks);
+    super.render(drawContext, mouseX, mouseY, partialTicks);
     matrixStack.pop();
   }
 
@@ -67,26 +66,19 @@ public abstract class PaintingEditScreen extends Screen {
     RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
 
     bufferBuilder.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_TEXTURE_COLOR);
-    bufferBuilder
-        .vertex(left, bottom, 0)
+    bufferBuilder.vertex(left, bottom, 0)
         .texture(left / 32f, bottom / 32f)
         .color(64, 64, 64, 255)
         .next();
-    bufferBuilder
-        .vertex(right, bottom, 0)
+    bufferBuilder.vertex(right, bottom, 0)
         .texture(right / 32f, bottom / 32f)
         .color(64, 64, 64, 255)
         .next();
-    bufferBuilder
-        .vertex(right, top, 0)
+    bufferBuilder.vertex(right, top, 0)
         .texture(right / 32f, top / 32f)
         .color(64, 64, 64, 255)
         .next();
-    bufferBuilder
-        .vertex(left, top, 0)
-        .texture(left / 32f, top / 32f)
-        .color(64, 64, 64, 255)
-        .next();
+    bufferBuilder.vertex(left, top, 0).texture(left / 32f, top / 32f).color(64, 64, 64, 255).next();
     tessellator.draw();
   }
 

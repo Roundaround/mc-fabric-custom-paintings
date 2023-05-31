@@ -8,13 +8,13 @@ import me.roundaround.custompaintings.client.gui.PaintingEditState.PaintingChang
 import me.roundaround.custompaintings.client.gui.widget.IconButtonWidget;
 import me.roundaround.custompaintings.client.gui.widget.PaintingListWidget;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.texture.Sprite;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.util.math.Rect2i;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.MutableText;
@@ -214,21 +214,23 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
   @Override
   public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
     switch (keyCode) {
-      case GLFW.GLFW_KEY_LEFT:
-        if (this.state.hasMultiplePaintings()) {
-          playClickSound();
-          previousPainting();
-          return true;
+      case GLFW.GLFW_KEY_LEFT -> {
+        if (!this.state.hasMultiplePaintings() || !hasControlDown()) {
+          break;
         }
-        break;
-      case GLFW.GLFW_KEY_RIGHT:
-        if (this.state.hasMultiplePaintings()) {
-          playClickSound();
-          nextPainting();
-          return true;
+        playClickSound();
+        previousPainting();
+        return true;
+      }
+      case GLFW.GLFW_KEY_RIGHT -> {
+        if (!this.state.hasMultiplePaintings() || !hasControlDown()) {
+          break;
         }
-        break;
-      case GLFW.GLFW_KEY_ESCAPE:
+        playClickSound();
+        nextPainting();
+        return true;
+      }
+      case GLFW.GLFW_KEY_ESCAPE -> {
         playClickSound();
         if (this.state.hasMultipleGroups()) {
           this.client.setScreen(new GroupSelectScreen(this.state));
@@ -236,7 +238,8 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
           saveEmpty();
         }
         return true;
-      case GLFW.GLFW_KEY_ENTER:
+      }
+      case GLFW.GLFW_KEY_ENTER -> {
         if (!this.paintingList.isFocused()) {
           break;
         }
@@ -246,8 +249,8 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
           saveSelection(painting.get());
           return true;
         }
-        break;
-      case GLFW.GLFW_KEY_F:
+      }
+      case GLFW.GLFW_KEY_F -> {
         if (hasControlDown()) {
           if (hasShiftDown()) {
             this.client.setScreen(new FiltersScreen(this.state));
@@ -264,7 +267,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
             return true;
           }
         }
-        break;
+      }
     }
 
     return super.keyPressed(keyCode, scanCode, modifiers);
@@ -277,15 +280,15 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
 
   @Override
   public void renderBackground(
-      MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
+      DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
     renderBackgroundInRegion(0, height, 0, width);
   }
 
   @Override
   public void renderForeground(
-      MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-    this.paintingList.render(matrixStack, mouseX, mouseY, partialTicks);
-    this.searchBox.render(matrixStack, mouseX, mouseY, partialTicks);
+      DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
+    this.paintingList.render(drawContext, mouseX, mouseY, partialTicks);
+    this.searchBox.render(drawContext, mouseX, mouseY, partialTicks);
 
     renderBackgroundInRegion(this.paintingList.getBottom(), height, 0, width);
 
@@ -296,7 +299,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
       title = Text.literal(this.state.getCurrentGroup().name() + " - ").append(title);
     }
 
-    drawCenteredTextWithShadow(matrixStack, textRenderer, title, width / 2, 11, 0xFFFFFFFF);
+    drawContext.drawCenteredTextWithShadow(textRenderer, title, width / 2, 11, 0xFFFFFFFF);
 
     PaintingData paintingData = this.state.getCurrentPainting();
 
@@ -305,8 +308,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
       int posX = this.rightPaneX + paneWidth / 2;
       int posY = getHeaderHeight() + (paneHeight - this.textRenderer.fontHeight) / 2;
 
-      drawCenteredTextWithShadow(matrixStack,
-          textRenderer,
+      drawContext.drawCenteredTextWithShadow(textRenderer,
           Text.translatable("custompaintings.painting.none")
               .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)),
           posX,
@@ -319,8 +321,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
       int posY = getHeaderHeight() + 4;
 
       if (paintingData.hasLabel()) {
-        drawCenteredTextWithShadow(matrixStack,
-            textRenderer,
+        drawContext.drawCenteredTextWithShadow(textRenderer,
             paintingData.getLabel(),
             posX,
             posY,
@@ -329,8 +330,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         posY += textRenderer.fontHeight + 2;
       }
 
-      drawCenteredTextWithShadow(matrixStack,
-          textRenderer,
+      drawContext.drawCenteredTextWithShadow(textRenderer,
           Text.literal("(" + paintingData.id().toString() + ")")
               .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)),
           posX,
@@ -339,8 +339,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
 
       posY += textRenderer.fontHeight + 2;
 
-      drawCenteredTextWithShadow(matrixStack,
-          textRenderer,
+      drawContext.drawCenteredTextWithShadow(textRenderer,
           Text.translatable("custompaintings.painting.dimensions",
               paintingData.width(),
               paintingData.height()),
@@ -348,8 +347,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
           posY,
           0xFFFFFFFF);
 
-      drawCenteredTextWithShadow(matrixStack,
-          textRenderer,
+      drawContext.drawCenteredTextWithShadow(textRenderer,
           Text.translatable("custompaintings.painting.number",
               currentPaintingIndex + 1,
               currentGroup.paintings().size()),
@@ -358,23 +356,23 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
               (BUTTON_HEIGHT - textRenderer.fontHeight) / 2,
           0xFFFFFFFF);
 
-      renderPainting(matrixStack, mouseX, mouseY);
+      renderPainting(drawContext, mouseX, mouseY);
     }
   }
 
-  private void renderPainting(MatrixStack matrixStack, int mouseX, int mouseY) {
+  private void renderPainting(DrawContext drawContext, int mouseX, int mouseY) {
     int x = this.paintingRect.getX();
     int y = this.paintingRect.getY();
     int width = this.paintingRect.getWidth();
     int height = this.paintingRect.getHeight();
     float color = this.canStay ? 1f : 0.5f;
 
-    fill(matrixStack, x, y, x + width, y + height, 0xFF000000);
+    drawContext.fill(x, y, x + width, y + height, 0xFF000000);
 
     RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
     RenderSystem.setShaderColor(color, color, color, 1f);
     RenderSystem.setShaderTexture(0, this.paintingSprite.getAtlasId());
-    drawSprite(matrixStack, x + 1, y + 1, 0, width - 2, height - 2, this.paintingSprite);
+    drawContext.drawSprite(x + 1, y + 1, 0, width - 2, height - 2, this.paintingSprite);
   }
 
   @Override

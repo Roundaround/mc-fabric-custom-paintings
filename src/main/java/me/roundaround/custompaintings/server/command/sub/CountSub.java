@@ -1,9 +1,6 @@
 package me.roundaround.custompaintings.server.command.sub;
 
-import java.util.Optional;
-
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
@@ -19,17 +16,19 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
+import java.util.Optional;
+
 public class CountSub {
   public static LiteralArgumentBuilder<ServerCommandSource> build() {
-    return CommandManager
-        .literal("count")
+    return CommandManager.literal("count")
         .executes(context -> {
           return CountSub.execute(context.getSource());
         })
         .then(CommandManager.argument("id", IdentifierArgumentType.identifier())
             .suggests(new KnownPaintingIdentifierSuggestionProvider())
             .executes(context -> {
-              return CountSub.execute(context.getSource(), IdentifierArgumentType.getIdentifier(context, "id"));
+              return CountSub.execute(context.getSource(),
+                  IdentifierArgumentType.getIdentifier(context, "id"));
             }));
   }
 
@@ -37,9 +36,12 @@ public class CountSub {
     int count = 0;
 
     for (ServerWorld world : server.getWorlds()) {
-      count += world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
+      count += world.getEntitiesByType(EntityType.PAINTING,
+              entity -> entity instanceof ExpandedPaintingEntity)
           .stream()
-          .filter((entity) -> ((ExpandedPaintingEntity) entity).getCustomData().id().equals(identifier))
+          .filter((entity) -> ((ExpandedPaintingEntity) entity).getCustomData()
+              .id()
+              .equals(identifier))
           .count();
     }
 
@@ -47,10 +49,11 @@ public class CountSub {
   }
 
   private static int execute(ServerCommandSource source) {
-    Optional<PaintingEntity> maybePainting = ServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
+    Optional<PaintingEntity> maybePainting =
+        ServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
 
     if (!maybePainting.isPresent()) {
-      source.sendFeedback(Text.translatable("custompaintings.command.count.none"), false);
+      source.sendFeedback(() -> Text.translatable("custompaintings.command.count.none"), false);
       return 0;
     }
 
@@ -73,8 +76,7 @@ public class CountSub {
   private static int execute(ServerCommandSource source, Identifier identifier) {
     int count = countPaintings(source.getServer(), identifier);
 
-    source.sendFeedback(Text.translatable(
-        "custompaintings.command.count.success",
+    source.sendFeedback(() -> Text.translatable("custompaintings.command.count.success",
         identifier.toString(),
         count), false);
 

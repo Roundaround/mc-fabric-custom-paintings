@@ -1,13 +1,5 @@
 package me.roundaround.custompaintings.client.gui;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.function.Predicate;
-
 import me.roundaround.custompaintings.client.CustomPaintingManager;
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
@@ -28,6 +20,10 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
+
+import java.util.*;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class PaintingEditState {
   private final MinecraftClient client;
@@ -85,8 +81,7 @@ public class PaintingEditState {
   }
 
   public boolean hasGroup(String id) {
-    return this.allPaintings.containsKey(id)
-        && !this.allPaintings.get(id).paintings().isEmpty();
+    return this.allPaintings.containsKey(id) && !this.allPaintings.get(id).paintings().isEmpty();
   }
 
   public UUID getPaintingUuid() {
@@ -141,58 +136,55 @@ public class PaintingEditState {
       return;
     }
 
-    Registries.PAINTING_VARIANT.stream()
-        .forEach((vanillaVariant) -> {
-          Identifier id = Registries.PAINTING_VARIANT.getId(vanillaVariant);
-          RegistryKey<PaintingVariant> key = RegistryKey.of(Registries.PAINTING_VARIANT.getKey(), id);
-          Optional<RegistryEntry.Reference<PaintingVariant>> maybeEntry = Registries.PAINTING_VARIANT.getEntry(key);
+    Registries.PAINTING_VARIANT.stream().forEach((vanillaVariant) -> {
+      Identifier id = Registries.PAINTING_VARIANT.getId(vanillaVariant);
+      RegistryKey<PaintingVariant> key = RegistryKey.of(Registries.PAINTING_VARIANT.getKey(), id);
+      Optional<RegistryEntry.Reference<PaintingVariant>> maybeEntry =
+          Registries.PAINTING_VARIANT.getEntry(key);
 
-          if (!maybeEntry.isPresent()) {
-            return;
-          }
+      if (!maybeEntry.isPresent()) {
+        return;
+      }
 
-          RegistryEntry<PaintingVariant> entry = maybeEntry.get();
-          boolean placeable = entry.isIn(PaintingVariantTags.PLACEABLE);
-          String groupId = id.getNamespace() + (placeable ? "" : "_unplaceable");
+      RegistryEntry<PaintingVariant> entry = maybeEntry.get();
+      boolean placeable = entry.isIn(PaintingVariantTags.PLACEABLE);
+      String groupId = id.getNamespace() + (placeable ? "" : "_unplaceable");
 
-          if (!allPaintings.containsKey(groupId)) {
-            String groupName = !placeable ? "Minecraft: The Hidden Ones"
-                : FabricLoader.getInstance()
-                    .getModContainer(groupId)
-                    .map((mod) -> mod.getMetadata().getName()).orElse(groupId);
-            allPaintings.put(groupId, new Group(groupId, groupName, new ArrayList<>()));
-          }
+      if (!allPaintings.containsKey(groupId)) {
+        String groupName = !placeable
+            ? "Minecraft: The Hidden Ones"
+            : FabricLoader.getInstance()
+                .getModContainer(groupId)
+                .map((mod) -> mod.getMetadata().getName())
+                .orElse(groupId);
+        allPaintings.put(groupId, new Group(groupId, groupName, new ArrayList<>()));
+      }
 
-          allPaintings.get(groupId).paintings().add(new PaintingData(
-              vanillaVariant,
-              allPaintings
-                  .get(groupId)
-                  .paintings()
-                  .size()));
-        });
+      allPaintings.get(groupId)
+          .paintings()
+          .add(new PaintingData(vanillaVariant, allPaintings.get(groupId).paintings().size()));
+    });
 
     CustomPaintingManager paintingManager = CustomPaintingsClientMod.customPaintingManager;
-    paintingManager.getPacks().stream()
-        .forEach((pack) -> {
-          String groupId = pack.id();
-          String groupName = pack.name();
+    paintingManager.getPacks().stream().forEach((pack) -> {
+      String groupId = pack.id();
+      String groupName = pack.name();
 
-          if (!allPaintings.containsKey(groupId)) {
-            allPaintings.put(groupId, new Group(groupId, groupName, new ArrayList<>()));
-          }
+      if (!allPaintings.containsKey(groupId)) {
+        allPaintings.put(groupId, new Group(groupId, groupName, new ArrayList<>()));
+      }
 
-          pack.paintings().stream()
-              .forEach((painting) -> {
-                allPaintings.get(groupId).paintings().add(
-                    new PaintingData(
-                        new Identifier(pack.id(), painting.id()),
-                        painting.index(),
-                        painting.width().orElse(1),
-                        painting.height().orElse(1),
-                        painting.name().orElse(""),
-                        painting.artist().orElse("")));
-              });
-        });
+      pack.paintings().stream().forEach((painting) -> {
+        allPaintings.get(groupId)
+            .paintings()
+            .add(new PaintingData(new Identifier(pack.id(), painting.id()),
+                painting.index(),
+                painting.width().orElse(1),
+                painting.height().orElse(1),
+                painting.name().orElse(""),
+                painting.artist().orElse("")));
+      });
+    });
 
     allPaintings.values().forEach((group) -> {
       group.paintings().forEach((paintingData) -> {
@@ -215,7 +207,7 @@ public class PaintingEditState {
   }
 
   public boolean canStay(int width, int height) {
-    World world = this.client.player.world;
+    World world = this.client.player.getWorld();
     Box boundingBox = getBoundingBox(width, height);
 
     if (!world.isSpaceEmpty(boundingBox)) {
@@ -235,37 +227,32 @@ public class PaintingEditState {
             .move(Direction.UP, z - (blocksHeight - 1) / 2);
         BlockState blockState = world.getBlockState(mutable);
 
-        if (!blockState.getMaterial().isSolid()
-            && !AbstractRedstoneGateBlock.isRedstoneGate(blockState)) {
+        //noinspection deprecation
+        if (!blockState.isSolid() && !AbstractRedstoneGateBlock.isRedstoneGate(blockState)) {
           return false;
         }
       }
     }
 
     Entity entity = world.getEntityById(paintingId);
-    PaintingEntity currentPainting = entity != null && entity instanceof PaintingEntity
-        ? (PaintingEntity) entity
-        : null;
+    PaintingEntity currentPainting =
+        entity != null && entity instanceof PaintingEntity ? (PaintingEntity) entity : null;
 
     return world.getOtherEntities(currentPainting, boundingBox, DECORATION_PREDICATE).isEmpty();
   }
 
   private Box getBoundingBox(int width, int height) {
-    double posX = blockPos.getX() + 0.5
-        - facing.getOffsetX() * 0.46875
-        + facing.rotateYCounterclockwise().getOffsetX() * offsetForEven(width);
-    double posY = blockPos.getY() + 0.5
-        + offsetForEven(height);
-    double posZ = blockPos.getZ() + 0.5
-        - facing.getOffsetZ() * 0.46875
-        + facing.rotateYCounterclockwise().getOffsetZ() * offsetForEven(width);
+    double posX = blockPos.getX() + 0.5 - facing.getOffsetX() * 0.46875 +
+        facing.rotateYCounterclockwise().getOffsetX() * offsetForEven(width);
+    double posY = blockPos.getY() + 0.5 + offsetForEven(height);
+    double posZ = blockPos.getZ() + 0.5 - facing.getOffsetZ() * 0.46875 +
+        facing.rotateYCounterclockwise().getOffsetZ() * offsetForEven(width);
 
     double sizeX = (facing.getAxis() == Direction.Axis.Z ? width : 1) / 32D;
     double sizeY = height / 32D;
     double sizeZ = (facing.getAxis() == Direction.Axis.Z ? 1 : width) / 32D;
 
-    return new Box(
-        posX - sizeX,
+    return new Box(posX - sizeX,
         posY - sizeY,
         posZ - sizeZ,
         posX + sizeX,

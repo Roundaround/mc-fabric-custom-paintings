@@ -12,13 +12,13 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.Selectable;
 import net.minecraft.client.gui.screen.LoadingDisplay;
 import net.minecraft.client.gui.widget.ElementListWidget;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.texture.Sprite;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.StringVisitable;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
@@ -102,7 +102,7 @@ public class MismatchedPaintingListWidget
 
     @Override
     public void render(
-        MatrixStack matrixStack,
+        DrawContext drawContext,
         int index,
         int y,
         int x,
@@ -114,17 +114,13 @@ public class MismatchedPaintingListWidget
         float partialTicks) {
       int yPos = y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f);
 
-      drawCenteredTextWithShadow(
-          matrixStack,
-          this.client.textRenderer,
+      drawContext.drawCenteredTextWithShadow(this.client.textRenderer,
           Text.translatable("custompaintings.mismatched.loading"),
           this.client.currentScreen.width / 2,
           yPos,
           0xFFFFFF);
 
-      drawCenteredTextWithShadow(
-          matrixStack,
-          this.client.textRenderer,
+      drawContext.drawCenteredTextWithShadow(this.client.textRenderer,
           LoadingDisplay.get(Util.getMeasuringTimeMs()),
           this.client.currentScreen.width / 2,
           yPos + this.client.textRenderer.fontHeight,
@@ -152,7 +148,7 @@ public class MismatchedPaintingListWidget
 
     @Override
     public void render(
-        MatrixStack matrixStack,
+        DrawContext drawContext,
         int index,
         int y,
         int x,
@@ -162,9 +158,7 @@ public class MismatchedPaintingListWidget
         int mouseY,
         boolean hovered,
         float partialTicks) {
-      drawCenteredTextWithShadow(
-          matrixStack,
-          this.client.textRenderer,
+      drawContext.drawCenteredTextWithShadow(this.client.textRenderer,
           Text.translatable("custompaintings.mismatched.empty"),
           this.client.currentScreen.width / 2,
           y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f),
@@ -180,21 +174,18 @@ public class MismatchedPaintingListWidget
     private final Sprite sprite;
 
     public MismatchedPaintingEntry(
-        MinecraftClient client,
-        MismatchedPainting mismatchedPainting) {
+        MinecraftClient client, MismatchedPainting mismatchedPainting) {
       this.client = client;
       this.mismatchedPainting = mismatchedPainting;
-      this.sprite = CustomPaintingsClientMod.customPaintingManager.getPaintingSprite(mismatchedPainting.currentData());
+      this.sprite =
+          CustomPaintingsClientMod.customPaintingManager.getPaintingSprite(mismatchedPainting.currentData());
 
-      this.fixButton = IconButtonWidget.builder(
-          Text.translatable("custompaintings.mismatched.fix"),
-          (button) -> {
-            ClientNetworking.sendUpdatePaintingPacket(this.mismatchedPainting.uuid());
-          },
-          IconButtonWidget.WRENCH_ICON)
-          .position(
-              MismatchedPaintingListWidget.this.getRowRight() - IconButtonWidget.WIDTH - 4,
-              0)
+      this.fixButton = IconButtonWidget.builder(Text.translatable("custompaintings.mismatched.fix"),
+              (button) -> {
+                ClientNetworking.sendUpdatePaintingPacket(this.mismatchedPainting.uuid());
+              },
+              IconButtonWidget.WRENCH_ICON)
+          .position(MismatchedPaintingListWidget.this.getRowRight() - IconButtonWidget.WIDTH - 4, 0)
           .build();
     }
 
@@ -214,7 +205,7 @@ public class MismatchedPaintingListWidget
 
     @Override
     public void render(
-        MatrixStack matrixStack,
+        DrawContext drawContext,
         int index,
         int y,
         int x,
@@ -235,9 +226,7 @@ public class MismatchedPaintingListWidget
 
       RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
       RenderSystem.setShaderTexture(0, this.sprite.getAtlasId());
-      drawSprite(
-          matrixStack,
-          x + 4 + (maxWidth - scaledWidth) / 2,
+      drawContext.drawSprite(x + 4 + (maxWidth - scaledWidth) / 2,
           y + (entryHeight - scaledHeight) / 2,
           1,
           scaledWidth,
@@ -253,17 +242,16 @@ public class MismatchedPaintingListWidget
         StringVisitable label = paintingData.getLabel();
         if (textRenderer.getWidth(label) > textWidth) {
           Text ellipsis = Text.literal("...");
-          label = StringVisitable.concat(
-              textRenderer.trimToWidth(label, textWidth - textRenderer.getWidth(ellipsis)),
-              ellipsis);
+          label = StringVisitable.concat(textRenderer.trimToWidth(label,
+              textWidth - textRenderer.getWidth(ellipsis)), ellipsis);
         }
 
-        textRenderer.draw(
-            matrixStack,
+        drawContext.drawText(textRenderer,
             Language.getInstance().reorder(label),
             posX,
             posY,
-            0xFFFFFFFF);
+            0xFFFFFFFF,
+            false);
 
         posY += textRenderer.fontHeight + 2;
       }
@@ -271,19 +259,18 @@ public class MismatchedPaintingListWidget
       StringVisitable id = Text.literal("(" + paintingData.id().toString() + ")")
           .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
       if (textRenderer.getWidth(id) > textWidth) {
-        Text ellipsis = Text.literal("...")
-            .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
-        id = StringVisitable.concat(
-            textRenderer.trimToWidth(id, textWidth - textRenderer.getWidth(ellipsis)),
-            ellipsis);
+        Text ellipsis =
+            Text.literal("...").setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
+        id = StringVisitable.concat(textRenderer.trimToWidth(id,
+            textWidth - textRenderer.getWidth(ellipsis)), ellipsis);
       }
 
-      textRenderer.draw(
-          matrixStack,
+      drawContext.drawText(textRenderer,
           Language.getInstance().reorder(id),
           posX,
           posY,
-          0xFFFFFFFF);
+          0xFFFFFFFF,
+          false);
 
       posY += textRenderer.fontHeight + 2;
 
@@ -296,19 +283,18 @@ public class MismatchedPaintingListWidget
         outdated.add(Text.translatable("custompaintings.mismatched.outdated.info"));
       }
 
-      String outdatedString = outdated.stream()
-          .map(Text::getString)
-          .collect(Collectors.joining(", "));
+      String outdatedString =
+          outdated.stream().map(Text::getString).collect(Collectors.joining(", "));
 
-      textRenderer.draw(
-          matrixStack,
+      drawContext.drawText(textRenderer,
           Text.translatable("custompaintings.mismatched.outdated", outdatedString),
           posX,
           posY,
-          0xFFFFFFFF);
+          0xFFFFFFFF,
+          false);
 
       this.fixButton.setY(y + (entryHeight - IconButtonWidget.HEIGHT) / 2);
-      this.fixButton.render(matrixStack, mouseX, mouseY, partialTicks);
+      this.fixButton.render(drawContext, mouseX, mouseY, partialTicks);
     }
   }
 }

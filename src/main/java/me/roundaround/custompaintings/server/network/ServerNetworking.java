@@ -111,7 +111,7 @@ public class ServerNetworking {
     PaintingData paintingData = PaintingData.fromPacketByteBuf(buf);
 
     server.execute(() -> {
-      Entity entity = player.getWorld().getEntity(paintingUuid);
+      Entity entity = player.getServerWorld().getEntity(paintingUuid);
       if (entity == null || !(entity instanceof PaintingEntity)) {
         return;
       }

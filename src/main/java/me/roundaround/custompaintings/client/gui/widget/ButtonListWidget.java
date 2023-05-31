@@ -1,18 +1,17 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
-import java.util.List;
-
 import com.google.common.collect.ImmutableList;
-
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.Selectable;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.ElementListWidget;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Text;
+
+import java.util.List;
 
 @Environment(value = EnvType.CLIENT)
 public class ButtonListWidget extends ElementListWidget<ButtonListWidget.Entry> {
@@ -21,11 +20,7 @@ public class ButtonListWidget extends ElementListWidget<ButtonListWidget.Entry> 
   private static final int BUTTON_HEIGHT = 20;
 
   public ButtonListWidget(
-      MinecraftClient client,
-      int width,
-      int height,
-      int top,
-      int bottom) {
+      MinecraftClient client, int width, int height, int top, int bottom) {
     super(client, width, height, top, bottom, ITEM_HEIGHT);
   }
 
@@ -46,7 +41,7 @@ public class ButtonListWidget extends ElementListWidget<ButtonListWidget.Entry> 
 
     @Override
     public void render(
-        MatrixStack matrixStack,
+        DrawContext drawContext,
         int index,
         int y,
         int x,
@@ -57,7 +52,7 @@ public class ButtonListWidget extends ElementListWidget<ButtonListWidget.Entry> 
         boolean hovered,
         float partialTicks) {
       this.button.setY(y + (entryHeight - BUTTON_HEIGHT) / 2);
-      this.button.render(matrixStack, mouseX, mouseY, partialTicks);
+      this.button.render(drawContext, mouseX, mouseY, partialTicks);
     }
 
     @Override

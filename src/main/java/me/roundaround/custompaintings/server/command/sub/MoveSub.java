@@ -1,13 +1,5 @@
 package me.roundaround.custompaintings.server.command.sub;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
-
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -16,7 +8,6 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-
 import me.roundaround.custompaintings.server.ServerPaintingManager;
 import net.minecraft.command.CommandSource;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
@@ -26,25 +17,28 @@ import net.minecraft.text.Text;
 import net.minecraft.util.StringIdentifiable;
 import net.minecraft.util.math.Direction;
 
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+
 public class MoveSub {
   public static LiteralArgumentBuilder<ServerCommandSource> build() {
-    return CommandManager
-        .literal("move")
+    return CommandManager.literal("move")
         .then(CommandManager.argument("dir", MoveDirectionArgumentType.direction())
             .then(CommandManager.argument("amount", IntegerArgumentType.integer(1))
                 .executes(context -> {
-                  return execute(
-                      context.getSource(),
+                  return execute(context.getSource(),
                       MoveDirectionArgumentType.getDirection(context, "dir"),
                       IntegerArgumentType.getInteger(context, "amount"));
                 })));
   }
 
   private static int execute(ServerCommandSource source, MoveDirection dir, int amount) {
-    Optional<PaintingEntity> maybePainting = ServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
+    Optional<PaintingEntity> maybePainting =
+        ServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
 
     if (!maybePainting.isPresent()) {
-      source.sendFeedback(Text.translatable("custompaintings.command.move.none"), false);
+      source.sendFeedback(() -> Text.translatable("custompaintings.command.move.none"), false);
       return 0;
     }
 
@@ -106,16 +100,21 @@ public class MoveSub {
     painting.setPosition(newX, newY, newZ);
     if (!painting.canStayAttached()) {
       painting.setPosition(x, y, z);
-      source.sendFeedback(Text.translatable("custompaintings.command.move.invalid"), false);
+      source.sendFeedback(() -> Text.translatable("custompaintings.command.move.invalid"), false);
       return 0;
     }
 
-    source.sendFeedback(Text.translatable("custompaintings.command.move.success", dir.toString().toLowerCase(), amount), false);
+    source.sendFeedback(() -> Text.translatable("custompaintings.command.move.success",
+        dir.toString().toLowerCase(),
+        amount), false);
     return 1;
   }
 
   private static enum MoveDirection implements StringIdentifiable {
-    UP("up"), DOWN("down"), LEFT("left"), RIGHT("right");
+    UP("up"),
+    DOWN("down"),
+    LEFT("left"),
+    RIGHT("right");
 
     private static final Map<String, MoveDirection> BY_NAME;
     private final String name;
@@ -154,7 +153,8 @@ public class MoveSub {
       return new MoveDirectionArgumentType();
     }
 
-    public static MoveDirection getDirection(CommandContext<ServerCommandSource> context, String name) {
+    public static MoveDirection getDirection(
+        CommandContext<ServerCommandSource> context, String name) {
       return context.getArgument(name, MoveDirection.class);
     }
 
@@ -169,13 +169,16 @@ public class MoveSub {
     }
 
     @Override
-    public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
+    public <S> CompletableFuture<Suggestions> listSuggestions(
+        CommandContext<S> context, SuggestionsBuilder builder) {
       return CommandSource.suggestMatching(getExamples(), builder);
     }
 
     @Override
     public Collection<String> getExamples() {
-      return Arrays.stream(MoveDirection.values()).map(MoveDirection::asString).collect(Collectors.toList());
+      return Arrays.stream(MoveDirection.values())
+          .map(MoveDirection::asString)
+          .collect(Collectors.toList());
     }
   }
 }

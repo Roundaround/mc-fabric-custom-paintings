@@ -8,9 +8,9 @@ import me.roundaround.custompaintings.util.Migration;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.navigation.NavigationDirection;
 import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
@@ -88,7 +88,7 @@ public class MigrationListWidget extends AlwaysSelectedEntryListWidget<Migration
 
     @Override
     public void render(
-        MatrixStack matrixStack,
+        DrawContext drawContext,
         int index,
         int y,
         int x,
@@ -98,8 +98,7 @@ public class MigrationListWidget extends AlwaysSelectedEntryListWidget<Migration
         int mouseY,
         boolean hovered,
         float partialTicks) {
-      drawCenteredTextWithShadow(matrixStack,
-          this.client.textRenderer,
+      drawContext.drawCenteredTextWithShadow(this.client.textRenderer,
           EMPTY_LIST_TEXT,
           this.client.currentScreen.width / 2,
           y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f),
@@ -126,7 +125,7 @@ public class MigrationListWidget extends AlwaysSelectedEntryListWidget<Migration
 
     @Override
     public void render(
-        MatrixStack matrixStack,
+        DrawContext drawContext,
         int index,
         int y,
         int x,
@@ -137,9 +136,8 @@ public class MigrationListWidget extends AlwaysSelectedEntryListWidget<Migration
         boolean hovered,
         float partialTicks) {
       RenderSystem.setShaderColor(0.5f, 0.5f, 0.5f, 1f);
-      drawHorizontalLine(matrixStack, x + 2, x - 6 + entryWidth - 1, y + 1, 0xFFFFFFFF);
-      drawHorizontalLine(matrixStack,
-          x + 2,
+      drawContext.drawHorizontalLine(x + 2, x - 6 + entryWidth - 1, y + 1, 0xFFFFFFFF);
+      drawContext.drawHorizontalLine(x + 2,
           x - 6 + entryWidth - 1,
           y - 1 + entryHeight - 1,
           0xFFFFFFFF);
@@ -148,7 +146,7 @@ public class MigrationListWidget extends AlwaysSelectedEntryListWidget<Migration
       boolean hasName = this.packName != null && !this.packName.isEmpty();
 
       if (hasName) {
-        DrawUtils.drawTruncatedCenteredTextWithShadow(matrixStack,
+        DrawUtils.drawTruncatedCenteredTextWithShadow(drawContext,
             this.client.textRenderer,
             Text.literal(this.packName),
             this.client.currentScreen.width / 2,
@@ -160,7 +158,7 @@ public class MigrationListWidget extends AlwaysSelectedEntryListWidget<Migration
       int yPos = hasName
           ? y + MathHelper.ceil(entryHeight / 2) + 1
           : y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f);
-      DrawUtils.drawTruncatedCenteredTextWithShadow(matrixStack,
+      DrawUtils.drawTruncatedCenteredTextWithShadow(drawContext,
           this.client.textRenderer,
           Text.literal(this.packId)
               .setStyle(Style.EMPTY.withItalic(hasName)
@@ -195,7 +193,7 @@ public class MigrationListWidget extends AlwaysSelectedEntryListWidget<Migration
 
     @Override
     public void render(
-        MatrixStack matrixStack,
+        DrawContext drawContext,
         int index,
         int y,
         int x,
@@ -205,14 +203,14 @@ public class MigrationListWidget extends AlwaysSelectedEntryListWidget<Migration
         int mouseY,
         boolean hovered,
         float partialTicks) {
-      DrawUtils.drawTruncatedCenteredTextWithShadow(matrixStack,
+      DrawUtils.drawTruncatedCenteredTextWithShadow(drawContext,
           this.client.textRenderer,
           Text.literal(this.migration.description()),
           this.client.currentScreen.width / 2,
           y + 1,
           0xFFFFFF,
           entryWidth - 4);
-      DrawUtils.drawTruncatedCenteredTextWithShadow(matrixStack,
+      DrawUtils.drawTruncatedCenteredTextWithShadow(drawContext,
           this.client.textRenderer,
           Text.literal(this.migration.id().toString())
               .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)),
@@ -220,7 +218,7 @@ public class MigrationListWidget extends AlwaysSelectedEntryListWidget<Migration
           y + this.client.textRenderer.fontHeight + 3,
           0xFFFFFF,
           entryWidth - 4);
-      DrawUtils.drawTruncatedCenteredTextWithShadow(matrixStack,
+      DrawUtils.drawTruncatedCenteredTextWithShadow(drawContext,
           this.client.textRenderer,
           Text.translatable("custompaintings.migrations.count",
               String.valueOf(this.migration.pairs().size())),

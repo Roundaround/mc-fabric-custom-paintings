@@ -9,11 +9,11 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.navigation.NavigationDirection;
 import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.texture.Sprite;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.StringVisitable;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
@@ -156,7 +156,7 @@ public class PaintingListWidget
 
     @Override
     public void render(
-        MatrixStack matrixStack,
+        DrawContext drawContext,
         int index,
         int y,
         int x,
@@ -176,8 +176,7 @@ public class PaintingListWidget
 
       RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
       RenderSystem.setShaderTexture(0, this.sprite.getAtlasId());
-      drawSprite(matrixStack,
-          x + 4 + (maxWidth - scaledWidth) / 2,
+      drawContext.drawSprite(x + 4 + (maxWidth - scaledWidth) / 2,
           y + (entryHeight - scaledHeight) / 2,
           1,
           scaledWidth,
@@ -197,11 +196,12 @@ public class PaintingListWidget
               textWidth - textRenderer.getWidth(ellipsis)), ellipsis);
         }
 
-        textRenderer.draw(matrixStack,
+        drawContext.drawText(textRenderer,
             Language.getInstance().reorder(label),
             posX,
             posY,
-            0xFFFFFFFF);
+            0xFFFFFFFF,
+            false);
 
         posY += textRenderer.fontHeight + 2;
       }
@@ -215,17 +215,23 @@ public class PaintingListWidget
             textWidth - textRenderer.getWidth(ellipsis)), ellipsis);
       }
 
-      textRenderer.draw(matrixStack, Language.getInstance().reorder(id), posX, posY, 0xFFFFFFFF);
+      drawContext.drawText(textRenderer,
+          Language.getInstance().reorder(id),
+          posX,
+          posY,
+          0xFFFFFFFF,
+          false);
 
       posY += textRenderer.fontHeight + 2;
 
-      textRenderer.draw(matrixStack,
+      drawContext.drawText(textRenderer,
           Text.translatable("custompaintings.painting.dimensions",
               paintingData.width(),
               paintingData.height()),
           posX,
           posY,
-          0xFFFFFFFF);
+          0xFFFFFFFF,
+          false);
     }
 
     @Override
@@ -282,7 +288,7 @@ public class PaintingListWidget
 
     @Override
     public void render(
-        MatrixStack matrixStack,
+        DrawContext drawContext,
         int index,
         int y,
         int x,
@@ -293,8 +299,7 @@ public class PaintingListWidget
         boolean hovered,
         float partialTicks) {
       TextRenderer textRenderer = PaintingListWidget.this.client.textRenderer;
-      drawCenteredTextWithShadow(matrixStack,
-          textRenderer,
+      drawContext.drawCenteredTextWithShadow(textRenderer,
           text,
           x + entryWidth / 2,
           y + (entryHeight - textRenderer.fontHeight) / 2,

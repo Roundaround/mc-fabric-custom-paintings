@@ -1,30 +1,22 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
-import java.util.Collection;
-import java.util.function.Consumer;
-
-import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
-import net.minecraft.text.Text;
-import org.lwjgl.glfw.GLFW;
-
 import com.mojang.blaze3d.systems.RenderSystem;
-
 import me.roundaround.custompaintings.client.gui.PaintingEditState.Group;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawableHelper;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
-import net.minecraft.client.gui.widget.EntryListWidget;
-import net.minecraft.client.render.BufferBuilder;
-import net.minecraft.client.render.GameRenderer;
-import net.minecraft.client.render.Tessellator;
-import net.minecraft.client.render.VertexFormat;
-import net.minecraft.client.render.VertexFormats;
+import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
+import net.minecraft.client.render.*;
 import net.minecraft.client.sound.PositionedSoundInstance;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.text.Text;
+import org.lwjgl.glfw.GLFW;
+
+import java.util.Collection;
+import java.util.function.Consumer;
 
 @Environment(value = EnvType.CLIENT)
 public class GroupListWidget extends AlwaysSelectedEntryListWidget<GroupListWidget.GroupEntry> {
@@ -51,16 +43,14 @@ public class GroupListWidget extends AlwaysSelectedEntryListWidget<GroupListWidg
 
   public void setGroups(Collection<Group> groups) {
     clearEntries();
-    groups.stream()
-        .map(GroupEntry::new)
-        .forEach(this::addEntry);
+    groups.stream().map(GroupEntry::new).forEach(this::addEntry);
   }
 
   @Override
   public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
     GroupEntry entry = getSelectedOrNull();
-    return entry != null && entry.keyPressed(keyCode, scanCode, modifiers)
-        || super.keyPressed(keyCode, scanCode, modifiers);
+    return entry != null && entry.keyPressed(keyCode, scanCode, modifiers) ||
+        super.keyPressed(keyCode, scanCode, modifiers);
   }
 
   @Override
@@ -90,34 +80,30 @@ public class GroupListWidget extends AlwaysSelectedEntryListWidget<GroupListWidg
   }
 
   @Override
-  protected void renderBackground(MatrixStack matrixStack) {
+  protected void renderBackground(DrawContext drawContext) {
     Tessellator tessellator = Tessellator.getInstance();
     BufferBuilder bufferBuilder = tessellator.getBuffer();
 
     RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-    RenderSystem.setShaderTexture(0, DrawableHelper.OPTIONS_BACKGROUND_TEXTURE);
+    RenderSystem.setShaderTexture(0, Screen.OPTIONS_BACKGROUND_TEXTURE);
     RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
 
     int scrollAmount = Math.round((float) getScrollAmount());
 
     bufferBuilder.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_TEXTURE_COLOR);
-    bufferBuilder
-        .vertex(0, bottom, 0)
+    bufferBuilder.vertex(0, bottom, 0)
         .texture(0, (float) (bottom + scrollAmount) / 32f)
         .color(32, 32, 32, 255)
         .next();
-    bufferBuilder
-        .vertex(parent.width, bottom, 0)
+    bufferBuilder.vertex(parent.width, bottom, 0)
         .texture(parent.width / 32f, (float) (bottom + scrollAmount) / 32f)
         .color(32, 32, 32, 255)
         .next();
-    bufferBuilder
-        .vertex(parent.width, top, 0)
+    bufferBuilder.vertex(parent.width, top, 0)
         .texture(parent.width / 32f, (float) (top + scrollAmount) / 32f)
         .color(32, 32, 32, 255)
         .next();
-    bufferBuilder
-        .vertex(0, top, 0)
+    bufferBuilder.vertex(0, top, 0)
         .texture(0, (float) (top + scrollAmount) / 32f)
         .color(32, 32, 32, 255)
         .next();
@@ -134,7 +120,7 @@ public class GroupListWidget extends AlwaysSelectedEntryListWidget<GroupListWidg
 
     @Override
     public void render(
-        MatrixStack matrixStack,
+        DrawContext drawContext,
         int index,
         int y,
         int x,
@@ -144,9 +130,7 @@ public class GroupListWidget extends AlwaysSelectedEntryListWidget<GroupListWidg
         int mouseY,
         boolean hovered,
         float partialTicks) {
-      drawCenteredTextWithShadow(
-          matrixStack,
-          client.textRenderer,
+      drawContext.drawCenteredTextWithShadow(client.textRenderer,
           group.name(),
           x + entryWidth / 2,
           y + (entryHeight - client.textRenderer.fontHeight + 1) / 2,
@@ -177,7 +161,8 @@ public class GroupListWidget extends AlwaysSelectedEntryListWidget<GroupListWidg
     }
 
     private void press() {
-      client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1f));
+      client.getSoundManager()
+          .play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1f));
       GroupListWidget.this.onGroupSelect.accept(group.id());
     }
   }

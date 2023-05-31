@@ -1,10 +1,6 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
-import java.util.Collection;
-import java.util.HashSet;
-
 import com.mojang.blaze3d.systems.RenderSystem;
-
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
 import me.roundaround.custompaintings.client.gui.screen.manage.ReassignScreen;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
@@ -12,10 +8,10 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.texture.Sprite;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.StringVisitable;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
@@ -23,6 +19,9 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Language;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
+
+import java.util.Collection;
+import java.util.HashSet;
 
 @Environment(value = EnvType.CLIENT)
 public class KnownPaintingListWidget
@@ -71,8 +70,7 @@ public class KnownPaintingListWidget
   }
 
   @Environment(value = EnvType.CLIENT)
-  public class Entry
-      extends AlwaysSelectedEntryListWidget.Entry<Entry> {
+  public class Entry extends AlwaysSelectedEntryListWidget.Entry<Entry> {
     private final MinecraftClient client;
     private final PaintingData paintingData;
     private final Sprite sprite;
@@ -91,7 +89,7 @@ public class KnownPaintingListWidget
 
     @Override
     public void render(
-        MatrixStack matrixStack,
+        DrawContext drawContext,
         int index,
         int y,
         int x,
@@ -111,9 +109,7 @@ public class KnownPaintingListWidget
 
       RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
       RenderSystem.setShaderTexture(0, this.sprite.getAtlasId());
-      drawSprite(
-          matrixStack,
-          x + 4 + (maxWidth - scaledWidth) / 2,
+      drawContext.drawSprite(x + 4 + (maxWidth - scaledWidth) / 2,
           y + (entryHeight - scaledHeight) / 2,
           1,
           scaledWidth,
@@ -129,17 +125,16 @@ public class KnownPaintingListWidget
         StringVisitable label = this.paintingData.getLabel();
         if (textRenderer.getWidth(label) > textWidth) {
           Text ellipsis = Text.literal("...");
-          label = StringVisitable.concat(
-              textRenderer.trimToWidth(label, textWidth - textRenderer.getWidth(ellipsis)),
-              ellipsis);
+          label = StringVisitable.concat(textRenderer.trimToWidth(label,
+              textWidth - textRenderer.getWidth(ellipsis)), ellipsis);
         }
 
-        textRenderer.draw(
-            matrixStack,
+        drawContext.drawText(textRenderer,
             Language.getInstance().reorder(label),
             posX,
             posY,
-            0xFFFFFFFF);
+            0xFFFFFFFF,
+            false);
 
         posY += textRenderer.fontHeight + 2;
       }
@@ -147,31 +142,29 @@ public class KnownPaintingListWidget
       StringVisitable id = Text.literal("(" + this.paintingData.id().toString() + ")")
           .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
       if (textRenderer.getWidth(id) > textWidth) {
-        Text ellipsis = Text.literal("...")
-            .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
-        id = StringVisitable.concat(
-            textRenderer.trimToWidth(id, textWidth - textRenderer.getWidth(ellipsis)),
-            ellipsis);
+        Text ellipsis =
+            Text.literal("...").setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
+        id = StringVisitable.concat(textRenderer.trimToWidth(id,
+            textWidth - textRenderer.getWidth(ellipsis)), ellipsis);
       }
 
-      textRenderer.draw(
-          matrixStack,
+      drawContext.drawText(textRenderer,
           Language.getInstance().reorder(id),
           posX,
           posY,
-          0xFFFFFFFF);
+          0xFFFFFFFF,
+          false);
 
       posY += textRenderer.fontHeight + 2;
 
-      textRenderer.draw(
-          matrixStack,
-          Text.translatable(
-              "custompaintings.painting.dimensions",
+      drawContext.drawText(textRenderer,
+          Text.translatable("custompaintings.painting.dimensions",
               this.paintingData.width(),
               this.paintingData.height()),
           posX,
           posY,
-          0xFFFFFFFF);
+          0xFFFFFFFF,
+          false);
     }
 
     @Override

@@ -1,13 +1,13 @@
 package me.roundaround.custompaintings.client.gui.screen.edit;
 
-import org.lwjgl.glfw.GLFW;
-
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.widget.GroupListWidget;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
+import org.lwjgl.glfw.GLFW;
 
 public class GroupSelectScreen extends PaintingEditScreen {
   private GroupListWidget groupsListWidget;
@@ -18,8 +18,7 @@ public class GroupSelectScreen extends PaintingEditScreen {
 
   @Override
   public void init() {
-    this.groupsListWidget = new GroupListWidget(
-        this,
+    this.groupsListWidget = new GroupListWidget(this,
         this.client,
         this.width,
         this.height,
@@ -32,9 +31,7 @@ public class GroupSelectScreen extends PaintingEditScreen {
     this.groupsListWidget.setGroups(this.state.getGroups());
 
     addSelectableChild(this.groupsListWidget);
-    addDrawableChild(ButtonWidget.builder(
-        ScreenTexts.CANCEL,
-        (button) -> {
+    addDrawableChild(ButtonWidget.builder(ScreenTexts.CANCEL, (button) -> {
           saveEmpty();
         })
         .position((this.width - BUTTON_WIDTH) / 2, this.height - BUTTON_HEIGHT - 10)
@@ -55,10 +52,12 @@ public class GroupSelectScreen extends PaintingEditScreen {
   }
 
   @Override
-  public void renderBackground(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
+  public void renderBackground(
+      DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
+    MatrixStack matrixStack = drawContext.getMatrices();
     matrixStack.push();
     matrixStack.translate(0, 0, 10);
-    groupsListWidget.render(matrixStack, mouseX, mouseY, partialTicks);
+    groupsListWidget.render(drawContext, mouseX, mouseY, partialTicks);
     matrixStack.pop();
 
     matrixStack.push();
@@ -69,10 +68,9 @@ public class GroupSelectScreen extends PaintingEditScreen {
   }
 
   @Override
-  public void renderForeground(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-    drawCenteredTextWithShadow(
-        matrixStack,
-        textRenderer,
+  public void renderForeground(
+      DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
+    drawContext.drawCenteredTextWithShadow(textRenderer,
         Text.translatable("custompaintings.group.title"),
         width / 2,
         11,

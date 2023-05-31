@@ -1,9 +1,9 @@
 package me.roundaround.custompaintings.client.gui.screen.manage;
 
 import me.roundaround.custompaintings.client.gui.widget.ButtonListWidget;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 
@@ -46,15 +46,14 @@ public class ManagePaintingsScreen extends Screen {
   }
 
   @Override
-  public void render(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-    renderBackground(matrixStack);
-    this.buttonList.render(matrixStack, mouseX, mouseY, partialTicks);
-    drawCenteredTextWithShadow(matrixStack,
-        this.textRenderer,
+  public void render(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
+    renderBackground(drawContext);
+    this.buttonList.render(drawContext, mouseX, mouseY, partialTicks);
+    drawContext.drawCenteredTextWithShadow(this.textRenderer,
         this.title,
         this.width / 2,
         20,
         0xFFFFFF);
-    super.render(matrixStack, mouseX, mouseY, partialTicks);
+    super.render(drawContext, mouseX, mouseY, partialTicks);
   }
 }
