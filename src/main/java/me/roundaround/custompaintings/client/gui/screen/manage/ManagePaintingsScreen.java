@@ -7,6 +7,8 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 
+import java.util.Objects;
+
 public class ManagePaintingsScreen extends Screen {
   private static final int BUTTON_WIDTH = 204;
   private static final int BUTTON_HEIGHT = 20;
@@ -24,15 +26,15 @@ public class ManagePaintingsScreen extends Screen {
         new ButtonListWidget(this.client, this.width, this.height, 32, this.height - 32);
 
     this.buttonList.addEntry(Text.translatable("custompaintings.manage.unknown"), (button) -> {
-      this.client.setScreen(new UnknownPaintingsScreen(this));
+      Objects.requireNonNull(this.client).setScreen(new UnknownPaintingsScreen(this));
     });
 
     this.buttonList.addEntry(Text.translatable("custompaintings.manage.mismatched"), (button) -> {
-      this.client.setScreen(new MismatchedPaintingsScreen(this));
+      Objects.requireNonNull(this.client).setScreen(new MismatchedPaintingsScreen(this));
     });
 
     this.buttonList.addEntry(Text.translatable("custompaintings.manage.migrations"), (button) -> {
-      this.client.setScreen(new MigrationsScreen(this));
+      Objects.requireNonNull(this.client).setScreen(new MigrationsScreen(this));
     });
 
     addSelectableChild(this.buttonList);
@@ -47,7 +49,7 @@ public class ManagePaintingsScreen extends Screen {
 
   @Override
   public void render(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
-    renderBackground(drawContext);
+    renderBackground(drawContext, mouseX, mouseY, partialTicks);
     this.buttonList.render(drawContext, mouseX, mouseY, partialTicks);
     drawContext.drawCenteredTextWithShadow(this.textRenderer,
         this.title,

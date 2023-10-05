@@ -26,7 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.function.Supplier;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -63,74 +63,69 @@ public class CustomPaintingManager implements IdentifiableResourceReloadListener
 
           ArrayList<Pair<Identifier, Resource>> spriteResources = new ArrayList<>();
 
-          manager.streamResourcePacks().filter((resourcePack) -> {
-            return resourcePack instanceof ZipResourcePack ||
-                resourcePack instanceof DirectoryResourcePack;
-          }).filter((resourcePack) -> {
-            return resourcePack.getNamespaces(ResourceType.CLIENT_RESOURCES)
-                .stream()
-                .filter((namespace) -> {
-                  return !Identifier.DEFAULT_NAMESPACE.equals(namespace) &&
-                      !Identifier.REALMS_NAMESPACE.equals(namespace);
-                })
-                .count() > 0;
-          }).forEach((resourcePack) -> {
-            try (InputStream stream = resourcePack.openRoot("custompaintings.json").get()) {
-              try (JsonReader reader = new JsonReader(new InputStreamReader(stream,
-                  StandardCharsets.UTF_8))) {
-                Pack pack = readPack(reader, resourcePack.getName());
+          manager.streamResourcePacks()
+              .filter((resourcePack) -> resourcePack instanceof ZipResourcePack ||
+                  resourcePack instanceof DirectoryResourcePack)
+              .filter((resourcePack) -> resourcePack.getNamespaces(ResourceType.CLIENT_RESOURCES)
+                  .stream()
+                  .anyMatch((namespace) -> !Identifier.DEFAULT_NAMESPACE.equals(namespace) &&
+                      !Identifier.REALMS_NAMESPACE.equals(namespace)))
+              .forEach((resourcePack) -> {
+                try (InputStream stream = resourcePack.openRoot("custompaintings.json").get()) {
+                  try (JsonReader reader = new JsonReader(new InputStreamReader(stream,
+                      StandardCharsets.UTF_8))) {
+                    Pack pack = readPack(reader, resourcePack.getName());
 
-                if (packs.containsKey(pack.id())) {
-                  throw new ParseException(
-                      "Multiple packs detected with id '" + pack.id() + "'! Pack id must be unique.");
+                    if (packs.containsKey(pack.id())) {
+                      throw new ParseException("Multiple packs detected with id '" + pack.id() +
+                          "'! Pack id must be unique.");
+                    }
+                    packs.put(pack.id(), pack);
+
+                    pack.paintings().forEach((painting) -> {
+                      Identifier id = new Identifier(pack.id(), painting.id());
+                      data.put(id,
+                          new PaintingData(id,
+                              painting.index(),
+                              painting.width().orElse(1),
+                              painting.height().orElse(1),
+                              painting.name().orElse(""),
+                              painting.artist().orElse("")));
+                    });
+                  }
+                } catch (Exception e) {
+                  CustomPaintingsMod.LOGGER.error("Error reading custom painting pack, skipping...", e);
+                  return;
                 }
-                packs.put(pack.id(), pack);
 
-                pack.paintings().forEach((painting) -> {
-                  Identifier id = new Identifier(pack.id(), painting.id());
-                  data.put(id,
-                      new PaintingData(id,
-                          painting.index(),
-                          painting.width().orElse(1),
-                          painting.height().orElse(1),
-                          painting.name().orElse(""),
-                          painting.artist().orElse("")));
-                });
-              }
-            } catch (Exception e) {
-              CustomPaintingsMod.LOGGER.error("Error reading custom painting pack, skipping...", e);
-              return;
-            }
+                spriteIds.add(PAINTING_BACK_ID);
 
-            spriteIds.add(PAINTING_BACK_ID);
+                resourcePack.getNamespaces(ResourceType.CLIENT_RESOURCES)
+                    .stream()
+                    .filter((namespace) -> !Identifier.DEFAULT_NAMESPACE.equals(namespace) &&
+                        !Identifier.REALMS_NAMESPACE.equals(namespace))
+                    .forEach((namespace) -> resourcePack.findResources(ResourceType.CLIENT_RESOURCES,
+                        namespace,
+                        "textures/painting",
+                        (id, supplier) -> {
+                          if (!id.getPath().endsWith(".png")) {
+                            return;
+                          }
 
-            resourcePack.getNamespaces(ResourceType.CLIENT_RESOURCES).stream().filter((namespace) -> {
-              return !Identifier.DEFAULT_NAMESPACE.equals(namespace) &&
-                  !Identifier.REALMS_NAMESPACE.equals(namespace);
-            }).forEach((namespace) -> {
-              resourcePack.findResources(ResourceType.CLIENT_RESOURCES,
-                  namespace,
-                  "textures/painting",
-                  (id, supplier) -> {
-                    if (!id.getPath().endsWith(".png")) {
-                      return;
-                    }
+                          String paintingNamespace = id.getNamespace();
+                          String paintingPath = id.getPath();
 
-                    String paintingNamespace = id.getNamespace();
-                    String paintingPath = id.getPath();
+                          Matcher matcher = PATTERN.matcher(paintingPath);
+                          if (matcher.find()) {
+                            paintingPath = matcher.group(1);
+                          }
 
-                    Matcher matcher = PATTERN.matcher(paintingPath);
-                    if (matcher.find()) {
-                      paintingPath = matcher.group(1);
-                    }
+                          id = new Identifier(paintingNamespace, paintingPath);
 
-                    id = new Identifier(paintingNamespace, paintingPath);
-
-                    spriteIds.add(id);
-                    spriteResources.add(new Pair<>(id, new Resource(resourcePack, supplier)));
-                  });
-            });
-          });
+                          spriteIds.add(id);
+                          spriteResources.add(new Pair<>(id, new Resource(resourcePack, supplier)));
+                        }));
+              });
 
           if (MINECRAFT.player != null) {
             sendKnownPaintingsToServer();
@@ -140,18 +135,16 @@ public class CustomPaintingManager implements IdentifiableResourceReloadListener
             ((PaintingPacksTracker) MINECRAFT.currentScreen).onResourcesReloaded();
           }
 
-          List<Supplier<SpriteContents>> suppliers = new ArrayList<>();
+          List<Function<SpriteOpener, SpriteContents>> suppliers = new ArrayList<>();
           spriteResources.forEach((pair) -> {
-            suppliers.add(() -> {
-              return SpriteLoader.load(pair.getLeft(), pair.getRight());
-            });
+            suppliers.add((opener) -> opener.loadSprite(pair.getLeft(), pair.getRight()));
           });
 
           spriteIds.add(MissingSprite.getMissingSpriteId());
-          suppliers.add(MissingSprite::createSpriteContents);
+          suppliers.add((opener) -> MissingSprite.createSpriteContents());
 
           spriteIds.add(PAINTING_BACK_ID);
-          suppliers.add(() -> SpriteLoader.load(PAINTING_BACK_ID,
+          suppliers.add((opener) -> opener.loadSprite(PAINTING_BACK_ID,
               new Resource(MINECRAFT.getDefaultResourcePack(),
                   MINECRAFT.getDefaultResourcePack()
                       .open(ResourceType.CLIENT_RESOURCES,
@@ -159,9 +152,10 @@ public class CustomPaintingManager implements IdentifiableResourceReloadListener
 
           return suppliers;
         }, prepareExecutor)
-        .thenCompose((suppliers) -> SpriteLoader.loadAll(suppliers, prepareExecutor))
-        .thenApply((list) -> SpriteLoader.fromAtlas(this.atlas)
-            .stitch(list, 0, prepareExecutor))
+        .thenCompose((suppliers) -> SpriteLoader.loadAll(SpriteOpener.create(SpriteLoader.METADATA_READERS),
+            suppliers,
+            prepareExecutor))
+        .thenApply((list) -> SpriteLoader.fromAtlas(this.atlas).stitch(list, 0, prepareExecutor))
         .thenCompose(synchronizer::whenPrepared)
         .thenAcceptAsync(stitchResult -> afterReload(stitchResult, applyProfiler), applyExecutor);
   }

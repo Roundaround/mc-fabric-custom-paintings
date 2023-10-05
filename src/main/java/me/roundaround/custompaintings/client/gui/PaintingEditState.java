@@ -142,7 +142,7 @@ public class PaintingEditState {
       Optional<RegistryEntry.Reference<PaintingVariant>> maybeEntry =
           Registries.PAINTING_VARIANT.getEntry(key);
 
-      if (!maybeEntry.isPresent()) {
+      if (maybeEntry.isEmpty()) {
         return;
       }
 
@@ -166,7 +166,7 @@ public class PaintingEditState {
     });
 
     CustomPaintingManager paintingManager = CustomPaintingsClientMod.customPaintingManager;
-    paintingManager.getPacks().stream().forEach((pack) -> {
+    paintingManager.getPacks().forEach((pack) -> {
       String groupId = pack.id();
       String groupName = pack.name();
 
@@ -174,7 +174,7 @@ public class PaintingEditState {
         allPaintings.put(groupId, new Group(groupId, groupName, new ArrayList<>()));
       }
 
-      pack.paintings().stream().forEach((painting) -> {
+      pack.paintings().forEach((painting) -> {
         allPaintings.get(groupId)
             .paintings()
             .add(new PaintingData(new Identifier(pack.id(), painting.id()),
@@ -207,7 +207,7 @@ public class PaintingEditState {
   }
 
   public boolean canStay(int width, int height) {
-    World world = this.client.player.getWorld();
+    World world = Objects.requireNonNull(this.client.player).getWorld();
     Box boundingBox = getBoundingBox(width, height);
 
     if (!world.isSpaceEmpty(boundingBox)) {
@@ -236,7 +236,7 @@ public class PaintingEditState {
 
     Entity entity = world.getEntityById(paintingId);
     PaintingEntity currentPainting =
-        entity != null && entity instanceof PaintingEntity ? (PaintingEntity) entity : null;
+        entity instanceof PaintingEntity ? (PaintingEntity) entity : null;
 
     return world.getOtherEntities(currentPainting, boundingBox, DECORATION_PREDICATE).isEmpty();
   }

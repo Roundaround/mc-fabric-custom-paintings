@@ -130,11 +130,6 @@ public class ReassignScreen extends Screen implements PaintingPacksTracker {
   }
 
   @Override
-  public void tick() {
-    this.searchBox.tick();
-  }
-
-  @Override
   public void render(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
     this.list.render(drawContext, mouseX, mouseY, partialTicks);
     this.searchBox.render(drawContext, mouseX, mouseY, partialTicks);

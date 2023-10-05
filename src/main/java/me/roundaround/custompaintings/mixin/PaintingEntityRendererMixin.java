@@ -1,12 +1,5 @@
 package me.roundaround.custompaintings.mixin;
 
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyArgs;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
-
 import me.roundaround.custompaintings.client.CustomPaintingManager;
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
@@ -19,6 +12,12 @@ import net.minecraft.client.texture.MissingSprite;
 import net.minecraft.client.texture.PaintingManager;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.util.Identifier;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyArgs;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 
 @Mixin(PaintingEntityRenderer.class)
 public abstract class PaintingEntityRendererMixin extends EntityRenderer<PaintingEntity> {
@@ -28,13 +27,17 @@ public abstract class PaintingEntityRendererMixin extends EntityRenderer<Paintin
     super(ctx);
   }
 
-  @Inject(method = "getTexture", at = @At(value = "RETURN"), cancellable = true)
+  @Inject(
+      method = "getTexture(Lnet/minecraft/entity/decoration/painting/PaintingEntity;)Lnet/minecraft/util/Identifier;",
+      at = @At(value = "RETURN"),
+      cancellable = true
+  )
   private void getTexture(PaintingEntity entity, CallbackInfoReturnable<Identifier> info) {
-    if (!(entity instanceof ExpandedPaintingEntity)) {
+    if (!(entity instanceof ExpandedPaintingEntity expandedPainting)) {
       return;
     }
 
-    PaintingData paintingData = ((ExpandedPaintingEntity) entity).getCustomData();
+    PaintingData paintingData = expandedPainting.getCustomData();
 
     CustomPaintingManager paintingManager = CustomPaintingsClientMod.customPaintingManager;
     if (paintingData.isVanilla() || !paintingManager.exists(paintingData.id())) {
@@ -44,7 +47,13 @@ public abstract class PaintingEntityRendererMixin extends EntityRenderer<Paintin
     info.setReturnValue(CustomPaintingsClientMod.customPaintingManager.getAtlasId());
   }
 
-  @ModifyArgs(method = "render", at = @At(value = "INVOKE", target = "net/minecraft/client/render/entity/PaintingEntityRenderer.renderPainting(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumer;Lnet/minecraft/entity/decoration/painting/PaintingEntity;IILnet/minecraft/client/texture/Sprite;Lnet/minecraft/client/texture/Sprite;)V"))
+  @ModifyArgs(
+      method = "render(Lnet/minecraft/entity/decoration/painting/PaintingEntity;FFLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;I)V",
+      at = @At(
+          value = "INVOKE",
+          target = "net/minecraft/client/render/entity/PaintingEntityRenderer.renderPainting(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumer;Lnet/minecraft/entity/decoration/painting/PaintingEntity;IILnet/minecraft/client/texture/Sprite;Lnet/minecraft/client/texture/Sprite;)V"
+      )
+  )
   private void adjustRenderPaintingArgs(Args args) {
     PaintingEntity entity = args.get(2);
 
@@ -73,8 +82,8 @@ public abstract class PaintingEntityRendererMixin extends EntityRenderer<Paintin
       PaintingManager vanillaPaintingManager = client.getPaintingManager();
 
       // 5 - front sprite
-      args.set(5, ((SpriteAtlasHolderAccessor) vanillaPaintingManager)
-          .invokeGetSprite(MissingSprite.getMissingSpriteId()));
+      args.set(5,
+          ((SpriteAtlasHolderAccessor) vanillaPaintingManager).invokeGetSprite(MissingSprite.getMissingSpriteId()));
       // 6 - back sprite
       args.set(6, vanillaPaintingManager.getBackSprite());
     }

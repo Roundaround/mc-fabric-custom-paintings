@@ -24,6 +24,7 @@ import net.minecraft.util.Formatting;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.Optional;
 
 public class PaintingSelectScreen extends PaintingEditScreen implements PaintingChangeListener {
@@ -55,9 +56,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
   }
 
   public void populateWithAllPaintings() {
-    this.state.getCurrentGroup().paintings().forEach((paintingData) -> {
-      this.paintings.add(paintingData);
-    });
+    this.paintings.addAll(this.state.getCurrentGroup().paintings());
   }
 
   @Override
@@ -127,13 +126,11 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         this.searchBox,
         Text.translatable("custompaintings.painting.search"));
     this.searchBox.setText(this.state.getFilters().getSearch());
-    this.searchBox.setChangedListener((search) -> {
-      onSearchBoxChanged(search);
-    });
+    this.searchBox.setChangedListener(this::onSearchBoxChanged);
 
     IconButtonWidget filterButton =
         IconButtonWidget.builder(Text.translatable("custompaintings.painting.filter"), (button) -> {
-              this.client.setScreen(new FiltersScreen(this.state));
+              Objects.requireNonNull(this.client).setScreen(new FiltersScreen(this.state));
             }, IconButtonWidget.FILTER_ICON)
             .position(10 + this.searchBox.getWidth() + 4, this.searchBox.getY())
             .build();
@@ -233,7 +230,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
       case GLFW.GLFW_KEY_ESCAPE -> {
         playClickSound();
         if (this.state.hasMultipleGroups()) {
-          this.client.setScreen(new GroupSelectScreen(this.state));
+          Objects.requireNonNull(this.client).setScreen(new GroupSelectScreen(this.state));
         } else {
           saveEmpty();
         }
@@ -253,7 +250,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
       case GLFW.GLFW_KEY_F -> {
         if (hasControlDown()) {
           if (hasShiftDown()) {
-            this.client.setScreen(new FiltersScreen(this.state));
+            Objects.requireNonNull(this.client).setScreen(new FiltersScreen(this.state));
             return true;
           }
 
@@ -271,11 +268,6 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     }
 
     return super.keyPressed(keyCode, scanCode, modifiers);
-  }
-
-  @Override
-  public void tick() {
-    this.searchBox.tick();
   }
 
   @Override
@@ -376,9 +368,10 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
   }
 
   @Override
-  public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+  public boolean mouseScrolled(
+      double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
     if (this.paintingList.isMouseOver(mouseX, mouseY)) {
-      return this.paintingList.mouseScrolled(mouseX, mouseY, amount);
+      return this.paintingList.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
     return false;
   }

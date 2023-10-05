@@ -13,16 +13,20 @@ import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.RotationAxis;
 import org.joml.Matrix4f;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(EntityRenderer.class)
 public abstract class EntityRendererMixin<T extends Entity> {
+  @Unique
   private static final MinecraftClient MINECRAFT = MinecraftClient.getInstance();
 
+  @Final
   @Shadow
   protected EntityRenderDispatcher dispatcher;
 
@@ -34,19 +38,21 @@ public abstract class EntityRendererMixin<T extends Entity> {
       VertexConsumerProvider vertexConsumers,
       int light,
       CallbackInfo info) {
-    if (!(entity instanceof PaintingEntity) && !(entity instanceof ExpandedPaintingEntity)) {
+    if (!(entity instanceof PaintingEntity painting)) {
+      return;
+    }
+    if (!(entity instanceof ExpandedPaintingEntity expandedPainting)) {
       return;
     }
 
     info.cancel();
 
-    PaintingData paintingData = ((ExpandedPaintingEntity) entity).getCustomData();
+    PaintingData paintingData = expandedPainting.getCustomData();
 
     if (!paintingData.hasLabel()) {
       return;
     }
 
-    PaintingEntity painting = (PaintingEntity) entity;
     if (this.dispatcher.getSquaredDistanceToCamera(painting) > 4096) {
       return;
     }
@@ -66,7 +72,7 @@ public abstract class EntityRendererMixin<T extends Entity> {
     Matrix4f matrix4f = matrices.peek().getPositionMatrix();
     float opacity = MINECRAFT.options.getTextBackgroundOpacity(0.25f);
     int color = (int) (opacity * 255f) << 24;
-    float posX = -textRenderer.getWidth(text) / 2;
+    float posX = -textRenderer.getWidth(text) / 2f;
     textRenderer.draw(text,
         posX,
         0,

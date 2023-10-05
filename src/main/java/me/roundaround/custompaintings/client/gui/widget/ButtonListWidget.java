@@ -32,7 +32,7 @@ public class ButtonListWidget extends ElementListWidget<ButtonListWidget.Entry> 
   }
 
   @Environment(value = EnvType.CLIENT)
-  public class Entry extends ElementListWidget.Entry<Entry> {
+  public static class Entry extends ElementListWidget.Entry<Entry> {
     private final ButtonWidget button;
 
     public Entry(ButtonWidget button) {

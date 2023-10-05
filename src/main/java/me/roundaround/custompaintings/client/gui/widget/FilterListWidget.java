@@ -47,7 +47,6 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
     this.textRenderer = minecraftClient.textRenderer;
 
     this.centerListVertically = false;
-    setRenderSelection(false);
     setRenderHeader(false, 0);
 
     Queue<TextFilterEntry> previousEntries = new LinkedList<>();
@@ -175,21 +174,15 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
   }
 
   public void tick() {
-    children().forEach((child) -> {
-      child.tick();
-    });
+    children().forEach(FilterEntry::tick);
   }
 
   public void updateFilters() {
-    children().forEach((child) -> {
-      child.resetToFilterValue();
-    });
+    children().forEach(FilterEntry::resetToFilterValue);
   }
 
   public void removeFocus() {
-    children().forEach((child) -> {
-      child.unselect();
-    });
+    children().forEach(FilterEntry::unselect);
   }
 
   @Environment(value = EnvType.CLIENT)
@@ -409,11 +402,6 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
     @Override
     public void resetToFilterValue() {
       this.textField.setText(this.getter.get());
-    }
-
-    @Override
-    public void tick() {
-      this.textField.tick();
     }
 
     @Override

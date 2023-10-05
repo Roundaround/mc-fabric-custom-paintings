@@ -80,6 +80,11 @@ public class GroupListWidget extends AlwaysSelectedEntryListWidget<GroupListWidg
   }
 
   @Override
+  public void render(DrawContext context, int mouseX, int mouseY, float partialTicks) {
+    renderBackground(context);
+    super.render(context, mouseX, mouseY, partialTicks);
+  }
+
   protected void renderBackground(DrawContext drawContext) {
     Tessellator tessellator = Tessellator.getInstance();
     BufferBuilder bufferBuilder = tessellator.getBuffer();
