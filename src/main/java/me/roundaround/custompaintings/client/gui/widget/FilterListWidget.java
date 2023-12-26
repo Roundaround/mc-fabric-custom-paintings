@@ -41,9 +41,8 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
       FilterListWidget previousInstance,
       int width,
       int height,
-      int top,
-      int bottom) {
-    super(minecraftClient, width, height, top, bottom, ITEM_HEIGHT);
+      int y) {
+    super(minecraftClient, width, height, y, ITEM_HEIGHT);
     this.textRenderer = minecraftClient.textRenderer;
 
     this.centerListVertically = false;
@@ -139,7 +138,7 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
   }
 
   @Override
-  public void appendNarrations(NarrationMessageBuilder builder) {
+  public void appendClickableNarrations(NarrationMessageBuilder builder) {
   }
 
   public int getRowCenter() {

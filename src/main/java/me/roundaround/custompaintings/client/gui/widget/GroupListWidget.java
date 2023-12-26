@@ -1,6 +1,5 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import me.roundaround.custompaintings.client.gui.PaintingEditState.Group;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -9,7 +8,6 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
-import net.minecraft.client.render.*;
 import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
@@ -24,26 +22,26 @@ public class GroupListWidget extends AlwaysSelectedEntryListWidget<GroupListWidg
 
   private final Screen parent;
   private final Consumer<String> onGroupSelect;
-  private boolean hovered = false;
 
   public GroupListWidget(
       Screen parent,
       MinecraftClient minecraftClient,
       int width,
       int height,
-      int top,
-      int bottom,
+      int y,
       Consumer<String> onGroupSelect) {
-    super(minecraftClient, width, height, top, bottom, ITEM_HEIGHT);
+    super(minecraftClient, width, height, y, ITEM_HEIGHT);
     this.parent = parent;
     this.onGroupSelect = onGroupSelect;
-    setRenderBackground(false);
     setRenderHeader(false, 0);
   }
 
   public void setGroups(Collection<Group> groups) {
-    clearEntries();
+    this.clearEntries();
     groups.stream().map(GroupEntry::new).forEach(this::addEntry);
+    if (this.getEntryCount() > 0) {
+      this.setSelected(this.getEntry(0));
+    }
   }
 
   @Override
@@ -59,13 +57,8 @@ public class GroupListWidget extends AlwaysSelectedEntryListWidget<GroupListWidg
   }
 
   @Override
-  protected boolean isSelectedEntry(int index) {
-    return (isFocused() || hovered) && super.isSelectedEntry(index);
-  }
-
-  @Override
   public boolean isMouseOver(double mouseX, double mouseY) {
-    hovered = super.isMouseOver(mouseX, mouseY);
+    boolean hovered = super.isMouseOver(mouseX, mouseY);
     if (hovered) {
       GroupEntry entry = getEntryAtPosition(mouseX, mouseY);
       if (entry != null) {
@@ -76,43 +69,7 @@ public class GroupListWidget extends AlwaysSelectedEntryListWidget<GroupListWidg
   }
 
   @Override
-  public void appendNarrations(NarrationMessageBuilder builder) {
-  }
-
-  @Override
-  public void render(DrawContext context, int mouseX, int mouseY, float partialTicks) {
-    renderBackground(context);
-    super.render(context, mouseX, mouseY, partialTicks);
-  }
-
-  protected void renderBackground(DrawContext drawContext) {
-    Tessellator tessellator = Tessellator.getInstance();
-    BufferBuilder bufferBuilder = tessellator.getBuffer();
-
-    RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-    RenderSystem.setShaderTexture(0, Screen.OPTIONS_BACKGROUND_TEXTURE);
-    RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-
-    int scrollAmount = Math.round((float) getScrollAmount());
-
-    bufferBuilder.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_TEXTURE_COLOR);
-    bufferBuilder.vertex(0, bottom, 0)
-        .texture(0, (float) (bottom + scrollAmount) / 32f)
-        .color(32, 32, 32, 255)
-        .next();
-    bufferBuilder.vertex(parent.width, bottom, 0)
-        .texture(parent.width / 32f, (float) (bottom + scrollAmount) / 32f)
-        .color(32, 32, 32, 255)
-        .next();
-    bufferBuilder.vertex(parent.width, top, 0)
-        .texture(parent.width / 32f, (float) (top + scrollAmount) / 32f)
-        .color(32, 32, 32, 255)
-        .next();
-    bufferBuilder.vertex(0, top, 0)
-        .texture(0, (float) (top + scrollAmount) / 32f)
-        .color(32, 32, 32, 255)
-        .next();
-    tessellator.draw();
+  public void appendClickableNarrations(NarrationMessageBuilder builder) {
   }
 
   @Environment(value = EnvType.CLIENT)

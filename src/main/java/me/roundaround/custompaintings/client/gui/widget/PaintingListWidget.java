@@ -42,9 +42,8 @@ public class PaintingListWidget
       int width,
       int height,
       int top,
-      int bottom,
       ArrayList<PaintingData> paintings) {
-    super(minecraftClient, width, height, top, bottom, ITEM_HEIGHT);
+    super(minecraftClient, width, height, top, ITEM_HEIGHT);
     this.parent = parent;
     this.state = state;
 
@@ -102,10 +101,6 @@ public class PaintingListWidget
     }
   }
 
-  public int getBottom() {
-    return this.bottom;
-  }
-
   @Override
   public boolean isFocused() {
     return parent.getFocused() == this;
@@ -131,7 +126,7 @@ public class PaintingListWidget
   @Override
   public int getRowWidth() {
     return this.width -
-        (Math.max(0, this.getMaxPosition() - (this.bottom - this.top - 4)) > 0 ? 18 : 12);
+        (Math.max(0, this.getMaxPosition() - (this.getBottom() - this.getY() - 4)) > 0 ? 18 : 12);
   }
 
   @Override

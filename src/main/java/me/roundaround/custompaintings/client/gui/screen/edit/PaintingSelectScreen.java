@@ -2,6 +2,7 @@ package me.roundaround.custompaintings.client.gui.screen.edit;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
+import me.roundaround.custompaintings.client.gui.DrawUtils;
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.PaintingEditState.Group;
 import me.roundaround.custompaintings.client.gui.PaintingEditState.PaintingChangeListener;
@@ -44,7 +45,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
   private Rect2i paintingRect = new Rect2i(0, 0, 0, 0);
 
   public PaintingSelectScreen(PaintingEditState state) {
-    super(Text.translatable("custompaintings.painting.title"), state);
+    super(generateTitle(state), state);
   }
 
   public void setScrollAmount(double scrollAmount) {
@@ -136,15 +137,13 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
             .build();
 
     int listTop = this.searchBox.getY() + this.searchBox.getHeight() + 4;
-    int listBottom = this.height - footerHeight - 4;
-    int listHeight = listBottom - listTop;
+    int listHeight = this.height - footerHeight - 4 - listTop;
     this.paintingList = new PaintingListWidget(this,
         this.state,
         this.client,
         this.paneWidth,
         listHeight,
         listTop,
-        listBottom,
         this.paintings);
 
     this.prevButton =
@@ -176,15 +175,16 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
                     saveEmpty();
                   }
                 })
-            .position(width / 2 - BUTTON_WIDTH - 2, height - BUTTON_HEIGHT - 10)
-            .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+            .position((width - BUTTON_PADDING) / 2 - TWO_COL_BUTTON_WIDTH,
+                height - BUTTON_HEIGHT - 10)
+            .size(TWO_COL_BUTTON_WIDTH, BUTTON_HEIGHT)
             .build();
 
     this.doneButton = ButtonWidget.builder(ScreenTexts.DONE, (button) -> {
           saveCurrentSelection();
         })
-        .position(width / 2 + 2, height - BUTTON_HEIGHT - 10)
-        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+        .position((width + BUTTON_PADDING) / 2, height - BUTTON_HEIGHT - 10)
+        .size(TWO_COL_BUTTON_WIDTH, BUTTON_HEIGHT)
         .build();
 
     if (!this.canStay) {
@@ -273,26 +273,19 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
   @Override
   public void renderBackground(
       DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
-    renderBackgroundInRegion(0, height, 0, width);
+    DrawUtils.renderBackgroundInRegion(drawContext, 0, width, height);
+
+    this.paintingList.render(drawContext, mouseX, mouseY, partialTicks);
   }
 
   @Override
   public void renderForeground(
       DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
-    this.paintingList.render(drawContext, mouseX, mouseY, partialTicks);
+    super.renderForeground(drawContext, mouseX, mouseY, partialTicks);
+
     this.searchBox.render(drawContext, mouseX, mouseY, partialTicks);
 
-    renderBackgroundInRegion(this.paintingList.getBottom(), height, 0, width);
-
     Group currentGroup = this.state.getCurrentGroup();
-
-    MutableText title = this.title.copy();
-    if (this.state.hasMultipleGroups()) {
-      title = Text.literal(this.state.getCurrentGroup().name() + " - ").append(title);
-    }
-
-    drawContext.drawCenteredTextWithShadow(textRenderer, title, width / 2, 11, 0xFFFFFFFF);
-
     PaintingData paintingData = this.state.getCurrentPainting();
 
     if (paintingData.isEmpty()) {
@@ -461,12 +454,14 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     saveSelection(currentPainting);
   }
 
-  private int getHeaderHeight() {
-    return 11 + textRenderer.fontHeight + 10;
+  @Override
+  protected int getHeaderHeight() {
+    return HEADER_FOOTER_PADDING + textRenderer.fontHeight + 1 + HEADER_FOOTER_PADDING;
   }
 
-  private int getFooterHeight() {
-    return 10 + BUTTON_HEIGHT;
+  @Override
+  protected int getFooterHeight() {
+    return HEADER_FOOTER_PADDING + BUTTON_HEIGHT;
   }
 
   private void onSearchBoxChanged(String text) {
@@ -476,5 +471,13 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
 
     this.state.getFilters().setSearch(text);
     applyFilters();
+  }
+
+  private static Text generateTitle(PaintingEditState state) {
+    MutableText title = Text.translatable("custompaintings.painting.title");
+    if (state.hasMultipleGroups()) {
+      title = Text.literal(state.getCurrentGroup().name() + " - ").append(title);
+    }
+    return title;
   }
 }

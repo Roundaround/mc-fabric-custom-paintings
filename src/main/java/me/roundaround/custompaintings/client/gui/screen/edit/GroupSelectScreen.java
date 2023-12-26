@@ -4,7 +4,6 @@ import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.widget.GroupListWidget;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
@@ -21,9 +20,8 @@ public class GroupSelectScreen extends PaintingEditScreen {
     this.groupsListWidget = new GroupListWidget(this,
         this.client,
         this.width,
-        this.height,
+        this.height - this.getHeaderHeight() - this.getFooterHeight(),
         this.getHeaderHeight(),
-        this.height - this.getFooterHeight(),
         (id) -> {
           this.state.setCurrentGroup(id);
           this.client.setScreen(new PaintingSelectScreen(this.state));
@@ -34,8 +32,8 @@ public class GroupSelectScreen extends PaintingEditScreen {
     addDrawableChild(ButtonWidget.builder(ScreenTexts.CANCEL, (button) -> {
           saveEmpty();
         })
-        .position((this.width - BUTTON_WIDTH) / 2, this.height - BUTTON_HEIGHT - 10)
-        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+        .position((this.width - ONE_COL_BUTTON_WIDTH) / 2, this.height - BUTTON_HEIGHT - 10)
+        .size(ONE_COL_BUTTON_WIDTH, BUTTON_HEIGHT)
         .build());
   }
 
@@ -54,34 +52,6 @@ public class GroupSelectScreen extends PaintingEditScreen {
   @Override
   public void renderBackground(
       DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
-    MatrixStack matrixStack = drawContext.getMatrices();
-    matrixStack.push();
-    matrixStack.translate(0, 0, 10);
-    groupsListWidget.render(drawContext, mouseX, mouseY, partialTicks);
-    matrixStack.pop();
-
-    matrixStack.push();
-    matrixStack.translate(0, 0, 11);
-    renderBackgroundInRegion(0, getHeaderHeight(), 0, width);
-    renderBackgroundInRegion(height - getFooterHeight(), height, 0, width);
-    matrixStack.pop();
-  }
-
-  @Override
-  public void renderForeground(
-      DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
-    drawContext.drawCenteredTextWithShadow(textRenderer,
-        Text.translatable("custompaintings.group.title"),
-        width / 2,
-        11,
-        0xFFFFFFFF);
-  }
-
-  private int getHeaderHeight() {
-    return 10 + textRenderer.fontHeight + 2 + 10;
-  }
-
-  private int getFooterHeight() {
-    return 10 + BUTTON_HEIGHT + 10;
+    renderBasicListBackground(drawContext, mouseX, mouseY, partialTicks, this.groupsListWidget);
   }
 }

@@ -46,9 +46,8 @@ public class MismatchedPaintingListWidget
       MinecraftClient minecraftClient,
       int width,
       int height,
-      int top,
-      int bottom) {
-    super(minecraftClient, width, height, top, bottom, ITEM_HEIGHT);
+      int y) {
+    super(minecraftClient, width, height, y, ITEM_HEIGHT);
 
     this.parent = parent;
     this.loadingEntry = new LoadingEntry(minecraftClient);

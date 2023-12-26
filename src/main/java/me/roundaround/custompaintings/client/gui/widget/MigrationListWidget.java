@@ -27,13 +27,8 @@ public class MigrationListWidget extends AlwaysSelectedEntryListWidget<Migration
   private final EmptyEntry emptyEntry;
 
   public MigrationListWidget(
-      MigrationsScreen parent,
-      MinecraftClient minecraftClient,
-      int width,
-      int height,
-      int top,
-      int bottom) {
-    super(minecraftClient, width, height, top, bottom, ITEM_HEIGHT);
+      MigrationsScreen parent, MinecraftClient minecraftClient, int width, int height, int y) {
+    super(minecraftClient, width, height, y, ITEM_HEIGHT);
     this.parent = parent;
     this.emptyEntry = new EmptyEntry(minecraftClient);
 

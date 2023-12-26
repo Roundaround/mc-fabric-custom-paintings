@@ -1,5 +1,6 @@
 package me.roundaround.custompaintings.client.gui.screen.manage;
 
+import me.roundaround.custompaintings.client.gui.screen.BaseScreen;
 import me.roundaround.custompaintings.client.gui.widget.MigrationListWidget;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.util.Migration;
@@ -11,11 +12,7 @@ import net.minecraft.text.Text;
 
 import java.util.HashMap;
 
-public class MigrationsScreen extends Screen implements PaintingPacksTracker {
-  private static final int BUTTON_WIDTH = 150;
-  private static final int BUTTON_HEIGHT = 20;
-  private static final int PADDING = 8;
-
+public class MigrationsScreen extends BaseScreen implements PaintingPacksTracker {
   private final Screen parent;
 
   private MigrationListWidget list;
@@ -49,17 +46,20 @@ public class MigrationsScreen extends Screen implements PaintingPacksTracker {
 
   @Override
   public void init() {
-    this.list =
-        new MigrationListWidget(this, this.client, this.width, this.height, 32, this.height - 32);
+    this.list = new MigrationListWidget(this,
+        this.client,
+        this.width,
+        this.height - this.getHeaderHeight() - this.getFooterHeight(),
+        this.getHeaderHeight());
     this.list.setMigrations(getMigrations());
     addSelectableChild(this.list);
 
     this.confirmButton =
         ButtonWidget.builder(Text.translatable("custompaintings.migrations.confirm"),
                 (button) -> this.confirmSelection())
-            .position((this.width - PADDING) / 2 - BUTTON_WIDTH,
-                this.height - BUTTON_HEIGHT - PADDING)
-            .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+            .position((this.width - BUTTON_PADDING) / 2 - TWO_COL_BUTTON_WIDTH,
+                this.height - BUTTON_HEIGHT - HEADER_FOOTER_PADDING)
+            .size(TWO_COL_BUTTON_WIDTH, BUTTON_HEIGHT)
             .build();
     this.confirmButton.active = false;
     addDrawableChild(this.confirmButton);
@@ -67,8 +67,9 @@ public class MigrationsScreen extends Screen implements PaintingPacksTracker {
     addDrawableChild(ButtonWidget.builder(ScreenTexts.CANCEL, (button) -> {
           this.close();
         })
-        .position((this.width + PADDING) / 2, this.height - BUTTON_HEIGHT - PADDING)
-        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+        .position((this.width + BUTTON_PADDING) / 2,
+            this.height - BUTTON_HEIGHT - HEADER_FOOTER_PADDING)
+        .size(TWO_COL_BUTTON_WIDTH, BUTTON_HEIGHT)
         .build());
   }
 
@@ -78,15 +79,8 @@ public class MigrationsScreen extends Screen implements PaintingPacksTracker {
   }
 
   @Override
-  public void render(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
-    this.list.render(drawContext, mouseX, mouseY, partialTicks);
-
-    drawContext.drawCenteredTextWithShadow(this.textRenderer,
-        this.title,
-        this.width / 2,
-        PADDING,
-        0xFFFFFF);
-
-    super.render(drawContext, mouseX, mouseY, partialTicks);
+  public void renderBackground(
+      DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
+    renderBasicListBackground(drawContext, mouseX, mouseY, partialTicks, this.list);
   }
 }

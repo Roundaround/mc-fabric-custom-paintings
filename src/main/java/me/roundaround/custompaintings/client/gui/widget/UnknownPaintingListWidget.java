@@ -33,9 +33,8 @@ public class UnknownPaintingListWidget
       MinecraftClient minecraftClient,
       int width,
       int height,
-      int top,
-      int bottom) {
-    super(minecraftClient, width, height, top, bottom, ITEM_HEIGHT);
+      int top) {
+    super(minecraftClient, width, height, top, ITEM_HEIGHT);
 
     this.parent = parent;
     this.loadingEntry = new LoadingEntry(minecraftClient);

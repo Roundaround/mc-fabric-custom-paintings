@@ -41,8 +41,8 @@ public class IconButtonWidget extends ButtonWidget {
   }
 
   @Override
-  public void renderButton(DrawContext drawContext, int mouseX, int mouseY, float delta) {
-    super.renderButton(drawContext, mouseX, mouseY, delta);
+  public void renderWidget(DrawContext drawContext, int mouseX, int mouseY, float delta) {
+    super.renderWidget(drawContext, mouseX, mouseY, delta);
 
     float brightness = this.active ? 1f : 0.6f;
     int uIndex = this.textureIndex % 5;

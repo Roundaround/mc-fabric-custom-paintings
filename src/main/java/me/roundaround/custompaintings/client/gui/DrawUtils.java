@@ -9,6 +9,8 @@ import net.minecraft.util.Language;
 
 import java.util.List;
 
+import static net.minecraft.client.gui.screen.Screen.OPTIONS_BACKGROUND_TEXTURE;
+
 public final class DrawUtils {
   public static void drawTruncatedCenteredTextWithShadow(
       DrawContext drawContext,
@@ -47,5 +49,27 @@ public final class DrawUtils {
       drawContext.drawCenteredTextWithShadow(textRenderer, line, x, yCursor, color);
       yCursor += textRenderer.fontHeight;
     }
+  }
+
+  public static void renderBackgroundInRegion(
+      DrawContext drawContext, int y, int width, int height) {
+    renderBackgroundInRegion(drawContext, 0, y, width, height);
+  }
+
+  public static void renderBackgroundInRegion(
+      DrawContext drawContext, int x, int y, int width, int height) {
+    renderBackgroundInRegion(drawContext, x, y, width, height, 0.25f);
+  }
+
+  public static void renderBackgroundInRegion(
+      DrawContext drawContext, int y, int width, int height, float brightness) {
+    renderBackgroundInRegion(drawContext, 0, y, width, height, brightness);
+  }
+
+  public static void renderBackgroundInRegion(
+      DrawContext drawContext, int x, int y, int width, int height, float brightness) {
+    drawContext.setShaderColor(brightness, brightness, brightness, 1f);
+    drawContext.drawTexture(OPTIONS_BACKGROUND_TEXTURE, x, y, 0, 0f, 0f, width, height, 32, 32);
+    drawContext.setShaderColor(1f, 1f, 1f, 1f);
   }
 }

@@ -20,8 +20,8 @@ public class ButtonListWidget extends ElementListWidget<ButtonListWidget.Entry> 
   private static final int BUTTON_HEIGHT = 20;
 
   public ButtonListWidget(
-      MinecraftClient client, int width, int height, int top, int bottom) {
-    super(client, width, height, top, bottom, ITEM_HEIGHT);
+      MinecraftClient client, int width, int height, int y) {
+    super(client, width, height, y, ITEM_HEIGHT);
   }
 
   public void addEntry(Text text, ButtonWidget.PressAction action) {

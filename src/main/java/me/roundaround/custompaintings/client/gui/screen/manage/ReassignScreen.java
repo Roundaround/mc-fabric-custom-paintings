@@ -81,12 +81,7 @@ public class ReassignScreen extends Screen implements PaintingPacksTracker {
     this.searchBox.setChangedListener(this::setFilter);
     addSelectableChild(this.searchBox);
 
-    this.list = new KnownPaintingListWidget(this,
-        this.client,
-        this.width,
-        this.height,
-        48,
-        this.height - 32);
+    this.list = new KnownPaintingListWidget(this, this.client, this.width, this.height, 48);
     this.list.setPaintings(getKnownPaintings().values());
     addSelectableChild(this.list);
 

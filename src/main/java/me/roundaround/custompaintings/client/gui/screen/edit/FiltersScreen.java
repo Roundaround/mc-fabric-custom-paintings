@@ -4,7 +4,6 @@ import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.widget.FilterListWidget;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
@@ -13,7 +12,7 @@ public class FiltersScreen extends PaintingEditScreen {
   private FilterListWidget filtersListWidget;
 
   public FiltersScreen(PaintingEditState state) {
-    super(Text.translatable("custompaintings.filters.title"), state);
+    super(Text.translatable("custompaintings.filter.title"), state);
   }
 
   @Override
@@ -22,24 +21,23 @@ public class FiltersScreen extends PaintingEditScreen {
         this.client,
         this.filtersListWidget,
         this.width,
-        this.height,
-        this.getHeaderHeight(),
-        this.height - this.getFooterHeight());
+        this.height - this.getHeaderHeight() - this.getFooterHeight(),
+        this.getHeaderHeight());
 
     ButtonWidget resetButton =
         ButtonWidget.builder(Text.translatable("custompaintings.filter.reset"), (button) -> {
               this.state.getFilters().reset();
               this.filtersListWidget.updateFilters();
             })
-            .position(width / 2 - BUTTON_WIDTH - 2, height - BUTTON_HEIGHT - 10)
-            .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+            .position(width / 2 - TWO_COL_BUTTON_WIDTH - 2, height - BUTTON_HEIGHT - 10)
+            .size(TWO_COL_BUTTON_WIDTH, BUTTON_HEIGHT)
             .build();
 
     ButtonWidget doneButton = ButtonWidget.builder(ScreenTexts.DONE, (button) -> {
           this.client.setScreen(new PaintingSelectScreen(this.state));
         })
         .position(width / 2 + 2, height - BUTTON_HEIGHT - 10)
-        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+        .size(TWO_COL_BUTTON_WIDTH, BUTTON_HEIGHT)
         .build();
 
     addSelectableChild(this.filtersListWidget);
@@ -67,34 +65,10 @@ public class FiltersScreen extends PaintingEditScreen {
   @Override
   public void renderBackground(
       DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
-    MatrixStack matrixStack = drawContext.getMatrices();
-    matrixStack.push();
-    matrixStack.translate(0, 0, 10);
-    this.filtersListWidget.render(drawContext, mouseX, mouseY, partialTicks);
-    matrixStack.pop();
-
-    matrixStack.push();
-    matrixStack.translate(0, 0, 11);
-    renderBackgroundInRegion(0, getHeaderHeight(), 0, width);
-    renderBackgroundInRegion(height - getFooterHeight(), height, 0, width);
-    matrixStack.pop();
-  }
-
-  @Override
-  public void renderForeground(
-      DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
-    drawContext.drawCenteredTextWithShadow(textRenderer,
-        Text.translatable("custompaintings.filter.title"),
-        width / 2,
-        11,
-        0xFFFFFFFF);
-  }
-
-  private int getHeaderHeight() {
-    return 10 + textRenderer.fontHeight + 2 + 10;
-  }
-
-  private int getFooterHeight() {
-    return 10 + BUTTON_HEIGHT + 10;
+    this.renderBasicListBackground(drawContext,
+        mouseX,
+        mouseY,
+        partialTicks,
+        this.filtersListWidget);
   }
 }

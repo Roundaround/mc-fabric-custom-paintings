@@ -34,13 +34,8 @@ public class KnownPaintingListWidget
   private String filter = "";
 
   public KnownPaintingListWidget(
-      ReassignScreen parent,
-      MinecraftClient minecraftClient,
-      int width,
-      int height,
-      int top,
-      int bottom) {
-    super(minecraftClient, width, height, top, bottom, ITEM_HEIGHT);
+      ReassignScreen parent, MinecraftClient minecraftClient, int width, int height, int top) {
+    super(minecraftClient, width, height, top, ITEM_HEIGHT);
     this.parent = parent;
   }
 
