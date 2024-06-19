@@ -1,7 +1,8 @@
 package me.roundaround.custompaintings.client.gui.screen.manage;
 
-import me.roundaround.custompaintings.client.gui.DrawUtils;
 import me.roundaround.custompaintings.util.UnknownPainting;
+import me.roundaround.roundalib.client.gui.GuiUtil;
+import me.roundaround.roundalib.client.gui.layout.TextAlignment;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -20,10 +21,8 @@ public class ApplyToAllScreen extends Screen {
   private final BiConsumer<UnknownPainting, Boolean> callback;
 
   public ApplyToAllScreen(
-      Screen parent,
-      int count,
-      UnknownPainting selected,
-      BiConsumer<UnknownPainting, Boolean> callback) {
+      Screen parent, int count, UnknownPainting selected, BiConsumer<UnknownPainting, Boolean> callback
+  ) {
     super(Text.translatable("custompaintings.applytoall.title", count));
     this.parent = parent;
     this.selected = selected;
@@ -32,7 +31,7 @@ public class ApplyToAllScreen extends Screen {
 
   @Override
   public void init() {
-    addDrawableChild(ButtonWidget.builder(ScreenTexts.YES, (button) -> {
+    this.addDrawableChild(ButtonWidget.builder(ScreenTexts.YES, (button) -> {
           this.client.setScreen(this.parent);
           this.callback.accept(this.selected, true);
         })
@@ -40,15 +39,12 @@ public class ApplyToAllScreen extends Screen {
         .size(BUTTON_WIDTH / 2, BUTTON_HEIGHT)
         .build());
 
-    addDrawableChild(ButtonWidget.builder(ScreenTexts.NO, (button) -> {
-          this.client.setScreen(this.parent);
-          this.callback.accept(this.selected, false);
-        })
-        .position((this.width + PADDING) / 2, this.height / 2)
-        .size(BUTTON_WIDTH / 2, BUTTON_HEIGHT)
-        .build());
+    this.addDrawableChild(ButtonWidget.builder(ScreenTexts.NO, (button) -> {
+      this.client.setScreen(this.parent);
+      this.callback.accept(this.selected, false);
+    }).position((this.width + PADDING) / 2, this.height / 2).size(BUTTON_WIDTH / 2, BUTTON_HEIGHT).build());
 
-    addDrawableChild(ButtonWidget.builder(ScreenTexts.CANCEL, (button) -> {
+    this.addDrawableChild(ButtonWidget.builder(ScreenTexts.CANCEL, (button) -> {
           this.close();
         })
         .position((this.width - BUTTON_WIDTH) / 2, this.height - BUTTON_HEIGHT - PADDING)
@@ -63,15 +59,9 @@ public class ApplyToAllScreen extends Screen {
 
   @Override
   public void render(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
-    renderBackgroundTexture(drawContext);
-
-    DrawUtils.drawWrappedCenteredTextWithShadow(drawContext,
-        this.textRenderer,
-        this.title,
-        this.width / 2,
-        40,
-        0xFFFFFFFF,
-        BUTTON_WIDTH + PADDING);
+    GuiUtil.drawWrappedText(drawContext, this.textRenderer, this.title, this.width / 2, 40, 0xFFFFFFFF, true,
+        BUTTON_WIDTH + PADDING, 0, 0, TextAlignment.CENTER
+    );
 
     super.render(drawContext, mouseX, mouseY, partialTicks);
   }

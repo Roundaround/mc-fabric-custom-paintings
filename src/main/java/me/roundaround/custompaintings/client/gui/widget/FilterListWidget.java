@@ -1,401 +1,226 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
-import com.google.common.collect.ImmutableList;
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
+import me.roundaround.roundalib.client.gui.GuiUtil;
+import me.roundaround.roundalib.client.gui.widget.FlowListWidget;
+import me.roundaround.roundalib.client.gui.widget.LabelWidget;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.Element;
-import net.minecraft.client.gui.Selectable;
-import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
-import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.CyclingButtonWidget;
-import net.minecraft.client.gui.widget.ElementListWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.gui.widget.ThreePartsLayoutWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
-import net.minecraft.util.math.MathHelper;
 
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
-import java.util.Queue;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 @Environment(value = EnvType.CLIENT)
-public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterEntry> {
-  private static final int ITEM_HEIGHT = 25;
-  private static final int CONTROL_HEIGHT = 20;
-  private static final int CONTROL_FULL_WIDTH = 310;
-  private static final int CONTROL_HALF_WIDTH = 150;
-
-  private final TextRenderer textRenderer;
-
+public class FilterListWidget extends FlowListWidget<FilterListWidget.Entry> {
   public FilterListWidget(
-      PaintingEditState state,
-      MinecraftClient minecraftClient,
-      FilterListWidget previousInstance,
-      int width,
-      int height,
-      int y) {
-    super(minecraftClient, width, height, y, ITEM_HEIGHT);
-    this.textRenderer = minecraftClient.textRenderer;
+      PaintingEditState state, MinecraftClient client, ThreePartsLayoutWidget layout
+  ) {
+    super(client, layout.getX(), layout.getHeaderHeight(), layout.getWidth(), layout.getContentHeight());
 
-    this.centerListVertically = false;
-    setRenderHeader(false, 0);
+    this.addEntry((index, left, top, width) -> new SectionTitleEntry(index, left, top, width, this.client.textRenderer,
+        Text.translatable("custompaintings.filter.section.search")
+    ));
 
-    Queue<TextFilterEntry> previousEntries = new LinkedList<>();
-    if (previousInstance != null) {
-      for (FilterEntry entry : previousInstance.children()) {
-        if (entry instanceof TextFilterEntry) {
-          previousEntries.add((TextFilterEntry) entry);
-        }
-      }
-    }
+    this.addEntry((index, left, top, width) -> new TextFilterEntry(index, left, top, width, this.client.textRenderer,
+        Text.translatable("custompaintings.filter.any"), () -> state.getFilters().getSearch(),
+        (value) -> state.getFilters().setSearch(value)
+    ));
 
-    addEntry(new SectionTitleEntry(Text.translatable("custompaintings.filter.section.search")));
+    this.addEntry((index, left, top, width) -> new TextFilterEntry(index, left, top, width, this.client.textRenderer,
+        Text.translatable("custompaintings.filter.name"), () -> state.getFilters().getNameSearch(),
+        (value) -> state.getFilters().setNameSearch(value)
+    ));
 
-    TextFilterEntry previousAnyFilterEntry = null;
-    if (!previousEntries.isEmpty()) {
-      previousAnyFilterEntry = previousEntries.remove();
-    }
-    addEntry(new TextFilterEntry(Text.translatable("custompaintings.filter.any"),
-        previousAnyFilterEntry,
-        () -> state.getFilters().getSearch(),
-        (value) -> state.getFilters().setSearch(value)));
-
-    TextFilterEntry previousNameFilterEntry = null;
-    if (!previousEntries.isEmpty()) {
-      previousNameFilterEntry = previousEntries.remove();
-    }
-    addEntry(new TextFilterEntry(Text.translatable("custompaintings.filter.name"),
-        previousNameFilterEntry,
-        () -> state.getFilters().getNameSearch(),
-        (value) -> state.getFilters().setNameSearch(value)));
-
-    TextFilterEntry previousArtistFilterEntry = null;
-    if (!previousEntries.isEmpty()) {
-      previousArtistFilterEntry = previousEntries.remove();
-    }
-    addEntry(new TextFilterEntry(Text.translatable("custompaintings.filter.artist"),
-        previousArtistFilterEntry,
-        () -> state.getFilters().getArtistSearch(),
-        (value) -> state.getFilters().setArtistSearch(value)));
+    this.addEntry((index, left, top, width) -> new TextFilterEntry(index, left, top, width, this.client.textRenderer,
+        Text.translatable("custompaintings.filter.artist"), () -> state.getFilters().getArtistSearch(),
+        (value) -> state.getFilters().setArtistSearch(value)
+    ));
 
     // TODO: Name/artist is empty
 
-    addEntry(new SectionTitleEntry(Text.translatable("custompaintings.filter.section.size")));
+    this.addEntry((index, left, top, width) -> new SectionTitleEntry(index, left, top, width, this.client.textRenderer,
+        Text.translatable("custompaintings.filter.section.size")
+    ));
 
-    addEntry(new ToggleFilterEntry(Text.translatable("custompaintings.filter.canstay"),
-        ScreenTexts.ON,
-        ScreenTexts.OFF,
-        () -> state.getFilters().getCanStayOnly(),
-        (value) -> state.getFilters().setCanStayOnly(value)));
+    this.addEntry((index, left, top, width) -> new ToggleFilterEntry(index, left, top, width,
+        Text.translatable("custompaintings.filter.canstay"), ScreenTexts.ON, ScreenTexts.OFF,
+        () -> state.getFilters().getCanStayOnly(), (value) -> state.getFilters().setCanStayOnly(value)
+    ));
 
-    addEntry(new IntRangeFilterEntry((value) -> Text.translatable("custompaintings.filter.minwidth",
-        value),
-        (value) -> Text.translatable("custompaintings.filter.maxwidth", value),
-        () -> state.getFilters().getMinWidth(),
-        () -> state.getFilters().getMaxWidth(),
-        (value) -> state.getFilters().setMinWidth(value),
-        (value) -> state.getFilters().setMaxWidth(value),
-        1,
-        32));
+    this.addEntry((index, left, top, width) -> new IntRangeFilterEntry(index, left, top, width,
+        (value) -> Text.translatable("custompaintings.filter.minwidth", value),
+        (value) -> Text.translatable("custompaintings.filter.maxwidth", value), () -> state.getFilters().getMinWidth(),
+        () -> state.getFilters().getMaxWidth(), (value) -> state.getFilters().setMinWidth(value),
+        (value) -> state.getFilters().setMaxWidth(value), 1, 32
+    ));
 
-    addEntry(new IntRangeFilterEntry((value) -> Text.translatable("custompaintings.filter.minheight",
-        value),
+    this.addEntry((index, left, top, width) -> new IntRangeFilterEntry(index, left, top, width,
+        (value) -> Text.translatable("custompaintings.filter.minheight", value),
         (value) -> Text.translatable("custompaintings.filter.maxheight", value),
-        () -> state.getFilters().getMinHeight(),
-        () -> state.getFilters().getMaxHeight(),
-        (value) -> state.getFilters().setMinHeight(value),
-        (value) -> state.getFilters().setMaxHeight(value),
-        1,
-        32));
-  }
-
-  @Override
-  public int getRowWidth() {
-    return 400;
-  }
-
-  @Override
-  protected int getScrollbarPositionX() {
-    return (this.width + getRowWidth()) / 2 + 4;
-  }
-
-  @Override
-  public int getRowLeft() {
-    return (this.width - getRowWidth()) / 2;
-  }
-
-  @Override
-  public int getRowRight() {
-    return (this.width + getRowWidth()) / 2;
-  }
-
-  @Override
-  public void appendClickableNarrations(NarrationMessageBuilder builder) {
-  }
-
-  public int getRowCenter() {
-    return getRowLeft() + getRowWidth() / 2;
-  }
-
-  public int getControlLeft() {
-    return getRowCenter() - CONTROL_FULL_WIDTH / 2;
-  }
-
-  public int getControlRight() {
-    return getRowCenter() + CONTROL_FULL_WIDTH / 2;
-  }
-
-  public int getControlInnerLeft() {
-    return getControlRight() - CONTROL_HALF_WIDTH;
-  }
-
-  public int getControlInnerRight() {
-    return getControlLeft() + CONTROL_HALF_WIDTH;
-  }
-
-  public Optional<Element> getHoveredElement(double mouseX, double mouseY) {
-    for (FilterEntry entry : children()) {
-      for (Element element : entry.children()) {
-        if (element.isMouseOver(mouseX, mouseY)) {
-          return Optional.of(element);
-        }
-      }
-    }
-    return Optional.empty();
-  }
-
-  public void tick() {
-    children().forEach(FilterEntry::tick);
+        () -> state.getFilters().getMinHeight(), () -> state.getFilters().getMaxHeight(),
+        (value) -> state.getFilters().setMinHeight(value), (value) -> state.getFilters().setMaxHeight(value), 1, 32
+    ));
   }
 
   public void updateFilters() {
-    children().forEach(FilterEntry::resetToFilterValue);
-  }
-
-  public void removeFocus() {
-    children().forEach(FilterEntry::unselect);
+    this.forEachEntry(Entry::resetToFilterValue);
   }
 
   @Environment(value = EnvType.CLIENT)
-  public abstract class FilterEntry extends ElementListWidget.Entry<FilterEntry> {
+  public abstract static class Entry extends FlowListWidget.Entry {
+    protected static final int HEIGHT = 20;
+    protected static final int MAX_FULL_WIDTH = 310;
+
+    protected Entry(int index, int left, int top, int width, int contentHeight) {
+      super(index, left, top, width, contentHeight);
+    }
+
     public void resetToFilterValue() {
     }
 
-    public void tick() {
+    protected int getFullControlWidth() {
+      return Math.min(MAX_FULL_WIDTH, this.getContentWidth());
     }
 
-    public void unselect() {
-    }
-
-    @Override
-    public List<? extends Element> children() {
-      return ImmutableList.of();
-    }
-
-    @Override
-    public List<? extends Selectable> selectableChildren() {
-      return ImmutableList.of();
-    }
-
-    @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-      FilterListWidget.this.removeFocus();
-      return super.mouseClicked(mouseX, mouseY, button);
-    }
-
-    protected int getRowCenter() {
-      return FilterListWidget.this.getRowCenter();
+    protected int getHalfControlWidth() {
+      return (this.getFullControlWidth() - 2 * GuiUtil.PADDING) / 2;
     }
 
     protected int getControlLeft() {
-      return FilterListWidget.this.getControlLeft();
+      return this.getContentCenterX() - this.getFullControlWidth() / 2;
     }
 
     protected int getControlRight() {
-      return FilterListWidget.this.getControlRight();
+      return this.getContentCenterX() + this.getFullControlWidth() / 2;
     }
 
-    protected int getControlInnerLeft() {
-      return FilterListWidget.this.getControlInnerLeft();
-    }
-
-    protected int getControlInnerRight() {
-      return FilterListWidget.this.getControlInnerRight();
+    protected int getRightControlLeft() {
+      return this.getControlRight() - this.getHalfControlWidth();
     }
   }
 
   @Environment(value = EnvType.CLIENT)
-  public class SectionTitleEntry extends FilterEntry {
-    private final Text label;
+  public static class SectionTitleEntry extends Entry {
+    protected final LabelWidget label;
 
-    public SectionTitleEntry(Text label) {
-      this.label = label;
+    public SectionTitleEntry(int index, int left, int top, int width, TextRenderer textRenderer, Text label) {
+      super(index, left, top, width, HEIGHT);
+
+      this.label = LabelWidget.builder(textRenderer, label, this.getContentCenterX(), this.getContentCenterY())
+          .justifiedCenter()
+          .alignedMiddle()
+          .maxWidth(this.getFullControlWidth())
+          .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
+          .showShadow()
+          .hideBackground()
+          .build();
+
+      this.addDrawableChild(this.label);
     }
 
     @Override
-    public void render(
-        DrawContext drawContext,
-        int index,
-        int y,
-        int x,
-        int entryWidth,
-        int entryHeight,
-        int mouseX,
-        int mouseY,
-        boolean hovered,
-        float partialTicks) {
-      drawContext.drawCenteredTextWithShadow(FilterListWidget.this.textRenderer,
-          label.asOrderedText(),
-          getRowCenter(),
-          y + MathHelper.ceil((entryHeight - FilterListWidget.this.textRenderer.fontHeight) / 2f),
-          0xFFFFFF);
+    public void refreshPositions() {
+      this.label.setPosition(this.getContentCenterX(), this.getContentCenterY());
+      this.label.setMaxWidth(this.getFullControlWidth());
+      super.refreshPositions();
     }
   }
 
   @Environment(value = EnvType.CLIENT)
-  public class ToggleFilterEntry extends FilterEntry {
+  public static class ToggleFilterEntry extends Entry {
     private final Supplier<Boolean> getter;
     private final CyclingButtonWidget<Boolean> button;
 
     public ToggleFilterEntry(
+        int index,
+        int left,
+        int top,
+        int width,
         Text label,
         Text trueText,
         Text falseText,
         Supplier<Boolean> getter,
-        Consumer<Boolean> setter) {
-      this(label, null, trueText, falseText, getter, setter);
-    }
+        Consumer<Boolean> setter
+    ) {
+      super(index, left, top, width, HEIGHT);
 
-    public ToggleFilterEntry(
-        Text label,
-        Text tooltip,
-        Text trueText,
-        Text falseText,
-        Supplier<Boolean> getter,
-        Consumer<Boolean> setter) {
+      this.setMarginX(DEFAULT_MARGIN_HORIZONTAL + GuiUtil.PADDING);
+
       this.getter = getter;
 
       this.button = CyclingButtonWidget.onOffBuilder(trueText, falseText)
           .values(List.of(true, false))
           .initially(this.getter.get())
-          .tooltip((value) -> {
-            if (tooltip == null || tooltip == Text.EMPTY) {
-              return null;
-            }
-            return Tooltip.of(tooltip);
-          })
-          .build(getControlLeft(),
-              0,
-              CONTROL_FULL_WIDTH,
-              CONTROL_HEIGHT,
-              label,
-              (button, value) -> {
-                setter.accept(value);
-              });
+          .build(this.getControlLeft(), this.getContentTop(), this.getFullControlWidth(), this.getContentHeight(),
+              label, (button, value) -> setter.accept(value)
+          );
+
+      this.addChild(this.button);
+      this.addSelectableChild(this.button);
     }
 
     @Override
-    public void render(
-        DrawContext drawContext,
-        int index,
-        int y,
-        int x,
-        int entryWidth,
-        int entryHeight,
-        int mouseX,
-        int mouseY,
-        boolean hovered,
-        float partialTicks) {
-      this.button.setY(y + (entryHeight - CONTROL_HEIGHT) / 2);
-      this.button.render(drawContext, mouseX, mouseY, partialTicks);
-    }
+    public void refreshPositions() {
+      this.button.setDimensionsAndPosition(
+          this.getFullControlWidth(), this.getContentHeight(), this.getControlLeft(), this.getContentTop());
 
-    @Override
-    public List<? extends Element> children() {
-      return ImmutableList.of(this.button);
-    }
-
-    @Override
-    public List<? extends Selectable> selectableChildren() {
-      return ImmutableList.of(this.button);
+      super.refreshPositions();
     }
 
     @Override
     public void resetToFilterValue() {
       this.button.setValue(this.getter.get());
     }
-
-    @Override
-    public void unselect() {
-      if (this.button.isFocused()) {
-        this.button.setFocused(false);
-      }
-    }
   }
 
   @Environment(value = EnvType.CLIENT)
-  public class TextFilterEntry extends FilterEntry {
-    private final Text label;
+  public static class TextFilterEntry extends Entry {
     private final Supplier<String> getter;
+    private final LabelWidget label;
     private final TextFieldWidget textField;
 
     public TextFilterEntry(
+        int index,
+        int left,
+        int top,
+        int width,
+        TextRenderer textRenderer,
         Text label,
-        TextFilterEntry previousInstance,
         Supplier<String> getter,
-        Consumer<String> setter) {
-      this.label = label;
+        Consumer<String> setter
+    ) {
+      super(index, left, top, width, HEIGHT);
+
       this.getter = getter;
 
-      this.textField = new TextFieldWidget(FilterListWidget.this.textRenderer,
-          getControlInnerLeft(),
-          0,
-          CONTROL_HALF_WIDTH,
-          CONTROL_HEIGHT,
-          previousInstance != null ? previousInstance.textField : null,
-          label);
+      this.label = LabelWidget.builder(textRenderer, label, this.getControlLeft(), this.getContentCenterY())
+          .justifiedLeft()
+          .alignedMiddle()
+          .maxWidth(this.getHalfControlWidth())
+          .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
+          .showShadow()
+          .hideBackground()
+          .build();
+
+      this.addDrawableChild(this.label);
+
+      this.textField = new TextFieldWidget(textRenderer, this.getRightControlLeft(), this.getContentTop(),
+          this.getHalfControlWidth(), this.getContentHeight(), label
+      );
       this.textField.setText(this.getter.get());
       this.textField.setChangedListener(setter);
-    }
 
-    @Override
-    public void render(
-        DrawContext drawContext,
-        int index,
-        int y,
-        int x,
-        int entryWidth,
-        int entryHeight,
-        int mouseX,
-        int mouseY,
-        boolean hovered,
-        float partialTicks) {
-      drawContext.drawTextWithShadow(FilterListWidget.this.textRenderer,
-          this.label,
-          getControlLeft(),
-          y + MathHelper.ceil((entryHeight - FilterListWidget.this.textRenderer.fontHeight) / 2f),
-          0xFFFFFF);
-
-      this.textField.setY(y + (entryHeight - CONTROL_HEIGHT) / 2);
-      this.textField.render(drawContext, mouseX, mouseY, partialTicks);
-    }
-
-    @Override
-    public List<? extends Element> children() {
-      return ImmutableList.of(this.textField);
-    }
-
-    @Override
-    public List<? extends Selectable> selectableChildren() {
-      return ImmutableList.of(this.textField);
+      this.addChild(this.textField);
+      this.addSelectableChild(this.textField);
     }
 
     @Override
@@ -404,19 +229,27 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
     }
 
     @Override
-    public void unselect() {
-      this.textField.setFocused(false);
+    public void refreshPositions() {
+      this.label.setPosition(this.getControlLeft(), this.getContentCenterY());
+      this.label.setMaxWidth(this.getHalfControlWidth());
+
+      this.textField.setDimensionsAndPosition(
+          this.getHalfControlWidth(), this.getContentHeight(), this.getRightControlLeft(), this.getContentTop());
     }
   }
 
   @Environment(value = EnvType.CLIENT)
-  public class IntRangeFilterEntry extends FilterEntry {
+  public static class IntRangeFilterEntry extends Entry {
     private final Supplier<Integer> getLow;
     private final Supplier<Integer> getHigh;
     private final IntSliderWidget lowSlider;
     private final IntSliderWidget highSlider;
 
     public IntRangeFilterEntry(
+        int index,
+        int left,
+        int top,
+        int width,
         Function<Integer, Text> lowLabelFactory,
         Function<Integer, Text> highLabelFactory,
         Supplier<Integer> getLow,
@@ -424,58 +257,26 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
         Consumer<Integer> setLow,
         Consumer<Integer> setHigh,
         int min,
-        int max) {
+        int max
+    ) {
+      super(index, left, top, width, HEIGHT);
+
       this.getLow = getLow;
       this.getHigh = getHigh;
 
-      this.lowSlider = new IntSliderWidget(getControlLeft(),
-          0,
-          CONTROL_HALF_WIDTH,
-          CONTROL_HEIGHT,
-          this.getLow.get(),
-          min,
-          max,
-          lowLabelFactory,
-          setLow);
+      this.lowSlider = new IntSliderWidget(this.getControlLeft(), this.getContentTop(), this.getHalfControlWidth(),
+          this.getContentHeight(), this.getLow.get(), min, max, lowLabelFactory, setLow
+      );
 
-      this.highSlider = new IntSliderWidget(getControlInnerLeft(),
-          0,
-          CONTROL_HALF_WIDTH,
-          CONTROL_HEIGHT,
-          this.getHigh.get(),
-          min,
-          max,
-          highLabelFactory,
-          setHigh);
-    }
+      this.addChild(this.lowSlider);
+      this.addSelectableChild(this.lowSlider);
 
-    @Override
-    public void render(
-        DrawContext drawContext,
-        int index,
-        int y,
-        int x,
-        int entryWidth,
-        int entryHeight,
-        int mouseX,
-        int mouseY,
-        boolean hovered,
-        float partialTicks) {
-      this.lowSlider.setY(y + (entryHeight - CONTROL_HEIGHT) / 2);
-      this.lowSlider.render(drawContext, mouseX, mouseY, partialTicks);
+      this.highSlider = new IntSliderWidget(this.getRightControlLeft(), this.getContentTop(),
+          this.getHalfControlWidth(), this.getContentHeight(), this.getHigh.get(), min, max, highLabelFactory, setHigh
+      );
 
-      this.highSlider.setY(y + (entryHeight - CONTROL_HEIGHT) / 2);
-      this.highSlider.render(drawContext, mouseX, mouseY, partialTicks);
-    }
-
-    @Override
-    public List<? extends Element> children() {
-      return ImmutableList.of(this.lowSlider, this.highSlider);
-    }
-
-    @Override
-    public List<? extends Selectable> selectableChildren() {
-      return ImmutableList.of(this.lowSlider, this.highSlider);
+      this.addChild(this.highSlider);
+      this.addSelectableChild(this.highSlider);
     }
 
     @Override
@@ -485,13 +286,13 @@ public class FilterListWidget extends ElementListWidget<FilterListWidget.FilterE
     }
 
     @Override
-    public void unselect() {
-      if (this.lowSlider.isFocused()) {
-        this.lowSlider.setFocused(false);
-      }
-      if (this.highSlider.isFocused()) {
-        this.highSlider.setFocused(false);
-      }
+    public void refreshPositions() {
+      this.lowSlider.setDimensionsAndPosition(this.getHalfControlWidth(), this.getContentHeight(),
+          this.getControlLeft(), this.getContentTop()
+      );
+      this.highSlider.setDimensionsAndPosition(this.getHalfControlWidth(), this.getContentHeight(),
+          this.getRightControlLeft(), this.getContentTop()
+      );
     }
   }
 }

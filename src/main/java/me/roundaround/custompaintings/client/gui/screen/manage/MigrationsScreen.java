@@ -1,10 +1,9 @@
 package me.roundaround.custompaintings.client.gui.screen.manage;
 
-import me.roundaround.custompaintings.client.gui.screen.BaseScreen;
 import me.roundaround.custompaintings.client.gui.widget.MigrationListWidget;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.util.Migration;
-import net.minecraft.client.gui.DrawContext;
+import me.roundaround.roundalib.client.gui.GuiUtil;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.screen.ScreenTexts;
@@ -12,7 +11,7 @@ import net.minecraft.text.Text;
 
 import java.util.HashMap;
 
-public class MigrationsScreen extends BaseScreen implements PaintingPacksTracker {
+public class MigrationsScreen extends Screen implements PaintingPacksTracker {
   private final Screen parent;
 
   private MigrationListWidget list;
@@ -46,41 +45,26 @@ public class MigrationsScreen extends BaseScreen implements PaintingPacksTracker
 
   @Override
   public void init() {
-    this.list = new MigrationListWidget(this,
-        this.client,
-        this.width,
-        this.height - this.getHeaderHeight() - this.getFooterHeight(),
-        this.getHeaderHeight());
+    this.list = new MigrationListWidget(this, this.client, this.width, this.height - 33 - 33, 33);
     this.list.setMigrations(getMigrations());
     addSelectableChild(this.list);
 
-    this.confirmButton =
-        ButtonWidget.builder(Text.translatable("custompaintings.migrations.confirm"),
-                (button) -> this.confirmSelection())
-            .position((this.width - BUTTON_PADDING) / 2 - TWO_COL_BUTTON_WIDTH,
-                this.height - BUTTON_HEIGHT - HEADER_FOOTER_PADDING)
-            .size(TWO_COL_BUTTON_WIDTH, BUTTON_HEIGHT)
-            .build();
+    this.confirmButton = ButtonWidget.builder(Text.translatable("custompaintings.migrations.confirm"),
+            (button) -> this.confirmSelection()
+        )
+        .position((this.width - GuiUtil.PADDING) / 2 - 150, this.height - 20 - GuiUtil.PADDING)
+        .size(150, 20)
+        .build();
     this.confirmButton.active = false;
     addDrawableChild(this.confirmButton);
 
     addDrawableChild(ButtonWidget.builder(ScreenTexts.CANCEL, (button) -> {
-          this.close();
-        })
-        .position((this.width + BUTTON_PADDING) / 2,
-            this.height - BUTTON_HEIGHT - HEADER_FOOTER_PADDING)
-        .size(TWO_COL_BUTTON_WIDTH, BUTTON_HEIGHT)
-        .build());
+      this.close();
+    }).position((this.width + GuiUtil.PADDING) / 2, this.height - 20 - GuiUtil.PADDING).size(150, 20).build());
   }
 
   @Override
   public void close() {
     this.client.setScreen(this.parent);
-  }
-
-  @Override
-  public void renderBackground(
-      DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
-    renderBasicListBackground(drawContext, mouseX, mouseY, partialTicks, this.list);
   }
 }

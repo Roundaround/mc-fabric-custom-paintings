@@ -3,52 +3,54 @@ package me.roundaround.custompaintings.client.gui.widget;
 import com.mojang.blaze3d.systems.RenderSystem;
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
-import me.roundaround.custompaintings.client.gui.screen.edit.PaintingSelectScreen;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.roundalib.client.gui.GuiUtil;
+import me.roundaround.roundalib.client.gui.layout.Spacing;
+import me.roundaround.roundalib.client.gui.widget.AlwaysSelectedFlowListWidget;
+import me.roundaround.roundalib.client.gui.widget.LabelWidget;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.navigation.NavigationDirection;
-import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
+import net.minecraft.client.gui.widget.DirectionalLayoutWidget;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.texture.Sprite;
-import net.minecraft.text.StringVisitable;
+import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.Language;
 import net.minecraft.util.Util;
-import net.minecraft.util.math.MathHelper;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 @Environment(value = EnvType.CLIENT)
-public class PaintingListWidget
-    extends AlwaysSelectedEntryListWidget<PaintingListWidget.PaintingEntry> {
-  private static final int ITEM_HEIGHT = 36;
-
-  private final PaintingSelectScreen parent;
+public class PaintingListWidget extends AlwaysSelectedFlowListWidget<PaintingListWidget.Entry> {
   private final PaintingEditState state;
+  private final Consumer<PaintingData> onPaintingSelect;
+
+  private Identifier clickedId = null;
+  private long clickedTime = 0L;
 
   public PaintingListWidget(
-      PaintingSelectScreen parent,
       PaintingEditState state,
-      MinecraftClient minecraftClient,
+      MinecraftClient client,
+      int x,
+      int y,
       int width,
       int height,
-      int top,
-      ArrayList<PaintingData> paintings) {
-    super(minecraftClient, width, height, top, ITEM_HEIGHT);
-    this.parent = parent;
-    this.state = state;
+      Consumer<PaintingData> onPaintingSelect
+  ) {
+    super(client, x, y, width, height);
 
-    setPaintings(paintings);
-    setScrollAmount(this.parent.getScrollAmount());
+    this.state = state;
+    this.onPaintingSelect = onPaintingSelect;
   }
 
   public void setPaintings(ArrayList<PaintingData> paintings) {
@@ -57,10 +59,15 @@ public class PaintingListWidget
     boolean selected = false;
 
     for (PaintingData paintingData : paintings) {
-      PaintingEntry entry =
-          paintingData.isEmpty() ? new EmptyPaintingEntry() : new PaintingEntry(paintingData);
+      Entry entry = this.addEntry((index, left, top, width) -> {
+        if (paintingData.isEmpty()) {
+          return new EmptyEntry(index, left, top, width, this.client.textRenderer);
+        }
+        return new PaintingEntry(index, left, top, width, this.client.textRenderer, paintingData,
+            this.state.canStay(paintingData), this.onPaintingSelect
+        );
+      });
 
-      this.addEntry(entry);
       if (!paintingData.isEmpty() && this.state.getCurrentPainting().id() == paintingData.id()) {
         this.setSelected(entry);
         selected = true;
@@ -72,22 +79,28 @@ public class PaintingListWidget
     }
   }
 
+  @Override
+  public void setSelected(Entry entry) {
+    super.setSelected(entry);
+    this.state.setCurrentPainting(entry.getPaintingData());
+  }
+
   public Optional<PaintingData> getSelectedPainting() {
-    PaintingEntry entry = this.getSelectedOrNull();
-    if (entry == null) {
+    Entry selected = this.getSelected();
+    if (selected == null) {
       return Optional.empty();
     }
-    return Optional.of(entry.paintingData);
+    return Optional.of(selected.paintingData);
   }
 
   public void selectPainting(PaintingData paintingData) {
-    Optional<PaintingData> selected = getSelectedPainting();
+    Optional<PaintingData> selected = this.getSelectedPainting();
     if (selected.isPresent() && selected.get().id() == paintingData.id()) {
       return;
     }
 
-    for (PaintingEntry entry : this.children()) {
-      if (entry.paintingData.id() == paintingData.id()) {
+    for (Element child : this.children()) {
+      if (child instanceof Entry entry && entry.paintingData.id() == paintingData.id()) {
         this.setSelected(entry);
         this.ensureVisible(entry);
         return;
@@ -96,224 +109,202 @@ public class PaintingListWidget
   }
 
   public void selectFirst() {
-    if (this.children().size() > 0) {
-      this.setSelected(this.children().get(0));
+    if (this.getEntryCount() > 0) {
+      this.setSelected(this.getEntry(0));
     }
   }
 
   @Override
-  public boolean isFocused() {
-    return parent.getFocused() == this;
+  public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    Entry entry = this.getEntryAtPosition(mouseX, mouseY);
+    if (entry != null) {
+      if (entry.getPaintingData().id().equals(this.clickedId) && Util.getMeasuringTimeMs() - this.clickedTime < 250L) {
+        return entry.mouseDoubleClicked(mouseX, mouseY, button);
+      }
+
+      this.clickedId = entry.getPaintingData().id();
+      this.clickedTime = Util.getMeasuringTimeMs();
+    }
+
+    super.mouseClicked(mouseX, mouseY, button);
+    return true;
   }
 
   @Override
-  public void setSelected(PaintingEntry entry) {
-    super.setSelected(entry);
-    this.state.setCurrentPainting(entry.paintingData);
-  }
-
-  @Override
-  public void setScrollAmount(double amount) {
-    super.setScrollAmount(amount);
-    this.parent.setScrollAmount(amount);
-  }
-
-  @Override
-  protected int getScrollbarPositionX() {
-    return this.width - 6;
-  }
-
-  @Override
-  public int getRowWidth() {
-    return this.width -
-        (Math.max(0, this.getMaxPosition() - (this.getBottom() - this.getY() - 4)) > 0 ? 18 : 12);
-  }
-
-  @Override
-  protected PaintingEntry getNeighboringEntry(NavigationDirection direction) {
-    return this.getNeighboringEntry(direction, (entry) -> !entry.paintingData.isEmpty());
+  protected Entry getNeighboringEntry(NavigationDirection direction) {
+    return this.getNeighboringEntry(direction, (entry) -> !entry.getPaintingData().isEmpty());
   }
 
   @Environment(value = EnvType.CLIENT)
-  public class PaintingEntry extends AlwaysSelectedEntryListWidget.Entry<PaintingEntry> {
-    private final PaintingData paintingData;
+  public static abstract class Entry extends AlwaysSelectedFlowListWidget.Entry {
+    protected static final int HEIGHT = 36;
+
+    protected final PaintingData paintingData;
+
+    public Entry(int index, int left, int top, int width, int contentHeight, PaintingData paintingData) {
+      super(index, left, top, width, contentHeight);
+      this.paintingData = paintingData;
+    }
+
+    public PaintingData getPaintingData() {
+      return this.paintingData;
+    }
+
+    public boolean mouseDoubleClicked(double mouseX, double mouseY, int button) {
+      return false;
+    }
+  }
+
+  @Environment(value = EnvType.CLIENT)
+  public static class PaintingEntry extends Entry {
+    private final Consumer<PaintingData> onSelect;
     private final Sprite sprite;
     private final boolean canStay;
+    private final DirectionalLayoutWidget layout;
+    private final ArrayList<LabelWidget> labels = new ArrayList<>();
 
-    private static Identifier clickedId;
-    private static long time;
+    public PaintingEntry(
+        int index,
+        int left,
+        int top,
+        int width,
+        TextRenderer textRenderer,
+        PaintingData paintingData,
+        boolean canStay,
+        Consumer<PaintingData> onSelect
+    ) {
+      super(index, left, top, width, HEIGHT, paintingData);
 
-    public PaintingEntry(PaintingData paintingData) {
-      this.paintingData = paintingData;
+      this.setMargin(Spacing.of(GuiUtil.PADDING / 2, GuiUtil.PADDING));
+
+      this.onSelect = onSelect;
       this.sprite = CustomPaintingsClientMod.customPaintingManager.getPaintingSprite(paintingData);
-      this.canStay = PaintingListWidget.this.state.canStay(paintingData);
+      this.canStay = canStay;
+
+      this.layout = DirectionalLayoutWidget.vertical();
+      this.layout.setPosition(this.getTextLeft(), this.getContentCenterY());
+      this.layout.getMainPositioner().alignLeft().alignVerticalCenter();
+
+      if (this.getPaintingData().hasLabel()) {
+        this.labels.add(LabelWidget.builder(textRenderer, this.getPaintingData().getLabel(), 0, 0)
+            .hideBackground()
+            .maxWidth(this.getTextWidth())
+            .overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE)
+            .build());
+      }
+
+      MutableText idText = Text.literal("(" + this.getPaintingData().id() + ")");
+      if (this.getPaintingData().hasLabel()) {
+        idText = idText.setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
+      }
+
+      this.labels.add(LabelWidget.builder(textRenderer, idText, 0, 0)
+          .hideBackground()
+          .maxWidth(this.getTextWidth())
+          .overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE)
+          .build());
+
+      this.labels.add(LabelWidget.builder(textRenderer,
+          Text.translatable("custompaintings.painting.dimensions", this.getPaintingData().width(),
+              this.getPaintingData().height()
+          ), 0, 0
+      ).hideBackground().maxWidth(this.getTextWidth()).overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE).build());
+
+      this.labels.forEach((label) -> {
+        this.layout.add(label);
+        this.addDrawableChild(label);
+      });
     }
 
     @Override
-    public void render(
-        DrawContext drawContext,
-        int index,
-        int y,
-        int x,
-        int entryWidth,
-        int entryHeight,
-        int mouseX,
-        int mouseY,
-        boolean hovered,
-        float partialTicks) {
-      int maxHeight = entryHeight - 4;
-      int maxWidth = maxHeight;
+    public void refreshPositions() {
+      this.layout.setPosition(this.getTextLeft(), this.getContentCenterY());
+      this.labels.forEach((label) -> {
+        label.setMaxWidth(this.getTextWidth());
+      });
+      this.layout.refreshPositions();
+    }
 
-      int scaledWidth = paintingData.getScaledWidth(maxWidth, maxHeight);
-      int scaledHeight = paintingData.getScaledHeight(maxWidth, maxHeight);
+    @Override
+    public void renderDecorations(DrawContext context, int mouseX, int mouseY, float delta) {
+      int maxSize = this.getContentHeight();
+
+      int scaledWidth = this.getPaintingData().getScaledWidth(maxSize, maxSize);
+      int scaledHeight = this.getPaintingData().getScaledHeight(maxSize, maxSize);
 
       RenderSystem.setShader(GameRenderer::getPositionColorTexProgram);
-
       RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
       RenderSystem.setShaderTexture(0, this.sprite.getAtlasId());
-      drawContext.drawSprite(x + 4 + (maxWidth - scaledWidth) / 2,
-          y + (entryHeight - scaledHeight) / 2,
-          1,
-          scaledWidth,
-          scaledHeight,
-          sprite);
-
-      TextRenderer textRenderer = PaintingListWidget.this.client.textRenderer;
-      int textWidth = entryWidth - 4 - maxWidth - 4 - 8;
-      int posX = x + maxWidth + 4 + 4;
-      int posY = y + MathHelper.ceil((entryHeight - 3 * textRenderer.fontHeight - 2 * 2) / 2f);
-
-      if (paintingData.hasLabel()) {
-        StringVisitable label = paintingData.getLabel();
-        if (textRenderer.getWidth(label) > textWidth) {
-          Text ellipsis = Text.literal("...");
-          label = StringVisitable.concat(textRenderer.trimToWidth(label,
-              textWidth - textRenderer.getWidth(ellipsis)), ellipsis);
-        }
-
-        drawContext.drawText(textRenderer,
-            Language.getInstance().reorder(label),
-            posX,
-            posY,
-            0xFFFFFFFF,
-            false);
-
-        posY += textRenderer.fontHeight + 2;
-      }
-
-      StringVisitable id = Text.literal("(" + paintingData.id().toString() + ")")
-          .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
-      if (textRenderer.getWidth(id) > textWidth) {
-        Text ellipsis =
-            Text.literal("...").setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
-        id = StringVisitable.concat(textRenderer.trimToWidth(id,
-            textWidth - textRenderer.getWidth(ellipsis)), ellipsis);
-      }
-
-      drawContext.drawText(textRenderer,
-          Language.getInstance().reorder(id),
-          posX,
-          posY,
-          0xFFFFFFFF,
-          false);
-
-      posY += textRenderer.fontHeight + 2;
-
-      drawContext.drawText(textRenderer,
-          Text.translatable("custompaintings.painting.dimensions",
-              paintingData.width(),
-              paintingData.height()),
-          posX,
-          posY,
-          0xFFFFFFFF,
-          false);
+      context.drawSprite(this.getContentLeft() + (maxSize - scaledWidth) / 2,
+          this.getContentTop() + (maxSize - scaledHeight) / 2, 1, scaledWidth, scaledHeight, this.sprite
+      );
     }
 
     @Override
     public Text getNarration() {
-      return !this.paintingData.hasLabel()
-          ? Text.literal(this.paintingData.id().toString())
-          : this.paintingData.getLabel();
+      return !this.paintingData.hasLabel() ?
+          Text.literal(this.paintingData.id().toString()) :
+          this.paintingData.getLabel();
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-      PaintingListWidget.this.setSelected(this);
-
+    public boolean mouseDoubleClicked(double mouseX, double mouseY, int button) {
       if (this.canStay) {
-        if (this.paintingData.id().equals(clickedId) && Util.getMeasuringTimeMs() - time < 250L) {
-          PaintingListWidget.this.parent.playClickSound();
-          PaintingListWidget.this.parent.saveSelection(this.paintingData);
-          return true;
-        }
-
-        clickedId = this.paintingData.id();
-        time = Util.getMeasuringTimeMs();
+        this.onSelect.accept(this.paintingData);
+        return true;
       }
 
-      return true;
+      return false;
     }
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-      if (PaintingListWidget.this.getSelectedOrNull() != this) {
-        return false;
+      if (keyCode == GLFW.GLFW_KEY_ENTER && this.canStay) {
+        this.onSelect.accept(this.paintingData);
+        return true;
       }
 
-      switch (keyCode) {
-        case GLFW.GLFW_KEY_ENTER:
-          if (this.canStay) {
-            PaintingListWidget.this.parent.saveSelection(this.paintingData);
-            return true;
-          }
-          break;
-      }
+      return false;
+    }
 
-      return super.keyPressed(keyCode, scanCode, modifiers);
+    protected int getTextLeft() {
+      return this.getContentLeft() + this.getContentHeight() + GuiUtil.PADDING;
+    }
+
+    protected int getTextWidth() {
+      return this.getContentRight() - this.getTextLeft();
     }
   }
 
   @Environment(value = EnvType.CLIENT)
-  public class EmptyPaintingEntry extends PaintingEntry {
-    private Text text = Text.translatable("custompaintings.painting.empty");
+  public static class EmptyEntry extends Entry {
+    private final LabelWidget label;
 
-    public EmptyPaintingEntry() {
-      super(PaintingData.EMPTY);
-    }
+    public EmptyEntry(int index, int left, int top, int width, TextRenderer textRenderer) {
+      super(index, left, top, width, HEIGHT, PaintingData.EMPTY);
 
-    @Override
-    public void render(
-        DrawContext drawContext,
-        int index,
-        int y,
-        int x,
-        int entryWidth,
-        int entryHeight,
-        int mouseX,
-        int mouseY,
-        boolean hovered,
-        float partialTicks) {
-      TextRenderer textRenderer = PaintingListWidget.this.client.textRenderer;
-      drawContext.drawCenteredTextWithShadow(textRenderer,
-          text,
-          x + entryWidth / 2,
-          y + (entryHeight - textRenderer.fontHeight) / 2,
-          0xFFFFFFFF);
+      this.label = LabelWidget.builder(textRenderer, Text.translatable("custompaintings.painting.empty"),
+              this.getContentCenterX(), this.getContentCenterY()
+          )
+          .justifiedCenter()
+          .alignedMiddle()
+          .hideBackground()
+          .maxWidth(this.getContentWidth())
+          .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
+          .build();
+
+      this.addDrawableChild(this.label);
     }
 
     @Override
     public Text getNarration() {
-      return text;
+      return this.label.getText();
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-      return false;
-    }
-
-    @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-      return false;
+    public void refreshPositions() {
+      this.label.setPosition(this.getContentCenterX(), this.getContentCenterY());
+      this.label.setMaxWidth(this.getContentWidth());
     }
   }
 }

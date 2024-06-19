@@ -74,7 +74,7 @@ public class CustomPaintingManager implements IdentifiableResourceReloadListener
                 try (InputStream stream = resourcePack.openRoot("custompaintings.json").get()) {
                   try (JsonReader reader = new JsonReader(new InputStreamReader(stream,
                       StandardCharsets.UTF_8))) {
-                    Pack pack = readPack(reader, resourcePack.getName());
+                    Pack pack = readPack(reader, resourcePack.getInfo().title().getString());
 
                     if (packs.containsKey(pack.id())) {
                       throw new ParseException("Multiple packs detected with id '" + pack.id() +

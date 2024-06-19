@@ -1,10 +1,11 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import me.roundaround.custompaintings.client.gui.DrawUtils;
 import me.roundaround.custompaintings.client.gui.screen.manage.MigrationsScreen;
 import me.roundaround.custompaintings.client.gui.screen.manage.PaintingPacksTracker.MigrationGroup;
 import me.roundaround.custompaintings.util.Migration;
+import me.roundaround.roundalib.client.gui.GuiUtil;
+import me.roundaround.roundalib.client.gui.layout.TextAlignment;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
@@ -27,7 +28,8 @@ public class MigrationListWidget extends AlwaysSelectedEntryListWidget<Migration
   private final EmptyEntry emptyEntry;
 
   public MigrationListWidget(
-      MigrationsScreen parent, MinecraftClient minecraftClient, int width, int height, int y) {
+      MigrationsScreen parent, MinecraftClient minecraftClient, int width, int height, int y
+  ) {
     super(minecraftClient, width, height, y, ITEM_HEIGHT);
     this.parent = parent;
     this.emptyEntry = new EmptyEntry(minecraftClient);
@@ -72,8 +74,7 @@ public class MigrationListWidget extends AlwaysSelectedEntryListWidget<Migration
 
   @Environment(value = EnvType.CLIENT)
   public class EmptyEntry extends Entry {
-    private static final Text EMPTY_LIST_TEXT =
-        Text.translatable("custompaintings.migrations.empty");
+    private static final Text EMPTY_LIST_TEXT = Text.translatable("custompaintings.migrations.empty");
 
     private final MinecraftClient client;
 
@@ -92,12 +93,12 @@ public class MigrationListWidget extends AlwaysSelectedEntryListWidget<Migration
         int mouseX,
         int mouseY,
         boolean hovered,
-        float partialTicks) {
-      drawContext.drawCenteredTextWithShadow(this.client.textRenderer,
-          EMPTY_LIST_TEXT,
+        float partialTicks
+    ) {
+      drawContext.drawCenteredTextWithShadow(this.client.textRenderer, EMPTY_LIST_TEXT,
           this.client.currentScreen.width / 2,
-          y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f),
-          0xFFFFFF);
+          y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f), 0xFFFFFF
+      );
     }
 
     @Override
@@ -129,39 +130,30 @@ public class MigrationListWidget extends AlwaysSelectedEntryListWidget<Migration
         int mouseX,
         int mouseY,
         boolean hovered,
-        float partialTicks) {
+        float partialTicks
+    ) {
       RenderSystem.setShaderColor(0.5f, 0.5f, 0.5f, 1f);
       drawContext.drawHorizontalLine(x + 2, x - 6 + entryWidth - 1, y + 1, 0xFFFFFFFF);
-      drawContext.drawHorizontalLine(x + 2,
-          x - 6 + entryWidth - 1,
-          y - 1 + entryHeight - 1,
-          0xFFFFFFFF);
+      drawContext.drawHorizontalLine(x + 2, x - 6 + entryWidth - 1, y - 1 + entryHeight - 1, 0xFFFFFFFF);
       RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
 
       boolean hasName = this.packName != null && !this.packName.isEmpty();
 
       if (hasName) {
-        DrawUtils.drawTruncatedCenteredTextWithShadow(drawContext,
-            this.client.textRenderer,
-            Text.literal(this.packName),
+        GuiUtil.drawTruncatedText(drawContext, this.client.textRenderer, Text.literal(this.packName),
             this.client.currentScreen.width / 2,
-            y + MathHelper.ceil(entryHeight / 2) - this.client.textRenderer.fontHeight - 1,
-            0xFFFFFF,
-            entryWidth - 4);
+            y + MathHelper.ceil(entryHeight / 2) - this.client.textRenderer.fontHeight - 1, 0xFFFFFF, true,
+            entryWidth - 4, TextAlignment.CENTER
+        );
       }
 
-      int yPos = hasName
-          ? y + MathHelper.ceil(entryHeight / 2) + 1
-          : y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f);
-      DrawUtils.drawTruncatedCenteredTextWithShadow(drawContext,
-          this.client.textRenderer,
-          Text.literal(this.packId)
-              .setStyle(Style.EMPTY.withItalic(hasName)
-                  .withColor(hasName ? Formatting.GRAY : Formatting.WHITE)),
-          this.client.currentScreen.width / 2,
-          yPos,
-          0xFFFFFF,
-          entryWidth - 4);
+      int yPos = hasName ?
+          y + MathHelper.ceil(entryHeight / 2) + 1 :
+          y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f);
+      GuiUtil.drawTruncatedText(drawContext, this.client.textRenderer, Text.literal(this.packId)
+              .setStyle(Style.EMPTY.withItalic(hasName).withColor(hasName ? Formatting.GRAY : Formatting.WHITE)),
+          this.client.currentScreen.width / 2, yPos, 0xFFFFFF, true, entryWidth - 4, TextAlignment.CENTER
+      );
     }
 
     @Override
@@ -197,30 +189,20 @@ public class MigrationListWidget extends AlwaysSelectedEntryListWidget<Migration
         int mouseX,
         int mouseY,
         boolean hovered,
-        float partialTicks) {
-      DrawUtils.drawTruncatedCenteredTextWithShadow(drawContext,
-          this.client.textRenderer,
-          Text.literal(this.migration.description()),
-          this.client.currentScreen.width / 2,
-          y + 1,
-          0xFFFFFF,
-          entryWidth - 4);
-      DrawUtils.drawTruncatedCenteredTextWithShadow(drawContext,
-          this.client.textRenderer,
-          Text.literal(this.migration.id().toString())
-              .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)),
-          this.client.currentScreen.width / 2,
-          y + this.client.textRenderer.fontHeight + 3,
-          0xFFFFFF,
-          entryWidth - 4);
-      DrawUtils.drawTruncatedCenteredTextWithShadow(drawContext,
-          this.client.textRenderer,
-          Text.translatable("custompaintings.migrations.count",
-              String.valueOf(this.migration.pairs().size())),
-          this.client.currentScreen.width / 2,
-          y + 2 * this.client.textRenderer.fontHeight + 3,
-          0xFFFFFF,
-          entryWidth - 4);
+        float partialTicks
+    ) {
+      GuiUtil.drawTruncatedText(drawContext, this.client.textRenderer, Text.literal(this.migration.description()),
+          this.client.currentScreen.width / 2, y + 1, 0xFFFFFF, true, entryWidth - 4, TextAlignment.CENTER
+      );
+      GuiUtil.drawTruncatedText(drawContext, this.client.textRenderer, Text.literal(this.migration.id().toString())
+              .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)), this.client.currentScreen.width / 2,
+          y + this.client.textRenderer.fontHeight + 3, 0xFFFFFF, true, entryWidth - 4, TextAlignment.CENTER
+      );
+      GuiUtil.drawTruncatedText(drawContext, this.client.textRenderer,
+          Text.translatable("custompaintings.migrations.count", String.valueOf(this.migration.pairs().size())),
+          this.client.currentScreen.width / 2, y + 2 * this.client.textRenderer.fontHeight + 3, 0xFFFFFF, true,
+          entryWidth - 4, TextAlignment.CENTER
+      );
     }
 
     @Override

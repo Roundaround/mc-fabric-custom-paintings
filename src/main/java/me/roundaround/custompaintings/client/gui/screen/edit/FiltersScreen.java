@@ -2,13 +2,23 @@ package me.roundaround.custompaintings.client.gui.screen.edit;
 
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.widget.FilterListWidget;
-import net.minecraft.client.gui.DrawContext;
+import me.roundaround.roundalib.client.gui.GuiUtil;
+import me.roundaround.roundalib.client.gui.widget.FullBodyWrapperWidget;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.DirectionalLayoutWidget;
+import net.minecraft.client.gui.widget.ThreePartsLayoutWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
-import org.lwjgl.glfw.GLFW;
+
+import java.util.Objects;
 
 public class FiltersScreen extends PaintingEditScreen {
+  private static final int FOOTER_BUTTON_WIDTH = 150;
+  private static final int FOOTER_BUTTON_HEIGHT = 20;
+  private static final int FOOTER_BUTTON_SPACING = GuiUtil.PADDING * 2;
+
+  protected final ThreePartsLayoutWidget layout = new ThreePartsLayoutWidget(this);
+
   private FilterListWidget filtersListWidget;
 
   public FiltersScreen(PaintingEditState state) {
@@ -17,58 +27,40 @@ public class FiltersScreen extends PaintingEditScreen {
 
   @Override
   public void init() {
-    this.filtersListWidget = new FilterListWidget(this.state,
-        this.client,
-        this.filtersListWidget,
-        this.width,
-        this.height - this.getHeaderHeight() - this.getFooterHeight(),
-        this.getHeaderHeight());
+    this.layout.addHeader(this.title, this.textRenderer);
 
-    ButtonWidget resetButton =
-        ButtonWidget.builder(Text.translatable("custompaintings.filter.reset"), (button) -> {
-              this.state.getFilters().reset();
-              this.filtersListWidget.updateFilters();
-            })
-            .position(width / 2 - TWO_COL_BUTTON_WIDTH - 2, height - BUTTON_HEIGHT - 10)
-            .size(TWO_COL_BUTTON_WIDTH, BUTTON_HEIGHT)
-            .build();
+    this.filtersListWidget = new FilterListWidget(this.state, this.client, this.layout);
+    this.layout.addBody(new FullBodyWrapperWidget(this.filtersListWidget, this.layout));
 
-    ButtonWidget doneButton = ButtonWidget.builder(ScreenTexts.DONE, (button) -> {
-          this.client.setScreen(new PaintingSelectScreen(this.state));
-        })
-        .position(width / 2 + 2, height - BUTTON_HEIGHT - 10)
-        .size(TWO_COL_BUTTON_WIDTH, BUTTON_HEIGHT)
-        .build();
+    DirectionalLayoutWidget row = DirectionalLayoutWidget.horizontal().spacing(FOOTER_BUTTON_SPACING);
+    this.layout.addFooter(row);
 
-    addSelectableChild(this.filtersListWidget);
-    addDrawableChild(resetButton);
-    addDrawableChild(doneButton);
+    row.add(ButtonWidget.builder(Text.translatable("custompaintings.filter.reset"), this::resetFilters)
+        .size(FOOTER_BUTTON_WIDTH, FOOTER_BUTTON_HEIGHT)
+        .build());
+    row.add(
+        ButtonWidget.builder(ScreenTexts.DONE, this::close).size(FOOTER_BUTTON_WIDTH, FOOTER_BUTTON_HEIGHT).build());
+
+    this.layout.forEachChild(this::addDrawableChild);
+    this.initTabNavigation();
   }
 
   @Override
-  public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-    switch (keyCode) {
-      case GLFW.GLFW_KEY_ESCAPE:
-        playClickSound();
-        this.client.setScreen(new PaintingSelectScreen(this.state));
-        return true;
-    }
-
-    return super.keyPressed(keyCode, scanCode, modifiers);
+  protected void initTabNavigation() {
+    this.layout.refreshPositions();
   }
 
   @Override
-  public void tick() {
-    this.filtersListWidget.tick();
+  public void close() {
+    Objects.requireNonNull(this.client).setScreen(new PaintingSelectScreen(this.state));
   }
 
-  @Override
-  public void renderBackground(
-      DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
-    this.renderBasicListBackground(drawContext,
-        mouseX,
-        mouseY,
-        partialTicks,
-        this.filtersListWidget);
+  protected void close(ButtonWidget button) {
+    this.close();
+  }
+
+  protected void resetFilters(ButtonWidget button) {
+    this.state.getFilters().reset();
+    this.filtersListWidget.updateFilters();
   }
 }

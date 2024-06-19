@@ -1,16 +1,16 @@
 package me.roundaround.custompaintings.client.gui.screen.manage;
 
-import me.roundaround.custompaintings.client.gui.screen.BaseScreen;
 import me.roundaround.custompaintings.client.gui.widget.MismatchedPaintingListWidget;
 import me.roundaround.custompaintings.util.MismatchedPainting;
-import net.minecraft.client.gui.DrawContext;
+import me.roundaround.roundalib.client.gui.GuiUtil;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 
 import java.util.HashSet;
 
-public class MismatchedPaintingsScreen extends BaseScreen {
+public class MismatchedPaintingsScreen extends Screen {
   private final ManagePaintingsScreen parent;
 
   private MismatchedPaintingListWidget list;
@@ -28,30 +28,16 @@ public class MismatchedPaintingsScreen extends BaseScreen {
 
   @Override
   public void init() {
-    this.list = new MismatchedPaintingListWidget(this,
-        this.client,
-        this.width,
-        this.height - this.getHeaderHeight() - this.getFooterHeight(),
-        this.getHeaderHeight());
+    this.list = new MismatchedPaintingListWidget(this, this.client, this.width, this.height - 33 - 33, 33);
     addSelectableChild(this.list);
 
     addDrawableChild(ButtonWidget.builder(ScreenTexts.CANCEL, (button) -> {
-          this.close();
-        })
-        .position((this.width - ONE_COL_BUTTON_WIDTH) / 2,
-            this.height - BUTTON_HEIGHT - HEADER_FOOTER_PADDING)
-        .size(ONE_COL_BUTTON_WIDTH, BUTTON_HEIGHT)
-        .build());
+      this.close();
+    }).position((this.width - 200) / 2, this.height - 20 - GuiUtil.PADDING).size(200, 20).build());
   }
 
   @Override
   public void close() {
     this.client.setScreen(this.parent);
-  }
-
-  @Override
-  public void renderBackground(
-      DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
-    renderBasicListBackground(drawContext, mouseX, mouseY, partialTicks, this.list);
   }
 }

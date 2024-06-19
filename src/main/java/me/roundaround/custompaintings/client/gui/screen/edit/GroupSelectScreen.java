@@ -2,14 +2,21 @@ package me.roundaround.custompaintings.client.gui.screen.edit;
 
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.widget.GroupListWidget;
-import net.minecraft.client.gui.DrawContext;
+import me.roundaround.roundalib.client.gui.widget.FullBodyWrapperWidget;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.ThreePartsLayoutWidget;
+import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.screen.ScreenTexts;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
-import org.lwjgl.glfw.GLFW;
+
+import java.util.Objects;
 
 public class GroupSelectScreen extends PaintingEditScreen {
-  private GroupListWidget groupsListWidget;
+  private static final int FOOTER_BUTTON_WIDTH = 200;
+  private static final int FOOTER_BUTTON_HEIGHT = 20;
+
+  protected final ThreePartsLayoutWidget layout = new ThreePartsLayoutWidget(this);
 
   public GroupSelectScreen(PaintingEditState state) {
     super(Text.translatable("custompaintings.group.title"), state);
@@ -17,41 +24,36 @@ public class GroupSelectScreen extends PaintingEditScreen {
 
   @Override
   public void init() {
-    this.groupsListWidget = new GroupListWidget(this,
-        this.client,
-        this.width,
-        this.height - this.getHeaderHeight() - this.getFooterHeight(),
-        this.getHeaderHeight(),
-        (id) -> {
-          this.state.setCurrentGroup(id);
-          this.client.setScreen(new PaintingSelectScreen(this.state));
-        });
-    this.groupsListWidget.setGroups(this.state.getGroups());
+    this.layout.addHeader(this.title, this.textRenderer);
 
-    addSelectableChild(this.groupsListWidget);
-    addDrawableChild(ButtonWidget.builder(ScreenTexts.CANCEL, (button) -> {
-          saveEmpty();
-        })
-        .position((this.width - ONE_COL_BUTTON_WIDTH) / 2, this.height - BUTTON_HEIGHT - 10)
-        .size(ONE_COL_BUTTON_WIDTH, BUTTON_HEIGHT)
-        .build());
+    GroupListWidget groupsListWidget = new GroupListWidget(this.client, this.layout, this::selectGroup);
+    groupsListWidget.setGroups(this.state.getGroups());
+    this.layout.addBody(groupsListWidget);
+
+    this.layout.addFooter(
+        ButtonWidget.builder(ScreenTexts.CANCEL, this::close).size(FOOTER_BUTTON_WIDTH, FOOTER_BUTTON_HEIGHT).build());
   }
 
   @Override
-  public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-    switch (keyCode) {
-      case GLFW.GLFW_KEY_ESCAPE:
-        playClickSound();
-        saveEmpty();
-        return true;
-    }
-
-    return super.keyPressed(keyCode, scanCode, modifiers);
+  protected void initTabNavigation() {
+    this.layout.refreshPositions();
   }
 
   @Override
-  public void renderBackground(
-      DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
-    renderBasicListBackground(drawContext, mouseX, mouseY, partialTicks, this.groupsListWidget);
+  public void close() {
+    this.saveEmpty();
+    super.close();
+  }
+
+  protected void close(ButtonWidget button) {
+    this.close();
+  }
+
+  protected void selectGroup(String id) {
+    this.state.setCurrentGroup(id);
+    Objects.requireNonNull(this.client)
+        .getSoundManager()
+        .play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1f));
+    Objects.requireNonNull(this.client).setScreen(new PaintingSelectScreen(this.state));
   }
 }

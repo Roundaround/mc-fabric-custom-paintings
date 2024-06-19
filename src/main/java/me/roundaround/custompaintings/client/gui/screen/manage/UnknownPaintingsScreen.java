@@ -1,17 +1,17 @@
 package me.roundaround.custompaintings.client.gui.screen.manage;
 
-import me.roundaround.custompaintings.client.gui.screen.BaseScreen;
 import me.roundaround.custompaintings.client.gui.widget.UnknownPaintingListWidget;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.util.UnknownPainting;
-import net.minecraft.client.gui.DrawContext;
+import me.roundaround.roundalib.client.gui.GuiUtil;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 
 import java.util.HashSet;
 
-public class UnknownPaintingsScreen extends BaseScreen {
+public class UnknownPaintingsScreen extends Screen {
   private final ManagePaintingsScreen parent;
 
   private UnknownPaintingListWidget list;
@@ -78,53 +78,31 @@ public class UnknownPaintingsScreen extends BaseScreen {
 
   @Override
   public void init() {
-    this.list = new UnknownPaintingListWidget(this,
-        this.client,
-        this.width,
-        this.height - this.getHeaderHeight() - this.getFooterHeight(),
-        this.getHeaderHeight());
+    this.list = new UnknownPaintingListWidget(this, this.client, this.width, this.height - 33 - 33, 33);
     addSelectableChild(this.list);
 
-    this.reassignButton =
-        ButtonWidget.builder(Text.translatable("custompaintings.unknown.reassign"), (button) -> {
-              reassignSelection();
-            })
-            .position(
-                (this.width - THREE_COL_BUTTON_WIDTH) / 2 - THREE_COL_BUTTON_WIDTH - BUTTON_PADDING,
-                this.height - BUTTON_HEIGHT - HEADER_FOOTER_PADDING)
-            .size(THREE_COL_BUTTON_WIDTH, BUTTON_HEIGHT)
-            .build();
+    this.reassignButton = ButtonWidget.builder(Text.translatable("custompaintings.unknown.reassign"), (button) -> {
+          reassignSelection();
+        })
+        .position((this.width - 120) / 2 - 120 - GuiUtil.PADDING, this.height - 20 - GuiUtil.PADDING)
+        .size(120, 20)
+        .build();
     this.reassignButton.active = false;
     addDrawableChild(this.reassignButton);
 
-    this.removeButton =
-        ButtonWidget.builder(Text.translatable("custompaintings.unknown.remove"), (button) -> {
-              removeSelection();
-            })
-            .position((this.width - THREE_COL_BUTTON_WIDTH) / 2,
-                this.height - BUTTON_HEIGHT - HEADER_FOOTER_PADDING)
-            .size(THREE_COL_BUTTON_WIDTH, BUTTON_HEIGHT)
-            .build();
+    this.removeButton = ButtonWidget.builder(Text.translatable("custompaintings.unknown.remove"), (button) -> {
+      removeSelection();
+    }).position((this.width - 120) / 2, this.height - 20 - GuiUtil.PADDING).size(120, 20).build();
     this.removeButton.active = false;
     addDrawableChild(this.removeButton);
 
     addDrawableChild(ButtonWidget.builder(ScreenTexts.CANCEL, (button) -> {
-          this.close();
-        })
-        .position((this.width + THREE_COL_BUTTON_WIDTH) / 2 + BUTTON_PADDING,
-            this.height - BUTTON_HEIGHT - HEADER_FOOTER_PADDING)
-        .size(THREE_COL_BUTTON_WIDTH, BUTTON_HEIGHT)
-        .build());
+      this.close();
+    }).position((this.width + 120) / 2 + GuiUtil.PADDING, this.height - 20 - GuiUtil.PADDING).size(120, 20).build());
   }
 
   @Override
   public void close() {
     this.client.setScreen(this.parent);
-  }
-
-  @Override
-  public void renderBackground(
-      DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
-    renderBasicListBackground(drawContext, mouseX, mouseY, partialTicks, this.list);
   }
 }

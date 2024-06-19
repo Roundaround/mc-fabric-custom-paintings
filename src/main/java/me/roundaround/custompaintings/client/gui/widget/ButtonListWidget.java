@@ -1,68 +1,50 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
-import com.google.common.collect.ImmutableList;
+import me.roundaround.roundalib.client.gui.widget.FlowListWidget;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.Element;
-import net.minecraft.client.gui.Selectable;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.ElementListWidget;
+import net.minecraft.client.gui.widget.ThreePartsLayoutWidget;
 import net.minecraft.text.Text;
 
-import java.util.List;
-
 @Environment(value = EnvType.CLIENT)
-public class ButtonListWidget extends ElementListWidget<ButtonListWidget.Entry> {
-  private static final int ITEM_HEIGHT = 25;
+public class ButtonListWidget extends FlowListWidget<ButtonListWidget.Entry> {
   private static final int BUTTON_WIDTH = 204;
   private static final int BUTTON_HEIGHT = 20;
 
-  public ButtonListWidget(
-      MinecraftClient client, int width, int height, int y) {
-    super(client, width, height, y, ITEM_HEIGHT);
+  public ButtonListWidget(MinecraftClient client, ThreePartsLayoutWidget layout) {
+    super(client, layout);
   }
 
   public void addEntry(Text text, ButtonWidget.PressAction action) {
-    this.addEntry(new Entry(ButtonWidget.builder(text, action)
-        .position((this.width - BUTTON_WIDTH) / 2, 0)
-        .size(BUTTON_WIDTH, BUTTON_HEIGHT)
-        .build()));
+    this.addEntry((index, x, y, width) -> new Entry(text, action, index, x, y, width));
   }
 
   @Environment(value = EnvType.CLIENT)
-  public static class Entry extends ElementListWidget.Entry<Entry> {
+  public static class Entry extends FlowListWidget.Entry {
     private final ButtonWidget button;
 
-    public Entry(ButtonWidget button) {
-      this.button = button;
+    public Entry(Text text, ButtonWidget.PressAction action, int index, int x, int y, int width) {
+      super(index, x, y, width, BUTTON_HEIGHT);
+      this.button = ButtonWidget.builder(text, action)
+          .position(this.getButtonX(), this.getButtonY())
+          .size(BUTTON_WIDTH, BUTTON_HEIGHT)
+          .build();
+      this.addDetectedCapabilityChild(this.button);
     }
 
     @Override
-    public void render(
-        DrawContext drawContext,
-        int index,
-        int y,
-        int x,
-        int entryWidth,
-        int entryHeight,
-        int mouseX,
-        int mouseY,
-        boolean hovered,
-        float partialTicks) {
-      this.button.setY(y + (entryHeight - BUTTON_HEIGHT) / 2);
-      this.button.render(drawContext, mouseX, mouseY, partialTicks);
+    public void refreshPositions() {
+      this.button.setPosition(this.getButtonX(), this.getButtonY());
     }
 
-    @Override
-    public List<? extends Element> children() {
-      return ImmutableList.of(this.button);
+    private int getButtonX() {
+      return this.getContentCenterX() - BUTTON_WIDTH / 2;
     }
 
-    @Override
-    public List<? extends Selectable> selectableChildren() {
-      return ImmutableList.of(this.button);
+    private int getButtonY() {
+      return this.getContentCenterY() - BUTTON_HEIGHT / 2;
     }
   }
 }
