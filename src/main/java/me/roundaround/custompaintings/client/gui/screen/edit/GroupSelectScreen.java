@@ -27,6 +27,9 @@ public class GroupSelectScreen extends PaintingEditScreen {
     this.layout.addBody(groupsListWidget);
 
     this.layout.addFooter(ButtonWidget.builder(ScreenTexts.CANCEL, this::close).build());
+
+    this.layout.forEachChild(this::addDrawableChild);
+    this.initTabNavigation();
   }
 
   @Override
