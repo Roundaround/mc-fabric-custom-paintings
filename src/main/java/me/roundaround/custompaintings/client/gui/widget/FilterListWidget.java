@@ -3,6 +3,7 @@ package me.roundaround.custompaintings.client.gui.widget;
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.roundalib.client.gui.GuiUtil;
 import me.roundaround.roundalib.client.gui.widget.FlowListWidget;
+import me.roundaround.roundalib.client.gui.widget.IntSliderWidget;
 import me.roundaround.roundalib.client.gui.widget.LabelWidget;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -13,10 +14,10 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.gui.widget.ThreePartsLayoutWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
+import net.minecraft.util.math.MathHelper;
 
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 @Environment(value = EnvType.CLIENT)
@@ -56,18 +57,17 @@ public class FilterListWidget extends FlowListWidget<FilterListWidget.Entry> {
         () -> state.getFilters().getCanStayOnly(), (value) -> state.getFilters().setCanStayOnly(value)
     ));
 
-    this.addEntry((index, left, top, width) -> new IntRangeFilterEntry(index, left, top, width,
-        (value) -> Text.translatable("custompaintings.filter.minwidth", value),
-        (value) -> Text.translatable("custompaintings.filter.maxwidth", value), () -> state.getFilters().getMinWidth(),
-        () -> state.getFilters().getMaxWidth(), (value) -> state.getFilters().setMinWidth(value),
-        (value) -> state.getFilters().setMaxWidth(value), 1, 32
-    ));
+    this.addEntry(
+        (index, left, top, width) -> new SizeRangeEntry(index, left, top, width, () -> state.getFilters().getMinWidth(),
+            () -> state.getFilters().getMaxWidth(), (value) -> state.getFilters().setMinWidth(value),
+            (value) -> state.getFilters().setMaxWidth(value), "custompaintings.filter.minwidth",
+            "custompaintings.filter.maxwidth"
+        ));
 
-    this.addEntry((index, left, top, width) -> new IntRangeFilterEntry(index, left, top, width,
-        (value) -> Text.translatable("custompaintings.filter.minheight", value),
-        (value) -> Text.translatable("custompaintings.filter.maxheight", value),
+    this.addEntry((index, left, top, width) -> new SizeRangeEntry(index, left, top, width,
         () -> state.getFilters().getMinHeight(), () -> state.getFilters().getMaxHeight(),
-        (value) -> state.getFilters().setMinHeight(value), (value) -> state.getFilters().setMaxHeight(value), 1, 32
+        (value) -> state.getFilters().setMinHeight(value), (value) -> state.getFilters().setMaxHeight(value),
+        "custompaintings.filter.minheight", "custompaintings.filter.maxheight"
     ));
   }
 
@@ -241,50 +241,50 @@ public class FilterListWidget extends FlowListWidget<FilterListWidget.Entry> {
   }
 
   @Environment(value = EnvType.CLIENT)
-  public static class IntRangeFilterEntry extends Entry {
-    private final Supplier<Integer> getLow;
-    private final Supplier<Integer> getHigh;
+  public static class SizeRangeEntry extends Entry {
     private final IntSliderWidget lowSlider;
     private final IntSliderWidget highSlider;
+    private final Supplier<Integer> lowGetter;
+    private final Supplier<Integer> highGetter;
+    private final Consumer<Integer> lowSetter;
+    private final Consumer<Integer> highSetter;
 
-    public IntRangeFilterEntry(
+    public SizeRangeEntry(
         int index,
         int left,
         int top,
         int width,
-        Function<Integer, Text> lowLabelFactory,
-        Function<Integer, Text> highLabelFactory,
-        Supplier<Integer> getLow,
-        Supplier<Integer> getHigh,
-        Consumer<Integer> setLow,
-        Consumer<Integer> setHigh,
-        int min,
-        int max
+        Supplier<Integer> lowGetter,
+        Supplier<Integer> highGetter,
+        Consumer<Integer> lowSetter,
+        Consumer<Integer> highSetter,
+        String lowI18nKey,
+        String highI18nKey
     ) {
       super(index, left, top, width, HEIGHT);
 
-      this.getLow = getLow;
-      this.getHigh = getHigh;
+      this.lowGetter = lowGetter;
+      this.highGetter = highGetter;
+      this.lowSetter = lowSetter;
+      this.highSetter = highSetter;
 
-      this.lowSlider = new IntSliderWidget(this.getControlLeft(), this.getContentTop(), this.getHalfControlWidth(),
-          this.getContentHeight(), this.getLow.get(), min, max, lowLabelFactory, setLow
-      );
+      this.lowSlider = this.addDrawableAndSelectableChild(
+          new IntSliderWidget(this.getControlLeft(), this.getContentTop(), this.getHalfControlWidth(),
+              this.getContentHeight(), this.lowGetter.get(), 1, 32, this::stepLow, this::onLowSliderChange,
+              (value) -> Text.translatable(lowI18nKey, value)
+          ));
 
-      this.addChild(this.lowSlider);
-      this.addSelectableChild(this.lowSlider);
-
-      this.highSlider = new IntSliderWidget(this.getRightControlLeft(), this.getContentTop(),
-          this.getHalfControlWidth(), this.getContentHeight(), this.getHigh.get(), min, max, highLabelFactory, setHigh
-      );
-
-      this.addChild(this.highSlider);
-      this.addSelectableChild(this.highSlider);
+      this.highSlider = this.addDrawableAndSelectableChild(
+          new IntSliderWidget(this.getRightControlLeft(), this.getContentTop(), this.getHalfControlWidth(),
+              this.getContentHeight(), this.highGetter.get(), 1, 32, this::stepHigh, this::onHighSliderChange,
+              (value) -> Text.translatable(highI18nKey, value)
+          ));
     }
 
     @Override
     public void resetToFilterValue() {
-      this.lowSlider.setValue(this.getLow.get());
-      this.highSlider.setValue(this.getHigh.get());
+      this.lowSlider.setIntValue(this.lowGetter.get());
+      this.highSlider.setIntValue(this.highGetter.get());
     }
 
     @Override
@@ -295,6 +295,29 @@ public class FilterListWidget extends FlowListWidget<FilterListWidget.Entry> {
       this.highSlider.setDimensionsAndPosition(this.getHalfControlWidth(), this.getContentHeight(),
           this.getRightControlLeft(), this.getContentTop()
       );
+    }
+
+    private int stepLow(int sign) {
+      return step(this.lowSlider.getIntValue(), sign);
+    }
+
+    private int stepHigh(int sign) {
+      return step(this.highSlider.getIntValue(), sign);
+    }
+
+    private void onLowSliderChange(int value) {
+      this.lowSetter.accept(value);
+    }
+
+    private void onHighSliderChange(int value) {
+      this.highSetter.accept(value);
+    }
+
+    private static int step(int from, int sign) {
+      if (from == 1 && sign == 1) {
+        return 4;
+      }
+      return MathHelper.clamp(from + 4 * sign, 1, 32);
     }
   }
 }
