@@ -1,6 +1,5 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
-import com.google.common.collect.ImmutableList;
 import com.mojang.blaze3d.systems.RenderSystem;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
@@ -10,66 +9,63 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData.MismatchedCategory;
 import me.roundaround.custompaintings.util.MismatchedPainting;
 import me.roundaround.roundalib.client.gui.GuiUtil;
-import me.roundaround.roundalib.client.gui.widget.IconButtonWidget;
+import me.roundaround.roundalib.client.gui.layout.Coords;
+import me.roundaround.roundalib.client.gui.widget.*;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.Element;
-import net.minecraft.client.gui.Selectable;
 import net.minecraft.client.gui.screen.LoadingDisplay;
-import net.minecraft.client.gui.widget.ElementListWidget;
+import net.minecraft.client.gui.widget.ThreePartsLayoutWidget;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.texture.Sprite;
-import net.minecraft.text.StringVisitable;
+import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.util.Colors;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.Language;
 import net.minecraft.util.Util;
-import net.minecraft.util.math.MathHelper;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.stream.Collectors;
 
 @Environment(value = EnvType.CLIENT)
-public class MismatchedPaintingListWidget extends ElementListWidget<MismatchedPaintingListWidget.Entry> {
-  private static final int ITEM_HEIGHT = 36;
-
+public class MismatchedPaintingListWidget extends FlowListWidget<MismatchedPaintingListWidget.Entry> {
   private final MismatchedPaintingsScreen parent;
-  private final LoadingEntry loadingEntry;
-  private final EmptyEntry emptyEntry;
 
   public MismatchedPaintingListWidget(
-      MismatchedPaintingsScreen parent, MinecraftClient minecraftClient, int width, int height, int y
+      MismatchedPaintingsScreen parent, MinecraftClient client, ThreePartsLayoutWidget layout
   ) {
-    super(minecraftClient, width, height, y, ITEM_HEIGHT);
+    super(client, layout.getX(), layout.getHeaderHeight(), layout.getWidth(), layout.getContentHeight());
 
     this.parent = parent;
-    this.loadingEntry = new LoadingEntry(minecraftClient);
-    this.emptyEntry = new EmptyEntry(minecraftClient);
 
     this.loadData();
   }
 
   public void loadData() {
     ClientNetworking.sendRequestMismatchedPacket();
-    clearEntries();
-    addEntry(this.loadingEntry);
+    this.clearEntries();
+    this.addEntry((index, left, top, width) -> {
+      return new LoadingEntry(this.client.textRenderer, index, left, top, width);
+    });
   }
 
   public void receiveData(HashSet<MismatchedPainting> data) {
-    clearEntries();
+    this.clearEntries();
     for (MismatchedPainting mismatchedPainting : data) {
-      this.addEntry(new MismatchedPaintingEntry(this.client, mismatchedPainting));
+      this.addEntry((index, left, top, width) -> {
+        return new MismatchedPaintingEntry(this.client.textRenderer, mismatchedPainting, index, left, top, width);
+      });
     }
     if (data.isEmpty()) {
-      this.addEntry(this.emptyEntry);
+      this.addEntry((index, left, top, width) -> {
+        return new EmptyEntry(this.client.textRenderer, index, left, top, width);
+      });
     }
-    narrateScreenIfNarrationEnabled();
+    this.narrateScreenIfNarrationEnabled();
   }
 
   private void narrateScreenIfNarrationEnabled() {
@@ -77,183 +73,131 @@ public class MismatchedPaintingListWidget extends ElementListWidget<MismatchedPa
   }
 
   @Environment(value = EnvType.CLIENT)
-  public abstract class Entry extends ElementListWidget.Entry<Entry> {
-  }
+  public abstract static class Entry extends FlowListWidget.Entry {
+    protected static final int HEIGHT = 36;
 
-  @Environment(value = EnvType.CLIENT)
-  public class LoadingEntry extends Entry {
-    private final MinecraftClient client;
-
-    public LoadingEntry(MinecraftClient client) {
-      this.client = client;
-    }
-
-    @Override
-    public List<? extends Element> children() {
-      return ImmutableList.of();
-    }
-
-    @Override
-    public List<? extends Selectable> selectableChildren() {
-      return ImmutableList.of();
-    }
-
-    @Override
-    public void render(
-        DrawContext drawContext,
-        int index,
-        int y,
-        int x,
-        int entryWidth,
-        int entryHeight,
-        int mouseX,
-        int mouseY,
-        boolean hovered,
-        float partialTicks
-    ) {
-      int yPos = y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f);
-
-      drawContext.drawCenteredTextWithShadow(this.client.textRenderer,
-          Text.translatable("custompaintings.mismatched.loading"), this.client.currentScreen.width / 2, yPos, 0xFFFFFF
-      );
-
-      drawContext.drawCenteredTextWithShadow(this.client.textRenderer, LoadingDisplay.get(Util.getMeasuringTimeMs()),
-          this.client.currentScreen.width / 2, yPos + this.client.textRenderer.fontHeight, 0x808080
-      );
+    protected Entry(int index, int left, int top, int width, int contentHeight) {
+      super(index, left, top, width, contentHeight);
     }
   }
 
   @Environment(value = EnvType.CLIENT)
-  public class EmptyEntry extends Entry {
-    private final MinecraftClient client;
+  public static class LoadingEntry extends Entry {
+    private final LabelWidget label;
 
-    public EmptyEntry(MinecraftClient client) {
-      this.client = client;
+    public LoadingEntry(TextRenderer textRenderer, int index, int left, int top, int width) {
+      super(index, left, top, width, HEIGHT);
+
+      this.label = this.addDrawableAndSelectableChild(
+          LabelWidget.builder(textRenderer, Text.translatable("custompaintings.mismatched.loading"))
+              .refPosition(this.getContentCenterX(), this.getContentCenterY())
+              .dimensions(this.getContentWidth(), this.getContentHeight())
+              .build());
+      this.addDrawable(new DrawableWidget() {
+        @Override
+        protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+          context.drawCenteredTextWithShadow(textRenderer, LoadingDisplay.get(Util.getMeasuringTimeMs()),
+              LoadingEntry.this.getContentCenterX(), LoadingEntry.this.label.getTextBounds().bottom(), Colors.GRAY
+          );
+        }
+      });
     }
 
     @Override
-    public List<? extends Element> children() {
-      return ImmutableList.of();
-    }
-
-    @Override
-    public List<? extends Selectable> selectableChildren() {
-      return ImmutableList.of();
-    }
-
-    @Override
-    public void render(
-        DrawContext drawContext,
-        int index,
-        int y,
-        int x,
-        int entryWidth,
-        int entryHeight,
-        int mouseX,
-        int mouseY,
-        boolean hovered,
-        float partialTicks
-    ) {
-      drawContext.drawCenteredTextWithShadow(this.client.textRenderer,
-          Text.translatable("custompaintings.mismatched.empty"), this.client.currentScreen.width / 2,
-          y + MathHelper.ceil((entryHeight - this.client.textRenderer.fontHeight) / 2f), 0xFFFFFF
-      );
+    public void refreshPositions() {
+      this.label.batchUpdates(() -> {
+        this.label.setPosition(this.getContentCenterX(), this.getContentCenterY());
+        this.label.setDimensions(this.getContentWidth(), this.getContentHeight());
+      });
     }
   }
 
   @Environment(value = EnvType.CLIENT)
-  public class MismatchedPaintingEntry extends Entry {
-    private final MinecraftClient client;
+  public static class EmptyEntry extends Entry {
+    private final LabelWidget label;
+
+    public EmptyEntry(TextRenderer textRenderer, int index, int left, int top, int width) {
+      super(index, left, top, width, HEIGHT);
+
+      this.label = this.addDrawableAndSelectableChild(
+          LabelWidget.builder(textRenderer, Text.translatable("custompaintings.mismatched.empty"))
+              .refPosition(this.getContentCenterX(), this.getContentCenterY())
+              .dimensions(this.getContentWidth(), this.getContentHeight())
+              .build());
+    }
+
+    @Override
+    public void refreshPositions() {
+      this.label.batchUpdates(() -> {
+        this.label.setPosition(this.getContentCenterX(), this.getContentCenterY());
+        this.label.setDimensions(this.getContentWidth(), this.getContentHeight());
+      });
+    }
+  }
+
+  @Environment(value = EnvType.CLIENT)
+  public static class MismatchedPaintingEntry extends Entry {
     private final MismatchedPainting mismatchedPainting;
-    private final IconButtonWidget fixButton;
     private final Sprite sprite;
 
-    public MismatchedPaintingEntry(MinecraftClient client, MismatchedPainting mismatchedPainting) {
-      this.client = client;
+    public MismatchedPaintingEntry(
+        TextRenderer textRenderer, MismatchedPainting mismatchedPainting, int index, int left, int top, int width
+    ) {
+      super(index, left, top, width, HEIGHT);
+
       this.mismatchedPainting = mismatchedPainting;
       this.sprite = CustomPaintingsClientMod.customPaintingManager.getPaintingSprite(mismatchedPainting.currentData());
 
-      this.fixButton = IconButtonWidget.builder(IconButtonWidget.BuiltinIcon.FIX_18, CustomPaintingsMod.MOD_ID)
-          .vanillaSize()
-          .messageAndTooltip(Text.translatable("custompaintings.mismatched.fix"))
-          .onPress((button) -> {
-            ClientNetworking.sendUpdatePaintingPacket(this.mismatchedPainting.uuid());
-          })
-          .position(MismatchedPaintingListWidget.this.getRowRight() - IconButtonWidget.SIZE_V - GuiUtil.PADDING, 0)
-          .build();
-    }
+      PaintingData paintingData = mismatchedPainting.currentData();
 
-    public MismatchedPainting getMismatchedPainting() {
-      return this.mismatchedPainting;
-    }
+      LinearLayoutWidget layout = LinearLayoutWidget.horizontal(
+          (self) -> Coords.of(this.getContentWidth(), this.getContentHeight())).spacing(GuiUtil.PADDING);
+      layout.getMainPositioner().alignVerticalCenter();
 
-    @Override
-    public List<? extends Element> children() {
-      return ImmutableList.of(this.fixButton);
-    }
+      layout.add(new DrawableWidget() {
+        @Override
+        protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+          Sprite sprite = MismatchedPaintingEntry.this.sprite;
+          int maxSize = MismatchedPaintingEntry.this.getContentHeight();
+          int left = MismatchedPaintingEntry.this.getContentLeft();
+          int top = MismatchedPaintingEntry.this.getContentTop();
 
-    @Override
-    public List<? extends Selectable> selectableChildren() {
-      return ImmutableList.of(this.fixButton);
-    }
+          int scaledWidth = paintingData.getScaledWidth(maxSize, maxSize);
+          int scaledHeight = paintingData.getScaledHeight(maxSize, maxSize);
 
-    @Override
-    public void render(
-        DrawContext drawContext,
-        int index,
-        int y,
-        int x,
-        int entryWidth,
-        int entryHeight,
-        int mouseX,
-        int mouseY,
-        boolean hovered,
-        float partialTicks
-    ) {
-      PaintingData paintingData = this.mismatchedPainting.currentData();
-      int maxHeight = entryHeight - 4;
-      int maxWidth = maxHeight;
+          RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
+          RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+          RenderSystem.setShaderTexture(0, sprite.getAtlasId());
+          context.drawSprite(left + (maxSize - scaledWidth) / 2, top + (maxSize - scaledHeight) / 2, 1, scaledWidth,
+              scaledHeight, sprite
+          );
+        }
+      }, (parent, self) -> {
+        self.setDimensions(this.getContentHeight(), this.getContentHeight());
+      });
 
-      int scaledWidth = paintingData.getScaledWidth(maxWidth, maxHeight);
-      int scaledHeight = paintingData.getScaledHeight(maxWidth, maxHeight);
-
-      RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-
-      RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-      RenderSystem.setShaderTexture(0, this.sprite.getAtlasId());
-      drawContext.drawSprite(x + 4 + (maxWidth - scaledWidth) / 2, y + (entryHeight - scaledHeight) / 2, 1, scaledWidth,
-          scaledHeight, this.sprite
-      );
-
-      TextRenderer textRenderer = this.client.textRenderer;
-      int textWidth = entryWidth - maxWidth - IconButtonWidget.SIZE_V - 6 * GuiUtil.PADDING;
-      int posX = x + maxWidth + 4 + 4;
-      int posY = y + MathHelper.ceil((entryHeight - 3 * textRenderer.fontHeight - 2 * 2) / 2f);
+      LinearLayoutWidget infoColumn = LinearLayoutWidget.vertical().spacing(GuiUtil.PADDING / 2).centered();
+      infoColumn.getMainPositioner().alignLeft();
+      layout.add(infoColumn, (parent, self) -> {
+        int height = this.getContentHeight();
+        self.setDimensions(this.getContentWidth() - 2 * GuiUtil.PADDING - height, height);
+      });
 
       if (paintingData.hasLabel()) {
-        StringVisitable label = paintingData.getLabel();
-        if (textRenderer.getWidth(label) > textWidth) {
-          Text ellipsis = Text.literal("...");
-          label = StringVisitable.concat(
-              textRenderer.trimToWidth(label, textWidth - textRenderer.getWidth(ellipsis)), ellipsis);
-        }
-
-        drawContext.drawText(textRenderer, Language.getInstance().reorder(label), posX, posY, 0xFFFFFFFF, false);
-
-        posY += textRenderer.fontHeight + 2;
+        LabelWidget labelLabel = LabelWidget.builder(textRenderer, paintingData.getLabel())
+            .overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE)
+            .build();
+        infoColumn.add(labelLabel);
       }
 
-      StringVisitable id = Text.literal("(" + paintingData.id().toString() + ")")
-          .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
-      if (textRenderer.getWidth(id) > textWidth) {
-        Text ellipsis = Text.literal("...").setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
-        id = StringVisitable.concat(
-            textRenderer.trimToWidth(id, textWidth - textRenderer.getWidth(ellipsis)), ellipsis);
+      MutableText idText = Text.literal("(" + paintingData.id() + ")");
+      if (paintingData.hasLabel()) {
+        idText = idText.setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
       }
-
-      drawContext.drawText(textRenderer, Language.getInstance().reorder(id), posX, posY, 0xFFFFFFFF, false);
-
-      posY += textRenderer.fontHeight + 2;
+      LabelWidget idLabel = LabelWidget.builder(textRenderer, idText)
+          .overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE)
+          .build();
+      infoColumn.add(idLabel);
 
       ArrayList<Text> outdated = new ArrayList<>();
       PaintingData knownData = this.mismatchedPainting.knownData();
@@ -265,13 +209,19 @@ public class MismatchedPaintingListWidget extends ElementListWidget<MismatchedPa
       }
 
       String outdatedString = outdated.stream().map(Text::getString).collect(Collectors.joining(", "));
+      LabelWidget outdatedLabel = LabelWidget.builder(
+              textRenderer, Text.translatable("custompaintings.mismatched.outdated", outdatedString))
+          .overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE)
+          .build();
+      infoColumn.add(outdatedLabel);
 
-      drawContext.drawText(textRenderer, Text.translatable("custompaintings.mismatched.outdated", outdatedString), posX,
-          posY, 0xFFFFFFFF, false
-      );
+      layout.add(IconButtonWidget.builder(IconButtonWidget.BuiltinIcon.FIX_18, CustomPaintingsMod.MOD_ID)
+          .vanillaSize()
+          .messageAndTooltip(Text.translatable("custompaintings.mismatched.fix"))
+          .onPress((button) -> ClientNetworking.sendUpdatePaintingPacket(this.mismatchedPainting.uuid()))
+          .build());
 
-      this.fixButton.setY(y + (entryHeight - IconButtonWidget.SIZE_V) / 2);
-      this.fixButton.render(drawContext, mouseX, mouseY, partialTicks);
+      layout.forEachChild(this::addDetectedCapabilityChild);
     }
   }
 }
