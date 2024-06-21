@@ -12,13 +12,13 @@ import java.util.HashSet;
 import java.util.Objects;
 
 public class MismatchedPaintingsScreen extends Screen {
-  protected final ManagePaintingsScreen parent;
+  protected final Screen parent;
   protected final ThreePartsLayoutWidget layout = new ThreePartsLayoutWidget(this);
 
   private MismatchedPaintingListWidget list;
   private Runnable afterInit = null;
 
-  public MismatchedPaintingsScreen(ManagePaintingsScreen parent) {
+  public MismatchedPaintingsScreen(Screen parent) {
     super(Text.translatable("custompaintings.mismatched.title"));
     this.parent = parent;
   }
@@ -40,7 +40,7 @@ public class MismatchedPaintingsScreen extends Screen {
     this.list = new MismatchedPaintingListWidget(this, this.client, this.layout);
     this.layout.addBody(this.list);
 
-    this.layout.addFooter(ButtonWidget.builder(ScreenTexts.CANCEL, this::close).build());
+    this.layout.addFooter(ButtonWidget.builder(ScreenTexts.CANCEL, this::onCancel).build());
 
     this.layout.forEachChild(this::addDrawableChild);
     this.initTabNavigation();
@@ -61,7 +61,7 @@ public class MismatchedPaintingsScreen extends Screen {
     Objects.requireNonNull(this.client).setScreen(this.parent);
   }
 
-  protected void close(ButtonWidget button) {
+  protected void onCancel(ButtonWidget button) {
     this.close();
   }
 }

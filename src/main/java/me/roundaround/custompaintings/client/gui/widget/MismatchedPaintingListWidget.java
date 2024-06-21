@@ -84,6 +84,7 @@ public class MismatchedPaintingListWidget extends FlowListWidget<MismatchedPaint
   @Environment(value = EnvType.CLIENT)
   public static class LoadingEntry extends Entry {
     private final LabelWidget label;
+    private final DrawableWidget loader;
 
     public LoadingEntry(TextRenderer textRenderer, int index, int left, int top, int width) {
       super(index, left, top, width, HEIGHT);
@@ -93,7 +94,7 @@ public class MismatchedPaintingListWidget extends FlowListWidget<MismatchedPaint
               .refPosition(this.getContentCenterX(), this.getContentCenterY())
               .dimensions(this.getContentWidth(), this.getContentHeight())
               .build());
-      this.addDrawable(new DrawableWidget() {
+      this.loader = this.addDrawable(new DrawableWidget() {
         @Override
         protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
           context.drawCenteredTextWithShadow(textRenderer, LoadingDisplay.get(Util.getMeasuringTimeMs()),
@@ -105,10 +106,15 @@ public class MismatchedPaintingListWidget extends FlowListWidget<MismatchedPaint
 
     @Override
     public void refreshPositions() {
+      super.refreshPositions();
+
       this.label.batchUpdates(() -> {
         this.label.setPosition(this.getContentCenterX(), this.getContentCenterY());
         this.label.setDimensions(this.getContentWidth(), this.getContentHeight());
       });
+
+      this.loader.setPosition(this.getContentCenterX(), this.getContentCenterY());
+      this.loader.setDimensions(this.getContentWidth(), this.getContentHeight());
     }
   }
 
@@ -128,6 +134,8 @@ public class MismatchedPaintingListWidget extends FlowListWidget<MismatchedPaint
 
     @Override
     public void refreshPositions() {
+      super.refreshPositions();
+
       this.label.batchUpdates(() -> {
         this.label.setPosition(this.getContentCenterX(), this.getContentCenterY());
         this.label.setDimensions(this.getContentWidth(), this.getContentHeight());
@@ -139,6 +147,7 @@ public class MismatchedPaintingListWidget extends FlowListWidget<MismatchedPaint
   public static class MismatchedPaintingEntry extends Entry {
     private final MismatchedPainting mismatchedPainting;
     private final Sprite sprite;
+    private final LinearLayoutWidget layout;
 
     public MismatchedPaintingEntry(
         TextRenderer textRenderer, MismatchedPainting mismatchedPainting, int index, int left, int top, int width
@@ -150,11 +159,11 @@ public class MismatchedPaintingListWidget extends FlowListWidget<MismatchedPaint
 
       PaintingData paintingData = mismatchedPainting.currentData();
 
-      LinearLayoutWidget layout = LinearLayoutWidget.horizontal(
-          (self) -> Coords.of(this.getContentWidth(), this.getContentHeight())).spacing(GuiUtil.PADDING);
-      layout.getMainPositioner().alignVerticalCenter();
+      this.layout = LinearLayoutWidget.horizontal((self) -> Coords.of(this.getContentWidth(), this.getContentHeight()))
+          .spacing(GuiUtil.PADDING);
+      this.layout.getMainPositioner().alignVerticalCenter();
 
-      layout.add(new DrawableWidget() {
+      this.layout.add(new DrawableWidget() {
         @Override
         protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
           Sprite sprite = MismatchedPaintingEntry.this.sprite;
@@ -178,7 +187,7 @@ public class MismatchedPaintingListWidget extends FlowListWidget<MismatchedPaint
 
       LinearLayoutWidget infoColumn = LinearLayoutWidget.vertical().spacing(GuiUtil.PADDING / 2).centered();
       infoColumn.getMainPositioner().alignLeft();
-      layout.add(infoColumn, (parent, self) -> {
+      this.layout.add(infoColumn, (parent, self) -> {
         int height = this.getContentHeight();
         self.setDimensions(this.getContentWidth() - 2 * GuiUtil.PADDING - height, height);
       });
@@ -215,13 +224,19 @@ public class MismatchedPaintingListWidget extends FlowListWidget<MismatchedPaint
           .build();
       infoColumn.add(outdatedLabel);
 
-      layout.add(IconButtonWidget.builder(IconButtonWidget.BuiltinIcon.FIX_18, CustomPaintingsMod.MOD_ID)
+      this.layout.add(IconButtonWidget.builder(IconButtonWidget.BuiltinIcon.FIX_18, CustomPaintingsMod.MOD_ID)
           .vanillaSize()
           .messageAndTooltip(Text.translatable("custompaintings.mismatched.fix"))
           .onPress((button) -> ClientNetworking.sendUpdatePaintingPacket(this.mismatchedPainting.uuid()))
           .build());
 
-      layout.forEachChild(this::addDetectedCapabilityChild);
+      this.layout.forEachChild(this::addDetectedCapabilityChild);
+    }
+
+    @Override
+    public void refreshPositions() {
+      super.refreshPositions();
+      this.layout.refreshPositions();
     }
   }
 }

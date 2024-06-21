@@ -130,9 +130,11 @@ public class FilterListWidget extends FlowListWidget<FilterListWidget.Entry> {
 
     @Override
     public void refreshPositions() {
-      this.label.setPosition(this.getContentCenterX(), this.getContentCenterY());
-      this.label.setDimensions(this.getFullControlWidth(), this.getContentHeight());
       super.refreshPositions();
+      this.label.batchUpdates(() -> {
+        this.label.setPosition(this.getContentCenterX(), this.getContentCenterY());
+        this.label.setDimensions(this.getFullControlWidth(), this.getContentHeight());
+      });
     }
   }
 
@@ -171,10 +173,9 @@ public class FilterListWidget extends FlowListWidget<FilterListWidget.Entry> {
 
     @Override
     public void refreshPositions() {
+      super.refreshPositions();
       this.button.setDimensionsAndPosition(
           this.getFullControlWidth(), this.getContentHeight(), this.getControlLeft(), this.getContentTop());
-
-      super.refreshPositions();
     }
 
     @Override
@@ -232,8 +233,12 @@ public class FilterListWidget extends FlowListWidget<FilterListWidget.Entry> {
 
     @Override
     public void refreshPositions() {
-      this.label.setPosition(this.getControlLeft(), this.getContentCenterY());
-      this.label.setDimensions(this.getHalfControlWidth(), this.getContentHeight());
+      super.refreshPositions();
+
+      this.label.batchUpdates(() -> {
+        this.label.setPosition(this.getControlLeft(), this.getContentCenterY());
+        this.label.setDimensions(this.getHalfControlWidth(), this.getContentHeight());
+      });
 
       this.textField.setDimensionsAndPosition(
           this.getHalfControlWidth(), this.getContentHeight(), this.getRightControlLeft(), this.getContentTop());
@@ -289,6 +294,8 @@ public class FilterListWidget extends FlowListWidget<FilterListWidget.Entry> {
 
     @Override
     public void refreshPositions() {
+      super.refreshPositions();
+
       this.lowSlider.setDimensionsAndPosition(this.getHalfControlWidth(), this.getContentHeight(),
           this.getControlLeft(), this.getContentTop()
       );

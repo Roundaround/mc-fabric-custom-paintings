@@ -102,12 +102,6 @@ public class PaintingListWidget extends AlwaysSelectedFlowListWidget<PaintingLis
     }
   }
 
-  public void selectFirst() {
-    if (this.getEntryCount() > 0) {
-      this.setSelected(this.getEntry(0));
-    }
-  }
-
   @Override
   public boolean mouseClicked(double mouseX, double mouseY, int button) {
     Entry entry = this.getEntryAtPosition(mouseX, mouseY);
@@ -121,7 +115,7 @@ public class PaintingListWidget extends AlwaysSelectedFlowListWidget<PaintingLis
     }
 
     super.mouseClicked(mouseX, mouseY, button);
-    return true;
+    return entry != null;
   }
 
   @Override

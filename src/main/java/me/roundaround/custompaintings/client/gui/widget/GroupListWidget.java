@@ -67,8 +67,11 @@ public class GroupListWidget extends AlwaysSelectedFlowListWidget<GroupListWidge
 
     @Override
     public void refreshPositions() {
-      this.label.setPosition(this.getContentCenterX(), this.getContentCenterY());
-      this.label.setDimensions(this.getContentWidth(), this.getContentHeight());
+      super.refreshPositions();
+      this.label.batchUpdates(() -> {
+        this.label.setPosition(this.getContentCenterX(), this.getContentCenterY());
+        this.label.setDimensions(this.getContentWidth(), this.getContentHeight());
+      });
     }
 
     @Override
