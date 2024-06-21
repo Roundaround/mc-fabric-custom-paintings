@@ -34,10 +34,10 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
   protected static final int BUTTON_SPACING = GuiUtil.PADDING * 2;
 
   private final ThreePartsLayoutWidget layout = new ThreePartsLayoutWidget(this);
-  private final ArrayList<LabelWidget> labels = new ArrayList<>();
 
   private TextFieldWidget searchBox;
   private PaintingListWidget paintingList;
+  private LabelWidget infoLabel;
   private IconButtonWidget prevButton;
   private LabelWidget controlsLabel;
   private IconButtonWidget nextButton;
@@ -103,26 +103,16 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     });
     rightPane.getMainPositioner().alignHorizontalCenter();
 
-    this.labels.add(LabelWidget.builder(this.textRenderer, this.getLabelText())
-        .hideBackground()
-        .overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE)
-        .build());
+    this.infoLabel = rightPane.add(
+        LabelWidget.builder(this.textRenderer, new ArrayList<>(0)).justifiedCenter().alignedMiddle().build(),
+        (parent, self) -> self.setDimensions(parent.getWidth(), self.getTextBounds().getHeight())
+    );
 
-    this.labels.add(LabelWidget.builder(this.textRenderer, this.getIdText())
-        .hideBackground()
-        .overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE)
-        .build());
-
-    this.labels.add(LabelWidget.builder(this.textRenderer, this.getDimensionsText())
-        .hideBackground()
-        .overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE)
-        .build());
-
-    DirectionalLayoutWidget labelsContainer = DirectionalLayoutWidget.vertical();
-    labelsContainer.getMainPositioner().alignHorizontalCenter();
-    rightPane.add(labelsContainer);
-
-    this.labels.forEach(labelsContainer::add);
+    if (paintingData.hasLabel()) {
+      this.infoLabel.appendLine(this.getLabelText());
+    }
+    this.infoLabel.appendLine(this.getIdText());
+    this.infoLabel.appendLine(this.getDimensionsText());
 
     rightPane.add(new DrawableWidget() {
       @Override
@@ -147,7 +137,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         }
       }
     }, (parent, self) -> self.setDimensions(parent.getWidth() - 2 * GuiUtil.PADDING,
-        parent.getHeight() - labelsContainer.getHeight() - IconButtonWidget.SIZE_V - 2 * parent.getSpacing()
+        parent.getHeight() - this.infoLabel.getHeight() - IconButtonWidget.SIZE_V - 2 * parent.getSpacing()
     ));
 
     LinearLayoutWidget controlsRow = rightPane.add(LinearLayoutWidget.horizontal().spacing(GuiUtil.PADDING),
@@ -162,7 +152,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
             .onPress((button) -> this.previousPainting())
             .build());
 
-    controlsRow.add(LabelWidget.builder(this.textRenderer, this.getControlsText())
+    this.controlsLabel = controlsRow.add(LabelWidget.builder(this.textRenderer, this.getControlsText())
             .justifiedCenter()
             .alignedMiddle()
             .hideBackground()
@@ -223,6 +213,22 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     if (this.paintingList != null) {
       this.paintingList.selectPainting(paintingData);
     }
+
+    ArrayList<Text> infoLines = new ArrayList<>();
+    if (this.paintingData.isEmpty()) {
+      infoLines.add(Text.translatable("custompaintings.painting.none")
+          .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)));
+    } else {
+      if (this.paintingData.hasLabel()) {
+        infoLines.add(this.getLabelText());
+      }
+      infoLines.add(this.getIdText());
+      infoLines.add(this.getDimensionsText());
+    }
+    this.infoLabel.setText(infoLines);
+    this.infoLabel.setHeight(this.infoLabel.getTextBounds().getHeight());
+
+    this.controlsLabel.setText(this.getControlsText());
 
     if (this.doneButton != null) {
       this.doneButton.active = this.canStay;
