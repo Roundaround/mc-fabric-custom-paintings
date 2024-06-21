@@ -88,7 +88,7 @@ public class MismatchedPaintingListWidget extends FlowListWidget<MismatchedPaint
     public LoadingEntry(TextRenderer textRenderer, int index, int left, int top, int width) {
       super(index, left, top, width, HEIGHT);
 
-      this.label = this.addDrawableAndSelectableChild(
+      this.label = this.addDrawableChild(
           LabelWidget.builder(textRenderer, Text.translatable("custompaintings.mismatched.loading"))
               .refPosition(this.getContentCenterX(), this.getContentCenterY())
               .dimensions(this.getContentWidth(), this.getContentHeight())
@@ -119,7 +119,7 @@ public class MismatchedPaintingListWidget extends FlowListWidget<MismatchedPaint
     public EmptyEntry(TextRenderer textRenderer, int index, int left, int top, int width) {
       super(index, left, top, width, HEIGHT);
 
-      this.label = this.addDrawableAndSelectableChild(
+      this.label = this.addDrawableChild(
           LabelWidget.builder(textRenderer, Text.translatable("custompaintings.mismatched.empty"))
               .refPosition(this.getContentCenterX(), this.getContentCenterY())
               .dimensions(this.getContentWidth(), this.getContentHeight())
