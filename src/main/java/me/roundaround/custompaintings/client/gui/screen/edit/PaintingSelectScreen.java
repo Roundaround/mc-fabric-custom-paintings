@@ -108,7 +108,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         (parent, self) -> self.setDimensions(parent.getWidth(), self.getTextBounds().getHeight())
     );
 
-    if (paintingData.hasLabel()) {
+    if (this.paintingData.hasLabel()) {
       this.infoLabel.appendLine(this.getLabelText());
     }
     this.infoLabel.appendLine(this.getIdText());
