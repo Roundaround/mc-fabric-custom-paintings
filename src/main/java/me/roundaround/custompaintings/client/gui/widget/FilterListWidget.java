@@ -115,10 +115,11 @@ public class FilterListWidget extends FlowListWidget<FilterListWidget.Entry> {
     public SectionTitleEntry(int index, int left, int top, int width, TextRenderer textRenderer, Text label) {
       super(index, left, top, width, HEIGHT);
 
-      this.label = LabelWidget.builder(textRenderer, label, this.getContentCenterX(), this.getContentCenterY())
+      this.label = LabelWidget.builder(textRenderer, label)
+          .refPosition(this.getContentCenterX(), this.getContentCenterY())
+          .dimensions(this.getFullControlWidth(), this.getContentHeight())
           .justifiedCenter()
           .alignedMiddle()
-          .maxWidth(this.getFullControlWidth())
           .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
           .showShadow()
           .hideBackground()
@@ -130,7 +131,7 @@ public class FilterListWidget extends FlowListWidget<FilterListWidget.Entry> {
     @Override
     public void refreshPositions() {
       this.label.setPosition(this.getContentCenterX(), this.getContentCenterY());
-      this.label.setMaxWidth(this.getFullControlWidth());
+      this.label.setDimensions(this.getFullControlWidth(), this.getContentHeight());
       super.refreshPositions();
     }
   }
@@ -202,10 +203,11 @@ public class FilterListWidget extends FlowListWidget<FilterListWidget.Entry> {
 
       this.getter = getter;
 
-      this.label = LabelWidget.builder(textRenderer, label, this.getControlLeft(), this.getContentCenterY())
+      this.label = LabelWidget.builder(textRenderer, label)
+          .refPosition(this.getControlLeft(), this.getContentCenterY())
+          .dimensions(this.getHalfControlWidth(), this.getContentHeight())
           .justifiedLeft()
           .alignedMiddle()
-          .maxWidth(this.getHalfControlWidth())
           .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
           .showShadow()
           .hideBackground()
@@ -231,7 +233,7 @@ public class FilterListWidget extends FlowListWidget<FilterListWidget.Entry> {
     @Override
     public void refreshPositions() {
       this.label.setPosition(this.getControlLeft(), this.getContentCenterY());
-      this.label.setMaxWidth(this.getHalfControlWidth());
+      this.label.setDimensions(this.getHalfControlWidth(), this.getContentHeight());
 
       this.textField.setDimensionsAndPosition(
           this.getHalfControlWidth(), this.getContentHeight(), this.getRightControlLeft(), this.getContentTop());

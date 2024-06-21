@@ -6,24 +6,22 @@ import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.PaintingEditState.Group;
 import me.roundaround.custompaintings.client.gui.PaintingEditState.PaintingChangeListener;
-import me.roundaround.custompaintings.client.gui.widget.EmptyWidget;
 import me.roundaround.custompaintings.client.gui.widget.PaintingListWidget;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.roundalib.client.gui.GuiUtil;
-import me.roundaround.roundalib.client.gui.widget.IconButtonWidget;
-import me.roundaround.roundalib.client.gui.widget.LabelWidget;
+import me.roundaround.roundalib.client.gui.widget.*;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.*;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.texture.Sprite;
-import net.minecraft.client.util.math.Rect2i;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.math.Divider;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -35,26 +33,20 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
   protected static final int BUTTON_HEIGHT = 20;
   protected static final int BUTTON_SPACING = GuiUtil.PADDING * 2;
 
-  private final ThreePartsLayoutWidget layout = new ThreePartsLayoutWidget(
-      this, GuiUtil.COMPACT_HEADER_HEIGHT, GuiUtil.DEFAULT_HEADER_FOOTER_HEIGHT);
+  private final ThreePartsLayoutWidget layout = new ThreePartsLayoutWidget(this);
   private final ArrayList<LabelWidget> labels = new ArrayList<>();
 
   private TextFieldWidget searchBox;
   private PaintingListWidget paintingList;
-  private EmptyWidget paintingSpacer;
   private IconButtonWidget prevButton;
   private LabelWidget controlsLabel;
   private IconButtonWidget nextButton;
   private ButtonWidget doneButton;
-  private int paneWidth;
-  private int rightPaneX;
-  private double scrollAmount;
   private ArrayList<PaintingData> paintings = new ArrayList<>();
   private boolean hasHiddenPaintings = false;
   private PaintingData paintingData;
   private boolean canStay = true;
   private Sprite paintingSprite = null;
-  private Rect2i paintingRect = new Rect2i(0, 0, 0, 0);
 
   public PaintingSelectScreen(PaintingEditState state) {
     super(generateTitle(state), state);
@@ -67,24 +59,26 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     this.applyFilters();
     this.onPaintingChange(this.state.getCurrentPainting());
 
-    this.paneWidth = this.width / 2 - 2 * GuiUtil.PADDING;
-    this.rightPaneX = this.width - this.paneWidth;
+    this.layout.addHeader(this.title, this.textRenderer);
 
-    DirectionalLayoutWidget body = DirectionalLayoutWidget.horizontal().spacing(GuiUtil.PADDING * 2);
-    this.layout.addBody(body);
+    LinearLayoutWidget body = LinearLayoutWidget.horizontal().spacing(2 * GuiUtil.PADDING);
+    this.layout.addBody(new FullBodyWrapperWidget(body, this.layout));
 
-    DirectionalLayoutWidget leftPane = DirectionalLayoutWidget.vertical().spacing(GuiUtil.PADDING);
-    leftPane.getMainPositioner().alignHorizontalCenter();
-    body.add(leftPane);
+    LinearLayoutWidget leftPane = body.add(LinearLayoutWidget.vertical().spacing(GuiUtil.PADDING), (parent, self) -> {
+      Divider divider = new Divider(parent.getWidth() - parent.getSpacing(), 2);
+      self.setDimensions(divider.nextInt(), parent.getHeight());
+    });
+    leftPane.getMainPositioner().alignRight();
 
-    DirectionalLayoutWidget searchRow = DirectionalLayoutWidget.horizontal().spacing(GuiUtil.PADDING);
-    searchRow.getMainPositioner().alignVerticalCenter().marginLeft(GuiUtil.PADDING);
-    leftPane.add(searchRow);
+    LinearLayoutWidget searchRow = leftPane.add(LinearLayoutWidget.horizontal().spacing(GuiUtil.PADDING),
+        (parent, self) -> self.setDimensions(parent.getWidth() - GuiUtil.PADDING, BUTTON_HEIGHT),
+        Positioner::alignVerticalCenter
+    );
 
     this.searchBox = searchRow.add(
-        new TextFieldWidget(this.textRenderer, 0, 0, this.getSearchWidth(), BUTTON_HEIGHT, this.searchBox,
-            Text.translatable("custompaintings.painting.search")
-        ));
+        new TextFieldWidget(this.textRenderer, 0, BUTTON_HEIGHT, Text.translatable("custompaintings.painting.search")),
+        (parent, self) -> self.setWidth(parent.getWidth() - parent.getSpacing() - IconButtonWidget.SIZE_V)
+    );
     this.searchBox.setText(this.state.getFilters().getSearch());
     this.searchBox.setChangedListener(this::onSearchBoxChanged);
 
@@ -94,34 +88,33 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         .onPress(this::filterButtonPressed)
         .build());
 
-    this.paintingList = leftPane.add(
-        new PaintingListWidget(this.state, this.client, 0, this.getPaintingListY(), this.paneWidth,
-            this.getPaintingListHeight(), this::saveSelection
-        ));
+    this.paintingList = leftPane.add(new PaintingListWidget(this.state, this.client, this::saveSelection),
+        (parent, self) -> self.setDimensions(parent.getWidth(),
+            parent.getHeight() - parent.getSpacing() - BUTTON_HEIGHT
+        )
+    );
     this.paintingList.setPaintings(this.paintings);
     this.paintingList.selectFirst();
 
-    DirectionalLayoutWidget rightPane = DirectionalLayoutWidget.vertical().spacing(GuiUtil.PADDING);
+    LinearLayoutWidget rightPane = body.add(LinearLayoutWidget.vertical().spacing(GuiUtil.PADDING), (parent, self) -> {
+      Divider divider = new Divider(parent.getWidth() - parent.getSpacing(), 2);
+      divider.skip(1);
+      self.setDimensions(divider.nextInt(), parent.getHeight());
+    });
     rightPane.getMainPositioner().alignHorizontalCenter();
-    body.add(rightPane);
 
-    if (this.paintingData.hasLabel()) {
-      this.labels.add(LabelWidget.builder(this.textRenderer, this.getLabelText(), 0, 0)
-          .hideBackground()
-          .maxWidth(this.getPaneWidth())
-          .overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE)
-          .build());
-    }
-
-    this.labels.add(LabelWidget.builder(this.textRenderer, this.getIdText(), 0, 0)
+    this.labels.add(LabelWidget.builder(this.textRenderer, this.getLabelText())
         .hideBackground()
-        .maxWidth(this.getPaneWidth())
         .overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE)
         .build());
 
-    this.labels.add(LabelWidget.builder(this.textRenderer, this.getDimensionsText(), 0, 0)
+    this.labels.add(LabelWidget.builder(this.textRenderer, this.getIdText())
         .hideBackground()
-        .maxWidth(this.getPaneWidth())
+        .overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE)
+        .build());
+
+    this.labels.add(LabelWidget.builder(this.textRenderer, this.getDimensionsText())
+        .hideBackground()
         .overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE)
         .build());
 
@@ -131,27 +124,62 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
 
     this.labels.forEach(labelsContainer::add);
 
-    this.paintingSpacer = rightPane.add(EmptyWidget.ofHeight(this.getPaintingHeight()));
+    rightPane.add(new DrawableWidget() {
+      @Override
+      protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+        PaintingData paintingData = PaintingSelectScreen.this.paintingData;
 
-    DirectionalLayoutWidget controlsRow = DirectionalLayoutWidget.horizontal().spacing(GuiUtil.PADDING);
+        if (!paintingData.isEmpty()) {
+          int paintingWidth = paintingData.getScaledWidth(this.getWidth(), this.getHeight());
+          int paintingHeight = paintingData.getScaledHeight(this.getWidth(), this.getHeight());
+          int paintingX = this.getX() + (this.getWidth() - paintingWidth) / 2;
+          int paintingY = this.getY() + (this.getHeight() - paintingHeight) / 2;
+          float color = PaintingSelectScreen.this.canStay ? 1f : 0.5f;
+
+          context.fill(paintingX, paintingY, paintingX + paintingWidth, paintingY + paintingHeight, 0xFF000000);
+
+          RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
+          RenderSystem.setShaderColor(color, color, color, 1f);
+          RenderSystem.setShaderTexture(0, PaintingSelectScreen.this.paintingSprite.getAtlasId());
+          context.drawSprite(paintingX + 1, paintingY + 1, 0, paintingWidth - 2, paintingHeight - 2,
+              PaintingSelectScreen.this.paintingSprite
+          );
+        }
+      }
+    }, (parent, self) -> self.setDimensions(parent.getWidth() - 2 * GuiUtil.PADDING,
+        parent.getHeight() - labelsContainer.getHeight() - IconButtonWidget.SIZE_V - 2 * parent.getSpacing()
+    ));
+
+    LinearLayoutWidget controlsRow = rightPane.add(LinearLayoutWidget.horizontal().spacing(GuiUtil.PADDING),
+        (parent, self) -> self.setDimensions(parent.getWidth() - 4 * GuiUtil.PADDING, IconButtonWidget.SIZE_V)
+    );
     controlsRow.getMainPositioner().alignVerticalCenter();
-    rightPane.add(controlsRow);
 
     this.prevButton = controlsRow.add(
         IconButtonWidget.builder(IconButtonWidget.BuiltinIcon.PREV_18, CustomPaintingsMod.MOD_ID)
             .vanillaSize()
             .messageAndTooltip(Text.translatable("custompaintings.painting.previous"))
             .onPress((button) -> this.previousPainting())
-            .build(), Positioner::alignLeft);
+            .build());
 
-    this.controlsLabel = controlsRow.add(LabelWidget.builder(textRenderer, ).build())
+    controlsRow.add(LabelWidget.builder(this.textRenderer, this.getControlsText())
+            .justifiedCenter()
+            .alignedMiddle()
+            .hideBackground()
+            .showShadow()
+            .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
+            .build(),
+        (parent, self) -> self.setDimensions(parent.getWidth() - 2 * (GuiUtil.PADDING + IconButtonWidget.SIZE_V),
+            parent.getHeight()
+        )
+    );
 
     this.nextButton = controlsRow.add(
         IconButtonWidget.builder(IconButtonWidget.BuiltinIcon.PREV_18, CustomPaintingsMod.MOD_ID)
             .vanillaSize()
             .messageAndTooltip(Text.translatable("custompaintings.painting.next"))
             .onPress((button) -> this.nextPainting())
-            .build(), Positioner::alignLeft);
+            .build());
 
     this.prevButton.active = this.hasMultiplePaintings();
     this.nextButton.active = this.hasMultiplePaintings();
@@ -177,23 +205,6 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
       this.doneButton.setTooltip(null);
     }
 
-    this.addDrawable((context, mouseX, mouseY, delta) -> {
-      if (!this.state.getCurrentPainting().isEmpty()) {
-        int x = this.paintingRect.getX();
-        int y = this.paintingRect.getY();
-        int width = this.paintingRect.getWidth();
-        int height = this.paintingRect.getHeight();
-        float color = this.canStay ? 1f : 0.5f;
-
-        context.fill(x, y, x + width, y + height, 0xFF000000);
-
-        RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-        RenderSystem.setShaderColor(color, color, color, 1f);
-        RenderSystem.setShaderTexture(0, this.paintingSprite.getAtlasId());
-        context.drawSprite(x + 1, y + 1, 0, width - 2, height - 2, this.paintingSprite);
-      }
-    });
-
     this.layout.forEachChild(this::addDrawableChild);
     this.initTabNavigation();
   }
@@ -203,33 +214,11 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     this.layout.refreshPositions();
   }
 
-  public void populateWithAllPaintings() {
-    this.paintings.addAll(this.state.getCurrentGroup().paintings());
-  }
-
   @Override
   public void onPaintingChange(PaintingData paintingData) {
     this.paintingData = paintingData;
     this.canStay = this.state.canStay(paintingData);
     this.paintingSprite = CustomPaintingsClientMod.customPaintingManager.getPaintingSprite(paintingData);
-
-    int headerHeight = this.layout.getHeaderHeight();
-    int footerHeight = this.layout.getFooterHeight();
-
-    int paintingTop = headerHeight + 8 + (paintingData.hasLabel() ? 3 : 2) * this.textRenderer.fontHeight +
-        (paintingData.hasLabel() ? 2 : 1) * 2;
-    int paintingBottom = this.height - footerHeight - 8 - BUTTON_HEIGHT;
-
-    int maxWidth = this.paneWidth - 2 * 8;
-    int maxHeight = paintingBottom - paintingTop;
-
-    int width = paintingData.getScaledWidth(maxWidth, maxHeight);
-    int height = paintingData.getScaledHeight(maxWidth, maxHeight);
-
-    int x = this.rightPaneX + (this.paneWidth - width) / 2;
-    int y = (paintingTop + paintingBottom - height) / 2;
-
-    this.paintingRect = new Rect2i(x, y, width, height);
 
     if (this.paintingList != null) {
       this.paintingList.selectPainting(paintingData);
@@ -312,53 +301,6 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     }
 
     return super.keyPressed(keyCode, scanCode, modifiers);
-  }
-
-  @Override
-  public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-    super.render(context, mouseX, mouseY, delta);
-
-    Group currentGroup = this.state.getCurrentGroup();
-    PaintingData paintingData = this.state.getCurrentPainting();
-
-    if (paintingData.isEmpty()) {
-      int paneHeight = this.layout.getContentHeight();
-      int posX = this.rightPaneX + this.paneWidth / 2;
-      int posY = this.layout.getHeaderHeight() + (paneHeight - this.textRenderer.fontHeight) / 2;
-
-      context.drawCenteredTextWithShadow(
-          this.textRenderer, Text.translatable("custompaintings.painting.none")
-              .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)), posX, posY, 0xFFFFFFFF);
-
-    } else {
-      int currentPaintingIndex = currentGroup.paintings().indexOf(paintingData);
-      int posX = this.rightPaneX + this.paneWidth / 2;
-      int posY = this.layout.getHeaderHeight() + 4;
-
-      if (paintingData.hasLabel()) {
-        context.drawCenteredTextWithShadow(this.textRenderer, paintingData.getLabel(), posX, posY, 0xFFFFFFFF);
-
-        posY += this.textRenderer.fontHeight + 2;
-      }
-
-      context.drawCenteredTextWithShadow(
-          this.textRenderer, Text.literal("(" + paintingData.id().toString() + ")")
-              .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)), posX, posY, 0xFFFFFFFF);
-
-      posY += this.textRenderer.fontHeight + 2;
-
-      context.drawCenteredTextWithShadow(this.textRenderer,
-          Text.translatable("custompaintings.painting.dimensions", paintingData.width(), paintingData.height()), posX,
-          posY, 0xFFFFFFFF
-      );
-
-      context.drawCenteredTextWithShadow(this.textRenderer,
-          Text.translatable("custompaintings.painting.number", currentPaintingIndex + 1,
-              currentGroup.paintings().size()
-          ), posX, this.height - this.layout.getFooterHeight() - 4 - BUTTON_HEIGHT +
-              (BUTTON_HEIGHT - textRenderer.fontHeight) / 2, 0xFFFFFFFF
-      );
-    }
   }
 
   @Override
@@ -476,31 +418,10 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     Objects.requireNonNull(this.client).setScreen(new FiltersScreen(this.state));
   }
 
-  private int getPaneWidth() {
-    return this.width / 2 - GuiUtil.PADDING;
-  }
-
-  private int getSearchWidth() {
-    return this.getPaneWidth() - 2 * GuiUtil.PADDING - IconButtonWidget.SIZE_V;
-  }
-
-  private int getPaintingListY() {
-    return this.layout.getHeaderHeight() + Math.max(BUTTON_HEIGHT, IconButtonWidget.SIZE_V) + GuiUtil.PADDING;
-  }
-
-  private int getFooterY() {
-    return this.height - this.layout.getFooterHeight();
-  }
-
-  private int getPaintingListHeight() {
-    return this.getFooterY() - this.getPaintingListY();
-  }
-
-  private int getPaintingHeight() {
-    return this.layout.getContentHeight() - this.
-  }
-
   private Text getLabelText() {
+    if (!this.paintingData.hasLabel()) {
+      return Text.empty();
+    }
     return this.paintingData.getLabel();
   }
 

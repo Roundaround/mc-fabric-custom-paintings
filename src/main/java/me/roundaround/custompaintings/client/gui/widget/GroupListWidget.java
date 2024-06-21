@@ -52,11 +52,11 @@ public class GroupListWidget extends AlwaysSelectedFlowListWidget<GroupListWidge
       this.onSelect = onSelect;
       this.group = group;
 
-      this.label = LabelWidget.builder(
-              textRenderer, Text.of(group.name()), this.getContentCenterX(), this.getContentCenterY())
+      this.label = LabelWidget.builder(textRenderer, Text.of(group.name()))
+          .refPosition(this.getContentCenterX(), this.getContentCenterY())
+          .dimensions(this.getContentWidth(), this.getContentHeight())
           .justifiedCenter()
           .alignedMiddle()
-          .maxWidth(this.getContentWidth())
           .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
           .showShadow()
           .hideBackground()
@@ -68,7 +68,7 @@ public class GroupListWidget extends AlwaysSelectedFlowListWidget<GroupListWidge
     @Override
     public void refreshPositions() {
       this.label.setPosition(this.getContentCenterX(), this.getContentCenterY());
-      this.label.setMaxWidth(this.getContentWidth());
+      this.label.setDimensions(this.getContentWidth(), this.getContentHeight());
     }
 
     @Override

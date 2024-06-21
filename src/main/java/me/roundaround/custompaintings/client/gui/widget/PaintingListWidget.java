@@ -39,15 +39,9 @@ public class PaintingListWidget extends AlwaysSelectedFlowListWidget<PaintingLis
   private long clickedTime = 0L;
 
   public PaintingListWidget(
-      PaintingEditState state,
-      MinecraftClient client,
-      int x,
-      int y,
-      int width,
-      int height,
-      Consumer<PaintingData> onPaintingSelect
+      PaintingEditState state, MinecraftClient client, Consumer<PaintingData> onPaintingSelect
   ) {
-    super(client, x, y, width, height);
+    super(client, 0, 0, 0, 0);
 
     this.state = state;
     this.onPaintingSelect = onPaintingSelect;
@@ -186,9 +180,9 @@ public class PaintingListWidget extends AlwaysSelectedFlowListWidget<PaintingLis
       this.layout.getMainPositioner().alignLeft().alignVerticalCenter();
 
       if (this.getPaintingData().hasLabel()) {
-        this.labels.add(LabelWidget.builder(textRenderer, this.getPaintingData().getLabel(), 0, 0)
+        this.labels.add(LabelWidget.builder(textRenderer, this.getPaintingData().getLabel())
             .hideBackground()
-            .maxWidth(this.getTextWidth())
+            .dimensions(LabelWidget.getDefaultSingleLineHeight(textRenderer), this.getTextWidth())
             .overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE)
             .build());
       }
@@ -198,17 +192,21 @@ public class PaintingListWidget extends AlwaysSelectedFlowListWidget<PaintingLis
         idText = idText.setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
       }
 
-      this.labels.add(LabelWidget.builder(textRenderer, idText, 0, 0)
+      this.labels.add(LabelWidget.builder(textRenderer, idText)
           .hideBackground()
-          .maxWidth(this.getTextWidth())
+          .dimensions(LabelWidget.getDefaultSingleLineHeight(textRenderer), this.getTextWidth())
           .overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE)
           .build());
 
       this.labels.add(LabelWidget.builder(textRenderer,
-          Text.translatable("custompaintings.painting.dimensions", this.getPaintingData().width(),
-              this.getPaintingData().height()
-          ), 0, 0
-      ).hideBackground().maxWidth(this.getTextWidth()).overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE).build());
+              Text.translatable("custompaintings.painting.dimensions", this.getPaintingData().width(),
+                  this.getPaintingData().height()
+              )
+          )
+          .hideBackground()
+          .dimensions(LabelWidget.getDefaultSingleLineHeight(textRenderer), this.getTextWidth())
+          .overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE)
+          .build());
 
       this.labels.forEach((label) -> {
         this.layout.add(label);
@@ -220,7 +218,7 @@ public class PaintingListWidget extends AlwaysSelectedFlowListWidget<PaintingLis
     public void refreshPositions() {
       this.layout.setPosition(this.getTextLeft(), this.getContentCenterY());
       this.labels.forEach((label) -> {
-        label.setMaxWidth(this.getTextWidth());
+        label.setWidth(this.getTextWidth());
       });
       this.layout.refreshPositions();
     }
@@ -283,13 +281,12 @@ public class PaintingListWidget extends AlwaysSelectedFlowListWidget<PaintingLis
     public EmptyEntry(int index, int left, int top, int width, TextRenderer textRenderer) {
       super(index, left, top, width, HEIGHT, PaintingData.EMPTY);
 
-      this.label = LabelWidget.builder(textRenderer, Text.translatable("custompaintings.painting.empty"),
-              this.getContentCenterX(), this.getContentCenterY()
-          )
+      this.label = LabelWidget.builder(textRenderer, Text.translatable("custompaintings.painting.empty"))
+          .refPosition(this.getContentCenterX(), this.getContentCenterY())
+          .dimensions(this.getContentWidth(), this.getContentHeight())
           .justifiedCenter()
           .alignedMiddle()
           .hideBackground()
-          .maxWidth(this.getContentWidth())
           .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
           .build();
 
@@ -304,7 +301,7 @@ public class PaintingListWidget extends AlwaysSelectedFlowListWidget<PaintingLis
     @Override
     public void refreshPositions() {
       this.label.setPosition(this.getContentCenterX(), this.getContentCenterY());
-      this.label.setMaxWidth(this.getContentWidth());
+      this.label.setDimensions(this.getContentWidth(), this.getContentHeight());
     }
   }
 }
