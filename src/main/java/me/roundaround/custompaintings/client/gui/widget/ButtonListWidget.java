@@ -1,6 +1,6 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
-import me.roundaround.roundalib.client.gui.widget.FlowListWidget;
+import me.roundaround.roundalib.client.gui.widget.ParentElementEntryListWidget;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
@@ -9,7 +9,7 @@ import net.minecraft.client.gui.widget.ThreePartsLayoutWidget;
 import net.minecraft.text.Text;
 
 @Environment(value = EnvType.CLIENT)
-public class ButtonListWidget extends FlowListWidget<ButtonListWidget.Entry> {
+public class ButtonListWidget extends ParentElementEntryListWidget<ButtonListWidget.Entry> {
   private static final int BUTTON_WIDTH = 204;
   private static final int BUTTON_HEIGHT = 20;
 
@@ -22,7 +22,7 @@ public class ButtonListWidget extends FlowListWidget<ButtonListWidget.Entry> {
   }
 
   @Environment(value = EnvType.CLIENT)
-  public static class Entry extends FlowListWidget.Entry {
+  public static class Entry extends ParentElementEntryListWidget.Entry {
     private final ButtonWidget button;
 
     public Entry(Text text, ButtonWidget.PressAction action, int index, int x, int y, int width) {

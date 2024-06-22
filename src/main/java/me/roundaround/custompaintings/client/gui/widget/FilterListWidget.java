@@ -2,9 +2,9 @@ package me.roundaround.custompaintings.client.gui.widget;
 
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.roundalib.client.gui.GuiUtil;
-import me.roundaround.roundalib.client.gui.widget.FlowListWidget;
 import me.roundaround.roundalib.client.gui.widget.IntSliderWidget;
 import me.roundaround.roundalib.client.gui.widget.LabelWidget;
+import me.roundaround.roundalib.client.gui.widget.ParentElementEntryListWidget;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
@@ -21,7 +21,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 @Environment(value = EnvType.CLIENT)
-public class FilterListWidget extends FlowListWidget<FilterListWidget.Entry> {
+public class FilterListWidget extends ParentElementEntryListWidget<FilterListWidget.Entry> {
   public FilterListWidget(
       PaintingEditState state, MinecraftClient client, ThreePartsLayoutWidget layout
   ) {
@@ -76,7 +76,7 @@ public class FilterListWidget extends FlowListWidget<FilterListWidget.Entry> {
   }
 
   @Environment(value = EnvType.CLIENT)
-  public abstract static class Entry extends FlowListWidget.Entry {
+  public abstract static class Entry extends ParentElementEntryListWidget.Entry {
     protected static final int HEIGHT = 20;
     protected static final int MAX_FULL_WIDTH = 310;
 
@@ -165,8 +165,7 @@ public class FilterListWidget extends FlowListWidget<FilterListWidget.Entry> {
               label, (button, value) -> setter.accept(value)
           );
 
-      this.addChild(this.button);
-      this.addSelectableChild(this.button);
+      this.addDrawableChild(this.button);
     }
 
     @Override
@@ -220,8 +219,7 @@ public class FilterListWidget extends FlowListWidget<FilterListWidget.Entry> {
       this.textField.setText(this.getter.get());
       this.textField.setChangedListener(setter);
 
-      this.addChild(this.textField);
-      this.addSelectableChild(this.textField);
+      this.addDrawableChild(this.textField);
     }
 
     @Override
@@ -273,13 +271,13 @@ public class FilterListWidget extends FlowListWidget<FilterListWidget.Entry> {
 
       this.lowSlider = this.addDrawableChild(
           new IntSliderWidget(this.getControlLeft(), this.getContentTop(), this.getHalfControlWidth(),
-              this.getContentHeight(), this.lowGetter.get(), 1, 32, this::stepLow, this::onLowSliderChange,
+              this.getContentHeight(), 1, 32, this.lowGetter.get(), this::stepLow, this::onLowSliderChange,
               (value) -> Text.translatable(lowI18nKey, value)
           ));
 
       this.highSlider = this.addDrawableChild(
           new IntSliderWidget(this.getRightControlLeft(), this.getContentTop(), this.getHalfControlWidth(),
-              this.getContentHeight(), this.highGetter.get(), 1, 32, this::stepHigh, this::onHighSliderChange,
+              this.getContentHeight(), 1, 32, this.highGetter.get(), this::stepHigh, this::onHighSliderChange,
               (value) -> Text.translatable(highI18nKey, value)
           ));
     }

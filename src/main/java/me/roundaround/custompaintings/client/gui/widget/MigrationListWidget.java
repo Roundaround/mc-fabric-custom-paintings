@@ -3,14 +3,13 @@ package me.roundaround.custompaintings.client.gui.widget;
 import me.roundaround.custompaintings.client.gui.screen.manage.PaintingPacksTracker.MigrationGroup;
 import me.roundaround.custompaintings.util.Migration;
 import me.roundaround.roundalib.client.gui.GuiUtil;
-import me.roundaround.roundalib.client.gui.widget.AlwaysSelectedFlowListWidget;
 import me.roundaround.roundalib.client.gui.widget.LabelWidget;
 import me.roundaround.roundalib.client.gui.widget.LinearLayoutWidget;
+import me.roundaround.roundalib.client.gui.widget.NarratableEntryListWidget;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.navigation.NavigationDirection;
 import net.minecraft.client.gui.widget.ThreePartsLayoutWidget;
 import net.minecraft.text.MutableText;
@@ -23,7 +22,7 @@ import java.util.HashMap;
 import java.util.function.Consumer;
 
 @Environment(value = EnvType.CLIENT)
-public class MigrationListWidget extends AlwaysSelectedFlowListWidget<MigrationListWidget.Entry> {
+public class MigrationListWidget extends NarratableEntryListWidget<MigrationListWidget.Entry> {
   private final Consumer<Migration> onSelect;
   private final Consumer<Migration> onConfirm;
 
@@ -93,27 +92,14 @@ public class MigrationListWidget extends AlwaysSelectedFlowListWidget<MigrationL
     return this.getNeighboringEntry(direction, (entry) -> entry.getMigration() != null);
   }
 
-  @Override
-  protected void renderEntry(DrawContext context, int mouseX, int mouseY, float delta, Entry entry) {
-    if (entry.renderRowShade()) {
-      this.renderRowShade(context, entry);
-    }
-
-    super.renderEntry(context, mouseX, mouseY, delta, entry);
-  }
-
   @Environment(value = EnvType.CLIENT)
-  public abstract static class Entry extends AlwaysSelectedFlowListWidget.Entry {
+  public abstract static class Entry extends NarratableEntryListWidget.Entry {
     protected Entry(int index, int left, int top, int width, int contentHeight) {
       super(index, left, top, width, contentHeight);
     }
 
     public Migration getMigration() {
       return null;
-    }
-
-    public boolean renderRowShade() {
-      return false;
     }
   }
 
@@ -124,7 +110,7 @@ public class MigrationListWidget extends AlwaysSelectedFlowListWidget<MigrationL
     public EmptyEntry(TextRenderer textRenderer, int index, int left, int top, int width) {
       super(index, left, top, width, 36);
 
-      this.label = this.addDrawableChild(
+      this.label = this.addDrawable(
           LabelWidget.builder(textRenderer, Text.translatable("custompaintings.migrations.empty"))
               .positionMode(LabelWidget.PositionMode.REFERENCE)
               .justifiedCenter()
@@ -157,6 +143,8 @@ public class MigrationListWidget extends AlwaysSelectedFlowListWidget<MigrationL
     ) {
       super(index, left, top, width, 30);
 
+      this.setForceRowShading(true);
+
       LinearLayoutWidget layout = this.addLayout(LinearLayoutWidget.vertical((self) -> {
         self.setPosition(this.getContentLeft(), this.getContentTop());
         self.setDimensions(this.getContentWidth(), this.getContentHeight());
@@ -186,12 +174,7 @@ public class MigrationListWidget extends AlwaysSelectedFlowListWidget<MigrationL
           }
       );
 
-      layout.forEachChild(this::addDrawableChild);
-    }
-
-    @Override
-    public boolean renderRowShade() {
-      return true;
+      layout.forEachChild(this::addDrawable);
     }
 
     @Override
@@ -241,7 +224,7 @@ public class MigrationListWidget extends AlwaysSelectedFlowListWidget<MigrationL
         self.setWidth(this.getContentWidth());
       });
 
-      layout.forEachChild(this::addDrawableChild);
+      layout.forEachChild(this::addDrawable);
     }
 
     @Override

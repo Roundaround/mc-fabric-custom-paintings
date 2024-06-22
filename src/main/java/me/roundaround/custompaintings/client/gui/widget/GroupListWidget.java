@@ -1,8 +1,8 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
 import me.roundaround.custompaintings.client.gui.PaintingEditState.Group;
-import me.roundaround.roundalib.client.gui.widget.AlwaysSelectedFlowListWidget;
 import me.roundaround.roundalib.client.gui.widget.LabelWidget;
+import me.roundaround.roundalib.client.gui.widget.NarratableEntryListWidget;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
@@ -15,7 +15,7 @@ import java.util.Collection;
 import java.util.function.Consumer;
 
 @Environment(value = EnvType.CLIENT)
-public class GroupListWidget extends AlwaysSelectedFlowListWidget<GroupListWidget.Entry> {
+public class GroupListWidget extends NarratableEntryListWidget<GroupListWidget.Entry> {
   private final Consumer<String> onGroupSelect;
 
   public GroupListWidget(
@@ -36,7 +36,7 @@ public class GroupListWidget extends AlwaysSelectedFlowListWidget<GroupListWidge
   }
 
   @Environment(value = EnvType.CLIENT)
-  public static class Entry extends AlwaysSelectedFlowListWidget.Entry {
+  public static class Entry extends NarratableEntryListWidget.Entry {
     private final Consumer<String> onSelect;
     private final Group group;
     private final LabelWidget label;
@@ -58,12 +58,11 @@ public class GroupListWidget extends AlwaysSelectedFlowListWidget<GroupListWidge
           .hideBackground()
           .build();
 
-      this.addDrawableChild(this.label);
+      this.addDrawable(this.label);
     }
 
     @Override
     public void refreshPositions() {
-      super.refreshPositions();
       this.label.batchUpdates(() -> {
         this.label.setPosition(this.getContentCenterX(), this.getContentCenterY());
         this.label.setDimensions(this.getContentWidth(), this.getContentHeight());

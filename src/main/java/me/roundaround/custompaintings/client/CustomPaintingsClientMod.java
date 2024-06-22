@@ -22,11 +22,7 @@ public class CustomPaintingsClientMod implements ClientModInitializer {
       MinecraftClient client = MinecraftClient.getInstance();
       customPaintingManager = new CustomPaintingManager(client.getTextureManager());
       ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(customPaintingManager);
-      MinecraftClientEvents.AFTER_INIT_EVENT_BUS.register(() -> {
-        customPaintingManager.close();
-        return false;
-      });
-      return false;
+      MinecraftClientEvents.AFTER_INIT_EVENT_BUS.register(customPaintingManager::close);
     });
 
     ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
@@ -41,13 +37,12 @@ public class CustomPaintingsClientMod implements ClientModInitializer {
     MinecraftClientEvents.ON_INPUT_EVENT_BUS.register(() -> {
       MinecraftClient client = MinecraftClient.getInstance();
       if (client.currentScreen != null) {
-        return false;
+        return;
       }
 
       if (openManageScreenKeyBinding.wasPressed()) {
         client.setScreen(new ManagePaintingsScreen());
       }
-      return false;
     });
   }
 }

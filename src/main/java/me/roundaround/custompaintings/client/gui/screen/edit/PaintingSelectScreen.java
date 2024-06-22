@@ -118,7 +118,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         .lineSpacing(1)
         .build(), (parent, self) -> {
       self.setDimensions(parent.getWidth(),
-          LabelWidget.getDefaultHeight(textRenderer, 3, LabelWidget.DEFAULT_PADDING.getVertical(), 1)
+          LabelWidget.getDefaultHeight(this.textRenderer, 3, LabelWidget.DEFAULT_PADDING.getVertical(), 1)
       );
     });
 

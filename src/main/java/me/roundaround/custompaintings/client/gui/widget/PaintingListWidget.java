@@ -3,9 +3,9 @@ package me.roundaround.custompaintings.client.gui.widget;
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.roundalib.client.gui.GuiUtil;
-import me.roundaround.roundalib.client.gui.widget.AlwaysSelectedFlowListWidget;
 import me.roundaround.roundalib.client.gui.widget.LabelWidget;
 import me.roundaround.roundalib.client.gui.widget.LinearLayoutWidget;
+import me.roundaround.roundalib.client.gui.widget.NarratableEntryListWidget;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
@@ -26,7 +26,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 @Environment(value = EnvType.CLIENT)
-public class PaintingListWidget extends AlwaysSelectedFlowListWidget<PaintingListWidget.Entry> {
+public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWidget.Entry> {
   private final PaintingEditState state;
   private final Consumer<PaintingData> onPaintingSelect;
   private final Consumer<PaintingData> onPaintingConfirm;
@@ -123,7 +123,7 @@ public class PaintingListWidget extends AlwaysSelectedFlowListWidget<PaintingLis
   }
 
   @Environment(value = EnvType.CLIENT)
-  public static abstract class Entry extends AlwaysSelectedFlowListWidget.Entry {
+  public static abstract class Entry extends NarratableEntryListWidget.Entry {
     protected static final int HEIGHT = 36;
 
     protected final PaintingData paintingData;
@@ -165,7 +165,7 @@ public class PaintingListWidget extends AlwaysSelectedFlowListWidget<PaintingLis
           .showShadow()
           .build();
 
-      this.addDrawableChild(this.label);
+      this.addDrawable(this.label);
     }
 
     @Override
@@ -240,7 +240,7 @@ public class PaintingListWidget extends AlwaysSelectedFlowListWidget<PaintingLis
         self.setDimensions(this.getContentWidth() - GuiUtil.PADDING - this.getContentHeight(), this.getContentHeight());
       });
 
-      layout.forEachChild(this::addChild);
+      layout.forEachChild(this::addDrawable);
     }
 
     @Override
