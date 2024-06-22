@@ -21,7 +21,7 @@ public class GroupListWidget extends AlwaysSelectedFlowListWidget<GroupListWidge
   public GroupListWidget(
       MinecraftClient client, ThreePartsLayoutWidget layout, Consumer<String> onGroupSelect
   ) {
-    super(client, layout.getX(), layout.getHeaderHeight(), layout.getWidth(), layout.getContentHeight());
+    super(client, layout);
 
     this.onGroupSelect = onGroupSelect;
   }
@@ -29,10 +29,6 @@ public class GroupListWidget extends AlwaysSelectedFlowListWidget<GroupListWidge
   public void setGroups(Collection<Group> groups) {
     this.clearEntries();
     groups.forEach((group) -> this.addEntry(this.getEntryFactory(this.client.textRenderer, this.onGroupSelect, group)));
-
-    if (this.getEntryCount() > 0) {
-      this.setSelected(this.getEntry(0));
-    }
   }
 
   private EntryFactory<Entry> getEntryFactory(TextRenderer textRenderer, Consumer<String> onSelect, Group group) {

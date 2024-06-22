@@ -8,7 +8,6 @@ import me.roundaround.custompaintings.client.gui.widget.PaintingListWidget;
 import me.roundaround.custompaintings.client.gui.widget.PaintingSpriteWidget;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.roundalib.client.gui.GuiUtil;
-import me.roundaround.roundalib.client.gui.widget.FullBodyWrapperWidget;
 import me.roundaround.roundalib.client.gui.widget.IconButtonWidget;
 import me.roundaround.roundalib.client.gui.widget.LabelWidget;
 import me.roundaround.roundalib.client.gui.widget.LinearLayoutWidget;
@@ -61,8 +60,10 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
 
     this.layout.addHeader(this.title, this.textRenderer);
 
-    LinearLayoutWidget body = LinearLayoutWidget.horizontal().spacing(2 * GuiUtil.PADDING);
-    this.layout.addBody(new FullBodyWrapperWidget(body, this.layout));
+    LinearLayoutWidget body = this.layout.addBody(LinearLayoutWidget.horizontal((self) -> {
+      self.setPosition(0, this.layout.getHeaderHeight());
+      self.setDimensions(this.width, this.layout.getContentHeight());
+    }).spacing(2 * GuiUtil.PADDING));
 
     LinearLayoutWidget leftPane = body.add(LinearLayoutWidget.vertical().spacing(GuiUtil.PADDING), (parent, self) -> {
       Divider divider = new Divider(parent.getWidth() - parent.getSpacing(), 2);
@@ -102,18 +103,24 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     });
     rightPane.getMainPositioner().alignHorizontalCenter();
 
-    this.infoLabel = rightPane.add(LabelWidget.builder(this.textRenderer, new ArrayList<>(0))
+    ArrayList<Text> infoLines = new ArrayList<>();
+    if (this.paintingData.hasLabel()) {
+      infoLines.add(this.getLabelText());
+    }
+    infoLines.add(this.getIdText());
+    infoLines.add(this.getDimensionsText());
+    this.infoLabel = rightPane.add(LabelWidget.builder(this.textRenderer, infoLines)
         .justifiedCenter()
         .alignedMiddle()
         .hideBackground()
         .showShadow()
-        .build(), (parent, self) -> self.setDimensions(parent.getWidth(), self.getTextBounds().getHeight()));
-
-    if (this.paintingData.hasLabel()) {
-      this.infoLabel.appendLine(this.getLabelText());
-    }
-    this.infoLabel.appendLine(this.getIdText());
-    this.infoLabel.appendLine(this.getDimensionsText());
+        .overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE)
+        .lineSpacing(1)
+        .build(), (parent, self) -> {
+      self.setDimensions(parent.getWidth(),
+          LabelWidget.getDefaultHeight(textRenderer, 3, LabelWidget.DEFAULT_PADDING.getVertical(), 1)
+      );
+    });
 
     this.paintingSprite = rightPane.add(new PaintingSpriteWidget(this.paintingData, true), (parent, self) -> {
       self.setDimensions(parent.getWidth() - 2 * GuiUtil.PADDING,
@@ -177,11 +184,12 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     }
 
     this.layout.forEachChild(this::addDrawableChild);
-    this.initTabNavigation();
 
     this.initialized = true;
     this.updateWidgetsAfterFilterChange();
     this.updateWidgetsAfterPaintingChange();
+
+    this.initTabNavigation();
   }
 
   @Override

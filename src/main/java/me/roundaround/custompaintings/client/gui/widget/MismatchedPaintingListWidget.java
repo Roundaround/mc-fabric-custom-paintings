@@ -1,7 +1,6 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
 import me.roundaround.custompaintings.client.gui.screen.manage.MismatchedPaintingsScreen;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
@@ -16,7 +15,6 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.LoadingDisplay;
 import net.minecraft.client.gui.widget.ThreePartsLayoutWidget;
-import net.minecraft.client.texture.Sprite;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
@@ -143,7 +141,6 @@ public class MismatchedPaintingListWidget extends FlowListWidget<MismatchedPaint
   @Environment(value = EnvType.CLIENT)
   public static class MismatchedPaintingEntry extends Entry {
     private final MismatchedPainting mismatchedPainting;
-    private final Sprite sprite;
     private final LinearLayoutWidget layout;
 
     public MismatchedPaintingEntry(
@@ -152,7 +149,6 @@ public class MismatchedPaintingListWidget extends FlowListWidget<MismatchedPaint
       super(index, left, top, width, HEIGHT);
 
       this.mismatchedPainting = mismatchedPainting;
-      this.sprite = CustomPaintingsClientMod.customPaintingManager.getPaintingSprite(mismatchedPainting.currentData());
 
       PaintingData paintingData = mismatchedPainting.currentData();
 
@@ -210,7 +206,7 @@ public class MismatchedPaintingListWidget extends FlowListWidget<MismatchedPaint
           .onPress((button) -> ClientNetworking.sendUpdatePaintingPacket(this.mismatchedPainting.uuid()))
           .build());
 
-      this.layout.forEachChild(this::addDetectedCapabilityChild);
+      this.layout.forEachChild(this::addChild);
     }
 
     @Override

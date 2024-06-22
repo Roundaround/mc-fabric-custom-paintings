@@ -3,8 +3,6 @@ package me.roundaround.custompaintings.client.gui.widget;
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.roundalib.client.gui.GuiUtil;
-import me.roundaround.roundalib.client.gui.layout.Coords;
-import me.roundaround.roundalib.client.gui.layout.Spacing;
 import me.roundaround.roundalib.client.gui.widget.AlwaysSelectedFlowListWidget;
 import me.roundaround.roundalib.client.gui.widget.LabelWidget;
 import me.roundaround.roundalib.client.gui.widget.LinearLayoutWidget;
@@ -12,6 +10,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.navigation.NavigationDirection;
 import net.minecraft.text.MutableText;
@@ -141,6 +140,46 @@ public class PaintingListWidget extends AlwaysSelectedFlowListWidget<PaintingLis
     public boolean mouseDoubleClicked(double mouseX, double mouseY, int button) {
       return false;
     }
+
+    @Override
+    protected void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
+      context.fill(this.getX(), this.getY(), this.getRight(), this.getBottom(), GuiUtil.genColorInt(0, 0, 0, 0.2f));
+      context.drawBorder(
+          this.getX(), this.getY(), this.getWidth(), this.getHeight(), GuiUtil.genColorInt(1, 1, 1, 0.2f));
+    }
+  }
+
+  @Environment(value = EnvType.CLIENT)
+  public static class EmptyEntry extends Entry {
+    private final LabelWidget label;
+
+    public EmptyEntry(int index, int left, int top, int width, TextRenderer textRenderer) {
+      super(index, left, top, width, HEIGHT, PaintingData.EMPTY);
+
+      this.label = LabelWidget.builder(textRenderer, Text.translatable("custompaintings.painting.empty"))
+          .refPosition(this.getContentCenterX(), this.getContentCenterY())
+          .dimensions(this.getContentWidth(), this.getContentHeight())
+          .justifiedCenter()
+          .alignedMiddle()
+          .hideBackground()
+          .showShadow()
+          .build();
+
+      this.addDrawableChild(this.label);
+    }
+
+    @Override
+    public Text getNarration() {
+      return this.label.getText();
+    }
+
+    @Override
+    public void refreshPositions() {
+      this.label.batchUpdates(() -> {
+        this.label.setPosition(this.getContentCenterX(), this.getContentCenterY());
+        this.label.setDimensions(this.getContentWidth(), this.getContentHeight());
+      });
+    }
   }
 
   @Environment(value = EnvType.CLIENT)
@@ -148,7 +187,6 @@ public class PaintingListWidget extends AlwaysSelectedFlowListWidget<PaintingLis
     private final Consumer<PaintingData> onSelect;
     private final Consumer<PaintingData> onConfirm;
     private final boolean canStay;
-    private final LinearLayoutWidget layout;
 
     public PaintingEntry(
         int index,
@@ -163,17 +201,16 @@ public class PaintingListWidget extends AlwaysSelectedFlowListWidget<PaintingLis
     ) {
       super(index, left, top, width, HEIGHT, paintingData);
 
-      this.setMargin(Spacing.of(GuiUtil.PADDING / 2, GuiUtil.PADDING));
-
       this.onSelect = onSelect;
       this.onConfirm = onConfirm;
       this.canStay = canStay;
 
-      this.layout = LinearLayoutWidget.horizontal().spacing(GuiUtil.PADDING);
-      this.layout.setPosition(this.getContentLeft(), this.getContentTop());
-      this.layout.setDimensions(this.getContentWidth(), this.getContentHeight());
+      LinearLayoutWidget layout = this.addLayout(LinearLayoutWidget.horizontal((self) -> {
+        self.setPosition(this.getContentLeft(), this.getContentTop());
+        self.setDimensions(this.getContentWidth(), this.getContentHeight());
+      }).spacing(GuiUtil.PADDING));
 
-      this.layout.add(new PaintingSpriteWidget(paintingData), (parent, self) -> {
+      layout.add(new PaintingSpriteWidget(paintingData), (parent, self) -> {
         self.setDimensions(this.getContentHeight(), this.getContentHeight());
       });
 
@@ -195,23 +232,15 @@ public class PaintingListWidget extends AlwaysSelectedFlowListWidget<PaintingLis
       LabelWidget labels = LabelWidget.builder(textRenderer, lines)
           .justifiedLeft()
           .alignedMiddle()
-          .overflowBehavior(LabelWidget.OverflowBehavior.CLIP)
+          .overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE)
           .hideBackground()
           .showShadow()
           .build();
-      this.layout.add(labels, (parent, self) -> {
+      layout.add(labels, (parent, self) -> {
         self.setDimensions(this.getContentWidth() - GuiUtil.PADDING - this.getContentHeight(), this.getContentHeight());
       });
 
-      this.layout.forEachChild(this::addDrawableChild);
-    }
-
-    @Override
-    public void refreshPositions() {
-      this.layout.setPosition(this.getContentLeft(), this.getContentTop());
-      this.layout.setDimensions(this.getContentWidth(), this.getContentHeight());
-      this.layout.refreshPositions();
-      super.refreshPositions();
+      layout.forEachChild(this::addChild);
     }
 
     @Override
@@ -223,12 +252,8 @@ public class PaintingListWidget extends AlwaysSelectedFlowListWidget<PaintingLis
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-      if (this.canStay) {
-        this.onSelect.accept(this.paintingData);
-        return true;
-      }
-
-      return false;
+      this.onSelect.accept(this.paintingData);
+      return true;
     }
 
     @Override
@@ -249,39 +274,6 @@ public class PaintingListWidget extends AlwaysSelectedFlowListWidget<PaintingLis
       }
 
       return false;
-    }
-  }
-
-  @Environment(value = EnvType.CLIENT)
-  public static class EmptyEntry extends Entry {
-    private final LabelWidget label;
-
-    public EmptyEntry(int index, int left, int top, int width, TextRenderer textRenderer) {
-      super(index, left, top, width, HEIGHT, PaintingData.EMPTY);
-
-      this.label = LabelWidget.builder(textRenderer, Text.translatable("custompaintings.painting.empty"))
-          .refPosition(this.getContentCenterX(), this.getContentCenterY())
-          .dimensions(this.getContentWidth(), this.getContentHeight())
-          .justifiedCenter()
-          .alignedMiddle()
-          .hideBackground()
-          .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
-          .build();
-
-      this.addDrawableChild(this.label);
-    }
-
-    @Override
-    public Text getNarration() {
-      return this.label.getText();
-    }
-
-    @Override
-    public void refreshPositions() {
-      this.label.batchUpdates(() -> {
-        this.label.setPosition(this.getContentCenterX(), this.getContentCenterY());
-        this.label.setDimensions(this.getContentWidth(), this.getContentHeight());
-      });
     }
   }
 }

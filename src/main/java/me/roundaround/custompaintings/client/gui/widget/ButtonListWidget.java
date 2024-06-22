@@ -31,7 +31,7 @@ public class ButtonListWidget extends FlowListWidget<ButtonListWidget.Entry> {
           .position(this.getButtonX(), this.getButtonY())
           .size(BUTTON_WIDTH, BUTTON_HEIGHT)
           .build();
-      this.addDetectedCapabilityChild(this.button);
+      this.addDrawableChild(this.button);
     }
 
     @Override

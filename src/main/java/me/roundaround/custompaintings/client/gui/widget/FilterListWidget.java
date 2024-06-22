@@ -156,8 +156,6 @@ public class FilterListWidget extends FlowListWidget<FilterListWidget.Entry> {
     ) {
       super(index, left, top, width, HEIGHT);
 
-      this.setMarginX(DEFAULT_MARGIN_HORIZONTAL + GuiUtil.PADDING);
-
       this.getter = getter;
 
       this.button = CyclingButtonWidget.onOffBuilder(trueText, falseText)
@@ -273,13 +271,13 @@ public class FilterListWidget extends FlowListWidget<FilterListWidget.Entry> {
       this.lowSetter = lowSetter;
       this.highSetter = highSetter;
 
-      this.lowSlider = this.addDrawableAndSelectableChild(
+      this.lowSlider = this.addDrawableChild(
           new IntSliderWidget(this.getControlLeft(), this.getContentTop(), this.getHalfControlWidth(),
               this.getContentHeight(), this.lowGetter.get(), 1, 32, this::stepLow, this::onLowSliderChange,
               (value) -> Text.translatable(lowI18nKey, value)
           ));
 
-      this.highSlider = this.addDrawableAndSelectableChild(
+      this.highSlider = this.addDrawableChild(
           new IntSliderWidget(this.getRightControlLeft(), this.getContentTop(), this.getHalfControlWidth(),
               this.getContentHeight(), this.highGetter.get(), 1, 32, this::stepHigh, this::onHighSliderChange,
               (value) -> Text.translatable(highI18nKey, value)

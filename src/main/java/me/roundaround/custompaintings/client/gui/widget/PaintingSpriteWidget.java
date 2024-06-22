@@ -14,6 +14,7 @@ public class PaintingSpriteWidget extends DrawableWidget {
   private boolean border = false;
   private Sprite sprite;
   private IntRect paintingBounds = IntRect.zero();
+  private boolean inBatchUpdate = false;
 
   public PaintingSpriteWidget(PaintingData paintingData) {
     this(0, 0, paintingData);
@@ -41,43 +42,69 @@ public class PaintingSpriteWidget extends DrawableWidget {
     this.paintingData = paintingData;
     this.border = border;
     this.sprite = CustomPaintingsClientMod.customPaintingManager.getPaintingSprite(paintingData);
-    this.recalculatePaintingBounds();
+    this.calculateBounds();
+  }
+
+  public void batchUpdates(Runnable runnable) {
+    this.inBatchUpdate = true;
+    try {
+      runnable.run();
+    } finally {
+      this.inBatchUpdate = false;
+      this.calculateBounds();
+    }
+  }
+
+  @Override
+  public void setX(int x) {
+    super.setX(x);
+    this.calculateBounds();
+  }
+
+  @Override
+  public void setY(int y) {
+    super.setY(y);
+    this.calculateBounds();
   }
 
   @Override
   public void setWidth(int width) {
     super.setWidth(width);
-    this.recalculatePaintingBounds();
+    this.calculateBounds();
   }
 
   @Override
   public void setHeight(int height) {
     super.setHeight(height);
-    this.recalculatePaintingBounds();
+    this.calculateBounds();
   }
 
   @Override
   public void setDimensions(int width, int height) {
     super.setDimensions(width, height);
-    this.recalculatePaintingBounds();
+    this.calculateBounds();
   }
 
   public void setPaintingData(PaintingData paintingData) {
     this.paintingData = paintingData;
     this.sprite = CustomPaintingsClientMod.customPaintingManager.getPaintingSprite(paintingData);
-    this.recalculatePaintingBounds();
+    this.calculateBounds();
   }
 
   public void setBorder(boolean border) {
     this.border = border;
-    this.recalculatePaintingBounds();
+    this.calculateBounds();
   }
 
   public void setActive(boolean active) {
     this.active = active;
   }
 
-  public void recalculatePaintingBounds() {
+  public void calculateBounds() {
+    if (this.inBatchUpdate) {
+      return;
+    }
+
     int width = this.getWidth();
     int height = this.getHeight();
     int x = this.getX();

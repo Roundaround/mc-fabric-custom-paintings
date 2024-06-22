@@ -95,15 +95,11 @@ public class MigrationListWidget extends AlwaysSelectedFlowListWidget<MigrationL
 
   @Override
   protected void renderEntry(DrawContext context, int mouseX, int mouseY, float delta, Entry entry) {
-    if (!this.isEntryVisible(entry)) {
-      return;
-    }
-
     if (entry.renderRowShade()) {
       this.renderRowShade(context, entry);
     }
 
-    entry.render(context, mouseX, mouseY, delta);
+    super.renderEntry(context, mouseX, mouseY, delta, entry);
   }
 
   @Environment(value = EnvType.CLIENT)
@@ -128,10 +124,9 @@ public class MigrationListWidget extends AlwaysSelectedFlowListWidget<MigrationL
     public EmptyEntry(TextRenderer textRenderer, int index, int left, int top, int width) {
       super(index, left, top, width, 36);
 
-      this.label = this.addDrawableAndSelectableChild(
+      this.label = this.addDrawableChild(
           LabelWidget.builder(textRenderer, Text.translatable("custompaintings.migrations.empty"))
-              .refPosition(this.getContentCenterX(), this.getContentCenterY())
-              .dimensions(this.getContentWidth(), this.getContentHeight())
+              .positionMode(LabelWidget.PositionMode.REFERENCE)
               .justifiedCenter()
               .alignedMiddle()
               .hideBackground()
@@ -144,7 +139,6 @@ public class MigrationListWidget extends AlwaysSelectedFlowListWidget<MigrationL
         this.label.setPosition(this.getContentCenterX(), this.getContentCenterY());
         this.label.setDimensions(this.getContentWidth(), this.getContentHeight());
       });
-      super.refreshPositions();
     }
 
     @Override
@@ -155,7 +149,6 @@ public class MigrationListWidget extends AlwaysSelectedFlowListWidget<MigrationL
 
   @Environment(value = EnvType.CLIENT)
   public static class PackTitleEntry extends Entry {
-    private final LinearLayoutWidget layout;
     private final LabelWidget nameLabel;
     private final LabelWidget idLabel;
 
@@ -164,18 +157,19 @@ public class MigrationListWidget extends AlwaysSelectedFlowListWidget<MigrationL
     ) {
       super(index, left, top, width, 30);
 
-      this.layout = LinearLayoutWidget.vertical().spacing(GuiUtil.PADDING / 2).centered();
-      this.layout.setPosition(this.getContentLeft(), this.getContentTop());
-      this.layout.setDimensions(this.getContentWidth(), this.getContentHeight());
-      this.layout.getMainPositioner().alignHorizontalCenter();
+      LinearLayoutWidget layout = this.addLayout(LinearLayoutWidget.vertical((self) -> {
+        self.setPosition(this.getContentLeft(), this.getContentTop());
+        self.setDimensions(this.getContentWidth(), this.getContentHeight());
+      }).spacing(GuiUtil.PADDING / 2).centered());
+      layout.getMainPositioner().alignHorizontalCenter();
 
       boolean hasName = packName != null && !packName.isEmpty();
 
       if (hasName) {
-        this.nameLabel = this.layout.add(LabelWidget.builder(textRenderer, Text.literal(packName))
+        this.nameLabel = layout.add(LabelWidget.builder(textRenderer, Text.literal(packName))
             .overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE)
             .build(), (parent, self) -> {
-          self.setDimensions(this.getContentWidth(), LabelWidget.getDefaultSingleLineHeight(textRenderer));
+          self.setWidth(this.getContentWidth());
         });
       } else {
         this.nameLabel = null;
@@ -185,27 +179,19 @@ public class MigrationListWidget extends AlwaysSelectedFlowListWidget<MigrationL
       if (hasName) {
         idText = idText.setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
       }
-      this.idLabel = this.layout.add(
+      this.idLabel = layout.add(
           LabelWidget.builder(textRenderer, idText).overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE).build(),
           (parent, self) -> {
-            self.setDimensions(this.getContentWidth(), LabelWidget.getDefaultSingleLineHeight(textRenderer));
+            self.setWidth(this.getContentWidth());
           }
       );
 
-      this.layout.forEachChild(this::addDrawableChild);
+      layout.forEachChild(this::addDrawableChild);
     }
 
     @Override
     public boolean renderRowShade() {
       return true;
-    }
-
-    @Override
-    public void refreshPositions() {
-      this.layout.setPosition(this.getContentLeft(), this.getContentTop());
-      this.layout.setDimensions(this.getContentWidth(), this.getContentHeight());
-      this.layout.refreshPositions();
-      super.refreshPositions();
     }
 
     @Override
@@ -218,7 +204,6 @@ public class MigrationListWidget extends AlwaysSelectedFlowListWidget<MigrationL
   @Environment(value = EnvType.CLIENT)
   public static class MigrationEntry extends Entry {
     private final Migration migration;
-    private final LinearLayoutWidget layout;
 
     public MigrationEntry(
         TextRenderer textRenderer, Migration migration, int index, int left, int top, int width
@@ -227,43 +212,36 @@ public class MigrationListWidget extends AlwaysSelectedFlowListWidget<MigrationL
 
       this.migration = migration;
 
-      this.layout = LinearLayoutWidget.vertical().spacing(GuiUtil.PADDING / 2).centered();
-      this.layout.setPosition(this.getContentLeft(), this.getContentTop());
-      this.layout.setDimensions(this.getContentWidth(), this.getContentHeight());
-      this.layout.getMainPositioner().alignHorizontalCenter();
+      LinearLayoutWidget layout = this.addLayout(LinearLayoutWidget.vertical((self) -> {
+        self.setPosition(this.getContentLeft(), this.getContentTop());
+        self.setDimensions(this.getContentWidth(), this.getContentHeight());
+      }).spacing(GuiUtil.PADDING / 2).centered());
+      layout.getMainPositioner().alignHorizontalCenter();
 
       LabelWidget nameLabel = LabelWidget.builder(textRenderer, Text.literal(this.migration.description()))
           .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
           .build();
-      this.layout.add(nameLabel, (parent, self) -> {
-        self.setDimensions(this.getContentWidth(), LabelWidget.getDefaultSingleLineHeight(textRenderer));
+      layout.add(nameLabel, (parent, self) -> {
+        self.setWidth(this.getContentWidth());
       });
 
       LabelWidget dateLabel = LabelWidget.builder(
           textRenderer,
           Text.literal(this.migration.id()).setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY))
       ).overflowBehavior(LabelWidget.OverflowBehavior.SCROLL).build();
-      this.layout.add(dateLabel, (parent, self) -> {
-        self.setDimensions(this.getContentWidth(), LabelWidget.getDefaultSingleLineHeight(textRenderer));
+      layout.add(dateLabel, (parent, self) -> {
+        self.setWidth(this.getContentWidth());
       });
 
       LabelWidget changesLabel = LabelWidget.builder(
           textRenderer,
           Text.translatable("custompaintings.migrations.count", String.valueOf(this.migration.pairs().size()))
       ).overflowBehavior(LabelWidget.OverflowBehavior.SCROLL).build();
-      this.layout.add(changesLabel, (parent, self) -> {
-        self.setDimensions(this.getContentWidth(), LabelWidget.getDefaultSingleLineHeight(textRenderer));
+      layout.add(changesLabel, (parent, self) -> {
+        self.setWidth(this.getContentWidth());
       });
 
-      this.layout.forEachChild(this::addDrawableChild);
-    }
-
-    @Override
-    public void refreshPositions() {
-      this.layout.setPosition(this.getContentLeft(), this.getContentTop());
-      this.layout.setDimensions(this.getContentWidth(), this.getContentHeight());
-      this.layout.refreshPositions();
-      super.refreshPositions();
+      layout.forEachChild(this::addDrawableChild);
     }
 
     @Override
