@@ -1,6 +1,5 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
 import me.roundaround.custompaintings.client.gui.screen.manage.MismatchedPaintingsScreen;
@@ -9,7 +8,6 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData.MismatchedCategory;
 import me.roundaround.custompaintings.util.MismatchedPainting;
 import me.roundaround.roundalib.client.gui.GuiUtil;
-import me.roundaround.roundalib.client.gui.layout.Coords;
 import me.roundaround.roundalib.client.gui.widget.*;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -18,7 +16,6 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.LoadingDisplay;
 import net.minecraft.client.gui.widget.ThreePartsLayoutWidget;
-import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.texture.Sprite;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
@@ -159,29 +156,12 @@ public class MismatchedPaintingListWidget extends FlowListWidget<MismatchedPaint
 
       PaintingData paintingData = mismatchedPainting.currentData();
 
-      this.layout = LinearLayoutWidget.horizontal((self) -> Coords.of(this.getContentWidth(), this.getContentHeight()))
-          .spacing(GuiUtil.PADDING);
+      this.layout = LinearLayoutWidget.horizontal().spacing(GuiUtil.PADDING);
+      this.layout.setPosition(this.getContentLeft(), this.getContentTop());
+      this.layout.setDimensions(this.getContentWidth(), this.getContentHeight());
       this.layout.getMainPositioner().alignVerticalCenter();
 
-      this.layout.add(new DrawableWidget() {
-        @Override
-        protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
-          Sprite sprite = MismatchedPaintingEntry.this.sprite;
-          int maxSize = MismatchedPaintingEntry.this.getContentHeight();
-          int left = MismatchedPaintingEntry.this.getContentLeft();
-          int top = MismatchedPaintingEntry.this.getContentTop();
-
-          int scaledWidth = paintingData.getScaledWidth(maxSize, maxSize);
-          int scaledHeight = paintingData.getScaledHeight(maxSize, maxSize);
-
-          RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-          RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-          RenderSystem.setShaderTexture(0, sprite.getAtlasId());
-          context.drawSprite(left + (maxSize - scaledWidth) / 2, top + (maxSize - scaledHeight) / 2, 1, scaledWidth,
-              scaledHeight, sprite
-          );
-        }
-      }, (parent, self) -> {
+      this.layout.add(new PaintingSpriteWidget(paintingData), (parent, self) -> {
         self.setDimensions(this.getContentHeight(), this.getContentHeight());
       });
 
@@ -235,8 +215,10 @@ public class MismatchedPaintingListWidget extends FlowListWidget<MismatchedPaint
 
     @Override
     public void refreshPositions() {
-      super.refreshPositions();
+      this.layout.setPosition(this.getContentLeft(), this.getContentTop());
+      this.layout.setDimensions(this.getContentWidth(), this.getContentHeight());
       this.layout.refreshPositions();
+      super.refreshPositions();
     }
   }
 }

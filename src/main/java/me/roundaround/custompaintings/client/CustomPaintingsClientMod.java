@@ -21,9 +21,7 @@ public class CustomPaintingsClientMod implements ClientModInitializer {
     MinecraftClientEvents.AFTER_INIT.register(() -> {
       MinecraftClient client = MinecraftClient.getInstance();
       customPaintingManager = new CustomPaintingManager(client.getTextureManager());
-      ResourceManagerHelper
-          .get(ResourceType.CLIENT_RESOURCES)
-          .registerReloadListener(customPaintingManager);
+      ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(customPaintingManager);
       MinecraftClientEvents.ON_CLOSE.register(customPaintingManager::close);
     });
 
@@ -31,13 +29,10 @@ public class CustomPaintingsClientMod implements ClientModInitializer {
       customPaintingManager.sendKnownPaintingsToServer();
     });
 
-    ClientNetworking.registerReceivers();
+    ClientNetworking.registerS2CHandlers();
 
     openManageScreenKeyBinding = KeyBindingHelper.registerKeyBinding(
-        new KeyBinding(
-            "custompaintings.key.manage",
-            InputUtil.UNKNOWN_KEY.getCode(),
-            KeyBinding.MISC_CATEGORY));
+        new KeyBinding("custompaintings.key.manage", InputUtil.UNKNOWN_KEY.getCode(), KeyBinding.MISC_CATEGORY));
 
     MinecraftClientEvents.ON_INPUT.register(() -> {
       MinecraftClient client = MinecraftClient.getInstance();

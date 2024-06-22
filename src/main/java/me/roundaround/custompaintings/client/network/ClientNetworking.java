@@ -1,10 +1,5 @@
 package me.roundaround.custompaintings.client.network;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.UUID;
-
-import io.netty.buffer.Unpooled;
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.screen.edit.GroupSelectScreen;
 import me.roundaround.custompaintings.client.gui.screen.edit.PaintingEditScreen;
@@ -13,194 +8,102 @@ import me.roundaround.custompaintings.client.gui.screen.manage.ManagePaintingsSc
 import me.roundaround.custompaintings.client.gui.screen.manage.MismatchedPaintingsScreen;
 import me.roundaround.custompaintings.client.gui.screen.manage.UnknownPaintingsScreen;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.custompaintings.network.NetworkPackets;
+import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.util.Migration;
-import me.roundaround.custompaintings.util.MismatchedPainting;
-import me.roundaround.custompaintings.util.UnknownPainting;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.networking.v1.PacketSender;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.Pair;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
 
-public class ClientNetworking {
-  public static void registerReceivers() {
-    ClientPlayNetworking.registerGlobalReceiver(
-        NetworkPackets.EDIT_PAINTING_PACKET,
-        ClientNetworking::handleEditPaintingPacket);
-    ClientPlayNetworking.registerGlobalReceiver(
-        NetworkPackets.OPEN_MANAGE_SCREEN_PACKET,
-        ClientNetworking::handleOpenManageScreenPacket);
-    ClientPlayNetworking.registerGlobalReceiver(
-        NetworkPackets.LIST_UNKNOWN_PACKET,
-        ClientNetworking::handleListUnknownPacket);
-    ClientPlayNetworking.registerGlobalReceiver(
-        NetworkPackets.LIST_MISMATCHED_PACKET,
-        ClientNetworking::handleListMismatchedPacket);
+import java.util.HashSet;
+import java.util.List;
+import java.util.UUID;
+
+public final class ClientNetworking {
+  private ClientNetworking() {
   }
 
   public static void sendSetPaintingPacket(UUID paintingUuid, PaintingData customPaintingInfo) {
-    PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-    buf.writeUuid(paintingUuid);
-    customPaintingInfo.writeToPacketByteBuf(buf);
-
-    ClientPlayNetworking.send(NetworkPackets.SET_PAINTING_PACKET, buf);
+    ClientPlayNetworking.send(new Networking.SetPaintingC2S(paintingUuid, customPaintingInfo));
   }
 
   public static void sendDeclareKnownPaintingsPacket(List<PaintingData> knownPaintings) {
-    PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-    buf.writeInt(knownPaintings.size());
-    for (PaintingData data : knownPaintings) {
-      data.writeToPacketByteBuf(buf);
-    }
-    ClientPlayNetworking.send(
-        NetworkPackets.DECLARE_KNOWN_PAINTINGS_PACKET, buf);
+    ClientPlayNetworking.send(new Networking.DeclareKnownPaintingsC2S(knownPaintings));
   }
 
   public static void sendRequestUnknownPacket() {
-    ClientPlayNetworking.send(
-        NetworkPackets.REQUEST_UNKNOWN_PACKET, new PacketByteBuf(Unpooled.buffer()));
+    ClientPlayNetworking.send(new Networking.RequestUnknownC2S());
   }
 
   public static void sendRequestMismatchedPacket() {
-    ClientPlayNetworking.send(
-        NetworkPackets.REQUEST_MISMATCHED_PACKET, new PacketByteBuf(Unpooled.buffer()));
+    ClientPlayNetworking.send(new Networking.RequestMismatchedC2S());
   }
 
   public static void sendReassignPacket(UUID paintingUuid, Identifier id) {
-    PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-    buf.writeUuid(paintingUuid);
-    buf.writeIdentifier(id);
-    ClientPlayNetworking.send(NetworkPackets.REASSIGN_PACKET, buf);
+    ClientPlayNetworking.send(new Networking.ReassignC2S(paintingUuid, id));
   }
 
   public static void sendReassignAllPacket(Identifier from, Identifier to) {
-    PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-    buf.writeIdentifier(from);
-    buf.writeIdentifier(to);
-    ClientPlayNetworking.send(NetworkPackets.REASSIGN_ALL_PACKET, buf);
+    ClientPlayNetworking.send(new Networking.ReassignAllC2S(from, to));
   }
 
   public static void sendUpdatePaintingPacket(UUID paintingUuid) {
-    PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-    buf.writeUuid(paintingUuid);
-    ClientPlayNetworking.send(NetworkPackets.UPDATE_PAINTING_PACKET, buf);
+    ClientPlayNetworking.send(new Networking.UpdatePaintingC2S(paintingUuid));
   }
 
   public static void sendRemovePaintingPacket(UUID paintingUuid) {
-    PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-    buf.writeUuid(paintingUuid);
-    ClientPlayNetworking.send(NetworkPackets.REMOVE_PAINTING_PACKET, buf);
+    ClientPlayNetworking.send(new Networking.RemovePaintingC2S(paintingUuid));
   }
 
   public static void sendRemoveAllPaintingsPacket(Identifier id) {
-    PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-    buf.writeIdentifier(id);
-    ClientPlayNetworking.send(NetworkPackets.REMOVE_ALL_PAINTINGS_PACKET, buf);
+    ClientPlayNetworking.send(new Networking.RemoveAllPaintingsC2S(id));
   }
 
   public static void sendApplyMigrationPacket(Migration migration) {
-    PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-    buf.writeInt(migration.pairs().size());
-    for (Pair<String, String> pair : migration.pairs()) {
-      buf.writeString(pair.getLeft());
-      buf.writeString(pair.getRight());
-    }
-    ClientPlayNetworking.send(NetworkPackets.APPLY_MIGRATION_PACKET, buf);
+    ClientPlayNetworking.send(new Networking.ApplyMigrationC2S(migration));
   }
 
-  private static void handleEditPaintingPacket(
-      MinecraftClient client,
-      ClientPlayNetworkHandler handler,
-      PacketByteBuf buf,
-      PacketSender responseSender) {
-    UUID paintingUuid = buf.readUuid();
-    int paintingId = buf.readInt();
-    BlockPos pos = buf.readBlockPos();
-    Direction facing = Direction.byId(buf.readInt());
+  public static void registerS2CHandlers() {
+    ClientPlayNetworking.registerGlobalReceiver(Networking.EditPaintingS2C.ID, ClientNetworking::handleEditPainting);
+    ClientPlayNetworking.registerGlobalReceiver(
+        Networking.OpenManageScreenS2C.ID, ClientNetworking::handleOpenManageScreen);
+    ClientPlayNetworking.registerGlobalReceiver(Networking.ListUnknownS2C.ID, ClientNetworking::handleListUnknown);
+    ClientPlayNetworking.registerGlobalReceiver(
+        Networking.ListMismatchedS2C.ID, ClientNetworking::handleListMismatched);
+  }
 
-    client.execute(() -> {
+  private static void handleEditPainting(Networking.EditPaintingS2C payload, ClientPlayNetworking.Context context) {
+    context.client().execute(() -> {
       PaintingEditState state = new PaintingEditState(
-          client,
-          paintingUuid,
-          paintingId,
-          pos,
-          facing);
+          context.client(), payload.paintingUuid(), payload.paintingId(), payload.pos(), payload.facing());
 
-      PaintingEditScreen screen = state.hasMultipleGroups()
-          ? new GroupSelectScreen(state)
-          : new PaintingSelectScreen(state);
+      PaintingEditScreen screen = state.hasMultipleGroups() ?
+          new GroupSelectScreen(state) :
+          new PaintingSelectScreen(state);
 
-      client.setScreen(screen);
+      context.client().setScreen(screen);
     });
   }
 
-  private static void handleOpenManageScreenPacket(
-      MinecraftClient client,
-      ClientPlayNetworkHandler handler,
-      PacketByteBuf buf,
-      PacketSender responseSender) {
-    client.execute(() -> {
-      client.setScreen(new ManagePaintingsScreen());
+  private static void handleOpenManageScreen(
+      Networking.OpenManageScreenS2C payload, ClientPlayNetworking.Context context
+  ) {
+    context.client().execute(() -> {
+      context.client().setScreen(new ManagePaintingsScreen());
     });
   }
 
-  private static void handleListUnknownPacket(
-      MinecraftClient client,
-      ClientPlayNetworkHandler handler,
-      PacketByteBuf buf,
-      PacketSender responseSender) {
-    int size = buf.readInt();
-    HashSet<UnknownPainting> unknownPaintings = new HashSet<>(size);
-    for (int i = 0; i < size; i++) {
-      UUID uuid = buf.readUuid();
-      PaintingData currentData = PaintingData.fromPacketByteBuf(buf);
-      PaintingData suggestedData = null;
-      if (buf.readBoolean()) {
-        suggestedData = PaintingData.fromPacketByteBuf(buf);
+  private static void handleListUnknown(Networking.ListUnknownS2C payload, ClientPlayNetworking.Context context) {
+    context.client().execute(() -> {
+      if (context.client().currentScreen instanceof UnknownPaintingsScreen screen) {
+        screen.setUnknownPaintings(new HashSet<>(payload.paintings()));
       }
-      unknownPaintings.add(new UnknownPainting(
-          uuid,
-          currentData,
-          suggestedData));
-    }
-
-    client.execute(() -> {
-      if (!(client.currentScreen instanceof UnknownPaintingsScreen)) {
-        return;
-      }
-      UnknownPaintingsScreen screen = (UnknownPaintingsScreen) client.currentScreen;
-      screen.setUnknownPaintings(unknownPaintings);
     });
   }
 
-  private static void handleListMismatchedPacket(
-      MinecraftClient client,
-      ClientPlayNetworkHandler handler,
-      PacketByteBuf buf,
-      PacketSender responseSender) {
-    int size = buf.readInt();
-    HashSet<MismatchedPainting> mismatched = new HashSet<>(size);
-    for (int i = 0; i < size; i++) {
-      UUID uuid = buf.readUuid();
-      PaintingData currentData = PaintingData.fromPacketByteBuf(buf);
-      PaintingData knownData = PaintingData.fromPacketByteBuf(buf);
-      mismatched.add(new MismatchedPainting(
-          uuid,
-          currentData,
-          knownData));
-    }
-
-    client.execute(() -> {
-      if (!(client.currentScreen instanceof MismatchedPaintingsScreen)) {
-        return;
+  private static void handleListMismatched(Networking.ListMismatchedS2C payload, ClientPlayNetworking.Context context) {
+    context.client().execute(() -> {
+      if (context.client().currentScreen instanceof MismatchedPaintingsScreen screen) {
+        screen.setMismatchedPaintings(new HashSet<>(payload.paintings()));
       }
-      MismatchedPaintingsScreen screen = (MismatchedPaintingsScreen) client.currentScreen;
-      screen.setMismatchedPaintings(mismatched);
     });
   }
 }

@@ -3,6 +3,7 @@ package me.roundaround.custompaintings.entity.decoration.painting;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.registry.Registries;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
@@ -16,8 +17,8 @@ public record PaintingData(
     String name,
     String artist,
     boolean isVanilla) {
-
   public static final PaintingData EMPTY = new PaintingData(null, 0, 0, 0);
+  public static final PacketCodec<PacketByteBuf, PaintingData> PACKET_CODEC = PacketCodec.of(PaintingData::writeToPacketByteBuf, PaintingData::fromPacketByteBuf);
 
   public PaintingData(Identifier id, int index, int width, int height) {
     this(id, index, width, height, "", "");
@@ -121,18 +122,18 @@ public record PaintingData(
   }
 
   public void writeToPacketByteBuf(PacketByteBuf buf) {
-    if (isEmpty()) {
+    if (this.isEmpty()) {
       buf.writeBoolean(false);
       return;
     }
     buf.writeBoolean(true);
-    buf.writeIdentifier(id);
-    buf.writeInt(index);
-    buf.writeInt(width);
-    buf.writeInt(height);
-    buf.writeString(name);
-    buf.writeString(artist);
-    buf.writeBoolean(isVanilla);
+    buf.writeIdentifier(this.id);
+    buf.writeInt(this.index);
+    buf.writeInt(this.width);
+    buf.writeInt(this.height);
+    buf.writeString(this.name);
+    buf.writeString(this.artist);
+    buf.writeBoolean(this.isVanilla);
   }
 
   public static PaintingData fromPacketByteBuf(PacketByteBuf buf) {

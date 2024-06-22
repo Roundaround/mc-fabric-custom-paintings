@@ -6,6 +6,8 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 
+import java.util.Objects;
+
 public abstract class PaintingEditScreen extends Screen {
   protected final PaintingEditState state;
 
@@ -24,5 +26,6 @@ public abstract class PaintingEditScreen extends Screen {
 
   public void saveSelection(PaintingData paintingData) {
     ClientNetworking.sendSetPaintingPacket(this.state.getPaintingUuid(), paintingData);
+    Objects.requireNonNull(this.client).setScreen(null);
   }
 }

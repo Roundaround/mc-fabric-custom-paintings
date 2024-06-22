@@ -3,7 +3,6 @@ package me.roundaround.custompaintings.client.gui.widget;
 import me.roundaround.custompaintings.client.gui.screen.manage.PaintingPacksTracker.MigrationGroup;
 import me.roundaround.custompaintings.util.Migration;
 import me.roundaround.roundalib.client.gui.GuiUtil;
-import me.roundaround.roundalib.client.gui.layout.Coords;
 import me.roundaround.roundalib.client.gui.widget.AlwaysSelectedFlowListWidget;
 import me.roundaround.roundalib.client.gui.widget.LabelWidget;
 import me.roundaround.roundalib.client.gui.widget.LinearLayoutWidget;
@@ -86,8 +85,7 @@ public class MigrationListWidget extends AlwaysSelectedFlowListWidget<MigrationL
       this.clickedTime = Util.getMeasuringTimeMs();
     }
 
-    super.mouseClicked(mouseX, mouseY, button);
-    return entry != null;
+    return super.mouseClicked(mouseX, mouseY, button) || entry != null;
   }
 
   @Override
@@ -134,6 +132,9 @@ public class MigrationListWidget extends AlwaysSelectedFlowListWidget<MigrationL
           LabelWidget.builder(textRenderer, Text.translatable("custompaintings.migrations.empty"))
               .refPosition(this.getContentCenterX(), this.getContentCenterY())
               .dimensions(this.getContentWidth(), this.getContentHeight())
+              .justifiedCenter()
+              .alignedMiddle()
+              .hideBackground()
               .build());
     }
 
@@ -143,6 +144,7 @@ public class MigrationListWidget extends AlwaysSelectedFlowListWidget<MigrationL
         this.label.setPosition(this.getContentCenterX(), this.getContentCenterY());
         this.label.setDimensions(this.getContentWidth(), this.getContentHeight());
       });
+      super.refreshPositions();
     }
 
     @Override
@@ -162,8 +164,9 @@ public class MigrationListWidget extends AlwaysSelectedFlowListWidget<MigrationL
     ) {
       super(index, left, top, width, 30);
 
-      this.layout = LinearLayoutWidget.vertical((self) -> Coords.of(this.getContentWidth(), this.getContentHeight()))
-          .spacing(GuiUtil.PADDING / 2);
+      this.layout = LinearLayoutWidget.vertical().spacing(GuiUtil.PADDING / 2).centered();
+      this.layout.setPosition(this.getContentLeft(), this.getContentTop());
+      this.layout.setDimensions(this.getContentWidth(), this.getContentHeight());
       this.layout.getMainPositioner().alignHorizontalCenter();
 
       boolean hasName = packName != null && !packName.isEmpty();
@@ -199,8 +202,10 @@ public class MigrationListWidget extends AlwaysSelectedFlowListWidget<MigrationL
 
     @Override
     public void refreshPositions() {
-      super.refreshPositions();
+      this.layout.setPosition(this.getContentLeft(), this.getContentTop());
+      this.layout.setDimensions(this.getContentWidth(), this.getContentHeight());
       this.layout.refreshPositions();
+      super.refreshPositions();
     }
 
     @Override
@@ -222,9 +227,9 @@ public class MigrationListWidget extends AlwaysSelectedFlowListWidget<MigrationL
 
       this.migration = migration;
 
-      this.layout = LinearLayoutWidget.vertical((self) -> Coords.of(this.getContentWidth(), this.getContentHeight()))
-          .spacing(GuiUtil.PADDING / 2)
-          .centered();
+      this.layout = LinearLayoutWidget.vertical().spacing(GuiUtil.PADDING / 2).centered();
+      this.layout.setPosition(this.getContentLeft(), this.getContentTop());
+      this.layout.setDimensions(this.getContentWidth(), this.getContentHeight());
       this.layout.getMainPositioner().alignHorizontalCenter();
 
       LabelWidget nameLabel = LabelWidget.builder(textRenderer, Text.literal(this.migration.description()))
@@ -255,8 +260,10 @@ public class MigrationListWidget extends AlwaysSelectedFlowListWidget<MigrationL
 
     @Override
     public void refreshPositions() {
-      super.refreshPositions();
+      this.layout.setPosition(this.getContentLeft(), this.getContentTop());
+      this.layout.setDimensions(this.getContentWidth(), this.getContentHeight());
       this.layout.refreshPositions();
+      super.refreshPositions();
     }
 
     @Override

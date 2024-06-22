@@ -1,14 +1,5 @@
 package me.roundaround.custompaintings.mixin;
 
-import java.util.Optional;
-import java.util.UUID;
-
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
@@ -23,12 +14,20 @@ import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import java.util.Optional;
+import java.util.UUID;
 
 @Mixin(PaintingEntity.class)
 public abstract class PaintingEntityMixin extends AbstractDecorationEntity implements ExpandedPaintingEntity {
-  private static final TrackedData<PaintingData> CUSTOM_DATA = DataTracker.registerData(
-      PaintingEntity.class,
-      CustomPaintingsMod.CUSTOM_PAINTING_DATA_HANDLER);
+  private static final TrackedData<PaintingData> CUSTOM_DATA = DataTracker.registerData(PaintingEntity.class,
+      CustomPaintingsMod.CUSTOM_PAINTING_DATA_HANDLER
+  );
 
   private UUID editor = null;
 
@@ -37,8 +36,9 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
   }
 
   @Override
-  public void setCustomData(Identifier id, int index, int width, int height, String name, String artist,
-      boolean isVanilla) {
+  public void setCustomData(
+      Identifier id, int index, int width, int height, String name, String artist, boolean isVanilla
+  ) {
     setCustomData(new PaintingData(id, index, width, height, name, artist, isVanilla));
   }
 
@@ -92,16 +92,15 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
         .map(Optional::get)
         .findFirst()
         .ifPresent((key) -> {
-          Registries.PAINTING_VARIANT.getEntry(key)
-              .ifPresent((entry) -> {
-                ((PaintingEntityAccessor) this).invokeSetVariant(entry);
-              });
+          Registries.PAINTING_VARIANT.getEntry(key).ifPresent((entry) -> {
+            ((PaintingEntityAccessor) this).invokeSetVariant(entry);
+          });
         });
   }
 
   @Inject(method = "initDataTracker", at = @At(value = "TAIL"))
-  private void initDataTracker(CallbackInfo info) {
-    dataTracker.startTracking(CUSTOM_DATA, PaintingData.EMPTY);
+  private void initDataTracker(DataTracker.Builder builder, CallbackInfo info) {
+    builder.add(CUSTOM_DATA, PaintingData.EMPTY);
   }
 
   @Inject(method = "onTrackedDataSet", at = @At(value = "TAIL"))
