@@ -86,8 +86,9 @@ public class PaintingSpriteWidget extends DrawableWidget {
   }
 
   public void setPaintingData(PaintingData paintingData) {
-    this.paintingData = paintingData;
-    this.sprite = CustomPaintingsClientMod.customPaintingManager.getPaintingSprite(paintingData);
+    this.visible = paintingData != null && !paintingData.isEmpty();
+    this.paintingData = paintingData != null ? paintingData : PaintingData.EMPTY;
+    this.sprite = CustomPaintingsClientMod.customPaintingManager.getPaintingSprite(this.paintingData);
     this.calculateBounds();
   }
 
@@ -101,7 +102,7 @@ public class PaintingSpriteWidget extends DrawableWidget {
   }
 
   public void calculateBounds() {
-    if (this.inBatchUpdate) {
+    if (this.inBatchUpdate || !this.visible) {
       return;
     }
 
@@ -126,6 +127,8 @@ public class PaintingSpriteWidget extends DrawableWidget {
 
   @Override
   protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+    this.hovered = this.hovered && this.paintingBounds.contains(mouseX, mouseY);
+
     float color = this.active ? 1f : 0.5f;
 
     if (this.border) {

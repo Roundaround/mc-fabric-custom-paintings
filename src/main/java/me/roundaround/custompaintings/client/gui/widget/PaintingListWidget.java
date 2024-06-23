@@ -1,5 +1,12 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
+
+import org.lwjgl.glfw.GLFW;
+
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.roundalib.client.gui.GuiUtil;
@@ -10,7 +17,6 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.navigation.NavigationDirection;
 import net.minecraft.text.MutableText;
@@ -19,11 +25,6 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
-import org.lwjgl.glfw.GLFW;
-
-import java.util.ArrayList;
-import java.util.Optional;
-import java.util.function.Consumer;
 
 @Environment(value = EnvType.CLIENT)
 public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWidget.Entry> {
@@ -35,19 +36,21 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
   private long clickedTime = 0L;
 
   public PaintingListWidget(
-      PaintingEditState state,
       MinecraftClient client,
+      PaintingEditState state,
+      List<PaintingData> paintings,
       Consumer<PaintingData> onPaintingSelect,
-      Consumer<PaintingData> onPaintingConfirm
-  ) {
+      Consumer<PaintingData> onPaintingConfirm) {
     super(client, 0, 0, 0, 0);
 
     this.state = state;
     this.onPaintingSelect = onPaintingSelect;
     this.onPaintingConfirm = onPaintingConfirm;
+
+    this.setPaintings(paintings);
   }
 
-  public void setPaintings(ArrayList<PaintingData> paintings) {
+  public void setPaintings(List<PaintingData> paintings) {
     this.clearEntries();
 
     boolean selected = false;
@@ -58,8 +61,7 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
           return new EmptyEntry(index, left, top, width, this.client.textRenderer);
         }
         return new PaintingEntry(index, left, top, width, this.client.textRenderer, paintingData,
-            this.state.canStay(paintingData), this.onPaintingSelect, this.onPaintingConfirm
-        );
+            this.state.canStay(paintingData), this.onPaintingSelect, this.onPaintingConfirm);
       });
 
       if (!paintingData.isEmpty() && this.state.getCurrentPainting().id() == paintingData.id()) {
@@ -71,6 +73,8 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
     if (!selected) {
       this.selectFirst();
     }
+
+    this.setScrollAmount(0);
   }
 
   @Override
@@ -106,7 +110,8 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
   public boolean mouseClicked(double mouseX, double mouseY, int button) {
     Entry entry = this.getEntryAtPosition(mouseX, mouseY);
     if (entry != null) {
-      if (entry.getPaintingData().id().equals(this.clickedId) && Util.getMeasuringTimeMs() - this.clickedTime < 250L) {
+      if (entry.mouseClicked(mouseX, mouseY, button) && entry.getPaintingData().id().equals(this.clickedId)
+          && Util.getMeasuringTimeMs() - this.clickedTime < 250L) {
         return entry.mouseDoubleClicked(mouseX, mouseY, button);
       }
 
@@ -131,21 +136,20 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
     public Entry(int index, int left, int top, int width, int contentHeight, PaintingData paintingData) {
       super(index, left, top, width, contentHeight);
       this.paintingData = paintingData;
+      this.setAlternatingRowShading(true);
     }
 
     public PaintingData getPaintingData() {
       return this.paintingData;
     }
 
-    public boolean mouseDoubleClicked(double mouseX, double mouseY, int button) {
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
       return false;
     }
 
-    @Override
-    protected void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
-      context.fill(this.getX(), this.getY(), this.getRight(), this.getBottom(), GuiUtil.genColorInt(0, 0, 0, 0.2f));
-      context.drawBorder(
-          this.getX(), this.getY(), this.getWidth(), this.getHeight(), GuiUtil.genColorInt(1, 1, 1, 0.2f));
+    public boolean mouseDoubleClicked(double mouseX, double mouseY, int button) {
+      return false;
     }
   }
 
@@ -197,8 +201,7 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
         PaintingData paintingData,
         boolean canStay,
         Consumer<PaintingData> onSelect,
-        Consumer<PaintingData> onConfirm
-    ) {
+        Consumer<PaintingData> onConfirm) {
       super(index, left, top, width, HEIGHT, paintingData);
 
       this.onSelect = onSelect;
@@ -226,8 +229,7 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
       lines.add(idText);
 
       lines.add(Text.translatable("custompaintings.painting.dimensions", this.getPaintingData().width(),
-          this.getPaintingData().height()
-      ));
+          this.getPaintingData().height()));
 
       LabelWidget labels = LabelWidget.builder(textRenderer, lines)
           .justifiedLeft()
@@ -245,9 +247,8 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
 
     @Override
     public Text getNarration() {
-      return !this.paintingData.hasLabel() ?
-          Text.literal(this.paintingData.id().toString()) :
-          this.paintingData.getLabel();
+      return !this.paintingData.hasLabel() ? Text.literal(this.paintingData.id().toString())
+          : this.paintingData.getLabel();
     }
 
     @Override

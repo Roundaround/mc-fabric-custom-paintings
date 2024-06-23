@@ -75,6 +75,11 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
     this.forEachEntry(Entry::resetToFilterValue);
   }
 
+  @Override
+  protected int getPreferredContentWidth() {
+    return VANILLA_LIST_WIDTH_M;
+  }
+
   @Environment(value = EnvType.CLIENT)
   public abstract static class Entry extends ParentElementEntryListWidget.Entry {
     protected static final int HEIGHT = 20;
@@ -115,6 +120,8 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
     public SectionTitleEntry(TextRenderer textRenderer, Text label, int index, int left, int top, int width) {
       super(index, left, top, width, HEIGHT);
 
+      this.setForceRowShading(true);
+
       this.label = LabelWidget.builder(textRenderer, label)
           .refPosition(this.getContentCenterX(), this.getContentCenterY())
           .dimensions(this.getFullControlWidth(), this.getContentHeight())
@@ -130,7 +137,6 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
 
     @Override
     public void refreshPositions() {
-      super.refreshPositions();
       this.label.batchUpdates(() -> {
         this.label.setPosition(this.getContentCenterX(), this.getContentCenterY());
         this.label.setDimensions(this.getFullControlWidth(), this.getContentHeight());
@@ -170,7 +176,6 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
 
     @Override
     public void refreshPositions() {
-      super.refreshPositions();
       this.button.setDimensionsAndPosition(
           this.getFullControlWidth(), this.getContentHeight(), this.getControlLeft(), this.getContentTop());
     }
@@ -229,8 +234,6 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
 
     @Override
     public void refreshPositions() {
-      super.refreshPositions();
-
       this.label.batchUpdates(() -> {
         this.label.setPosition(this.getControlLeft(), this.getContentCenterY());
         this.label.setDimensions(this.getHalfControlWidth(), this.getContentHeight());

@@ -91,7 +91,7 @@ public class PaintingEditState {
   }
 
   public PaintingData getCurrentPainting() {
-    return this.currentPainting;
+    return this.currentPainting != null ? this.currentPainting : PaintingData.EMPTY;
   }
 
   public void selectFirstGroup() {
@@ -189,6 +189,10 @@ public class PaintingEditState {
         }
       });
     });
+  }
+
+  public boolean canStay() {
+    return this.canStay(this.getCurrentPainting());
   }
 
   public boolean canStay(PaintingData paintingData) {

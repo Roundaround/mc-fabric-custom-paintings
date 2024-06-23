@@ -7,7 +7,6 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 public class FiltersState implements Predicate<PaintingData> {
   private final Predicate<PaintingData> canStay;
 
-  private Runnable onFilterChanged = null;
   private String search = "";
   private String nameSearch = "";
   private String artistSearch = "";
@@ -55,10 +54,6 @@ public class FiltersState implements Predicate<PaintingData> {
     }
 
     return true;
-  }
-
-  public void setChangedListener(Runnable onFilterChanged) {
-    this.onFilterChanged = onFilterChanged;
   }
 
   public boolean hasFilters() {
@@ -113,91 +108,47 @@ public class FiltersState implements Predicate<PaintingData> {
     this.maxWidth = 32;
     this.minHeight = 1;
     this.maxHeight = 32;
-
-    if (this.onFilterChanged != null) {
-      this.onFilterChanged.run();
-    }
   }
 
   public void setSearch(String search) {
     this.search = search;
-
-    if (this.onFilterChanged != null) {
-      this.onFilterChanged.run();
-    }
   }
 
   public void setNameSearch(String nameSearch) {
     this.nameSearch = nameSearch;
-
-    if (this.onFilterChanged != null) {
-      this.onFilterChanged.run();
-    }
   }
 
   public void setArtistSearch(String artistSearch) {
     this.artistSearch = artistSearch;
-
-    if (this.onFilterChanged != null) {
-      this.onFilterChanged.run();
-    }
   }
 
   public void setCanStayOnly(boolean canStayOnly) {
     this.canStayOnly = canStayOnly;
-
-    if (this.onFilterChanged != null) {
-      this.onFilterChanged.run();
-    }
   }
 
   public void setMinWidth(int minWidth) {
     this.minWidth = minWidth;
-
-    if (this.onFilterChanged != null) {
-      this.onFilterChanged.run();
-    }
   }
 
   public void setMaxWidth(int maxWidth) {
     this.maxWidth = maxWidth;
-
-    if (this.onFilterChanged != null) {
-      this.onFilterChanged.run();
-    }
   }
 
   public void setMinHeight(int minHeight) {
     this.minHeight = minHeight;
-
-    if (this.onFilterChanged != null) {
-      this.onFilterChanged.run();
-    }
   }
 
   public void setMaxHeight(int maxHeight) {
     this.maxHeight = maxHeight;
-
-    if (this.onFilterChanged != null) {
-      this.onFilterChanged.run();
-    }
   }
 
   public void setExactWidth(int width) {
     this.minWidth = width;
     this.maxWidth = width;
-
-    if (this.onFilterChanged != null) {
-      this.onFilterChanged.run();
-    }
   }
 
   public void setExactHeight(int height) {
     this.minHeight = height;
     this.maxHeight = height;
-
-    if (this.onFilterChanged != null) {
-      this.onFilterChanged.run();
-    }
   }
 }
