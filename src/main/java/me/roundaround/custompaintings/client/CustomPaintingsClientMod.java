@@ -20,9 +20,19 @@ public class CustomPaintingsClientMod implements ClientModInitializer {
   public void onInitializeClient() {
     MinecraftClientEvents.AFTER_INIT_EVENT_BUS.register(() -> {
       MinecraftClient client = MinecraftClient.getInstance();
+      if (customPaintingManager != null) {
+        customPaintingManager.close();
+      }
       customPaintingManager = new CustomPaintingManager(client.getTextureManager());
       ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(customPaintingManager);
-      MinecraftClientEvents.AFTER_INIT_EVENT_BUS.register(customPaintingManager::close);
+    });
+
+    MinecraftClientEvents.ON_CLOSE_EVENT_BUS.register(() -> {
+      if (customPaintingManager == null) {
+        return;
+      }
+      customPaintingManager.close();
+      customPaintingManager = null;
     });
 
     ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
