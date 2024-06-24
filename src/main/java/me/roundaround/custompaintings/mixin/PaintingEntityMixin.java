@@ -103,6 +103,8 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
     builder.add(CUSTOM_DATA, PaintingData.EMPTY);
   }
 
+  // Yarn mapping for onTrackedDataSet broken in 1.20.5+. Need "onTrackedDataSet" for dev and "method_5674" for publish
+//  @Inject(method = "method_5674", at = @At(value = "TAIL"))
   @Inject(method = "onTrackedDataSet", at = @At(value = "TAIL"))
   private void onTrackedDataSet(TrackedData<?> data, CallbackInfo info) {
     if (CUSTOM_DATA.equals(data)) {
