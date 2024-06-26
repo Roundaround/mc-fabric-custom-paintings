@@ -10,6 +10,8 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 
+import java.util.Objects;
+
 public record PaintingData(Identifier id, int index, int width, int height, String name, String artist,
                            boolean isVanilla) {
   public static final PaintingData EMPTY = new PaintingData(null, 0, 0, 0);
@@ -28,6 +30,10 @@ public record PaintingData(Identifier id, int index, int width, int height, Stri
     this(Registries.PAINTING_VARIANT.getId(vanillaVariant), index, vanillaVariant.getWidth() / 16,
         vanillaVariant.getHeight() / 16, Registries.PAINTING_VARIANT.getId(vanillaVariant).getPath(), "", true
     );
+  }
+
+  public boolean idEquals(PaintingData other) {
+    return Objects.equals(this.id(), other.id());
   }
 
   public int getScaledWidth() {

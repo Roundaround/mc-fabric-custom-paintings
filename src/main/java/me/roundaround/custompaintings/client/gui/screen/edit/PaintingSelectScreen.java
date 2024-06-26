@@ -3,7 +3,6 @@ package me.roundaround.custompaintings.client.gui.screen.edit;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.PaintingEditState.Group;
-import me.roundaround.custompaintings.client.gui.PaintingEditState.PaintingChangeListener;
 import me.roundaround.custompaintings.client.gui.widget.PaintingListWidget;
 import me.roundaround.custompaintings.client.gui.widget.PaintingSpriteWidget;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
@@ -25,26 +24,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class PaintingSelectScreen extends PaintingEditScreen implements PaintingChangeListener {
+public class PaintingSelectScreen extends PaintingEditScreen implements PaintingEditState.StateChangedListener {
   protected static final int BUTTON_HEIGHT = 20;
   protected static final int BUTTON_SPACING = GuiUtil.PADDING * 2;
 
   private final ThreePartsLayoutWidget layout = new ThreePartsLayoutWidget(this);
 
-  private List<PaintingData> paintings = List.of();
-  private boolean hasHiddenPaintings = false;
-
-  private Runnable paintingsListChangedHandler = () -> {
-  };
-  private Runnable selectionChangedHandler = () -> {
-  };
-  private Runnable focusSearchInput = () -> {
-  };
+  private TextFieldWidget searchBox;
+  private PaintingListWidget paintingList;
+  private LabelWidget infoLabel;
+  private PaintingSpriteWidget paintingSprite;
+  private IconButtonWidget prevButton;
+  private LabelWidget controlsLabel;
+  private IconButtonWidget nextButton;
+  private ButtonWidget doneButton;
 
   public PaintingSelectScreen(PaintingEditState state) {
     super(getTitleText(state), state);
-
-    this.applyFilters();
   }
 
   @Override
@@ -67,12 +63,12 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         Positioner::alignVerticalCenter
     );
 
-    TextFieldWidget searchBox = searchRow.add(
+    this.searchBox = searchRow.add(
         new TextFieldWidget(this.textRenderer, 0, BUTTON_HEIGHT, Text.translatable("custompaintings.painting.search")),
         (parent, self) -> self.setWidth(parent.getWidth() - parent.getSpacing() - IconButtonWidget.SIZE_V)
     );
-    searchBox.setText(this.state.getFilters().getSearch());
-    searchBox.setChangedListener(this::onSearchBoxChanged);
+    this.searchBox.setText(this.state.getFilters().getSearch());
+    this.searchBox.setChangedListener(this::onSearchBoxChanged);
 
     searchRow.add(IconButtonWidget.builder(IconButtonWidget.BuiltinIcon.FILTER_18, CustomPaintingsMod.MOD_ID)
         .vanillaSize()
@@ -80,8 +76,8 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         .onPress(this::filterButtonPressed)
         .build());
 
-    PaintingListWidget paintingList = leftPane.add(new PaintingListWidget(
-            this.client, this.state, this.paintings, this.state::setCurrentPainting, this::saveSelection),
+    this.paintingList = leftPane.add(
+        new PaintingListWidget(this.client, this.state, this::onPaintingListSelect, this::saveSelection),
         (parent, self) -> {
           self.setDimensions(parent.getWidth(), parent.getHeight() - parent.getSpacing() - BUTTON_HEIGHT);
         }
@@ -94,7 +90,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     });
     rightPane.getMainPositioner().alignHorizontalCenter();
 
-    LabelWidget infoLabel = rightPane.add(LabelWidget.builder(this.textRenderer, this.getInfoLines())
+    this.infoLabel = rightPane.add(LabelWidget.builder(this.textRenderer, this.getInfoLines())
         .justifiedCenter()
         .alignedMiddle()
         .hideBackground()
@@ -107,10 +103,10 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
       );
     });
 
-    PaintingSpriteWidget paintingSprite = rightPane.add(
+    this.paintingSprite = rightPane.add(
         new PaintingSpriteWidget(this.state.getCurrentPainting(), true), (parent, self) -> {
           self.setDimensions(parent.getWidth() - 2 * GuiUtil.PADDING,
-              parent.getHeight() - infoLabel.getHeight() - IconButtonWidget.SIZE_V - 2 * parent.getSpacing()
+              parent.getHeight() - this.infoLabel.getHeight() - IconButtonWidget.SIZE_V - 2 * parent.getSpacing()
           );
         });
 
@@ -119,14 +115,14 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     );
     controlsRow.getMainPositioner().alignVerticalCenter();
 
-    IconButtonWidget prevButton = controlsRow.add(
+    this.prevButton = controlsRow.add(
         IconButtonWidget.builder(IconButtonWidget.BuiltinIcon.PREV_18, CustomPaintingsMod.MOD_ID)
             .vanillaSize()
             .messageAndTooltip(Text.translatable("custompaintings.painting.previous"))
-            .onPress((button) -> this.selectPreviousPainting())
+            .onPress((button) -> this.state.setPreviousPainting())
             .build());
 
-    LabelWidget controlsLabel = controlsRow.add(LabelWidget.builder(this.textRenderer, this.getControlsText())
+    this.controlsLabel = controlsRow.add(LabelWidget.builder(this.textRenderer, this.getControlsText())
             .justifiedCenter()
             .alignedMiddle()
             .hideBackground()
@@ -138,74 +134,28 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         )
     );
 
-    IconButtonWidget nextButton = controlsRow.add(
+    this.nextButton = controlsRow.add(
         IconButtonWidget.builder(IconButtonWidget.BuiltinIcon.NEXT_18, CustomPaintingsMod.MOD_ID)
             .vanillaSize()
             .messageAndTooltip(Text.translatable("custompaintings.painting.next"))
-            .onPress((button) -> this.selectNextPainting())
+            .onPress((button) -> this.state.setNextPainting())
             .build());
 
     DirectionalLayoutWidget row = DirectionalLayoutWidget.horizontal().spacing(BUTTON_SPACING);
     this.layout.addFooter(row);
 
-    if (this.state.hasMultipleGroups()) {
-      row.add(ButtonWidget.builder(ScreenTexts.BACK, (button) -> {
-        Objects.requireNonNull(this.client).setScreen(new GroupSelectScreen(this.state));
-      }).build());
-    } else {
-      row.add(ButtonWidget.builder(ScreenTexts.CANCEL, (button) -> {
-        this.saveEmpty();
-      }).build());
-    }
+    row.add(ButtonWidget.builder(ScreenTexts.BACK, (button) -> {
+      Objects.requireNonNull(this.client).setScreen(new GroupSelectScreen(this.state));
+    }).build());
 
-    ButtonWidget doneButton = row.add(ButtonWidget.builder(ScreenTexts.DONE, (button) -> {
+    this.doneButton = row.add(ButtonWidget.builder(ScreenTexts.DONE, (button) -> {
       this.saveCurrentSelection();
     }).build());
 
     this.layout.forEachChild(this::addDrawableChild);
     this.initTabNavigation();
 
-    this.paintingsListChangedHandler = () -> {
-      paintingList.setPaintings(this.paintings);
-      if (!this.paintings.isEmpty() && this.state.getCurrentPainting().isEmpty()) {
-        paintingList.selectFirst();
-      }
-
-      prevButton.active = this.hasMultiplePaintings();
-      nextButton.active = this.hasMultiplePaintings();
-    };
-
-    this.selectionChangedHandler = () -> {
-      PaintingData paintingData = this.state.getCurrentPainting();
-      boolean canStay = this.state.canStay();
-
-      paintingList.selectPainting(paintingData);
-
-      infoLabel.batchUpdates(() -> {
-        infoLabel.setText(this.getInfoLines());
-        infoLabel.setHeight(infoLabel.getDefaultHeight());
-      });
-
-      paintingSprite.batchUpdates(() -> {
-        paintingSprite.setPaintingData(paintingData);
-        paintingSprite.setActive(canStay);
-        paintingSprite.setTooltip(canStay ? null : Tooltip.of(getTooBigText(paintingData)));
-      });
-
-      controlsLabel.setText(this.getControlsText());
-
-      doneButton.active = canStay;
-      doneButton.setTooltip(canStay ? null : Tooltip.of(getTooBigText(paintingData)));
-    };
-
-    this.focusSearchInput = () -> {
-      if (this.getFocused() != searchBox) {
-        this.setFocused(searchBox);
-      }
-    };
-
-    this.paintingsListChangedHandler.run();
-    this.selectionChangedHandler.run();
+    this.state.setStateChangedListener(this);
   }
 
   @Override
@@ -222,38 +172,36 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
   public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
     switch (keyCode) {
       case GLFW.GLFW_KEY_LEFT -> {
-        if (!this.state.hasMultiplePaintings() || !hasControlDown()) {
+        if (!this.state.hasPaintingsToIterate() || !hasControlDown()) {
           break;
         }
         GuiUtil.playClickSound();
-        this.selectPreviousPainting();
+        this.state.setPreviousPainting();
         return true;
       }
       case GLFW.GLFW_KEY_RIGHT -> {
-        if (!this.state.hasMultiplePaintings() || !hasControlDown()) {
+        if (!this.state.hasPaintingsToIterate() || !hasControlDown()) {
           break;
         }
         GuiUtil.playClickSound();
-        this.selectNextPainting();
+        this.state.setNextPainting();
         return true;
       }
       case GLFW.GLFW_KEY_ESCAPE -> {
-        if (this.state.hasMultipleGroups()) {
-          Objects.requireNonNull(this.client).setScreen(new GroupSelectScreen(this.state));
-        } else {
-          this.saveEmpty();
-          this.close();
-        }
+        // TODO: Come up with a way to let escape close the screen but still make it easy to go back to group select
+        this.navigate(new GroupSelectScreen(this.state));
         return true;
       }
       case GLFW.GLFW_KEY_F -> {
         if (hasControlDown()) {
           if (hasShiftDown()) {
-            Objects.requireNonNull(this.client).setScreen(new FiltersScreen(this.state));
+            this.navigate(new FiltersScreen(this.state));
             return true;
           }
 
-          this.focusSearchInput.run();
+          if (this.getFocused() != this.searchBox) {
+            this.setFocused(this.searchBox);
+          }
         }
       }
     }
@@ -261,39 +209,38 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     return super.keyPressed(keyCode, scanCode, modifiers);
   }
 
-  private void applyFilters() {
-    if (!this.state.getFilters().hasFilters()) {
-      this.hasHiddenPaintings = false;
-      this.setPaintings(this.state.getCurrentGroup().paintings());
-      return;
-    }
+  @Override
+  public void onPaintingsListChanged() {
+    this.paintingList.refreshPaintings();
 
-    // Manually iterate to guarantee order
-    ArrayList<PaintingData> paintings = new ArrayList<>();
-    this.state.getCurrentGroup().paintings().forEach((paintingData) -> {
-      if (this.state.getFilters().test(paintingData)) {
-        paintings.add(paintingData);
-      }
-    });
+    this.controlsLabel.setText(this.getControlsText());
 
-    this.hasHiddenPaintings = paintings.size() < this.state.getCurrentGroup().paintings().size();
-    if (this.hasHiddenPaintings) {
-      paintings.add(PaintingData.EMPTY);
-    }
-
-    this.setPaintings(paintings);
+    this.prevButton.active = this.state.hasPaintingsToIterate();
+    this.nextButton.active = this.state.hasPaintingsToIterate();
   }
 
-  public void setPaintings(List<PaintingData> paintings) {
-    this.paintings = List.copyOf(paintings);
+  @Override
+  public void onCurrentPaintingChanged() {
+    PaintingData paintingData = this.state.getCurrentPainting();
+    boolean canStay = this.state.canStay();
 
-    if (this.paintings.isEmpty()) {
-      this.state.setCurrentPainting(PaintingData.EMPTY);
-    } else if (!this.paintings.contains(this.state.getCurrentPainting())) {
-      this.state.setCurrentPainting(this.paintings.getFirst());
-    }
+    this.paintingList.selectPainting(paintingData);
 
-    this.paintingsListChangedHandler.run();
+    this.infoLabel.batchUpdates(() -> {
+      this.infoLabel.setText(this.getInfoLines());
+      this.infoLabel.setHeight(this.infoLabel.getDefaultHeight());
+    });
+
+    this.paintingSprite.batchUpdates(() -> {
+      this.paintingSprite.setPaintingData(paintingData);
+      this.paintingSprite.setActive(canStay);
+      this.paintingSprite.setTooltip(canStay ? null : Tooltip.of(getTooBigText(paintingData)));
+    });
+
+    this.controlsLabel.setText(this.getControlsText());
+
+    this.doneButton.active = canStay;
+    this.doneButton.setTooltip(canStay ? null : Tooltip.of(getTooBigText(paintingData)));
   }
 
   private void onSearchBoxChanged(String text) {
@@ -302,49 +249,11 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     }
 
     this.state.getFilters().setSearch(text);
-    this.applyFilters();
+    this.state.updatePaintingList();
   }
 
-  @Override
-  public void onPaintingChange(PaintingData paintingData) {
-    this.selectionChangedHandler.run();
-  }
-
-  private boolean hasMultiplePaintings() {
-    return this.paintings.size() > (this.hasHiddenPaintings ? 2 : 1);
-  }
-
-  private void selectPreviousPainting() {
-    if (!this.hasMultiplePaintings()) {
-      return;
-    }
-
-    this.state.setCurrentPainting((currentPainting) -> {
-      int currentIndex = this.paintings.indexOf(currentPainting);
-      if (currentIndex == -1) {
-        currentIndex = 0;
-      }
-      int nextIndex = this.paintings.size() + currentIndex - 1;
-      if (this.hasHiddenPaintings && nextIndex == this.paintings.size() - 1) {
-        nextIndex--;
-      }
-      return this.paintings.get(nextIndex % this.paintings.size());
-    });
-  }
-
-  private void selectNextPainting() {
-    if (!this.hasMultiplePaintings()) {
-      return;
-    }
-
-    this.state.setCurrentPainting((currentPainting) -> {
-      int currentIndex = this.paintings.indexOf(currentPainting);
-      int nextIndex = currentIndex + 1;
-      if (this.hasHiddenPaintings && nextIndex == this.paintings.size() - 1) {
-        nextIndex++;
-      }
-      return this.paintings.get(nextIndex % this.paintings.size());
-    });
+  private void onPaintingListSelect(PaintingData paintingData) {
+    this.state.setCurrentPainting(paintingData);
   }
 
   private void saveCurrentSelection() {
@@ -378,7 +287,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
   }
 
   private Text getControlsText() {
-    if (this.paintings.isEmpty()) {
+    if (this.state.getCurrentPainting().isEmpty()) {
       return Text.empty();
     }
 
@@ -390,11 +299,8 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
   }
 
   private static Text getTitleText(PaintingEditState state) {
-    MutableText title = Text.translatable("custompaintings.painting.title");
-    if (state.hasMultipleGroups()) {
-      title = Text.literal(state.getCurrentGroup().name() + " - ").append(title);
-    }
-    return title;
+    return Text.literal(state.getCurrentGroup().name() + " - ")
+        .append(Text.translatable("custompaintings.painting.title"));
   }
 
   private static Text getLabelText(PaintingData paintingData) {

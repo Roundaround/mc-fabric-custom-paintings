@@ -20,6 +20,9 @@ public class GroupSelectScreen extends PaintingEditScreen {
 
   @Override
   public void init() {
+    // If we have filters set, then go back to the group select screen, we should clear the filters.
+    this.state.getFilters().reset();
+
     this.layout.addHeader(this.title, this.textRenderer);
 
     GroupListWidget groupsListWidget = new GroupListWidget(this.client, this.layout, this::selectGroup);

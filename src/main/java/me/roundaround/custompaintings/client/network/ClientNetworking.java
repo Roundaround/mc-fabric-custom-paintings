@@ -2,8 +2,6 @@ package me.roundaround.custompaintings.client.network;
 
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.screen.edit.GroupSelectScreen;
-import me.roundaround.custompaintings.client.gui.screen.edit.PaintingEditScreen;
-import me.roundaround.custompaintings.client.gui.screen.edit.PaintingSelectScreen;
 import me.roundaround.custompaintings.client.gui.screen.manage.ManagePaintingsScreen;
 import me.roundaround.custompaintings.client.gui.screen.manage.MismatchedPaintingsScreen;
 import me.roundaround.custompaintings.client.gui.screen.manage.UnknownPaintingsScreen;
@@ -75,11 +73,7 @@ public final class ClientNetworking {
       PaintingEditState state = new PaintingEditState(
           context.client(), payload.paintingUuid(), payload.paintingId(), payload.pos(), payload.facing());
 
-      PaintingEditScreen screen = state.hasMultipleGroups() ?
-          new GroupSelectScreen(state) :
-          new PaintingSelectScreen(state);
-
-      context.client().setScreen(screen);
+      context.client().setScreen(new GroupSelectScreen(state));
     });
   }
 

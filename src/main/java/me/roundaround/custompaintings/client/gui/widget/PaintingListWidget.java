@@ -21,7 +21,6 @@ import net.minecraft.util.Util;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -37,7 +36,6 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
   public PaintingListWidget(
       MinecraftClient client,
       PaintingEditState state,
-      List<PaintingData> paintings,
       Consumer<PaintingData> onPaintingSelect,
       Consumer<PaintingData> onPaintingConfirm
   ) {
@@ -49,41 +47,30 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
     this.onPaintingSelect = onPaintingSelect;
     this.onPaintingConfirm = onPaintingConfirm;
 
-    this.setPaintings(paintings);
+    this.refreshPaintings();
   }
 
-  public void setPaintings(List<PaintingData> paintings) {
+  public void refreshPaintings() {
     this.clearEntries();
 
-    boolean selected = false;
+    this.state.updatePaintingList();
 
-    for (PaintingData paintingData : paintings) {
-      Entry entry = this.addEntry((index, left, top, width) -> {
-        if (paintingData.isEmpty()) {
-          return new EmptyEntry(index, left, top, width, this.client.textRenderer);
-        }
-        return new PaintingEntry(index, left, top, width, this.client.textRenderer, paintingData,
-            this.state.canStay(paintingData), this.onPaintingSelect, this.onPaintingConfirm
-        );
-      });
-
-      if (!paintingData.isEmpty() && this.state.getCurrentPainting().id() == paintingData.id()) {
-        this.setSelected(entry);
-        selected = true;
-      }
+    for (PaintingData paintingData : this.state.getCurrentPaintings()) {
+      this.addEntry((index, left, top, width) -> new PaintingEntry(index, left, top, width, this.client.textRenderer,
+          paintingData, this.state.canStay(paintingData), this.onPaintingSelect, this.onPaintingConfirm
+      ));
     }
 
-    if (!selected) {
-      this.selectFirst();
+    if (this.getEntryCount() == 0 || this.state.areAnyPaintingsFiltered()) {
+      this.addEntry((index, left, top, width) -> new EmptyEntry(index, left, top, width, this.client.textRenderer));
     }
-
-    this.setScrollAmount(0);
   }
 
   @Override
   public void setSelected(Entry entry) {
     super.setSelected(entry);
     this.state.setCurrentPainting(entry.getPaintingData());
+    this.onPaintingSelect.accept(this.state.getCurrentPainting());
   }
 
   public Optional<PaintingData> getSelectedPainting() {
@@ -96,12 +83,12 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
 
   public void selectPainting(PaintingData paintingData) {
     Optional<PaintingData> selected = this.getSelectedPainting();
-    if (selected.isPresent() && selected.get().id() == paintingData.id()) {
+    if (selected.isPresent() && selected.get().idEquals(paintingData)) {
       return;
     }
 
     for (Element child : this.children()) {
-      if (child instanceof Entry entry && entry.paintingData.id() == paintingData.id()) {
+      if (child instanceof Entry entry && entry.paintingData.idEquals(paintingData)) {
         this.setSelected(entry);
         this.ensureVisible(entry);
         return;
@@ -206,6 +193,8 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
         Consumer<PaintingData> onConfirm
     ) {
       super(index, left, top, width, HEIGHT, paintingData);
+
+      assert !paintingData.isEmpty();
 
       this.onSelect = onSelect;
       this.onConfirm = onConfirm;

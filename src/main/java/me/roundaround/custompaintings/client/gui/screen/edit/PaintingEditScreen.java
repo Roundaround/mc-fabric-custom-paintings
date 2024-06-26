@@ -14,17 +14,19 @@ public abstract class PaintingEditScreen extends Screen {
   protected PaintingEditScreen(Text title, PaintingEditState state) {
     super(title);
     this.state = state;
+    this.state.updatePaintingList();
   }
 
-  public PaintingEditState getState() {
-    return this.state;
+  protected void navigate(Screen screen) {
+    this.state.clearStateChangedListener();
+    Objects.requireNonNull(this.client).setScreen(screen);
   }
 
   protected void saveEmpty() {
     this.saveSelection(PaintingData.EMPTY);
   }
 
-  public void saveSelection(PaintingData paintingData) {
+  protected void saveSelection(PaintingData paintingData) {
     ClientNetworking.sendSetPaintingPacket(this.state.getPaintingUuid(), paintingData);
     Objects.requireNonNull(this.client).setScreen(null);
   }

@@ -22,7 +22,6 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class PaintingEditState {
@@ -36,7 +35,9 @@ public class PaintingEditState {
   private final FiltersState filtersState;
 
   private Group currentGroup = null;
-  private PaintingData currentPainting = null;
+  private PaintingData currentPainting = PaintingData.EMPTY;
+  private List<PaintingData> currentPaintings = List.of();
+  private StateChangedListener stateChangedListener = null;
 
   private static final Predicate<Entity> DECORATION_PREDICATE = (
       entity
@@ -55,6 +56,18 @@ public class PaintingEditState {
     this.populatePaintings();
   }
 
+  public void clearStateChangedListener() {
+    this.setStateChangedListener(null);
+  }
+
+  public void setStateChangedListener(StateChangedListener listener) {
+    this.stateChangedListener = listener;
+    if (this.stateChangedListener != null) {
+      this.stateChangedListener.onPaintingsListChanged();
+      this.stateChangedListener.onCurrentPaintingChanged();
+    }
+  }
+
   public FiltersState getFilters() {
     return this.filtersState;
   }
@@ -63,23 +76,79 @@ public class PaintingEditState {
     return this.allPaintings.values();
   }
 
-  public boolean hasMultipleGroups() {
-    return this.allPaintings.size() > 1;
+  public void updatePaintingList() {
+    if (this.currentGroup == null) {
+      return;
+    }
+
+    List<PaintingData> previousCurrentPaintings = this.currentPaintings;
+    this.currentPaintings = this.currentGroup.paintings().stream().filter(this.filtersState).toList();
+
+    if (previousCurrentPaintings.size() == this.currentPaintings.size()) {
+      boolean atLeastOneDifferent = false;
+      for (int i = 0; i < this.currentPaintings.size(); i++) {
+        if (!previousCurrentPaintings.get(i).idEquals(this.currentPaintings.get(i))) {
+          atLeastOneDifferent = true;
+          break;
+        }
+      }
+
+      if (!atLeastOneDifferent) {
+        return;
+      }
+    }
+
+    if (this.stateChangedListener != null) {
+      this.stateChangedListener.onPaintingsListChanged();
+    }
+
+    if (!this.currentPaintings.contains(this.currentPainting)) {
+      this.setCurrentPainting(
+          this.currentPaintings.isEmpty() ? PaintingData.EMPTY : this.currentPaintings.getFirst());
+    }
   }
 
-  public boolean hasMultiplePaintings() {
+  public List<PaintingData> getCurrentPaintings() {
+    return this.currentPaintings;
+  }
+
+  public boolean areAnyPaintingsFiltered() {
     if (this.currentGroup == null) {
       return false;
     }
-    return this.currentGroup.paintings().size() > 1;
+    return this.currentPaintings.size() < this.currentGroup.paintings().size();
   }
 
-  public boolean hasNoPaintings() {
-    return this.allPaintings.isEmpty();
+  public boolean hasPaintingsToIterate() {
+    return this.currentPaintings.size() > 1;
   }
 
-  public boolean hasGroup(String id) {
-    return this.allPaintings.containsKey(id) && !this.allPaintings.get(id).paintings().isEmpty();
+  public void setPreviousPainting() {
+    if (!this.hasPaintingsToIterate()) {
+      return;
+    }
+
+    int currentIndex = this.currentPaintings.indexOf(this.currentPainting);
+    if (currentIndex == -1) {
+      this.setCurrentPainting(this.currentPaintings.getLast());
+      return;
+    }
+
+    this.setCurrentPainting(currentIndex - 1);
+  }
+
+  public void setNextPainting() {
+    if (!this.hasPaintingsToIterate()) {
+      return;
+    }
+
+    int currentIndex = this.currentPaintings.indexOf(this.currentPainting);
+    if (currentIndex == -1) {
+      this.setCurrentPainting(this.currentPaintings.getFirst());
+      return;
+    }
+
+    this.setCurrentPainting(currentIndex + 1);
   }
 
   public UUID getPaintingUuid() {
@@ -91,15 +160,11 @@ public class PaintingEditState {
   }
 
   public PaintingData getCurrentPainting() {
-    return this.currentPainting != null ? this.currentPainting : PaintingData.EMPTY;
-  }
-
-  public void selectFirstGroup() {
-    this.currentGroup = this.allPaintings.values().iterator().next();
+    return this.currentPainting;
   }
 
   public void setCurrentGroup(String id) {
-    if (!this.hasGroup(id)) {
+    if (!this.allPaintings.containsKey(id)) {
       return;
     }
     this.setCurrentGroup(this.allPaintings.get(id));
@@ -107,26 +172,26 @@ public class PaintingEditState {
 
   public void setCurrentGroup(Group group) {
     this.currentGroup = group;
-    if (group != null && !group.paintings().isEmpty()) {
-      this.setCurrentPainting(group.paintings().getFirst());
-    } else {
-      this.setCurrentPainting((PaintingData) null);
-    }
+    this.updatePaintingList();
   }
 
-  public void clearGroup() {
-    this.setCurrentGroup((Group) null);
+  public void setCurrentPainting(int index) {
+    int size = this.currentPaintings.size();
+    if (size < 1) {
+      this.setCurrentPainting(PaintingData.EMPTY);
+    }
+    if (size == 1) {
+      this.setCurrentPainting(this.currentPaintings.getFirst());
+    }
+    this.setCurrentPainting(this.currentPaintings.get((size + index) % size));
   }
 
   public void setCurrentPainting(PaintingData painting) {
+    PaintingData prevPainting = this.currentPainting;
     this.currentPainting = painting;
-    if (this.client.currentScreen instanceof PaintingChangeListener) {
-      ((PaintingChangeListener) this.client.currentScreen).onPaintingChange(painting);
+    if (this.stateChangedListener != null && !prevPainting.idEquals(this.currentPainting)) {
+      this.stateChangedListener.onCurrentPaintingChanged();
     }
-  }
-
-  public void setCurrentPainting(Function<PaintingData, PaintingData> mapper) {
-    this.setCurrentPainting(mapper.apply(this.currentPainting));
   }
 
   public void populatePaintings() {
@@ -180,6 +245,8 @@ public class PaintingEditState {
                 ));
       });
     });
+
+    this.allPaintings.entrySet().removeIf((entry) -> entry.getValue().paintings().isEmpty());
 
     this.allPaintings.values().forEach((group) -> {
       group.paintings().forEach((paintingData) -> {
@@ -258,8 +325,8 @@ public class PaintingEditState {
   public record Group(String id, String name, ArrayList<PaintingData> paintings) {
   }
 
-  @FunctionalInterface
-  public interface PaintingChangeListener {
-    void onPaintingChange(PaintingData paintingData);
+  public interface StateChangedListener {
+    void onPaintingsListChanged();
+    void onCurrentPaintingChanged();
   }
 }
