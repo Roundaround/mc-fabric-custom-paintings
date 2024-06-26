@@ -1,13 +1,5 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Consumer;
-
-import net.minecraft.client.gui.screen.multiplayer.MultiplayerServerListWidget;
-import org.lwjgl.glfw.GLFW;
-
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.roundalib.client.gui.GuiUtil;
@@ -26,6 +18,12 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
+import org.lwjgl.glfw.GLFW;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
 
 @Environment(value = EnvType.CLIENT)
 public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWidget.Entry> {
