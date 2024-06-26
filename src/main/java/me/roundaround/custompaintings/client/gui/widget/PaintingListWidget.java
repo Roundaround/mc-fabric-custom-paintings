@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import net.minecraft.client.gui.screen.multiplayer.MultiplayerServerListWidget;
 import org.lwjgl.glfw.GLFW;
 
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
@@ -40,7 +41,8 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
       PaintingEditState state,
       List<PaintingData> paintings,
       Consumer<PaintingData> onPaintingSelect,
-      Consumer<PaintingData> onPaintingConfirm) {
+      Consumer<PaintingData> onPaintingConfirm
+  ) {
     super(client, 0, 0, 0, 0);
 
     this.setAlternatingRowShading(true);
@@ -63,7 +65,8 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
           return new EmptyEntry(index, left, top, width, this.client.textRenderer);
         }
         return new PaintingEntry(index, left, top, width, this.client.textRenderer, paintingData,
-            this.state.canStay(paintingData), this.onPaintingSelect, this.onPaintingConfirm);
+            this.state.canStay(paintingData), this.onPaintingSelect, this.onPaintingConfirm
+        );
       });
 
       if (!paintingData.isEmpty() && this.state.getCurrentPainting().id() == paintingData.id()) {
@@ -112,8 +115,8 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
   public boolean mouseClicked(double mouseX, double mouseY, int button) {
     Entry entry = this.getEntryAtPosition(mouseX, mouseY);
     if (entry != null) {
-      if (entry.mouseClicked(mouseX, mouseY, button) && entry.getPaintingData().id().equals(this.clickedId)
-          && Util.getMeasuringTimeMs() - this.clickedTime < 250L) {
+      if (entry.mouseClicked(mouseX, mouseY, button) && entry.getPaintingData().id().equals(this.clickedId) &&
+          Util.getMeasuringTimeMs() - this.clickedTime < 250L) {
         return entry.mouseDoubleClicked(mouseX, mouseY, button);
       }
 
@@ -122,6 +125,13 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
     }
 
     return super.mouseClicked(mouseX, mouseY, button) || entry != null;
+  }
+
+  @Override
+  public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    Entry selected = this.getSelected();
+    return selected != null && selected.keyPressed(keyCode, scanCode, modifiers) ||
+        super.keyPressed(keyCode, scanCode, modifiers);
   }
 
   @Override
@@ -202,7 +212,8 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
         PaintingData paintingData,
         boolean canStay,
         Consumer<PaintingData> onSelect,
-        Consumer<PaintingData> onConfirm) {
+        Consumer<PaintingData> onConfirm
+    ) {
       super(index, left, top, width, HEIGHT, paintingData);
 
       this.onSelect = onSelect;
@@ -230,7 +241,8 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
       lines.add(idText);
 
       lines.add(Text.translatable("custompaintings.painting.dimensions", this.getPaintingData().width(),
-          this.getPaintingData().height()));
+          this.getPaintingData().height()
+      ));
 
       LabelWidget labels = LabelWidget.builder(textRenderer, lines)
           .justifiedLeft()
@@ -248,8 +260,9 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
 
     @Override
     public Text getNarration() {
-      return !this.paintingData.hasLabel() ? Text.literal(this.paintingData.id().toString())
-          : this.paintingData.getLabel();
+      return !this.paintingData.hasLabel() ?
+          Text.literal(this.paintingData.id().toString()) :
+          this.paintingData.getLabel();
     }
 
     @Override
@@ -271,7 +284,8 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
       if (keyCode == GLFW.GLFW_KEY_ENTER && this.canStay) {
-        this.onSelect.accept(this.paintingData);
+        GuiUtil.playClickSound();
+        this.onConfirm.accept(this.paintingData);
         return true;
       }
 

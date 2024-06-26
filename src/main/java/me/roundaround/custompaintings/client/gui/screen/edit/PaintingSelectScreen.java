@@ -11,7 +11,6 @@ import me.roundaround.roundalib.client.gui.GuiUtil;
 import me.roundaround.roundalib.client.gui.widget.IconButtonWidget;
 import me.roundaround.roundalib.client.gui.widget.LabelWidget;
 import me.roundaround.roundalib.client.gui.widget.LinearLayoutWidget;
-import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.*;
 import net.minecraft.screen.ScreenTexts;
@@ -25,7 +24,6 @@ import org.lwjgl.glfw.GLFW;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 public class PaintingSelectScreen extends PaintingEditScreen implements PaintingChangeListener {
   protected static final int BUTTON_HEIGHT = 20;
@@ -33,9 +31,6 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
 
   private final ThreePartsLayoutWidget layout = new ThreePartsLayoutWidget(this);
 
-  private TextFieldWidget searchBox;
-  private PaintingListWidget paintingList;
-  private LabelWidget infoLabel;
   private List<PaintingData> paintings = List.of();
   private boolean hasHiddenPaintings = false;
 
@@ -43,10 +38,12 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
   };
   private Runnable selectionChangedHandler = () -> {
   };
+  private Runnable focusSearchInput = () -> {
+  };
 
   public PaintingSelectScreen(PaintingEditState state) {
     super(getTitleText(state), state);
-    
+
     this.applyFilters();
   }
 
@@ -70,12 +67,12 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         Positioner::alignVerticalCenter
     );
 
-    this.searchBox = searchRow.add(
+    TextFieldWidget searchBox = searchRow.add(
         new TextFieldWidget(this.textRenderer, 0, BUTTON_HEIGHT, Text.translatable("custompaintings.painting.search")),
         (parent, self) -> self.setWidth(parent.getWidth() - parent.getSpacing() - IconButtonWidget.SIZE_V)
     );
-    this.searchBox.setText(this.state.getFilters().getSearch());
-    this.searchBox.setChangedListener(this::onSearchBoxChanged);
+    searchBox.setText(this.state.getFilters().getSearch());
+    searchBox.setChangedListener(this::onSearchBoxChanged);
 
     searchRow.add(IconButtonWidget.builder(IconButtonWidget.BuiltinIcon.FILTER_18, CustomPaintingsMod.MOD_ID)
         .vanillaSize()
@@ -83,8 +80,8 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         .onPress(this::filterButtonPressed)
         .build());
 
-    this.paintingList = leftPane.add(
-        new PaintingListWidget(this.client, this.state, this.paintings, this.state::setCurrentPainting, this::saveSelection),
+    PaintingListWidget paintingList = leftPane.add(new PaintingListWidget(
+            this.client, this.state, this.paintings, this.state::setCurrentPainting, this::saveSelection),
         (parent, self) -> {
           self.setDimensions(parent.getWidth(), parent.getHeight() - parent.getSpacing() - BUTTON_HEIGHT);
         }
@@ -97,7 +94,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     });
     rightPane.getMainPositioner().alignHorizontalCenter();
 
-    this.infoLabel = rightPane.add(LabelWidget.builder(this.textRenderer, this.getInfoLines())
+    LabelWidget infoLabel = rightPane.add(LabelWidget.builder(this.textRenderer, this.getInfoLines())
         .justifiedCenter()
         .alignedMiddle()
         .hideBackground()
@@ -113,7 +110,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     PaintingSpriteWidget paintingSprite = rightPane.add(
         new PaintingSpriteWidget(this.state.getCurrentPainting(), true), (parent, self) -> {
           self.setDimensions(parent.getWidth() - 2 * GuiUtil.PADDING,
-              parent.getHeight() - this.infoLabel.getHeight() - IconButtonWidget.SIZE_V - 2 * parent.getSpacing()
+              parent.getHeight() - infoLabel.getHeight() - IconButtonWidget.SIZE_V - 2 * parent.getSpacing()
           );
         });
 
@@ -169,9 +166,9 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     this.initTabNavigation();
 
     this.paintingsListChangedHandler = () -> {
-      this.paintingList.setPaintings(this.paintings);
+      paintingList.setPaintings(this.paintings);
       if (!this.paintings.isEmpty() && this.state.getCurrentPainting().isEmpty()) {
-        this.paintingList.selectFirst();
+        paintingList.selectFirst();
       }
 
       prevButton.active = this.hasMultiplePaintings();
@@ -182,11 +179,11 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
       PaintingData paintingData = this.state.getCurrentPainting();
       boolean canStay = this.state.canStay();
 
-      this.paintingList.selectPainting(paintingData);
+      paintingList.selectPainting(paintingData);
 
-      this.infoLabel.batchUpdates(() -> {
-        this.infoLabel.setText(this.getInfoLines());
-        this.infoLabel.setHeight(this.infoLabel.getDefaultHeight());
+      infoLabel.batchUpdates(() -> {
+        infoLabel.setText(this.getInfoLines());
+        infoLabel.setHeight(infoLabel.getDefaultHeight());
       });
 
       paintingSprite.batchUpdates(() -> {
@@ -199,6 +196,12 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
 
       doneButton.active = canStay;
       doneButton.setTooltip(canStay ? null : Tooltip.of(getTooBigText(paintingData)));
+    };
+
+    this.focusSearchInput = () -> {
+      if (this.getFocused() != searchBox) {
+        this.setFocused(searchBox);
+      }
     };
 
     this.paintingsListChangedHandler.run();
@@ -243,18 +246,6 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         }
         return true;
       }
-      case GLFW.GLFW_KEY_ENTER -> {
-        if (!this.paintingList.isFocused()) {
-          break;
-        }
-        Optional<PaintingData> painting = this.paintingList.getSelectedPainting();
-        if (painting.isPresent() && this.state.canStay(painting.get())) {
-          GuiUtil.playClickSound();
-          this.saveSelection(painting.get());
-          this.close();
-          return true;
-        }
-      }
       case GLFW.GLFW_KEY_F -> {
         if (hasControlDown()) {
           if (hasShiftDown()) {
@@ -262,28 +253,12 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
             return true;
           }
 
-          Element focused = this.getFocused();
-          if (focused != this.searchBox) {
-            if (focused != null) {
-              focused.setFocused(false);
-            }
-
-            this.setFocused(this.searchBox);
-            return true;
-          }
+          this.focusSearchInput.run();
         }
       }
     }
 
     return super.keyPressed(keyCode, scanCode, modifiers);
-  }
-
-  @Override
-  public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-    if (this.paintingList.isMouseOver(mouseX, mouseY)) {
-      return this.paintingList.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
-    }
-    return false;
   }
 
   private void applyFilters() {
