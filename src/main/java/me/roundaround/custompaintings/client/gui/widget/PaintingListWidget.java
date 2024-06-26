@@ -43,6 +43,8 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
       Consumer<PaintingData> onPaintingConfirm) {
     super(client, 0, 0, 0, 0);
 
+    this.setAlternatingRowShading(true);
+
     this.state = state;
     this.onPaintingSelect = onPaintingSelect;
     this.onPaintingConfirm = onPaintingConfirm;
@@ -136,7 +138,6 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
     public Entry(int index, int left, int top, int width, int contentHeight, PaintingData paintingData) {
       super(index, left, top, width, contentHeight);
       this.paintingData = paintingData;
-      this.setAlternatingRowShading(true);
     }
 
     public PaintingData getPaintingData() {
