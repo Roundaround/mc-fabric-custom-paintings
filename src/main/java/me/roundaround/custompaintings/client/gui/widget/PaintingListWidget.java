@@ -128,13 +128,6 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
   }
 
   @Override
-  public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-    Entry selected = this.getSelected();
-    return selected != null && selected.keyPressed(keyCode, scanCode, modifiers) ||
-        super.keyPressed(keyCode, scanCode, modifiers);
-  }
-
-  @Override
   protected Entry getNeighboringEntry(NavigationDirection direction) {
     return this.getNeighboringEntry(direction, (entry) -> !entry.getPaintingData().isEmpty());
   }
