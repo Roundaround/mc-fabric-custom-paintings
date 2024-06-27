@@ -1,12 +1,10 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.roundalib.client.gui.layout.IntRect;
 import me.roundaround.roundalib.client.gui.widget.DrawableWidget;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.texture.Sprite;
 
 public class PaintingSpriteWidget extends DrawableWidget {
@@ -137,11 +135,8 @@ public class PaintingSpriteWidget extends DrawableWidget {
       );
     }
 
-    RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-    RenderSystem.setShaderColor(color, color, color, 1f);
-    RenderSystem.setShaderTexture(0, this.sprite.getAtlasId());
     context.drawSprite(this.paintingBounds.left(), this.paintingBounds.top(), 1, this.paintingBounds.getWidth(),
-        this.paintingBounds.getHeight(), this.sprite
+        this.paintingBounds.getHeight(), this.sprite, color, color, color, 1f
     );
   }
 }
