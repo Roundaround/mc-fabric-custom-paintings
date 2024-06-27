@@ -95,7 +95,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         .alignedMiddle()
         .hideBackground()
         .showShadow()
-        .overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE)
+        .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
         .lineSpacing(1)
         .build(), (parent, self) -> {
       self.setDimensions(parent.getWidth(),
