@@ -32,10 +32,6 @@ public record PaintingData(Identifier id, int index, int width, int height, Stri
     );
   }
 
-  public boolean idEquals(PaintingData other) {
-    return Objects.equals(this.id(), other.id());
-  }
-
   public int getScaledWidth() {
     return this.width() * 16;
   }
@@ -122,6 +118,21 @@ public record PaintingData(Identifier id, int index, int width, int height, Stri
       case EVERYTHING -> this.width() != knownData.width() || this.height() != knownData.height() ||
           !this.name().equals(knownData.name()) || !this.artist().equals(knownData.artist());
     };
+  }
+
+  public boolean idEquals(PaintingData other) {
+    return Objects.equals(this.id(), other.id());
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o)
+      return true;
+    if (!(o instanceof PaintingData that))
+      return false;
+
+    return index == that.index && width == that.width && height == that.height && isVanilla() == that.isVanilla() &&
+        Objects.equals(name, that.name) && Objects.equals(id, that.id) && Objects.equals(artist, that.artist);
   }
 
   public NbtCompound writeToNbt() {
