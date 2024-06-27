@@ -207,6 +207,7 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
 
       layout.add(new PaintingSpriteWidget(paintingData), (parent, self) -> {
         self.setDimensions(this.getContentHeight(), this.getContentHeight());
+        self.setActive(this.canStay);
       });
 
       ArrayList<Text> lines = new ArrayList<>();
