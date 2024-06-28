@@ -3,7 +3,7 @@ package me.roundaround.custompaintings.server.command.sub;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import me.roundaround.custompaintings.server.ServerPaintingManager;
+import me.roundaround.custompaintings.server.OldServerPaintingManager;
 import me.roundaround.custompaintings.server.command.suggest.KnownPaintingIdentifierSuggestionProvider;
 import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
@@ -56,14 +56,14 @@ public class SetSub {
   }
 
   private static int executeSetId(ServerCommandSource source, Identifier id) {
-    Optional<PaintingEntity> maybePainting = ServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
+    Optional<PaintingEntity> maybePainting = OldServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
 
     if (maybePainting.isEmpty()) {
       source.sendFeedback(() -> Text.translatable("custompaintings.command.set.none"), false);
       return 0;
     }
 
-    int updated = ServerPaintingManager.setId(maybePainting.get(), id);
+    int updated = OldServerPaintingManager.setId(maybePainting.get(), id);
 
     if (updated == 0) {
       source.sendFeedback(() -> Text.translatable("custompaintings.command.set.none"), false);
@@ -75,14 +75,14 @@ public class SetSub {
   }
 
   private static int executeSetWidth(ServerCommandSource source, int width) {
-    Optional<PaintingEntity> maybePainting = ServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
+    Optional<PaintingEntity> maybePainting = OldServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
 
     if (maybePainting.isEmpty()) {
       source.sendFeedback(() -> Text.translatable("custompaintings.command.set.none"), false);
       return 0;
     }
 
-    int updated = ServerPaintingManager.setWidth(maybePainting.get(), width);
+    int updated = OldServerPaintingManager.setWidth(maybePainting.get(), width);
 
     if (updated == 0) {
       source.sendFeedback(() -> Text.translatable("custompaintings.command.set.none"), false);
@@ -94,14 +94,14 @@ public class SetSub {
   }
 
   private static int executeSetHeight(ServerCommandSource source, int height) {
-    Optional<PaintingEntity> maybePainting = ServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
+    Optional<PaintingEntity> maybePainting = OldServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
 
     if (maybePainting.isEmpty()) {
       source.sendFeedback(() -> Text.translatable("custompaintings.command.set.none"), false);
       return 0;
     }
 
-    int updated = ServerPaintingManager.setHeight(maybePainting.get(), height);
+    int updated = OldServerPaintingManager.setHeight(maybePainting.get(), height);
 
     if (updated == 0) {
       source.sendFeedback(() -> Text.translatable("custompaintings.command.set.none"), false);
@@ -113,14 +113,14 @@ public class SetSub {
   }
 
   private static int executeSetSize(ServerCommandSource source, int width, int height) {
-    Optional<PaintingEntity> maybePainting = ServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
+    Optional<PaintingEntity> maybePainting = OldServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
 
     if (maybePainting.isEmpty()) {
       source.sendFeedback(() -> Text.translatable("custompaintings.command.set.none"), false);
       return 0;
     }
 
-    int updated = ServerPaintingManager.setSize(maybePainting.get(), width, height);
+    int updated = OldServerPaintingManager.setSize(maybePainting.get(), width, height);
 
     if (updated == 0) {
       source.sendFeedback(() -> Text.translatable("custompaintings.command.set.none"), false);
@@ -132,14 +132,14 @@ public class SetSub {
   }
 
   private static int executeSetName(ServerCommandSource source, String name) {
-    Optional<PaintingEntity> maybePainting = ServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
+    Optional<PaintingEntity> maybePainting = OldServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
 
     if (maybePainting.isEmpty()) {
       source.sendFeedback(() -> Text.translatable("custompaintings.command.set.none"), false);
       return 0;
     }
 
-    int updated = ServerPaintingManager.setName(source.getPlayer(), maybePainting.get(), name);
+    int updated = OldServerPaintingManager.setName(source.getPlayer(), maybePainting.get(), name);
 
     if (updated == 0) {
       source.sendFeedback(() -> Text.translatable("custompaintings.command.set.none"), false);
@@ -151,14 +151,14 @@ public class SetSub {
   }
 
   private static int executeSetArtist(ServerCommandSource source, String artist) {
-    Optional<PaintingEntity> maybePainting = ServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
+    Optional<PaintingEntity> maybePainting = OldServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
 
     if (maybePainting.isEmpty()) {
       source.sendFeedback(() -> Text.translatable("custompaintings.command.set.none"), false);
       return 0;
     }
 
-    int updated = ServerPaintingManager.setArtist(source.getPlayer(), maybePainting.get(), artist);
+    int updated = OldServerPaintingManager.setArtist(source.getPlayer(), maybePainting.get(), artist);
 
     if (updated == 0) {
       source.sendFeedback(() -> Text.translatable("custompaintings.command.set.none"), false);
@@ -170,14 +170,14 @@ public class SetSub {
   }
 
   private static int executeSetLabel(ServerCommandSource source, String name, String artist) {
-    Optional<PaintingEntity> maybePainting = ServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
+    Optional<PaintingEntity> maybePainting = OldServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
 
     if (maybePainting.isEmpty()) {
       source.sendFeedback(() -> Text.translatable("custompaintings.command.set.none"), false);
       return 0;
     }
 
-    int updated = ServerPaintingManager.setLabel(source.getPlayer(), maybePainting.get(), name, artist);
+    int updated = OldServerPaintingManager.setLabel(source.getPlayer(), maybePainting.get(), name, artist);
 
     if (updated == 0) {
       source.sendFeedback(() -> Text.translatable("custompaintings.command.set.none"), false);

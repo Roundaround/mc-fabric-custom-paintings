@@ -3,7 +3,7 @@ package me.roundaround.custompaintings.server.command.sub;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.custompaintings.server.ServerPaintingManager;
+import me.roundaround.custompaintings.server.OldServerPaintingManager;
 import me.roundaround.custompaintings.server.command.suggest.KnownPaintingIdentifierSuggestionProvider;
 import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.entity.EntityType;
@@ -50,7 +50,7 @@ public class CountSub {
 
   private static int execute(ServerCommandSource source) {
     Optional<PaintingEntity> maybePainting =
-        ServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
+        OldServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
 
     if (!maybePainting.isPresent()) {
       source.sendFeedback(() -> Text.translatable("custompaintings.command.count.none"), false);

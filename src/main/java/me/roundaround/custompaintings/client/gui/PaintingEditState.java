@@ -103,8 +103,7 @@ public class PaintingEditState {
     }
 
     if (!this.currentPaintings.contains(this.currentPainting)) {
-      this.setCurrentPainting(
-          this.currentPaintings.isEmpty() ? PaintingData.EMPTY : this.currentPaintings.getFirst());
+      this.setCurrentPainting(this.currentPaintings.isEmpty() ? PaintingData.EMPTY : this.currentPaintings.getFirst());
     }
   }
 
@@ -222,9 +221,7 @@ public class PaintingEditState {
         this.allPaintings.put(groupId, new Group(groupId, groupName, new ArrayList<>()));
       }
 
-      this.allPaintings.get(groupId)
-          .paintings()
-          .add(new PaintingData(vanillaVariant, this.allPaintings.get(groupId).paintings().size()));
+      this.allPaintings.get(groupId).paintings().add(new PaintingData(vanillaVariant));
     });
 
     CustomPaintingManager paintingManager = CustomPaintingsClientMod.customPaintingManager;
@@ -239,10 +236,9 @@ public class PaintingEditState {
       pack.paintings().forEach((painting) -> {
         this.allPaintings.get(groupId)
             .paintings()
-            .add(
-                new PaintingData(new Identifier(pack.id(), painting.id()), painting.index(), painting.width().orElse(1),
-                    painting.height().orElse(1), painting.name().orElse(""), painting.artist().orElse("")
-                ));
+            .add(new PaintingData(new Identifier(pack.id(), painting.id()), painting.width().orElse(1),
+                painting.height().orElse(1), painting.name().orElse(""), painting.artist().orElse("")
+            ));
       });
     });
 
@@ -327,6 +323,7 @@ public class PaintingEditState {
 
   public interface StateChangedListener {
     void onPaintingsListChanged();
+
     void onCurrentPaintingChanged();
   }
 }

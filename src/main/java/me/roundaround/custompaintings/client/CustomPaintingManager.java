@@ -35,8 +35,7 @@ import java.util.stream.Collectors;
 public class CustomPaintingManager implements IdentifiableResourceReloadListener, AutoCloseable {
   private static final MinecraftClient MINECRAFT = MinecraftClient.getInstance();
   private static final Pattern PATTERN = Pattern.compile("(?:\\w*/)*?(\\w+)\\.png");
-  private static final Identifier PAINTING_BACK_ID =
-      new Identifier(Identifier.DEFAULT_NAMESPACE, "back");
+  private static final Identifier PAINTING_BACK_ID = new Identifier(Identifier.DEFAULT_NAMESPACE, "back");
 
   private final SpriteAtlasTexture atlas;
   private final HashMap<String, Pack> packs = new HashMap<>();
@@ -55,7 +54,8 @@ public class CustomPaintingManager implements IdentifiableResourceReloadListener
       Profiler prepareProfiler,
       Profiler applyProfiler,
       Executor prepareExecutor,
-      Executor applyExecutor) {
+      Executor applyExecutor
+  ) {
     return CompletableFuture.supplyAsync(() -> {
           packs.clear();
           data.clear();
@@ -72,25 +72,23 @@ public class CustomPaintingManager implements IdentifiableResourceReloadListener
                       !Identifier.REALMS_NAMESPACE.equals(namespace)))
               .forEach((resourcePack) -> {
                 try (InputStream stream = resourcePack.openRoot("custompaintings.json").get()) {
-                  try (JsonReader reader = new JsonReader(new InputStreamReader(stream,
-                      StandardCharsets.UTF_8))) {
+                  try (
+                      JsonReader reader = new JsonReader(new InputStreamReader(stream, StandardCharsets.UTF_8))
+                  ) {
                     Pack pack = readPack(reader, resourcePack.getInfo().title().getString());
 
                     if (packs.containsKey(pack.id())) {
-                      throw new ParseException("Multiple packs detected with id '" + pack.id() +
-                          "'! Pack id must be unique.");
+                      throw new ParseException(
+                          "Multiple packs detected with id '" + pack.id() + "'! Pack id must be unique.");
                     }
                     packs.put(pack.id(), pack);
 
                     pack.paintings().forEach((painting) -> {
                       Identifier id = new Identifier(pack.id(), painting.id());
-                      data.put(id,
-                          new PaintingData(id,
-                              painting.index(),
-                              painting.width().orElse(1),
-                              painting.height().orElse(1),
-                              painting.name().orElse(""),
-                              painting.artist().orElse("")));
+                      data.put(
+                          id, new PaintingData(id, painting.width().orElse(1), painting.height().orElse(1),
+                              painting.name().orElse(""), painting.artist().orElse("")
+                          ));
                     });
                   }
                 } catch (Exception e) {
@@ -104,10 +102,8 @@ public class CustomPaintingManager implements IdentifiableResourceReloadListener
                     .stream()
                     .filter((namespace) -> !Identifier.DEFAULT_NAMESPACE.equals(namespace) &&
                         !Identifier.REALMS_NAMESPACE.equals(namespace))
-                    .forEach((namespace) -> resourcePack.findResources(ResourceType.CLIENT_RESOURCES,
-                        namespace,
-                        "textures/painting",
-                        (id, supplier) -> {
+                    .forEach((namespace) -> resourcePack.findResources(ResourceType.CLIENT_RESOURCES, namespace,
+                        "textures/painting", (id, supplier) -> {
                           if (!id.getPath().endsWith(".png")) {
                             return;
                           }
@@ -124,7 +120,8 @@ public class CustomPaintingManager implements IdentifiableResourceReloadListener
 
                           spriteIds.add(id);
                           spriteResources.add(new Pair<>(id, new Resource(resourcePack, supplier)));
-                        }));
+                        }
+                    ));
               });
 
           if (MINECRAFT.player != null) {
@@ -145,16 +142,15 @@ public class CustomPaintingManager implements IdentifiableResourceReloadListener
 
           spriteIds.add(PAINTING_BACK_ID);
           suppliers.add((opener) -> opener.loadSprite(PAINTING_BACK_ID,
-              new Resource(MINECRAFT.getDefaultResourcePack(),
-                  MINECRAFT.getDefaultResourcePack()
-                      .open(ResourceType.CLIENT_RESOURCES,
-                          new Identifier("textures/painting/back.png")))));
+              new Resource(MINECRAFT.getDefaultResourcePack(), MINECRAFT.getDefaultResourcePack()
+                  .open(ResourceType.CLIENT_RESOURCES, new Identifier("textures/painting/back.png")))
+          ));
 
           return suppliers;
         }, prepareExecutor)
-        .thenCompose((suppliers) -> SpriteLoader.loadAll(SpriteOpener.create(SpriteLoader.METADATA_READERS),
-            suppliers,
-            prepareExecutor))
+        .thenCompose((suppliers) -> SpriteLoader.loadAll(SpriteOpener.create(SpriteLoader.METADATA_READERS), suppliers,
+            prepareExecutor
+        ))
         .thenApply((list) -> SpriteLoader.fromAtlas(this.atlas).stitch(list, 0, prepareExecutor))
         .thenCompose(synchronizer::whenPrepared)
         .thenAcceptAsync(stitchResult -> afterReload(stitchResult, applyProfiler), applyExecutor);
@@ -211,10 +207,7 @@ public class CustomPaintingManager implements IdentifiableResourceReloadListener
   }
 
   public List<Migration> getMigrations() {
-    return packs.values()
-        .stream()
-        .flatMap((pack) -> pack.migrations().stream())
-        .collect(Collectors.toList());
+    return packs.values().stream().flatMap((pack) -> pack.migrations().stream()).collect(Collectors.toList());
   }
 
   public Sprite getPaintingSprite(PaintingData paintingData) {
@@ -222,8 +215,7 @@ public class CustomPaintingManager implements IdentifiableResourceReloadListener
       return getBackSprite();
     }
     if (paintingData.isVanilla()) {
-      return MINECRAFT.getPaintingManager()
-          .getPaintingSprite(Registries.PAINTING_VARIANT.get(paintingData.id()));
+      return MINECRAFT.getPaintingManager().getPaintingSprite(Registries.PAINTING_VARIANT.get(paintingData.id()));
     }
     return getSprite(paintingData.id());
   }
@@ -320,11 +312,9 @@ public class CustomPaintingManager implements IdentifiableResourceReloadListener
 
     String packId = id.get();
     migrations = migrations.stream()
-        .map((migration) -> new Migration(migration.id(),
-            migration.description(),
-            packId,
-            migration.index(),
-            migration.pairs()))
+        .map((migration) -> new Migration(migration.id(), migration.description(), packId, migration.index(),
+            migration.pairs()
+        ))
         .collect(Collectors.toList());
 
     return new Pack(packId, name.orElse(filename), paintings, migrations);
@@ -401,20 +391,17 @@ public class CustomPaintingManager implements IdentifiableResourceReloadListener
     try {
       new Identifier("dummy", paintingId.get());
     } catch (InvalidIdentifierException e) {
-      throw new ParseException(
-          "Non [a-z0-9/._-] character in painting ID (" + paintingId.get() + ").");
+      throw new ParseException("Non [a-z0-9/._-] character in painting ID (" + paintingId.get() + ").");
     }
 
     // Height must be between 1 and 32
     if (height.get() < 1 || height.get() > 32) {
-      throw new ParseException(
-          "Painting height must be between 1 and 32. (" + paintingId.get() + ").");
+      throw new ParseException("Painting height must be between 1 and 32. (" + paintingId.get() + ").");
     }
 
     // Width must be between 1 and 32
     if (width.get() < 1 || width.get() > 32) {
-      throw new ParseException(
-          "Painting width must be between 1 and 32. (" + paintingId.get() + ").");
+      throw new ParseException("Painting width must be between 1 and 32. (" + paintingId.get() + ").");
     }
 
     return new Painting(paintingId.get(), index, name, artist, height, width);
@@ -510,16 +497,10 @@ public class CustomPaintingManager implements IdentifiableResourceReloadListener
   public record Pack(String id, String name, List<Painting> paintings, List<Migration> migrations) {
   }
 
-  public record Painting(String id,
-                         int index,
-                         Optional<String> name,
-                         Optional<String> artist,
-                         Optional<Integer> height,
+  public record Painting(String id, int index, Optional<String> name, Optional<String> artist, Optional<Integer> height,
                          Optional<Integer> width) {
   }
 
-  public record SpriteReference(Identifier id,
-                                ResourcePack pack,
-                                InputSupplier<InputStream> supplier) {
+  public record SpriteReference(Identifier id, ResourcePack pack, InputSupplier<InputStream> supplier) {
   }
 }

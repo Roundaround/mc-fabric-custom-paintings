@@ -37,9 +37,9 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
 
   @Override
   public void setCustomData(
-      Identifier id, int index, int width, int height, String name, String artist, boolean isVanilla
+      Identifier id, int width, int height, String name, String artist, boolean isVanilla
   ) {
-    setCustomData(new PaintingData(id, index, width, height, name, artist, isVanilla));
+    setCustomData(new PaintingData(id, width, height, name, artist, isVanilla));
   }
 
   @Override

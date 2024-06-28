@@ -9,14 +9,11 @@ import me.roundaround.custompaintings.server.network.ServerNetworking;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.ArgumentTypeRegistry;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.minecraft.command.argument.serialize.ConstantArgumentSerializer;
 import net.minecraft.entity.data.TrackedDataHandler;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.util.Identifier;
-import net.minecraft.world.World;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -50,10 +47,7 @@ public final class CustomPaintingsMod implements ModInitializer {
     });
 
     ServerLifecycleEvents.SERVER_STARTED.register((server) -> {
-      ServerPaintingManager paintingManager = ServerPaintingManager.getInstance(server);
-      paintingManager.readAllPaintingData(server);
+      ServerPaintingManager.getInstance(server).init();
     });
-
-    ServerEntityEvents.ENTITY_LOAD
   }
 }

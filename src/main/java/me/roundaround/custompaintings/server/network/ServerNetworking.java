@@ -3,7 +3,7 @@ package me.roundaround.custompaintings.server.network;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.network.Networking;
-import me.roundaround.custompaintings.server.ServerPaintingManager;
+import me.roundaround.custompaintings.server.OldServerPaintingManager;
 import me.roundaround.custompaintings.util.MismatchedPainting;
 import me.roundaround.custompaintings.util.UnknownPainting;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -105,7 +105,7 @@ public final class ServerNetworking {
 
   private static void handleRequestUnknown(Networking.RequestUnknownC2S payload, ServerPlayNetworking.Context context) {
     context.player().server.execute(() -> {
-      sendListUnknownPacket(context.player(), ServerPaintingManager.getUnknownPaintings(context.player()));
+      sendListUnknownPacket(context.player(), OldServerPaintingManager.getUnknownPaintings(context.player()));
     });
   }
 
@@ -113,38 +113,38 @@ public final class ServerNetworking {
       Networking.RequestMismatchedC2S payload, ServerPlayNetworking.Context context
   ) {
     context.player().server.execute(() -> {
-      sendListMismatchedPacket(context.player(), ServerPaintingManager.getMismatchedPaintings(context.player()));
+      sendListMismatchedPacket(context.player(), OldServerPaintingManager.getMismatchedPaintings(context.player()));
     });
   }
 
   private static void handleReassign(Networking.ReassignC2S payload, ServerPlayNetworking.Context context) {
     context.player().server.execute(() -> {
-      ServerPaintingManager.reassign(context.player(), payload.paintingUuid(), payload.id());
-      sendListUnknownPacket(context.player(), ServerPaintingManager.getUnknownPaintings(context.player()));
-      sendListMismatchedPacket(context.player(), ServerPaintingManager.getMismatchedPaintings(context.player()));
+      OldServerPaintingManager.reassign(context.player(), payload.paintingUuid(), payload.id());
+      sendListUnknownPacket(context.player(), OldServerPaintingManager.getUnknownPaintings(context.player()));
+      sendListMismatchedPacket(context.player(), OldServerPaintingManager.getMismatchedPaintings(context.player()));
     });
   }
 
   private static void handleReassignAll(Networking.ReassignAllC2S payload, ServerPlayNetworking.Context context) {
     context.player().server.execute(() -> {
-      ServerPaintingManager.reassign(context.player(), payload.from(), payload.to());
-      sendListUnknownPacket(context.player(), ServerPaintingManager.getUnknownPaintings(context.player()));
-      sendListMismatchedPacket(context.player(), ServerPaintingManager.getMismatchedPaintings(context.player()));
+      OldServerPaintingManager.reassign(context.player(), payload.from(), payload.to());
+      sendListUnknownPacket(context.player(), OldServerPaintingManager.getUnknownPaintings(context.player()));
+      sendListMismatchedPacket(context.player(), OldServerPaintingManager.getMismatchedPaintings(context.player()));
     });
   }
 
   private static void handleUpdatePainting(Networking.UpdatePaintingC2S payload, ServerPlayNetworking.Context context) {
     context.player().server.execute(() -> {
-      ServerPaintingManager.updatePainting(context.player(), payload.paintingUuid());
-      sendListMismatchedPacket(context.player(), ServerPaintingManager.getMismatchedPaintings(context.player()));
+      OldServerPaintingManager.updatePainting(context.player(), payload.paintingUuid());
+      sendListMismatchedPacket(context.player(), OldServerPaintingManager.getMismatchedPaintings(context.player()));
     });
   }
 
   private static void handleRemovePainting(Networking.RemovePaintingC2S payload, ServerPlayNetworking.Context context) {
     context.player().server.execute(() -> {
-      ServerPaintingManager.removePainting(context.player(), payload.paintingUuid());
-      sendListUnknownPacket(context.player(), ServerPaintingManager.getUnknownPaintings(context.player()));
-      sendListMismatchedPacket(context.player(), ServerPaintingManager.getMismatchedPaintings(context.player()));
+      OldServerPaintingManager.removePainting(context.player(), payload.paintingUuid());
+      sendListUnknownPacket(context.player(), OldServerPaintingManager.getUnknownPaintings(context.player()));
+      sendListMismatchedPacket(context.player(), OldServerPaintingManager.getMismatchedPaintings(context.player()));
     });
   }
 
@@ -152,15 +152,15 @@ public final class ServerNetworking {
       Networking.RemoveAllPaintingsC2S payload, ServerPlayNetworking.Context context
   ) {
     context.player().server.execute(() -> {
-      ServerPaintingManager.removePaintings(context.player(), payload.id());
-      sendListUnknownPacket(context.player(), ServerPaintingManager.getUnknownPaintings(context.player()));
-      sendListMismatchedPacket(context.player(), ServerPaintingManager.getMismatchedPaintings(context.player()));
+      OldServerPaintingManager.removePaintings(context.player(), payload.id());
+      sendListUnknownPacket(context.player(), OldServerPaintingManager.getUnknownPaintings(context.player()));
+      sendListMismatchedPacket(context.player(), OldServerPaintingManager.getMismatchedPaintings(context.player()));
     });
   }
 
   private static void handleApplyMigration(Networking.ApplyMigrationC2S payload, ServerPlayNetworking.Context context) {
     context.player().server.execute(() -> {
-      int updated = ServerPaintingManager.applyMigration(context.player(), payload.migration());
+      int updated = OldServerPaintingManager.applyMigration(context.player(), payload.migration());
       if (updated == 0) {
         context.player().sendMessage(Text.translatable("custompaintings.migrations.none"), false);
       } else {

@@ -12,22 +12,21 @@ import net.minecraft.util.Identifier;
 
 import java.util.Objects;
 
-public record PaintingData(Identifier id, int index, int width, int height, String name, String artist,
-                           boolean isVanilla) {
-  public static final PaintingData EMPTY = new PaintingData(null, 0, 0, 0);
+public record PaintingData(Identifier id, int width, int height, String name, String artist, boolean isVanilla) {
+  public static final PaintingData EMPTY = new PaintingData(null, 0, 0);
   public static final PacketCodec<PacketByteBuf, PaintingData> PACKET_CODEC = PacketCodec.of(
       PaintingData::writeToPacketByteBuf, PaintingData::fromPacketByteBuf);
 
-  public PaintingData(Identifier id, int index, int width, int height) {
-    this(id, index, width, height, "", "");
+  public PaintingData(Identifier id, int width, int height) {
+    this(id, width, height, "", "");
   }
 
-  public PaintingData(Identifier id, int index, int width, int height, String name, String artist) {
-    this(id, index, width, height, name, artist, false);
+  public PaintingData(Identifier id, int width, int height, String name, String artist) {
+    this(id, width, height, name, artist, false);
   }
 
-  public PaintingData(PaintingVariant vanillaVariant, int index) {
-    this(Registries.PAINTING_VARIANT.getId(vanillaVariant), index, vanillaVariant.getWidth() / 16,
+  public PaintingData(PaintingVariant vanillaVariant) {
+    this(Registries.PAINTING_VARIANT.getId(vanillaVariant), vanillaVariant.getWidth() / 16,
         vanillaVariant.getHeight() / 16, Registries.PAINTING_VARIANT.getId(vanillaVariant).getPath(), "", true
     );
   }
@@ -106,6 +105,34 @@ public record PaintingData(Identifier id, int index, int width, int height, Stri
     return Text.empty().append(this.getNameText()).append(" - ").append(this.getArtistText());
   }
 
+  public PaintingData setId(Identifier id) {
+    return new PaintingData(id, this.width, this.height, this.name, this.artist, this.isVanilla);
+  }
+
+  public PaintingData setWidth(int width) {
+    return new PaintingData(this.id, width, this.height, this.name, this.artist, this.isVanilla);
+  }
+
+  public PaintingData setHeight(int height) {
+    return new PaintingData(this.id, this.width, height, this.name, this.artist, this.isVanilla);
+  }
+
+  public PaintingData setDimensions(int width, int height) {
+    return new PaintingData(this.id, width, height, this.name, this.artist, this.isVanilla);
+  }
+
+  public PaintingData setName(String name) {
+    return new PaintingData(this.id, this.width, this.height, name, this.artist, this.isVanilla);
+  }
+
+  public PaintingData setArtist(String artist) {
+    return new PaintingData(this.id, this.width, this.height, this.name, artist, this.isVanilla);
+  }
+
+  public PaintingData setLabel(String name, String artist) {
+    return new PaintingData(this.id, this.width, this.height, name, artist, this.isVanilla);
+  }
+
   public boolean isMismatched(PaintingData knownData) {
     return this.isMismatched(knownData, MismatchedCategory.EVERYTHING);
   }
@@ -131,8 +158,9 @@ public record PaintingData(Identifier id, int index, int width, int height, Stri
     if (!(o instanceof PaintingData that))
       return false;
 
-    return index == that.index && width == that.width && height == that.height && isVanilla() == that.isVanilla() &&
-        Objects.equals(name, that.name) && Objects.equals(id, that.id) && Objects.equals(artist, that.artist);
+    return this.width == that.width && this.height == that.height && this.isVanilla == that.isVanilla &&
+        Objects.equals(this.name, that.name) && Objects.equals(this.id, that.id) &&
+        Objects.equals(this.artist, that.artist);
   }
 
   public NbtCompound writeToNbt() {
@@ -142,7 +170,6 @@ public record PaintingData(Identifier id, int index, int width, int height, Stri
     }
 
     nbt.putString("Id", this.id.toString());
-    nbt.putInt("Index", this.index);
     nbt.putInt("Width", this.width);
     nbt.putInt("Height", this.height);
     nbt.putString("Name", this.name);
@@ -158,7 +185,6 @@ public record PaintingData(Identifier id, int index, int width, int height, Stri
     }
     buf.writeBoolean(true);
     buf.writeIdentifier(this.id);
-    buf.writeInt(this.index);
     buf.writeInt(this.width);
     buf.writeInt(this.height);
     buf.writeString(this.name);
@@ -172,13 +198,12 @@ public record PaintingData(Identifier id, int index, int width, int height, Stri
     }
 
     Identifier id = Identifier.tryParse(nbt.getString("Id"));
-    int index = nbt.getInt("Index");
     int width = nbt.getInt("Width");
     int height = nbt.getInt("Height");
     String name = nbt.getString("Name");
     String artist = nbt.getString("Artist");
     boolean isVanilla = nbt.getBoolean("Vanilla");
-    return new PaintingData(id, index, width, height, name, artist, isVanilla);
+    return new PaintingData(id, width, height, name, artist, isVanilla);
   }
 
   public static PaintingData fromPacketByteBuf(PacketByteBuf buf) {
@@ -186,13 +211,12 @@ public record PaintingData(Identifier id, int index, int width, int height, Stri
       return EMPTY;
     }
     Identifier id = buf.readIdentifier();
-    int index = buf.readInt();
     int width = buf.readInt();
     int height = buf.readInt();
     String name = buf.readString();
     String artist = buf.readString();
     boolean isVanilla = buf.readBoolean();
-    return new PaintingData(id, index, width, height, name, artist, isVanilla);
+    return new PaintingData(id, width, height, name, artist, isVanilla);
   }
 
   public enum MismatchedCategory {

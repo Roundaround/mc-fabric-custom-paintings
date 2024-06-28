@@ -3,7 +3,7 @@ package me.roundaround.custompaintings.server.command.sub;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.custompaintings.server.ServerPaintingManager;
+import me.roundaround.custompaintings.server.OldServerPaintingManager;
 import me.roundaround.custompaintings.server.command.suggest.KnownPaintingIdentifierSuggestionProvider;
 import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.entity.EntityType;
@@ -28,14 +28,12 @@ public class FixSub {
         .then(CommandManager.argument("id", IdentifierArgumentType.identifier())
             .suggests(new KnownPaintingIdentifierSuggestionProvider(true))
             .executes(context -> {
-              return execute(context.getSource(),
-                  IdentifierArgumentType.getIdentifier(context, "id"));
+              return execute(context.getSource(), IdentifierArgumentType.getIdentifier(context, "id"));
             })));
   }
 
   private static int executeTargeted(ServerCommandSource source) {
-    Optional<PaintingEntity> maybePainting =
-        ServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
+    Optional<PaintingEntity> maybePainting = OldServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
 
     if (!maybePainting.isPresent()) {
       source.sendFeedback(() -> Text.translatable("custompaintings.command.fix.none"), false);
@@ -48,14 +46,12 @@ public class FixSub {
       return 0;
     }
 
-    Map<Identifier, PaintingData> known =
-        ServerPaintingManager.getKnownPaintings(source.getPlayer());
+    Map<Identifier, PaintingData> known = OldServerPaintingManager.getKnownPaintings(source.getPlayer());
     ExpandedPaintingEntity painting = (ExpandedPaintingEntity) vanillaPainting;
     PaintingData currentData = painting.getCustomData();
 
     if (!known.containsKey(currentData.id())) {
-      source.sendFeedback(() -> Text.translatable("custompaintings.command.fix.unknown",
-          currentData.id()), false);
+      source.sendFeedback(() -> Text.translatable("custompaintings.command.fix.unknown", currentData.id()), false);
       return 0;
     }
 
@@ -66,42 +62,37 @@ public class FixSub {
 
   private static int execute(ServerCommandSource source, Identifier id) {
     ArrayList<ExpandedPaintingEntity> toUpdate = new ArrayList<>();
-    Map<Identifier, PaintingData> known =
-        ServerPaintingManager.getKnownPaintings(source.getPlayer());
+    Map<Identifier, PaintingData> known = OldServerPaintingManager.getKnownPaintings(source.getPlayer());
 
     if (id != null && !known.containsKey(id)) {
-      source.sendFeedback(() -> Text.translatable("custompaintings.command.fix.unknown", id),
-          false);
+      source.sendFeedback(() -> Text.translatable("custompaintings.command.fix.unknown", id), false);
       return 0;
     }
 
     source.getServer().getWorlds().forEach((world) -> {
-      world.getEntitiesByType(EntityType.PAINTING,
-          entity -> entity instanceof ExpandedPaintingEntity).stream().filter((entity) -> {
-        Identifier entityId = ((ExpandedPaintingEntity) entity).getCustomData().id();
-        return (id == null || entityId.equals(id)) && known.containsKey(entityId);
-      }).forEach((entity) -> {
-        toUpdate.add((ExpandedPaintingEntity) entity);
-      });
+      world.getEntitiesByType(EntityType.PAINTING, entity -> entity instanceof ExpandedPaintingEntity)
+          .stream()
+          .filter((entity) -> {
+            Identifier entityId = ((ExpandedPaintingEntity) entity).getCustomData().id();
+            return (id == null || entityId.equals(id)) && known.containsKey(entityId);
+          })
+          .forEach((entity) -> {
+            toUpdate.add((ExpandedPaintingEntity) entity);
+          });
     });
 
     toUpdate.forEach((painting) -> {
       PaintingData currentData = painting.getCustomData();
       PaintingData knownData = known.get(currentData.id());
-      painting.setCustomData(currentData.id(),
-          knownData.index(),
-          knownData.width(),
-          knownData.height(),
-          knownData.name(),
-          knownData.artist(),
-          knownData.isVanilla());
+      painting.setCustomData(currentData.id(), knownData.width(), knownData.height(), knownData.name(),
+          knownData.artist(), knownData.isVanilla()
+      );
     });
 
     if (toUpdate.isEmpty()) {
       source.sendFeedback(() -> Text.translatable("custompaintings.command.fix.none"), false);
     } else {
-      source.sendFeedback(() -> Text.translatable("custompaintings.command.fix.success",
-          toUpdate.size()), false);
+      source.sendFeedback(() -> Text.translatable("custompaintings.command.fix.success", toUpdate.size()), false);
     }
 
     return toUpdate.size();

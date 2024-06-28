@@ -1,7 +1,7 @@
 package me.roundaround.custompaintings.server.command.sub;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import me.roundaround.custompaintings.server.ServerPaintingManager;
+import me.roundaround.custompaintings.server.OldServerPaintingManager;
 import me.roundaround.custompaintings.server.command.suggest.ExistingPaintingIdentifierSuggestionProvider;
 import me.roundaround.custompaintings.server.command.suggest.KnownPaintingIdentifierSuggestionProvider;
 import net.minecraft.command.argument.IdentifierArgumentType;
@@ -36,14 +36,14 @@ public class ReassignSub {
 
   private static int execute(ServerCommandSource source, Identifier id) {
     Optional<PaintingEntity> maybePainting =
-        ServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
+        OldServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
 
     if (maybePainting.isEmpty()) {
       source.sendFeedback(() -> Text.translatable("custompaintings.command.reassign.none"), false);
       return 0;
     }
 
-    int updated = ServerPaintingManager.reassign(source.getPlayer(), maybePainting.get(), id);
+    int updated = OldServerPaintingManager.reassign(source.getPlayer(), maybePainting.get(), id);
 
     if (updated == -1) {
       source.sendFeedback(() -> Text.translatable("custompaintings.command.reassign.unknown", id),
@@ -62,7 +62,7 @@ public class ReassignSub {
   }
 
   private static int execute(ServerCommandSource source, Identifier from, Identifier to) {
-    int updated = ServerPaintingManager.reassign(source.getPlayer(), from, to);
+    int updated = OldServerPaintingManager.reassign(source.getPlayer(), from, to);
 
     if (updated == -1) {
       source.sendFeedback(() -> Text.translatable("custompaintings.command.reassign.unknown", to),

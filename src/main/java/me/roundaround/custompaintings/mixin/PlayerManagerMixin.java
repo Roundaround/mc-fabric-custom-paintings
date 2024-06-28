@@ -1,7 +1,7 @@
 package me.roundaround.custompaintings.mixin;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.custompaintings.server.ServerPaintingManager;
+import me.roundaround.custompaintings.server.OldServerPaintingManager;
 import net.minecraft.network.ClientConnection;
 import net.minecraft.server.PlayerManager;
 import net.minecraft.server.network.ConnectedClientData;
@@ -21,6 +21,6 @@ public abstract class PlayerManagerMixin {
       CallbackInfo info) {
     CustomPaintingsMod.knownPaintings.remove(player.getUuid());
 
-    ServerPaintingManager.customifyVanillaPaintings(player);
+    OldServerPaintingManager.customifyVanillaPaintings(player);
   }
 }

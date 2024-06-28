@@ -5,7 +5,7 @@ import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData.MismatchedCategory;
-import me.roundaround.custompaintings.server.ServerPaintingManager;
+import me.roundaround.custompaintings.server.OldServerPaintingManager;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.registry.Registries;
@@ -30,7 +30,7 @@ public class IdentifySub {
 
   private static int execute(ServerCommandSource source) {
     ServerPlayerEntity player = source.getPlayer();
-    Optional<PaintingEntity> maybePainting = ServerPaintingManager.getPaintingInCrosshair(player);
+    Optional<PaintingEntity> maybePainting = OldServerPaintingManager.getPaintingInCrosshair(player);
 
     if (!maybePainting.isPresent()) {
       source.sendFeedback(() -> Text.translatable("custompaintings.command.identify.none"), false);
