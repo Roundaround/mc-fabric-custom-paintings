@@ -1,4 +1,4 @@
-package me.roundaround.custompaintings.server;
+package me.roundaround.custompaintings.resource;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;

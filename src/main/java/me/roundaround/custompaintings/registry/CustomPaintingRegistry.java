@@ -1,4 +1,4 @@
-package me.roundaround.custompaintings.util.registry;
+package me.roundaround.custompaintings.registry;
 
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.minecraft.util.Identifier;
