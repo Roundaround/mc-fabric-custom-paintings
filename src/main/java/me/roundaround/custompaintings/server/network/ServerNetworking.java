@@ -1,7 +1,6 @@
 package me.roundaround.custompaintings.server.network;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.server.OldServerPaintingManager;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
@@ -79,8 +78,7 @@ public final class ServerNetworking {
         return;
       }
 
-      ExpandedPaintingEntity expanded = (ExpandedPaintingEntity) painting;
-      if (expanded.getEditor() == null || !expanded.getEditor().equals(player.getUuid())) {
+      if (painting.getEditor() == null || !painting.getEditor().equals(player.getUuid())) {
         return;
       }
 
@@ -90,7 +88,7 @@ public final class ServerNetworking {
       }
 
       if (payload.customPaintingInfo().isVanilla()) {
-        expanded.setVariant(payload.customPaintingInfo().id());
+        painting.setVariant(payload.customPaintingInfo().id());
       }
 
       ServerPaintingManager.getInstance(world).setPaintingDataAndPropagate(painting, payload.customPaintingInfo());

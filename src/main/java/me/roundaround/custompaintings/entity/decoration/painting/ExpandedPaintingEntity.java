@@ -1,19 +1,28 @@
 package me.roundaround.custompaintings.entity.decoration.painting;
 
-import java.util.UUID;
-
 import net.minecraft.util.Identifier;
 
+import java.util.UUID;
+
 public interface ExpandedPaintingEntity {
-  void setCustomData(PaintingData info);
+  default void setCustomData(PaintingData info) {
+  }
 
-  void setCustomData(Identifier id, int width, int height, String name, String artist, boolean isVanilla);
+  default void setCustomData(Identifier id, int width, int height, String name, String artist, boolean isVanilla) {
+    this.setCustomData(new PaintingData(id, width, height, name, artist, isVanilla));
+  }
 
-  PaintingData getCustomData();
+  default PaintingData getCustomData() {
+    return PaintingData.EMPTY;
+  }
 
-  void setEditor(UUID editor);
+  default void setEditor(UUID editor) {
+  }
 
-  UUID getEditor();
+  default UUID getEditor() {
+    return null;
+  }
 
-  void setVariant(Identifier id);
+  default void setVariant(Identifier id) {
+  }
 }

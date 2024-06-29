@@ -1,7 +1,6 @@
 package me.roundaround.custompaintings.server;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.util.registry.VanillaPaintingRegistry;
 import net.minecraft.entity.Entity;
@@ -87,10 +86,7 @@ public class ServerPaintingManager extends PersistentState {
   }
 
   public void setCustomDataOnPainting(PaintingEntity painting, PaintingData paintingData) {
-    if (!(painting instanceof ExpandedPaintingEntity expanded)) {
-      return;
-    }
-    expanded.setCustomData(paintingData);
+    painting.setCustomData(paintingData);
   }
 
   public Optional<PaintingEntity> findPainting(UUID uuid) {
@@ -102,23 +98,18 @@ public class ServerPaintingManager extends PersistentState {
   }
 
   public void registerPainting(PaintingEntity painting) {
-    if (!(painting instanceof ExpandedPaintingEntity expanded)) {
-      // TODO: Figure out a way around these bits. Theoretically it should ALWAYS be an instance of expanded
-      return;
-    }
-
     UUID uuid = painting.getUuid();
 
     if (this.allPaintings.containsKey(uuid)) {
       PaintingData storedData = this.allPaintings.get(uuid);
-      if (!storedData.equals(expanded.getCustomData())) {
+      if (!storedData.equals(painting.getCustomData())) {
         this.setCustomDataOnPainting(painting, storedData);
       }
       CustomPaintingsMod.LOGGER.info("Registered painting with globally-stored data.");
       return;
     }
 
-    PaintingData paintingData = expanded.getCustomData();
+    PaintingData paintingData = painting.getCustomData();
 
     if (paintingData == null || paintingData.isEmpty()) {
       this.setPaintingDataAndPropagate(
@@ -127,7 +118,7 @@ public class ServerPaintingManager extends PersistentState {
       return;
     }
 
-    this.setPaintingData(uuid, expanded.getCustomData());
+    this.setPaintingData(uuid, painting.getCustomData());
     CustomPaintingsMod.LOGGER.info("Registered painting with self-stored data.");
   }
 }

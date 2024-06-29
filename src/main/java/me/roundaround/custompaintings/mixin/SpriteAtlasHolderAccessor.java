@@ -13,5 +13,5 @@ import net.minecraft.util.Identifier;
 @Mixin(SpriteAtlasHolder.class)
 public interface SpriteAtlasHolderAccessor {
   @Invoker("getSprite")
-  public Sprite invokeGetSprite(Identifier id);
+  Sprite invokeGetSprite(Identifier id);
 }

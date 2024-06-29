@@ -1,11 +1,11 @@
 package me.roundaround.custompaintings.server.command.sub;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.server.OldServerPaintingManager;
 import me.roundaround.custompaintings.server.command.suggest.KnownPaintingIdentifierSuggestionProvider;
 import net.minecraft.command.argument.IdentifierArgumentType;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.registry.Registries;
@@ -27,8 +27,7 @@ public class CountSub {
         .then(CommandManager.argument("id", IdentifierArgumentType.identifier())
             .suggests(new KnownPaintingIdentifierSuggestionProvider())
             .executes(context -> {
-              return CountSub.execute(context.getSource(),
-                  IdentifierArgumentType.getIdentifier(context, "id"));
+              return CountSub.execute(context.getSource(), IdentifierArgumentType.getIdentifier(context, "id"));
             }));
   }
 
@@ -36,12 +35,9 @@ public class CountSub {
     int count = 0;
 
     for (ServerWorld world : server.getWorlds()) {
-      count += world.getEntitiesByType(EntityType.PAINTING,
-              entity -> entity instanceof ExpandedPaintingEntity)
+      count += (int) world.getEntitiesByType(EntityType.PAINTING, Entity::isAlive)
           .stream()
-          .filter((entity) -> ((ExpandedPaintingEntity) entity).getCustomData()
-              .id()
-              .equals(identifier))
+          .filter((entity) -> entity.getCustomData().id().equals(identifier))
           .count();
     }
 
@@ -49,24 +45,17 @@ public class CountSub {
   }
 
   private static int execute(ServerCommandSource source) {
-    Optional<PaintingEntity> maybePainting =
-        OldServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
+    Optional<PaintingEntity> maybePainting = OldServerPaintingManager.getPaintingInCrosshair(source.getPlayer());
 
-    if (!maybePainting.isPresent()) {
+    if (maybePainting.isEmpty()) {
       source.sendFeedback(() -> Text.translatable("custompaintings.command.count.none"), false);
       return 0;
     }
 
-    PaintingEntity vanillaPainting = maybePainting.get();
-    if (!(vanillaPainting instanceof ExpandedPaintingEntity)) {
-      Identifier id = Registries.PAINTING_VARIANT.getId(vanillaPainting.getVariant().value());
-      return execute(source, id);
-    }
-
-    ExpandedPaintingEntity painting = (ExpandedPaintingEntity) vanillaPainting;
+    PaintingEntity painting = maybePainting.get();
     PaintingData paintingData = painting.getCustomData();
     if (paintingData.isEmpty() || paintingData.isVanilla()) {
-      Identifier id = Registries.PAINTING_VARIANT.getId(vanillaPainting.getVariant().value());
+      Identifier id = Registries.PAINTING_VARIANT.getId(painting.getVariant().value());
       return execute(source, id);
     }
 
@@ -76,9 +65,8 @@ public class CountSub {
   private static int execute(ServerCommandSource source, Identifier identifier) {
     int count = countPaintings(source.getServer(), identifier);
 
-    source.sendFeedback(() -> Text.translatable("custompaintings.command.count.success",
-        identifier.toString(),
-        count), false);
+    source.sendFeedback(
+        () -> Text.translatable("custompaintings.command.count.success", identifier.toString(), count), false);
 
     return count;
   }

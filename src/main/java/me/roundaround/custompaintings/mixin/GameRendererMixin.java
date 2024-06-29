@@ -1,9 +1,9 @@
 package me.roundaround.custompaintings.mixin;
 
-import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
 import org.objectweb.asm.Opcodes;
@@ -28,7 +28,7 @@ public abstract class GameRendererMixin {
     }
 
     Entity entity = ((EntityHitResult) hitResult).getEntity();
-    if (entity instanceof ExpandedPaintingEntity) {
+    if (entity instanceof PaintingEntity) {
       client.targetedEntity = entity;
     }
   }

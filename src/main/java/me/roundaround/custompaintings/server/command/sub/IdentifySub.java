@@ -2,7 +2,6 @@ package me.roundaround.custompaintings.server.command.sub;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData.MismatchedCategory;
 import me.roundaround.custompaintings.server.OldServerPaintingManager;
@@ -32,21 +31,15 @@ public class IdentifySub {
     ServerPlayerEntity player = source.getPlayer();
     Optional<PaintingEntity> maybePainting = OldServerPaintingManager.getPaintingInCrosshair(player);
 
-    if (!maybePainting.isPresent()) {
+    if (maybePainting.isEmpty()) {
       source.sendFeedback(() -> Text.translatable("custompaintings.command.identify.none"), false);
       return 0;
     }
 
-    PaintingEntity vanillaPainting = maybePainting.get();
-    if (!(vanillaPainting instanceof ExpandedPaintingEntity)) {
-      identifyVanillaPainting(source, vanillaPainting);
-      return 1;
-    }
-
-    ExpandedPaintingEntity painting = (ExpandedPaintingEntity) vanillaPainting;
+    PaintingEntity painting = maybePainting.get();
     PaintingData paintingData = painting.getCustomData();
     if (paintingData.isEmpty() || paintingData.isVanilla()) {
-      identifyVanillaPainting(source, vanillaPainting);
+      identifyVanillaPainting(source, painting);
       return 1;
     }
 
@@ -57,9 +50,7 @@ public class IdentifySub {
       lines.add(paintingData.getLabel());
     }
 
-    lines.add(Text.translatable("custompaintings.painting.dimensions",
-        paintingData.width(),
-        paintingData.height()));
+    lines.add(Text.translatable("custompaintings.painting.dimensions", paintingData.width(), paintingData.height()));
 
     int count = CountSub.countPaintings(source.getServer(), paintingData.id());
     lines.add(Text.translatable("custompaintings.command.identify.count", count));
@@ -90,9 +81,8 @@ public class IdentifySub {
     String id = Registries.PAINTING_VARIANT.getId(variant).toString();
 
     lines.add(Text.literal(id));
-    lines.add(Text.translatable("custompaintings.painting.dimensions",
-        variant.getWidth() / 16,
-        variant.getHeight() / 16));
+    lines.add(
+        Text.translatable("custompaintings.painting.dimensions", variant.getWidth() / 16, variant.getHeight() / 16));
 
     for (Text line : lines) {
       source.sendFeedback(() -> line, false);

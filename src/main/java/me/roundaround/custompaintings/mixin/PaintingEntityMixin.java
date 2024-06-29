@@ -13,11 +13,13 @@ import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -27,22 +29,19 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Mixin(PaintingEntity.class)
+@SuppressWarnings("AddedMixinMembersNamePattern")
 public abstract class PaintingEntityMixin extends AbstractDecorationEntity implements ExpandedPaintingEntity {
+  @Unique
+  @SuppressWarnings("WrongEntityDataParameterClass")
   private static final TrackedData<PaintingData> CUSTOM_DATA = DataTracker.registerData(PaintingEntity.class,
       CustomPaintingsMod.CUSTOM_PAINTING_DATA_HANDLER
   );
 
+  @Unique
   private UUID editor = null;
 
   protected PaintingEntityMixin(EntityType<? extends AbstractDecorationEntity> entityType, World world) {
     super(entityType, world);
-  }
-
-  @Override
-  public void setCustomData(
-      Identifier id, int width, int height, String name, String artist, boolean isVanilla
-  ) {
-    setCustomData(new PaintingData(id, width, height, name, artist, isVanilla));
   }
 
   @Override
@@ -58,7 +57,8 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
     }
   }
 
-  public Text getPaintingName() {
+  @Unique
+  private Text getPaintingName() {
     PaintingData paintingData = getCustomData();
     if (paintingData == null) {
       return super.getDisplayName();
@@ -90,14 +90,13 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
   public void setVariant(Identifier id) {
     Registries.PAINTING_VARIANT.streamEntries()
         .filter((ref) -> ref.matchesId(id))
-        .map((ref) -> ref.getKey())
+        .map(RegistryEntry.Reference::getKey)
         .filter(Optional::isPresent)
         .map(Optional::get)
         .findFirst()
-        .ifPresent((key) -> {
-          Registries.PAINTING_VARIANT.getEntry(key).ifPresent((entry) -> {
-            ((PaintingEntityAccessor) this).invokeSetVariant(entry);
-          });
+        .flatMap(Registries.PAINTING_VARIANT::getEntry)
+        .ifPresent((entry) -> {
+          ((PaintingEntityAccessor) this).invokeSetVariant(entry);
         });
   }
 
@@ -115,7 +114,7 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
   }
 
   // Yarn mapping for onTrackedDataSet broken in 1.20.5+. Need "onTrackedDataSet" for dev and "method_5674" for publish
-//  @Inject(method = "method_5674", at = @At(value = "TAIL"))
+  //  @Inject(method = "method_5674", at = @At(value = "TAIL"))
   @Inject(method = "onTrackedDataSet", at = @At(value = "TAIL"))
   private void onTrackedDataSet(TrackedData<?> data, CallbackInfo info) {
     if (CUSTOM_DATA.equals(data)) {

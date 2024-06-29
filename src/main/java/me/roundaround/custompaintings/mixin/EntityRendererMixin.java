@@ -1,6 +1,5 @@
 package me.roundaround.custompaintings.mixin;
 
-import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
@@ -43,13 +42,10 @@ public abstract class EntityRendererMixin<T extends Entity> {
     if (!(entity instanceof PaintingEntity painting)) {
       return;
     }
-    if (!(entity instanceof ExpandedPaintingEntity expandedPainting)) {
-      return;
-    }
 
     info.cancel();
 
-    PaintingData paintingData = expandedPainting.getCustomData();
+    PaintingData paintingData = painting.getCustomData();
 
     if (!paintingData.hasLabel()) {
       return;

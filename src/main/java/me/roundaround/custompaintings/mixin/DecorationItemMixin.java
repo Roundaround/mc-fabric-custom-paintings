@@ -1,7 +1,6 @@
 package me.roundaround.custompaintings.mixin;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.entity.decoration.painting.PaintingVariants;
@@ -23,30 +22,30 @@ public abstract class DecorationItemMixin {
   @Redirect(
       method = "useOnBlock", at = @At(
       value = "INVOKE",
-      target = "net/minecraft/entity/decoration/painting/PaintingEntity.placePainting(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/Direction;)Ljava/util/Optional;"
+      target = "net/minecraft/entity/decoration/painting/PaintingEntity.placePainting(Lnet/minecraft/world/World;" +
+          "Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/Direction;)Ljava/util/Optional;"
   )
   )
   private Optional<PaintingEntity> placePainting(
-      World world, BlockPos pos, Direction facing, ItemUsageContext context) {
+      World world, BlockPos pos, Direction facing, ItemUsageContext context
+  ) {
     if (!(context.getPlayer() instanceof ServerPlayerEntity player) ||
         !CustomPaintingsMod.knownPaintings.containsKey(context.getPlayer().getUuid())) {
       return PaintingEntity.placePainting(world, pos, facing);
     }
 
-    PaintingEntity entity = new PaintingEntity(world,
-        pos,
-        facing,
-        Registries.PAINTING_VARIANT.getEntry(PaintingVariants.KEBAB).get());
+    PaintingEntity painting = new PaintingEntity(world, pos, facing,
+        Registries.PAINTING_VARIANT.getEntry(PaintingVariants.KEBAB).get()
+    );
 
-    if (!entity.canStayAttached()) {
+    if (!painting.canStayAttached()) {
       return Optional.empty();
     }
 
-    ExpandedPaintingEntity painting = ((ExpandedPaintingEntity) entity);
     painting.setEditor(player.getUuid());
 
-    ServerNetworking.sendEditPaintingPacket(player, entity.getUuid(), entity.getId(), pos, facing);
+    ServerNetworking.sendEditPaintingPacket(player, painting.getUuid(), painting.getId(), pos, facing);
 
-    return Optional.of(entity);
+    return Optional.of(painting);
   }
 }
