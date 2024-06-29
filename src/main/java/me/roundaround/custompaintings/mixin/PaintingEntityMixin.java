@@ -3,6 +3,8 @@ package me.roundaround.custompaintings.mixin;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.server.ServerPaintingManager;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
@@ -11,6 +13,7 @@ import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.registry.Registries;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
@@ -96,6 +99,14 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
             ((PaintingEntityAccessor) this).invokeSetVariant(entry);
           });
         });
+  }
+
+  @Inject(method = "onBreak", at = @At(value = "HEAD"))
+  private void onBreak(Entity entity, CallbackInfo info) {
+    if (this.getWorld().isClient) {
+      return;
+    }
+    ServerPaintingManager.getInstance((ServerWorld) this.getWorld()).remove(this.getUuid());
   }
 
   @Inject(method = "initDataTracker", at = @At(value = "TAIL"))

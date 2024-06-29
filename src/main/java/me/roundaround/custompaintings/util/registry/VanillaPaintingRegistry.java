@@ -1,4 +1,4 @@
-package me.roundaround.custompaintings.util;
+package me.roundaround.custompaintings.util.registry;
 
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
@@ -12,30 +12,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-public class VanillaDataManager {
-  private static VanillaDataManager instance = null;
+public class VanillaPaintingRegistry {
+  private static VanillaPaintingRegistry instance = null;
 
   private final LinkedHashMap<Identifier, PaintingData> placeable = new LinkedHashMap<>();
   private final LinkedHashMap<Identifier, PaintingData> nonPlaceable = new LinkedHashMap<>();
   private final LinkedHashMap<Identifier, PaintingData> all = new LinkedHashMap<>();
 
-  private boolean initialized = false;
-
-  private VanillaDataManager() {
-  }
-
-  public static VanillaDataManager getInstance() {
-    if (instance == null) {
-      instance = new VanillaDataManager();
-    }
-    return instance;
-  }
-
-  public void init() {
-    if (this.initialized) {
-      return;
-    }
-
+  private VanillaPaintingRegistry() {
     Registries.PAINTING_VARIANT.stream().forEach((vanillaVariant) -> {
       Identifier id = Registries.PAINTING_VARIANT.getId(vanillaVariant);
       PaintingData paintingData = new PaintingData(vanillaVariant);
@@ -51,12 +35,18 @@ public class VanillaDataManager {
 
     this.all.putAll(this.placeable);
     this.all.putAll(this.nonPlaceable);
-
-    this.initialized = true;
   }
 
-  public boolean isInitialized() {
-    return this.initialized;
+  public static void init() {
+    // No op, other than forcing instance creation.
+    getInstance();
+  }
+
+  public static VanillaPaintingRegistry getInstance() {
+    if (instance == null) {
+      instance = new VanillaPaintingRegistry();
+    }
+    return instance;
   }
 
   public Optional<PaintingData> get(Identifier identifier) {

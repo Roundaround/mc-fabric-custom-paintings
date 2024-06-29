@@ -6,13 +6,17 @@ import me.roundaround.custompaintings.server.ServerPaintingManager;
 import me.roundaround.custompaintings.server.command.CustomPaintingsCommand;
 import me.roundaround.custompaintings.server.command.sub.MoveSub.MoveDirectionArgumentType;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
+import me.roundaround.custompaintings.util.registry.CustomPaintingRegistry;
+import me.roundaround.custompaintings.util.registry.VanillaPaintingRegistry;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.ArgumentTypeRegistry;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.command.argument.serialize.ConstantArgumentSerializer;
 import net.minecraft.entity.data.TrackedDataHandler;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
+import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.util.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -46,8 +50,17 @@ public final class CustomPaintingsMod implements ModInitializer {
       CustomPaintingsCommand.register(dispatcher);
     });
 
-    ServerLifecycleEvents.SERVER_STARTED.register((server) -> {
-      ServerPaintingManager.getInstance(server).init();
+    ServerLifecycleEvents.SERVER_STARTED.register(((server) -> {
+      VanillaPaintingRegistry.init();
+      CustomPaintingRegistry.init();
+    }));
+
+    ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
+      if (!(entity instanceof PaintingEntity painting)) {
+        return;
+      }
+      ServerPaintingManager manager = ServerPaintingManager.getInstance(world);
+      manager.registerPainting(painting);
     });
   }
 }

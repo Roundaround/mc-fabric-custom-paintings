@@ -4,12 +4,14 @@ import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.server.OldServerPaintingManager;
+import me.roundaround.custompaintings.server.ServerPaintingManager;
 import me.roundaround.custompaintings.util.MismatchedPainting;
 import me.roundaround.custompaintings.util.UnknownPainting;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -70,29 +72,31 @@ public final class ServerNetworking {
 
   private static void handleSetPainting(Networking.SetPaintingC2S payload, ServerPlayNetworking.Context context) {
     context.player().server.execute(() -> {
-      Entity entity = context.player().getServerWorld().getEntity(payload.paintingUuid());
-      if (!(entity instanceof PaintingEntity basePainting)) {
+      ServerPlayerEntity player = context.player();
+      ServerWorld world = player.getServerWorld();
+      Entity entity = world.getEntity(payload.paintingUuid());
+      if (!(entity instanceof PaintingEntity painting)) {
         return;
       }
 
-      ExpandedPaintingEntity painting = (ExpandedPaintingEntity) basePainting;
-      if (painting.getEditor() == null || !painting.getEditor().equals(context.player().getUuid())) {
+      ExpandedPaintingEntity expanded = (ExpandedPaintingEntity) painting;
+      if (expanded.getEditor() == null || !expanded.getEditor().equals(player.getUuid())) {
         return;
       }
 
       if (payload.customPaintingInfo().isEmpty()) {
-        entity.damage(context.player().getDamageSources().playerAttack(context.player()), 0f);
+        entity.damage(player.getDamageSources().playerAttack(player), 0f);
         return;
       }
 
       if (payload.customPaintingInfo().isVanilla()) {
-        painting.setVariant(payload.customPaintingInfo().id());
+        expanded.setVariant(payload.customPaintingInfo().id());
       }
 
-      painting.setCustomData(payload.customPaintingInfo());
+      ServerPaintingManager.getInstance(world).setPaintingDataAndPropagate(painting, payload.customPaintingInfo());
 
-      if (!basePainting.canStayAttached()) {
-        basePainting.damage(context.player().getDamageSources().playerAttack(context.player()), 0f);
+      if (!painting.canStayAttached()) {
+        painting.damage(player.getDamageSources().playerAttack(player), 0f);
       }
     });
   }
