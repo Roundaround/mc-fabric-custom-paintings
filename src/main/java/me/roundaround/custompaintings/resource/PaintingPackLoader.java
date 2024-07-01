@@ -2,31 +2,27 @@ package me.roundaround.custompaintings.resource;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
 import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
 import me.roundaround.custompaintings.server.event.InitialDataPackLoadEvent;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.SinglePreparationResourceReloader;
-import net.minecraft.resource.fs.ResourceFileSystem;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.JsonHelper;
 import net.minecraft.util.profiler.Profiler;
 import net.minecraft.world.level.storage.LevelStorage;
 
-import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
 
-public class PaintingPackLoader extends SinglePreparationResourceReloader<HashMap<String, PaintingPack>> implements
+public class PaintingPackLoader extends SinglePreparationResourceReloader<PaintingPackLoader.LoadResult> implements
     IdentifiableResourceReloadListener {
   private static final String META_FILENAME = "custompaintings.json";
+  private static final Gson GSON = new GsonBuilder().create();
 
   private Path directory = null;
 
@@ -51,35 +47,42 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<HashMa
   }
 
   @Override
-  protected HashMap<String, PaintingPack> prepare(ResourceManager manager, Profiler profiler) {
+  protected LoadResult prepare(ResourceManager manager, Profiler profiler) {
     CustomPaintingsMod.LOGGER.info("Loading painting packs");
 
     if (this.directory == null) {
       CustomPaintingsMod.LOGGER.info("Missing pointer to working directory, skipping");
-      return new HashMap<>(0);
+      return LoadResult.empty();
     }
 
-    try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(this.directory, "*.zip")) {
+    try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(this.directory)) {
       HashMap<String, PaintingPack> packs = new HashMap<>();
+      HashMap<Identifier, PaintingImage> images = new HashMap<>();
       directoryStream.forEach((path) -> {
-        CustomPaintingsMod.LOGGER.info("Resource found: {}", path);
+        SinglePackResult result = readAsPack(path);
+        if (result != null) {
+          packs.put(result.id, result.pack);
+          images.putAll(result.images);
+        }
       });
-      return packs;
+      return new LoadResult(packs, images);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
 
   @Override
-  protected void apply(HashMap<String, PaintingPack> packs, ResourceManager manager, Profiler profiler) {
-
+  protected void apply(LoadResult result, ResourceManager manager, Profiler profiler) {
+    ServerPaintingRegistry.getInstance().setPacks(result.packs);
   }
 
-  private static PaintingPack readAsPack(Path path) throws IOException {
+  private static SinglePackResult readAsPack(Path path) {
     BasicFileAttributes fileAttributes;
     try {
       fileAttributes = Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
-    } catch (NoSuchFileException e) {
+    } catch (Exception e) {
+      CustomPaintingsMod.LOGGER.warn(e);
+      CustomPaintingsMod.LOGGER.warn("Error reading Custom Paintings pack \"{}\", skipping...", path.getFileName());
       return null;
     }
 
@@ -94,7 +97,7 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<HashMa
     return null;
   }
 
-  private static PaintingPack readZipAsPack(Path path) throws IOException {
+  private static SinglePackResult readZipAsPack(Path path) {
     if (!path.getFileName().toString().endsWith(".zip")) {
       CustomPaintingsMod.LOGGER.warn("Found non-zip Custom Paintings file \"{}\", skipping...", path.getFileName());
       return null;
@@ -111,7 +114,7 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<HashMa
     return null;
   }
 
-  private static PaintingPack readDirectoryAsPack(Path path) throws IOException {
+  private static SinglePackResult readDirectoryAsPack(Path path) {
     if (!Files.isRegularFile(path.resolve(META_FILENAME), LinkOption.NOFOLLOW_LINKS)) {
       CustomPaintingsMod.LOGGER.warn("Found Custom Paintings directory \"{}\" without a {} file, skipping...",
           path.getFileName(), META_FILENAME
@@ -119,8 +122,50 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<HashMa
       return null;
     }
 
-    JsonObject metaJson = JsonHelper.deserialize(Files.newBufferedReader(path.resolve(META_FILENAME)));
+    PaintingPack pack;
+    try {
+      pack = GSON.fromJson(Files.newBufferedReader(path.resolve(META_FILENAME)), PaintingPack.class);
+    } catch (Exception e) {
+      CustomPaintingsMod.LOGGER.warn(e);
+      CustomPaintingsMod.LOGGER.warn("Failed to parse {} from \"{}\", skipping...", META_FILENAME, path.getFileName());
+      return null;
+    }
 
-    return null;
+    if (pack.paintings().isEmpty()) {
+      CustomPaintingsMod.LOGGER.warn("No paintings found in \"{}\", skipping...", path.getFileName());
+      return null;
+    }
+
+    HashMap<Identifier, PaintingImage> images = new HashMap<>();
+    Path imageDir = path.resolve("images");
+    if (!Files.exists(imageDir, LinkOption.NOFOLLOW_LINKS)) {
+      return new SinglePackResult(pack.id(), pack, images);
+    }
+
+    pack.paintings().forEach((painting) -> {
+      Identifier id = new Identifier(pack.id(), painting.id());
+      Path imagePath = imageDir.resolve(painting.id() + ".png");
+      if (!Files.exists(imagePath)) {
+        CustomPaintingsMod.LOGGER.warn("Missing custom painting image file for {}", id);
+        return;
+      }
+      try {
+        images.put(id, PaintingImage.read(Files.newInputStream(imagePath, LinkOption.NOFOLLOW_LINKS)));
+      } catch (IOException e) {
+        CustomPaintingsMod.LOGGER.warn(e);
+        CustomPaintingsMod.LOGGER.warn("Failed to read custom painting image file for {}", id);
+      }
+    });
+
+    return new SinglePackResult(pack.id(), pack, images);
+  }
+
+  protected record SinglePackResult(String id, PaintingPack pack, HashMap<Identifier, PaintingImage> images) {
+  }
+
+  protected record LoadResult(HashMap<String, PaintingPack> packs, HashMap<Identifier, PaintingImage> images) {
+    public static LoadResult empty() {
+      return new LoadResult(new HashMap<>(0), new HashMap<>(0));
+    }
   }
 }

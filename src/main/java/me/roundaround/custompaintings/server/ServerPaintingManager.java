@@ -3,6 +3,7 @@ package me.roundaround.custompaintings.server;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.registry.VanillaPaintingRegistry;
+import me.roundaround.custompaintings.resource.PaintingPack;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.nbt.NbtCompound;
@@ -13,13 +14,11 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.PersistentState;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.UUID;
 
 public class ServerPaintingManager extends PersistentState {
   private final ServerWorld world;
-  private final HashMap<UUID, HashSet<PaintingData>> knownPaintings = new HashMap<>();
   private final HashMap<UUID, PaintingData> allPaintings = new HashMap<>();
 
   private ServerPaintingManager(ServerWorld world) {

@@ -2,7 +2,7 @@ package me.roundaround.custompaintings;
 
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.network.Networking;
-import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
+import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
 import me.roundaround.custompaintings.registry.VanillaPaintingRegistry;
 import me.roundaround.custompaintings.resource.PaintingPackLoader;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
@@ -58,7 +58,10 @@ public final class CustomPaintingsMod implements ModInitializer {
 
     ServerLifecycleEvents.SERVER_STARTED.register(((server) -> {
       VanillaPaintingRegistry.init();
-      CustomPaintingRegistry.init();
+    }));
+
+    ServerLifecycleEvents.SERVER_STOPPED.register(((server) -> {
+      ServerPaintingRegistry.close();
     }));
 
     ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
