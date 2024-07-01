@@ -2,21 +2,25 @@ package me.roundaround.custompaintings;
 
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.network.Networking;
+import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
+import me.roundaround.custompaintings.registry.VanillaPaintingRegistry;
+import me.roundaround.custompaintings.resource.PaintingPackLoader;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
 import me.roundaround.custompaintings.server.command.CustomPaintingsCommand;
 import me.roundaround.custompaintings.server.command.sub.MoveSub.MoveDirectionArgumentType;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
-import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
-import me.roundaround.custompaintings.registry.VanillaPaintingRegistry;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.ArgumentTypeRegistry;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.minecraft.command.argument.serialize.ConstantArgumentSerializer;
 import net.minecraft.entity.data.TrackedDataHandler;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
+import net.minecraft.resource.ResourceType;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,6 +37,8 @@ public final class CustomPaintingsMod implements ModInitializer {
       (TrackedDataHandler.ImmutableHandler<PaintingData>) () -> PaintingData.PACKET_CODEC;
 
   public static HashMap<UUID, HashSet<PaintingData>> knownPaintings = new HashMap<>();
+
+  private static HashMap<MinecraftServer, PaintingPackLoader> paintingPackLoaders = new HashMap<>(1);
 
   @Override
   public void onInitialize() {
@@ -62,5 +68,7 @@ public final class CustomPaintingsMod implements ModInitializer {
       ServerPaintingManager manager = ServerPaintingManager.getInstance(world);
       manager.registerPainting(painting);
     });
+
+    ResourceManagerHelper.get(ResourceType.SERVER_DATA).registerReloadListener(new PaintingPackLoader());
   }
 }

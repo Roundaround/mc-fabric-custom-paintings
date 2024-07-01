@@ -43,7 +43,7 @@ public class CustomPaintingManager implements IdentifiableResourceReloadListener
   private final HashSet<Identifier> spriteIds = new HashSet<>();
 
   public CustomPaintingManager(TextureManager manager) {
-    this.atlas = new SpriteAtlasTexture(new Identifier("textures/atlas/custompaintings.png"));
+    this.atlas = new SpriteAtlasTexture(new Identifier(CustomPaintingsMod.MOD_ID, "textures/atlas/custompaintings.png"));
     manager.registerTexture(this.atlas.getId(), this.atlas);
   }
 

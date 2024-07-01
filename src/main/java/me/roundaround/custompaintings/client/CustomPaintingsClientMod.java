@@ -2,6 +2,7 @@ package me.roundaround.custompaintings.client;
 
 import me.roundaround.custompaintings.client.gui.screen.manage.ManagePaintingsScreen;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
+import me.roundaround.custompaintings.resource.PaintingImage;
 import me.roundaround.roundalib.client.event.MinecraftClientEvents;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
@@ -9,12 +10,23 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.resource.ResourceType;
 
 public class CustomPaintingsClientMod implements ClientModInitializer {
   public static CustomPaintingManager customPaintingManager;
   public static KeyBinding openManageScreenKeyBinding;
+
+  public static NativeImage paintingAsNativeImage(PaintingImage paintingImage) {
+    NativeImage nativeImage = new NativeImage(paintingImage.width(), paintingImage.height(), false);
+    for (int x = 0; x < paintingImage.width(); x++) {
+      for (int y = 0; y < paintingImage.height(); y++) {
+        nativeImage.setColor(x, y, paintingImage.getABGR(x, y));
+      }
+    }
+    return nativeImage;
+  }
 
   @Override
   public void onInitializeClient() {
