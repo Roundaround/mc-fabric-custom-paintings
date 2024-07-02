@@ -8,7 +8,6 @@ import net.minecraft.network.codec.PacketCodec;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -35,12 +34,7 @@ public record PaintingImage(Color[] pixels, int width, int height) {
     return new PaintingImage(pixels, width, height);
   }
 
-  public static PaintingImage read(InputStream stream) throws IOException {
-    BufferedImage image = ImageIO.read(stream);
-    if (image == null) {
-      throw new IOException("Invalid painting image file");
-    }
-
+  public static PaintingImage read(BufferedImage image) {
     int width = image.getWidth();
     int height = image.getHeight();
     Color[] pixels = new Color[width * height];
@@ -54,6 +48,15 @@ public record PaintingImage(Color[] pixels, int width, int height) {
     }
 
     return new PaintingImage(pixels, width, height);
+  }
+
+  public static PaintingImage read(InputStream stream) throws IOException {
+    BufferedImage image = ImageIO.read(stream);
+    if (image == null) {
+      throw new IOException("Invalid painting image file");
+    }
+
+    return read(image);
   }
 
   public static PaintingImage read(byte[] bytes) throws IOException {

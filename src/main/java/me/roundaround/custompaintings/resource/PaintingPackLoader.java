@@ -15,6 +15,8 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.profiler.Profiler;
 import net.minecraft.world.level.storage.LevelStorage;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -24,6 +26,7 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
     IdentifiableResourceReloadListener {
   private static final String META_FILENAME = "custompaintings.json";
   private static final Gson GSON = new GsonBuilder().create();
+  private static final int MAX_SIZE = 1 << 24;
 
   private Path directory = null;
 
@@ -162,8 +165,20 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
         CustomPaintingsMod.LOGGER.warn("Missing custom painting image file for {}", id);
         return;
       }
+
       try {
-        images.put(id, PaintingImage.read(Files.newInputStream(imagePath, LinkOption.NOFOLLOW_LINKS)));
+        BufferedImage image = ImageIO.read(Files.newInputStream(imagePath, LinkOption.NOFOLLOW_LINKS));
+        if (image == null) {
+          throw new IOException("BufferedImage is null");
+        }
+
+        long size = (long) image.getWidth() * image.getHeight();
+        if (size > MAX_SIZE) {
+          CustomPaintingsMod.LOGGER.warn("Image file for {} is too large, skipping", id);
+          return;
+        }
+
+        images.put(id, PaintingImage.read(image));
       } catch (IOException e) {
         CustomPaintingsMod.LOGGER.warn(e);
         CustomPaintingsMod.LOGGER.warn("Failed to read custom painting image file for {}", id);
