@@ -46,20 +46,20 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
 
   @Override
   public void setCustomData(PaintingData paintingData) {
-    dataTracker.set(CUSTOM_DATA, paintingData);
+    this.dataTracker.set(CUSTOM_DATA, paintingData);
 
     if (paintingData.hasLabel()) {
-      setCustomNameVisible(true);
-      setCustomName(getPaintingName());
+      this.setCustomNameVisible(true);
+      this.setCustomName(this.getPaintingName());
     } else {
-      setCustomNameVisible(false);
-      setCustomName(null);
+      this.setCustomNameVisible(false);
+      this.setCustomName(null);
     }
   }
 
   @Unique
   private Text getPaintingName() {
-    PaintingData paintingData = getCustomData();
+    PaintingData paintingData = this.getCustomData();
     if (paintingData == null) {
       return super.getDisplayName();
     }
@@ -73,7 +73,7 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
 
   @Override
   public PaintingData getCustomData() {
-    return dataTracker.get(CUSTOM_DATA);
+    return this.dataTracker.get(CUSTOM_DATA);
   }
 
   @Override
@@ -83,7 +83,7 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
 
   @Override
   public UUID getEditor() {
-    return editor;
+    return this.editor;
   }
 
   @Override
@@ -118,28 +118,20 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
   @Inject(method = "onTrackedDataSet", at = @At(value = "TAIL"))
   private void onTrackedDataSet(TrackedData<?> data, CallbackInfo info) {
     if (CUSTOM_DATA.equals(data)) {
-      updateAttachmentPosition();
-    }
-  }
-
-  @Inject(method = "writeCustomDataToNbt", at = @At(value = "HEAD"))
-  private void writeCustomDataToNbt(NbtCompound nbt, CallbackInfo info) {
-    PaintingData paintingData = getCustomData();
-    if (!paintingData.isEmpty()) {
-      nbt.put("PaintingData", paintingData.writeToNbt());
+      this.updateAttachmentPosition();
     }
   }
 
   @Inject(method = "readCustomDataFromNbt", at = @At(value = "HEAD"))
   private void readCustomDataFromNbt(NbtCompound nbt, CallbackInfo info) {
     if (nbt.contains("PaintingData", NbtElement.COMPOUND_TYPE)) {
-      setCustomData(PaintingData.fromNbt(nbt.getCompound("PaintingData")));
+      this.setCustomData(PaintingData.fromNbt(nbt.getCompound("PaintingData")));
     }
   }
 
   @Inject(method = "getWidthPixels", at = @At(value = "HEAD"), cancellable = true)
   private void getWidthPixels(CallbackInfoReturnable<Integer> info) {
-    PaintingData paintingData = getCustomData();
+    PaintingData paintingData = this.getCustomData();
     if (paintingData.isEmpty()) {
       return;
     }
@@ -149,7 +141,7 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
 
   @Inject(method = "getHeightPixels", at = @At(value = "HEAD"), cancellable = true)
   private void getHeightPixels(CallbackInfoReturnable<Integer> info) {
-    PaintingData paintingData = getCustomData();
+    PaintingData paintingData = this.getCustomData();
     if (paintingData.isEmpty()) {
       return;
     }
