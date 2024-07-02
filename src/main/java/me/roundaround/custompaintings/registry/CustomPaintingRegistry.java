@@ -58,18 +58,9 @@ public abstract class CustomPaintingRegistry implements AutoCloseable {
     this.images.putAll(images);
 
     try {
-      TreeSet<Identifier> imageIds = new TreeSet<>(this.images.keySet());
-      LinkedHashMap<Identifier, ByteSource> byteSources = new LinkedHashMap<>();
-      for (Identifier id : imageIds) {
-        byteSources.putIfAbsent(id, this.images.get(id).getByteSource());
-      }
-
-      for (var entry : byteSources.entrySet()) {
-        this.imageHashes.put(entry.getKey(), entry.getValue().hash(Hashing.sha256()).toString());
-      }
-
-      ByteSource combinedByteSource = ByteSource.concat(byteSources.values());
-      this.combinedImageHash = combinedByteSource.hash(Hashing.sha256()).toString();
+      HashResult hashResult = hashImages(this.images);
+      this.combinedImageHash = hashResult.combinedImageHash;
+      this.imageHashes.putAll(hashResult.imageHashes);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -78,5 +69,27 @@ public abstract class CustomPaintingRegistry implements AutoCloseable {
   }
 
   protected void onImagesChanged() {
+  }
+
+  protected static HashResult hashImages(HashMap<Identifier, PaintingImage> images) throws IOException {
+    HashMap<Identifier, String> imageHashes = new HashMap<>();
+
+    TreeSet<Identifier> imageIds = new TreeSet<>(images.keySet());
+    LinkedHashMap<Identifier, ByteSource> byteSources = new LinkedHashMap<>();
+    for (Identifier id : imageIds) {
+      byteSources.putIfAbsent(id, images.get(id).getByteSource());
+    }
+
+    for (var entry : byteSources.entrySet()) {
+      imageHashes.put(entry.getKey(), entry.getValue().hash(Hashing.sha256()).toString());
+    }
+
+    ByteSource combinedByteSource = ByteSource.concat(byteSources.values());
+    String combinedImageHash = combinedByteSource.hash(Hashing.sha256()).toString();
+
+    return new HashResult(combinedImageHash, imageHashes);
+  }
+
+  protected record HashResult(String combinedImageHash, HashMap<Identifier, String> imageHashes) {
   }
 }

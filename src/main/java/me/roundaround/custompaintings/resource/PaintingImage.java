@@ -18,6 +18,10 @@ public record PaintingImage(Color[] pixels, int width, int height) {
   public static final PacketCodec<ByteBuf, PaintingImage> PACKET_CODEC = PacketCodec.of(
       PaintingImage::writeToByteBuf, PaintingImage::fromByteBuf);
 
+  public static PaintingImage empty() {
+    return new PaintingImage(new Color[0], 0, 0);
+  }
+
   public static PaintingImage fromBytes(byte[] bytes, int width, int height) {
     int size = width * height;
     if (bytes.length < size * 4) {
@@ -66,14 +70,6 @@ public record PaintingImage(Color[] pixels, int width, int height) {
     return bufferedImage;
   }
 
-  public void write(File file) {
-    try {
-      ImageIO.write(this.toBufferedImage(), "png", file);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   public byte[] getBytes() {
     byte[] bytes = new byte[this.pixels.length * 4];
     for (int i = 0; i < this.pixels.length; i++) {
@@ -91,6 +87,10 @@ public record PaintingImage(Color[] pixels, int width, int height) {
 
   public String getHash() throws IOException {
     return this.getByteSource().hash(Hashing.sha256()).toString();
+  }
+
+  public boolean isEmpty() {
+    return this.width == 0 || this.height == 0;
   }
 
   public int getARGB(int x, int y) {

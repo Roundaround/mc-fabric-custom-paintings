@@ -8,6 +8,7 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
 import me.roundaround.custompaintings.resource.PaintingImage;
 import me.roundaround.roundalib.client.event.MinecraftClientEvents;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.resource.metadata.AnimationFrameResourceMetadata;
 import net.minecraft.client.resource.metadata.AnimationResourceMetadata;
@@ -19,7 +20,10 @@ import net.minecraft.resource.metadata.ResourceMetadata;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 
+import javax.imageio.ImageIO;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.DecimalFormat;
 import java.util.*;
 
@@ -32,6 +36,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   private final SpriteAtlasTexture atlas;
   private final HashSet<Identifier> spriteIds = new HashSet<>();
   private final HashSet<Identifier> neededImages = new HashSet<>();
+  private final HashMap<Identifier, PaintingImage> cachedImages = new HashMap<>();
 
   private String pendingCombinedImagesHash = "";
   private long waitingForImagesTimer;
@@ -40,6 +45,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     this.client = client;
     this.atlas = new SpriteAtlasTexture(new Identifier(CustomPaintingsMod.MOD_ID, "textures/atlas/paintings.png"));
     client.getTextureManager().registerTexture(this.atlas.getId(), this.atlas);
+    this.buildSpriteAtlas();
 
     MinecraftClientEvents.ON_CLOSE_EVENT_BUS.register(this::close);
   }
@@ -86,16 +92,27 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   }
 
   public void checkCombinedImageHash(String combinedImageHash) {
-    // TODO: Make a client-side resource reloader for painting image cache and load from it before world join
-
     if (!Objects.equals(this.combinedImageHash, combinedImageHash) &&
         !Objects.equals(this.pendingCombinedImagesHash, combinedImageHash)) {
+      CustomPaintingsMod.LOGGER.info("Requesting painting images from server");
       ClientNetworking.sendHashesPacket(this.imageHashes);
+      this.pendingCombinedImagesHash = combinedImageHash;
+      return;
     }
-    this.pendingCombinedImagesHash = combinedImageHash;
+
+    CustomPaintingsMod.LOGGER.info("Combined painting hash matches, skipping server image download");
+    this.images.clear();
+    this.images.putAll(this.cachedImages);
+    this.onImagesChanged();
   }
 
   public void trackNeededImages(List<Identifier> ids) {
+    this.cachedImages.entrySet().removeIf((entry) -> ids.contains(entry.getKey()));
+    if (!this.cachedImages.isEmpty()) {
+      CustomPaintingsMod.LOGGER.info("{} painting hashes match, using cached data", this.cachedImages.size());
+      this.images.putAll(this.cachedImages);
+    }
+
     CustomPaintingsMod.LOGGER.info("Expecting {} painting image(s) from server", ids.size());
     this.waitingForImagesTimer = Util.getMeasuringTimeMs();
 
@@ -133,10 +150,57 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   @Override
   protected void onPacksChanged() {
     CustomPaintingsMod.LOGGER.info("{} painting metadata entries loaded", this.paintings.size());
+
+    this.cachedImages.clear();
+
+    Path cacheDir = FabricLoader.getInstance().getGameDir().resolve("data").resolve(CustomPaintingsMod.MOD_ID);
+    if (Files.notExists(cacheDir)) {
+      CustomPaintingsMod.LOGGER.info("Painting image cache directory does not exist, skipping hash checks.");
+      return;
+    }
+
+    for (Identifier id : this.paintings.keySet()) {
+      Path path = cacheDir.resolve(id.getNamespace()).resolve(id.getPath() + ".png");
+      if (Files.notExists(path) || !Files.isRegularFile(path)) {
+        this.cachedImages.put(id, PaintingImage.empty());
+        continue;
+      }
+
+      try {
+        PaintingImage image = PaintingImage.read(Files.newInputStream(path));
+        this.cachedImages.put(id, image);
+      } catch (IOException e) {
+        this.cachedImages.put(id, PaintingImage.empty());
+      }
+    }
+
+    this.combinedImageHash = "";
+    this.imageHashes.clear();
+
+    try {
+      HashResult hashResult = hashImages(this.cachedImages);
+      this.combinedImageHash = hashResult.combinedImageHash();
+      this.imageHashes.putAll(hashResult.imageHashes());
+    } catch (IOException e) {
+      CustomPaintingsMod.LOGGER.warn("Painting image cache failed to hash. Ignoring.");
+    }
   }
 
   @Override
   protected void onImagesChanged() {
+    this.buildSpriteAtlas();
+
+    if (!"".equals(this.pendingCombinedImagesHash)) {
+      this.combinedImageHash = this.pendingCombinedImagesHash;
+      this.pendingCombinedImagesHash = "";
+    }
+
+    Util.getIoWorkerExecutor().execute(() -> {
+      writeImagesToFile(Map.copyOf(this.packsMap), Map.copyOf(this.images));
+    });
+  }
+
+  protected void buildSpriteAtlas() {
     this.images.entrySet().removeIf((entry) -> !this.paintings.containsKey(entry.getKey()));
     this.imageHashes.entrySet().removeIf((entry) -> !this.paintings.containsKey(entry.getKey()));
 
@@ -148,11 +212,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
 
     this.spriteIds.clear();
     this.spriteIds.addAll(sprites.stream().map(SpriteContents::getId).toList());
-
-    if (!"".equals(this.pendingCombinedImagesHash)) {
-      this.combinedImageHash = this.pendingCombinedImagesHash;
-      this.pendingCombinedImagesHash = "";
-    }
   }
 
   private SpriteContents getMissingSpriteContents() {
@@ -189,5 +248,46 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
             paintingImage.width(), paintingImage.height(), 1, false
         )
     ).build();
+  }
+
+  private static void writeImagesToFile(Map<String, PaintingPack> packsMap, Map<Identifier, PaintingImage> images) {
+    Path cacheDir = FabricLoader.getInstance().getGameDir().resolve("data").resolve(CustomPaintingsMod.MOD_ID);
+    if (Files.notExists(cacheDir)) {
+      try {
+        Files.createDirectories(cacheDir);
+      } catch (IOException e) {
+        CustomPaintingsMod.LOGGER.warn("Could not create cache directory: {}", cacheDir.toAbsolutePath());
+        return;
+      }
+    }
+
+    packsMap.forEach((id, pack) -> {
+      Path packDir = cacheDir.resolve(id);
+      if (Files.notExists(packDir)) {
+        try {
+          Files.createDirectories(packDir);
+        } catch (IOException e) {
+          CustomPaintingsMod.LOGGER.warn(
+              "Could not create cache subdirectory, skipping pack: {}", packDir.toAbsolutePath());
+          return;
+        }
+      }
+
+      for (PaintingData painting : pack.paintings()) {
+        PaintingImage image = images.get(painting.id());
+        if (image == null || image.isEmpty()) {
+          continue;
+        }
+
+        String paintingId = painting.id().getPath();
+        Path imagePath = packDir.resolve(paintingId + ".png");
+        try {
+          ImageIO.write(image.toBufferedImage(), "png", imagePath.toFile());
+        } catch (IOException e) {
+          CustomPaintingsMod.LOGGER.warn(
+              "Failed to write {}:{} to file, skipping: {}", id, paintingId, imagePath.toAbsolutePath());
+        }
+      }
+    });
   }
 }
