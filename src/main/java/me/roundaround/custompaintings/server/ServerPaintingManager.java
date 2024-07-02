@@ -103,7 +103,6 @@ public class ServerPaintingManager extends PersistentState {
       if (!storedData.equals(painting.getCustomData())) {
         this.setCustomDataOnPainting(painting, storedData);
       }
-      CustomPaintingsMod.LOGGER.info("Registered painting with globally-stored data.");
       return;
     }
 
@@ -112,11 +111,9 @@ public class ServerPaintingManager extends PersistentState {
     if (paintingData == null || paintingData.isEmpty()) {
       this.setPaintingDataAndPropagate(
           painting, VanillaPaintingRegistry.getInstance().get(painting.getVariant().value()));
-      CustomPaintingsMod.LOGGER.info("Registered painting with no mod data.");
       return;
     }
 
     this.setPaintingData(uuid, painting.getCustomData());
-    CustomPaintingsMod.LOGGER.info("Registered painting with self-stored data.");
   }
 }
