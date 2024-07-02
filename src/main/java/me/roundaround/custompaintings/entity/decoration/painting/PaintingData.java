@@ -187,8 +187,8 @@ public record PaintingData(Identifier id, int width, int height, String name, St
     buf.writeIdentifier(this.id);
     buf.writeInt(this.width);
     buf.writeInt(this.height);
-    buf.writeString(this.name);
-    buf.writeString(this.artist);
+    buf.writeString(this.name == null ? "" : this.name);
+    buf.writeString(this.artist == null ? "" : this.artist);
     buf.writeBoolean(this.isVanilla);
   }
 

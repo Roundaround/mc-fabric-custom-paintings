@@ -1,7 +1,7 @@
 package me.roundaround.custompaintings.client.gui.screen.edit;
 
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
-import me.roundaround.custompaintings.client.gui.widget.GroupListWidget;
+import me.roundaround.custompaintings.client.gui.widget.PackListWidget;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.ThreePartsLayoutWidget;
 import net.minecraft.client.sound.PositionedSoundInstance;
@@ -11,11 +11,11 @@ import net.minecraft.text.Text;
 
 import java.util.Objects;
 
-public class GroupSelectScreen extends PaintingEditScreen {
+public class PackSelectScreen extends PaintingEditScreen {
   protected final ThreePartsLayoutWidget layout = new ThreePartsLayoutWidget(this);
 
-  public GroupSelectScreen(PaintingEditState state) {
-    super(Text.translatable("custompaintings.group.title"), state);
+  public PackSelectScreen(PaintingEditState state) {
+    super(Text.translatable("custompaintings.pack.title"), state);
   }
 
   @Override
@@ -25,8 +25,8 @@ public class GroupSelectScreen extends PaintingEditScreen {
 
     this.layout.addHeader(this.title, this.textRenderer);
 
-    GroupListWidget groupsListWidget = new GroupListWidget(this.client, this.layout, this::selectGroup);
-    groupsListWidget.setGroups(this.state.getGroups());
+    PackListWidget groupsListWidget = new PackListWidget(this.client, this.layout, this::selectPack);
+    groupsListWidget.setGroups(this.state.getPacks());
     this.layout.addBody(groupsListWidget);
 
     this.layout.addFooter(ButtonWidget.builder(ScreenTexts.CANCEL, this::close).build());
@@ -50,8 +50,8 @@ public class GroupSelectScreen extends PaintingEditScreen {
     this.close();
   }
 
-  protected void selectGroup(String id) {
-    this.state.setCurrentGroup(id);
+  protected void selectPack(String id) {
+    this.state.setCurrentPack(id);
     Objects.requireNonNull(this.client)
         .getSoundManager()
         .play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1f));

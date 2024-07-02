@@ -2,9 +2,8 @@ package me.roundaround.custompaintings.network;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.custompaintings.util.Migration;
-import me.roundaround.custompaintings.util.MismatchedPainting;
-import me.roundaround.custompaintings.util.UnknownPainting;
+import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
+import me.roundaround.custompaintings.resource.PaintingImage;
 import me.roundaround.roundalib.network.CustomCodecs;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.network.RegistryByteBuf;
@@ -17,53 +16,66 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public final class Networking {
   private Networking() {
   }
 
+  public static final Identifier SUMMARY_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "summary_s2c");
+  public static final Identifier IMAGES_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "images_s2c");
+  public static final Identifier IMAGE_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "image_s2c");
   public static final Identifier EDIT_PAINTING_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "edit_painting_s2c");
-  public static final Identifier OPEN_MANAGE_SCREEN_S2C = new Identifier(
-      CustomPaintingsMod.MOD_ID, "open_manage_screen_s2c");
-  public static final Identifier LIST_UNKNOWN_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "list_unknown_s2c");
-  public static final Identifier LIST_MISMATCHED_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "list_mismatched_s2c");
 
+  public static final Identifier HASHES_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "hashes_c2s");
   public static final Identifier SET_PAINTING_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "set_painting_c2s");
-  public static final Identifier DECLARE_KNOWN_PAINTINGS_C2S = new Identifier(CustomPaintingsMod.MOD_ID,
-      "declare_known_paintings_c2s"
-  );
-  public static final Identifier REQUEST_UNKNOWN_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "request_unknown_c2s");
-  public static final Identifier REQUEST_MISMATCHED_C2S = new Identifier(CustomPaintingsMod.MOD_ID,
-      "request_mismatched_c2s"
-  );
-  public static final Identifier REASSIGN_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "reassign_c2s");
-  public static final Identifier REASSIGN_ALL_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "reassign_all_c2s");
-  public static final Identifier UPDATE_PAINTING_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "update_painting_c2s");
-  public static final Identifier REMOVE_PAINTING_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "remove_painting_c2s");
-  public static final Identifier REMOVE_ALL_PAINTINGS_C2S = new Identifier(CustomPaintingsMod.MOD_ID,
-      "remove_all_paintings_c2s"
-  );
-  public static final Identifier APPLY_MIGRATION_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "apply_migration_c2s");
 
   public static void registerS2CPayloads() {
+    PayloadTypeRegistry.playS2C().register(SummaryS2C.ID, SummaryS2C.CODEC);
+    PayloadTypeRegistry.playS2C().register(ImagesS2C.ID, ImagesS2C.CODEC);
+    PayloadTypeRegistry.playS2C().register(ImageS2C.ID, ImageS2C.CODEC);
     PayloadTypeRegistry.playS2C().register(EditPaintingS2C.ID, EditPaintingS2C.CODEC);
-    PayloadTypeRegistry.playS2C().register(OpenManageScreenS2C.ID, OpenManageScreenS2C.CODEC);
-    PayloadTypeRegistry.playS2C().register(ListUnknownS2C.ID, ListUnknownS2C.CODEC);
-    PayloadTypeRegistry.playS2C().register(ListMismatchedS2C.ID, ListMismatchedS2C.CODEC);
   }
 
   public static void registerC2SPayloads() {
+    PayloadTypeRegistry.playC2S().register(HashesC2S.ID, HashesC2S.CODEC);
     PayloadTypeRegistry.playC2S().register(SetPaintingC2S.ID, SetPaintingC2S.CODEC);
-    PayloadTypeRegistry.playC2S().register(DeclareKnownPaintingsC2S.ID, DeclareKnownPaintingsC2S.CODEC);
-    PayloadTypeRegistry.playC2S().register(RequestUnknownC2S.ID, RequestUnknownC2S.CODEC);
-    PayloadTypeRegistry.playC2S().register(RequestMismatchedC2S.ID, RequestMismatchedC2S.CODEC);
-    PayloadTypeRegistry.playC2S().register(ReassignC2S.ID, ReassignC2S.CODEC);
-    PayloadTypeRegistry.playC2S().register(ReassignAllC2S.ID, ReassignAllC2S.CODEC);
-    PayloadTypeRegistry.playC2S().register(UpdatePaintingC2S.ID, UpdatePaintingC2S.CODEC);
-    PayloadTypeRegistry.playC2S().register(RemovePaintingC2S.ID, RemovePaintingC2S.CODEC);
-    PayloadTypeRegistry.playC2S().register(RemoveAllPaintingsC2S.ID, RemoveAllPaintingsC2S.CODEC);
-    PayloadTypeRegistry.playC2S().register(ApplyMigrationC2S.ID, ApplyMigrationC2S.CODEC);
+  }
+
+  public record SummaryS2C(List<PaintingPack> packs, String combinedImageHash) implements CustomPayload {
+    public static final CustomPayload.Id<SummaryS2C> ID = new CustomPayload.Id<>(SUMMARY_S2C);
+    public static final PacketCodec<RegistryByteBuf, SummaryS2C> CODEC = PacketCodec.tuple(
+        CustomCodecs.forList(PaintingPack.PACKET_CODEC), SummaryS2C::packs, PacketCodecs.STRING,
+        SummaryS2C::combinedImageHash, SummaryS2C::new
+    );
+
+    @Override
+    public Id<? extends CustomPayload> getId() {
+      return ID;
+    }
+  }
+
+  public record ImageS2C(Identifier id, PaintingImage image) implements CustomPayload {
+    public static final CustomPayload.Id<ImageS2C> ID = new CustomPayload.Id<>(IMAGE_S2C);
+    public static final PacketCodec<RegistryByteBuf, ImageS2C> CODEC = PacketCodec.tuple(
+        Identifier.PACKET_CODEC, ImageS2C::id, PaintingImage.PACKET_CODEC, ImageS2C::image, ImageS2C::new);
+
+    @Override
+    public Id<? extends CustomPayload> getId() {
+      return ID;
+    }
+  }
+
+  public record ImagesS2C(List<Identifier> ids) implements CustomPayload {
+    public static final CustomPayload.Id<ImagesS2C> ID = new CustomPayload.Id<>(IMAGES_S2C);
+    public static final PacketCodec<RegistryByteBuf, ImagesS2C> CODEC = PacketCodec.tuple(
+        CustomCodecs.forList(Identifier.PACKET_CODEC), ImagesS2C::ids, ImagesS2C::new);
+
+    @Override
+    public Id<? extends CustomPayload> getId() {
+      return ID;
+    }
   }
 
   public record EditPaintingS2C(UUID paintingUuid, int paintingId, BlockPos pos, Direction facing) implements
@@ -80,32 +92,10 @@ public final class Networking {
     }
   }
 
-  public record OpenManageScreenS2C() implements CustomPayload {
-    public static final CustomPayload.Id<OpenManageScreenS2C> ID = new CustomPayload.Id<>(OPEN_MANAGE_SCREEN_S2C);
-    public static final PacketCodec<RegistryByteBuf, OpenManageScreenS2C> CODEC = CustomCodecs.empty(
-        OpenManageScreenS2C::new);
-
-    @Override
-    public Id<? extends CustomPayload> getId() {
-      return ID;
-    }
-  }
-
-  public record ListUnknownS2C(List<UnknownPainting> paintings) implements CustomPayload {
-    public static final CustomPayload.Id<ListUnknownS2C> ID = new CustomPayload.Id<>(LIST_UNKNOWN_S2C);
-    public static final PacketCodec<RegistryByteBuf, ListUnknownS2C> CODEC = PacketCodec.tuple(
-        CustomCodecs.forList(UnknownPainting.PACKET_CODEC), ListUnknownS2C::paintings, ListUnknownS2C::new);
-
-    @Override
-    public Id<? extends CustomPayload> getId() {
-      return ID;
-    }
-  }
-
-  public record ListMismatchedS2C(List<MismatchedPainting> paintings) implements CustomPayload {
-    public static final CustomPayload.Id<ListMismatchedS2C> ID = new CustomPayload.Id<>(LIST_MISMATCHED_S2C);
-    public static final PacketCodec<RegistryByteBuf, ListMismatchedS2C> CODEC = PacketCodec.tuple(
-        CustomCodecs.forList(MismatchedPainting.PACKET_CODEC), ListMismatchedS2C::paintings, ListMismatchedS2C::new);
+  public record HashesC2S(Map<Identifier, String> hashes) implements CustomPayload {
+    public static final CustomPayload.Id<HashesC2S> ID = new CustomPayload.Id<>(HASHES_C2S);
+    public static final PacketCodec<RegistryByteBuf, HashesC2S> CODEC = PacketCodec.tuple(
+        CustomCodecs.forMap(Identifier.PACKET_CODEC, PacketCodecs.STRING), HashesC2S::hashes, HashesC2S::new);
 
     @Override
     public Id<? extends CustomPayload> getId() {
@@ -118,110 +108,6 @@ public final class Networking {
     public static final PacketCodec<RegistryByteBuf, SetPaintingC2S> CODEC = PacketCodec.tuple(Uuids.PACKET_CODEC,
         SetPaintingC2S::paintingUuid, PaintingData.PACKET_CODEC, SetPaintingC2S::customPaintingInfo, SetPaintingC2S::new
     );
-
-    @Override
-    public Id<? extends CustomPayload> getId() {
-      return ID;
-    }
-  }
-
-  public record DeclareKnownPaintingsC2S(List<PaintingData> paintings) implements CustomPayload {
-    public static final CustomPayload.Id<DeclareKnownPaintingsC2S> ID = new CustomPayload.Id<>(
-        DECLARE_KNOWN_PAINTINGS_C2S);
-    public static final PacketCodec<RegistryByteBuf, DeclareKnownPaintingsC2S> CODEC = PacketCodec.tuple(
-        CustomCodecs.forList(PaintingData.PACKET_CODEC), DeclareKnownPaintingsC2S::paintings,
-        DeclareKnownPaintingsC2S::new
-    );
-
-    @Override
-    public Id<? extends CustomPayload> getId() {
-      return ID;
-    }
-  }
-
-  public record RequestUnknownC2S() implements CustomPayload {
-    public static final CustomPayload.Id<RequestUnknownC2S> ID = new CustomPayload.Id<>(REQUEST_UNKNOWN_C2S);
-    public static final PacketCodec<RegistryByteBuf, RequestUnknownC2S> CODEC = CustomCodecs.empty(
-        RequestUnknownC2S::new);
-
-    @Override
-    public Id<? extends CustomPayload> getId() {
-      return ID;
-    }
-  }
-
-  public record RequestMismatchedC2S() implements CustomPayload {
-    public static final CustomPayload.Id<RequestMismatchedC2S> ID = new CustomPayload.Id<>(REQUEST_MISMATCHED_C2S);
-    public static final PacketCodec<RegistryByteBuf, RequestMismatchedC2S> CODEC = CustomCodecs.empty(
-        RequestMismatchedC2S::new);
-
-    @Override
-    public Id<? extends CustomPayload> getId() {
-      return ID;
-    }
-  }
-
-  public record ReassignC2S(UUID paintingUuid, Identifier id) implements CustomPayload {
-    public static final CustomPayload.Id<ReassignC2S> ID = new CustomPayload.Id<>(REASSIGN_C2S);
-    public static final PacketCodec<RegistryByteBuf, ReassignC2S> CODEC = PacketCodec.tuple(Uuids.PACKET_CODEC,
-        ReassignC2S::paintingUuid, Identifier.PACKET_CODEC, ReassignC2S::id, ReassignC2S::new
-    );
-
-    @Override
-    public Id<? extends CustomPayload> getId() {
-      return ID;
-    }
-  }
-
-  public record ReassignAllC2S(Identifier from, Identifier to) implements CustomPayload {
-    public static final CustomPayload.Id<ReassignAllC2S> ID = new CustomPayload.Id<>(REASSIGN_ALL_C2S);
-    public static final PacketCodec<RegistryByteBuf, ReassignAllC2S> CODEC = PacketCodec.tuple(Identifier.PACKET_CODEC,
-        ReassignAllC2S::from, Identifier.PACKET_CODEC, ReassignAllC2S::to, ReassignAllC2S::new
-    );
-
-    @Override
-    public Id<? extends CustomPayload> getId() {
-      return ID;
-    }
-  }
-
-  public record UpdatePaintingC2S(UUID paintingUuid) implements CustomPayload {
-    public static final CustomPayload.Id<UpdatePaintingC2S> ID = new CustomPayload.Id<>(UPDATE_PAINTING_C2S);
-    public static final PacketCodec<RegistryByteBuf, UpdatePaintingC2S> CODEC = PacketCodec.tuple(
-        Uuids.PACKET_CODEC, UpdatePaintingC2S::paintingUuid, UpdatePaintingC2S::new);
-
-    @Override
-    public Id<? extends CustomPayload> getId() {
-      return ID;
-    }
-  }
-
-  public record RemovePaintingC2S(UUID paintingUuid) implements CustomPayload {
-    public static final CustomPayload.Id<RemovePaintingC2S> ID = new CustomPayload.Id<>(REMOVE_PAINTING_C2S);
-    public static final PacketCodec<RegistryByteBuf, RemovePaintingC2S> CODEC = PacketCodec.tuple(
-        Uuids.PACKET_CODEC, RemovePaintingC2S::paintingUuid, RemovePaintingC2S::new);
-
-    @Override
-    public Id<? extends CustomPayload> getId() {
-      return ID;
-    }
-  }
-
-  public record RemoveAllPaintingsC2S(Identifier id) implements CustomPayload {
-    public static final CustomPayload.Id<RemoveAllPaintingsC2S> ID = new CustomPayload.Id<>(REMOVE_ALL_PAINTINGS_C2S);
-    public static final PacketCodec<RegistryByteBuf, RemoveAllPaintingsC2S> CODEC = PacketCodec.tuple(
-        Identifier.PACKET_CODEC, RemoveAllPaintingsC2S::id, RemoveAllPaintingsC2S::new);
-
-    @Override
-    public Id<? extends CustomPayload> getId() {
-      return ID;
-    }
-  }
-
-  public record ApplyMigrationC2S(Migration migration) implements CustomPayload {
-    public static final CustomPayload.Id<ApplyMigrationC2S> ID = new CustomPayload.Id<>(APPLY_MIGRATION_C2S);
-    public static final PacketCodec<RegistryByteBuf, ApplyMigrationC2S> CODEC = PacketCodec.tuple(
-        Migration.PACKET_CODEC, ApplyMigrationC2S::migration, ApplyMigrationC2S::new);
 
     @Override
     public Id<? extends CustomPayload> getId() {

@@ -7,14 +7,12 @@
     "DecorationItemMixin",
     "PaintingEntityAccessor",
     "PaintingEntityMixin",
-    "PlayerManagerMixin",
     "VanillaDataPackProviderMixin"
   ],
   "client": [
     "EntityRendererMixin",
     "GameRendererMixin",
-    "PaintingEntityRendererMixin",
-    "SpriteAtlasHolderAccessor"
+    "PaintingEntityRendererMixin"
   ],
   "server": [],
   "injectors": {

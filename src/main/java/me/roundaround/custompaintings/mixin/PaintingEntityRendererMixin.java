@@ -1,14 +1,11 @@
 package me.roundaround.custompaintings.mixin;
 
-import me.roundaround.custompaintings.client.CustomPaintingManager;
-import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
+import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.EntityRendererFactory.Context;
 import net.minecraft.client.render.entity.PaintingEntityRenderer;
-import net.minecraft.client.texture.MissingSprite;
-import net.minecraft.client.texture.PaintingManager;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
@@ -35,13 +32,11 @@ public abstract class PaintingEntityRendererMixin extends EntityRenderer<Paintin
   )
   private void getTexture(PaintingEntity painting, CallbackInfoReturnable<Identifier> info) {
     PaintingData paintingData = painting.getCustomData();
-
-    CustomPaintingManager paintingManager = CustomPaintingsClientMod.customPaintingManager;
-    if (paintingData.isVanilla() || !paintingManager.exists(paintingData.id())) {
+    if (paintingData.isVanilla()) {
       return;
     }
 
-    info.setReturnValue(CustomPaintingsClientMod.customPaintingManager.getAtlasId());
+    info.setReturnValue(ClientPaintingRegistry.getInstance().getAtlasId());
   }
 
   @ModifyArgs(
@@ -63,26 +58,16 @@ public abstract class PaintingEntityRendererMixin extends EntityRenderer<Paintin
       return;
     }
 
+    ClientPaintingRegistry registry = ClientPaintingRegistry.getInstance();
+
     // 3 - width
     args.set(3, paintingData.getScaledWidth());
     // 4 - height
     args.set(4, paintingData.getScaledHeight());
 
-    CustomPaintingManager paintingManager = CustomPaintingsClientMod.customPaintingManager;
-    if (paintingManager.exists(paintingData.id())) {
-      // 5 - front sprite
-      args.set(5, paintingManager.getPaintingSprite(paintingData));
-      // 6 - back sprite
-      args.set(6, paintingManager.getBackSprite());
-    } else {
-      PaintingManager vanillaPaintingManager = client.getPaintingManager();
-
-      // 5 - front sprite
-      args.set(5,
-          ((SpriteAtlasHolderAccessor) vanillaPaintingManager).invokeGetSprite(MissingSprite.getMissingSpriteId())
-      );
-      // 6 - back sprite
-      args.set(6, vanillaPaintingManager.getBackSprite());
-    }
+    // 5 - front sprite
+    args.set(5, registry.getSprite(paintingData));
+    // 6 - back sprite
+    args.set(6, registry.getBackSprite());
   }
 }

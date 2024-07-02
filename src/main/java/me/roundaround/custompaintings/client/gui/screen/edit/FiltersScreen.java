@@ -13,10 +13,6 @@ import net.minecraft.text.Text;
 import java.util.Objects;
 
 public class FiltersScreen extends PaintingEditScreen {
-  private static final int FOOTER_BUTTON_WIDTH = 150;
-  private static final int FOOTER_BUTTON_HEIGHT = 20;
-  private static final int FOOTER_BUTTON_SPACING = GuiUtil.PADDING * 2;
-
   protected final ThreePartsLayoutWidget layout = new ThreePartsLayoutWidget(this);
 
   private FilterListWidget filtersListWidget;
@@ -32,14 +28,15 @@ public class FiltersScreen extends PaintingEditScreen {
     this.filtersListWidget = new FilterListWidget(this.state, this.client, this.layout);
     this.layout.addBody(new FullBodyWrapperWidget(this.filtersListWidget, this.layout));
 
-    DirectionalLayoutWidget row = DirectionalLayoutWidget.horizontal().spacing(FOOTER_BUTTON_SPACING);
+    DirectionalLayoutWidget row = DirectionalLayoutWidget.horizontal().spacing(2 * GuiUtil.PADDING);
     this.layout.addFooter(row);
 
     row.add(ButtonWidget.builder(Text.translatable("custompaintings.filter.reset"), this::resetFilters)
-        .size(FOOTER_BUTTON_WIDTH, FOOTER_BUTTON_HEIGHT)
+        .size(ButtonWidget.DEFAULT_WIDTH, ButtonWidget.DEFAULT_HEIGHT)
         .build());
-    row.add(
-        ButtonWidget.builder(ScreenTexts.DONE, this::close).size(FOOTER_BUTTON_WIDTH, FOOTER_BUTTON_HEIGHT).build());
+    row.add(ButtonWidget.builder(ScreenTexts.DONE, this::close)
+        .size(ButtonWidget.DEFAULT_WIDTH, ButtonWidget.DEFAULT_HEIGHT)
+        .build());
 
     this.layout.forEachChild(this::addDrawableChild);
     this.initTabNavigation();

@@ -1,25 +1,28 @@
 package me.roundaround.custompaintings.server.registry;
 
-import com.google.common.hash.Hashing;
-import com.google.common.io.ByteSource;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
 import me.roundaround.custompaintings.resource.PaintingImage;
+import me.roundaround.custompaintings.server.network.ServerNetworking;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 
-import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.TreeSet;
+import java.util.List;
+import java.util.Map;
 
 public class ServerPaintingRegistry extends CustomPaintingRegistry {
   private static ServerPaintingRegistry instance = null;
 
-  private final HashMap<Identifier, String> checksums = new HashMap<>();
-
-  private String combinedChecksum;
+  private MinecraftServer server;
 
   private ServerPaintingRegistry() {
+  }
+
+  public static void init(MinecraftServer server) {
+    getInstance().setServer(server);
   }
 
   public static ServerPaintingRegistry getInstance() {
@@ -30,31 +33,45 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
   }
 
   @Override
-  protected void onImagesChanged() {
-    this.checksums.clear();
+  public void close() {
+    super.close();
+    this.server = null;
+  }
 
-    try {
-      TreeSet<Identifier> imageIds = new TreeSet<>(images.keySet());
-      LinkedHashMap<Identifier, ByteSource> byteSources = new LinkedHashMap<>();
-      for (Identifier id : imageIds) {
-        byteSources.putIfAbsent(id, ByteSource.wrap(images.get(id).toBytes()));
-      }
-
-      for (var entry : byteSources.entrySet()) {
-        this.checksums.put(entry.getKey(), entry.getValue().hash(Hashing.sha256()).toString());
-      }
-
-      ByteSource combinedByteSource = ByteSource.concat(byteSources.values());
-      this.combinedChecksum = combinedByteSource.hash(Hashing.sha256()).toString();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+  public void setServer(MinecraftServer server) {
+    this.server = server;
   }
 
   public void update(HashMap<String, PaintingPack> packs, HashMap<Identifier, PaintingImage> images) {
     this.setPacks(packs);
     this.setImages(images);
 
-    // TODO: Notify client of changes.
+    if (this.server == null) {
+      return;
+    }
+
+    ServerNetworking.sendSummaryPacketToAll(this.server, this.packsList, this.combinedImageHash);
+  }
+
+  public void sendSummaryToPlayer(ServerPlayerEntity player) {
+    ServerNetworking.sendSummaryPacket(player, this.packsList, this.combinedImageHash);
+  }
+
+  public void checkPlayerHashes(ServerPlayerEntity player, Map<Identifier, String> hashes) {
+    ArrayList<Identifier> idsToSend = new ArrayList<>();
+    this.imageHashes.forEach((id, hash) -> {
+      if (!hash.equals(hashes.get(id))) {
+        idsToSend.add(id);
+      }
+    });
+    ServerNetworking.sendImagesPacket(player, idsToSend);
+
+    idsToSend.forEach((id) -> {
+      PaintingImage image = this.images.get(id);
+      if (image == null) {
+        return;
+      }
+      ServerNetworking.sendImagePacket(player, id, image);
+    });
   }
 }

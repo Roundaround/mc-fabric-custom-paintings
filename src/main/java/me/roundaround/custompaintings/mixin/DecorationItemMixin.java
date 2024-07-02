@@ -1,6 +1,5 @@
 package me.roundaround.custompaintings.mixin;
 
-import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.entity.decoration.painting.PaintingVariants;
@@ -29,8 +28,7 @@ public abstract class DecorationItemMixin {
   private Optional<PaintingEntity> placePainting(
       World world, BlockPos pos, Direction facing, ItemUsageContext context
   ) {
-    if (!(context.getPlayer() instanceof ServerPlayerEntity player) ||
-        !CustomPaintingsMod.knownPaintings.containsKey(context.getPlayer().getUuid())) {
+    if (!(context.getPlayer() instanceof ServerPlayerEntity player)) {
       return PaintingEntity.placePainting(world, pos, facing);
     }
 

@@ -1,14 +1,36 @@
 package me.roundaround.custompaintings.resource;
 
+import com.google.common.hash.Hashing;
+import com.google.common.io.ByteSource;
+import io.netty.buffer.ByteBuf;
+import net.minecraft.network.codec.PacketCodec;
+
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.function.Function;
 
 public record PaintingImage(Color[] pixels, int width, int height) {
+  public static final PacketCodec<ByteBuf, PaintingImage> PACKET_CODEC = PacketCodec.of(
+      PaintingImage::writeToByteBuf, PaintingImage::fromByteBuf);
+
+  public static PaintingImage fromBytes(byte[] bytes, int width, int height) {
+    int size = width * height;
+    if (bytes.length < size * 4) {
+      bytes = Arrays.copyOf(bytes, size * 4);
+    }
+    Color[] pixels = new Color[size];
+    for (int i = 0; i < size; i++) {
+      int ref = i * 4;
+      pixels[i] = new Color(bytes[ref], bytes[ref + 1], bytes[ref + 2], bytes[ref + 3]);
+    }
+    return new PaintingImage(pixels, width, height);
+  }
+
   public static PaintingImage read(InputStream stream) throws IOException {
     BufferedImage image = ImageIO.read(stream);
     if (image == null) {
@@ -52,7 +74,7 @@ public record PaintingImage(Color[] pixels, int width, int height) {
     }
   }
 
-  public byte[] toBytes() {
+  public byte[] getBytes() {
     byte[] bytes = new byte[this.pixels.length * 4];
     for (int i = 0; i < this.pixels.length; i++) {
       bytes[i * 4] = this.pixels[i].r;
@@ -61,6 +83,14 @@ public record PaintingImage(Color[] pixels, int width, int height) {
       bytes[i * 4 + 3] = this.pixels[i].a;
     }
     return bytes;
+  }
+
+  public ByteSource getByteSource() {
+    return ByteSource.wrap(this.getBytes());
+  }
+
+  public String getHash() throws IOException {
+    return this.getByteSource().hash(Hashing.sha256()).toString();
   }
 
   public int getARGB(int x, int y) {
@@ -86,6 +116,20 @@ public record PaintingImage(Color[] pixels, int width, int height) {
 
   private static int getIndex(int height, int x, int y) {
     return (x * height + y);
+  }
+
+  public void writeToByteBuf(ByteBuf buf) {
+    buf.writeInt(this.width);
+    buf.writeInt(this.height);
+    buf.writeBytes(this.getBytes());
+  }
+
+  public static PaintingImage fromByteBuf(ByteBuf buf) {
+    int width = buf.readInt();
+    int height = buf.readInt();
+    byte[] bytes = new byte[width * height * 4];
+    buf.readBytes(bytes);
+    return fromBytes(bytes, width, height);
   }
 
   public record Color(byte r, byte g, byte b, byte a) {

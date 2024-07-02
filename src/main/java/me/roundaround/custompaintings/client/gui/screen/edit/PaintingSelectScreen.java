@@ -2,10 +2,10 @@ package me.roundaround.custompaintings.client.gui.screen.edit;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
-import me.roundaround.custompaintings.client.gui.PaintingEditState.Group;
 import me.roundaround.custompaintings.client.gui.widget.PaintingListWidget;
 import me.roundaround.custompaintings.client.gui.widget.PaintingSpriteWidget;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.roundalib.client.gui.GuiUtil;
 import me.roundaround.roundalib.client.gui.widget.IconButtonWidget;
 import me.roundaround.roundalib.client.gui.widget.LabelWidget;
@@ -145,7 +145,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     this.layout.addFooter(row);
 
     row.add(ButtonWidget.builder(ScreenTexts.BACK, (button) -> {
-      Objects.requireNonNull(this.client).setScreen(new GroupSelectScreen(this.state));
+      Objects.requireNonNull(this.client).setScreen(new PackSelectScreen(this.state));
     }).build());
 
     this.doneButton = row.add(ButtonWidget.builder(ScreenTexts.DONE, (button) -> {
@@ -189,7 +189,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
       }
       case GLFW.GLFW_KEY_ESCAPE -> {
         // TODO: Come up with a way to let escape close the screen but still make it easy to go back to group select
-        this.navigate(new GroupSelectScreen(this.state));
+        this.navigate(new PackSelectScreen(this.state));
         return true;
       }
       case GLFW.GLFW_KEY_F -> {
@@ -257,9 +257,9 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
   }
 
   private void saveCurrentSelection() {
-    Group currentGroup = this.state.getCurrentGroup();
+    PaintingPack currentPack = this.state.getCurrentPack();
     PaintingData currentPainting = this.state.getCurrentPainting();
-    if (currentGroup == null || currentPainting == null) {
+    if (currentPack == null || currentPainting == null) {
       this.saveEmpty();
     }
     this.saveSelection(currentPainting);
@@ -291,15 +291,15 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
       return Text.empty();
     }
 
-    Group currentGroup = this.state.getCurrentGroup();
-    int currentPaintingIndex = currentGroup.paintings().indexOf(this.state.getCurrentPainting());
+    PaintingPack currentPack = this.state.getCurrentPack();
+    int currentPaintingIndex = currentPack.paintings().indexOf(this.state.getCurrentPainting());
     return Text.translatable("custompaintings.painting.number", currentPaintingIndex + 1,
-        currentGroup.paintings().size()
+        currentPack.paintings().size()
     );
   }
 
   private static Text getTitleText(PaintingEditState state) {
-    return Text.literal(state.getCurrentGroup().name() + " - ")
+    return Text.literal(state.getCurrentPack().name() + " - ")
         .append(Text.translatable("custompaintings.painting.title"));
   }
 

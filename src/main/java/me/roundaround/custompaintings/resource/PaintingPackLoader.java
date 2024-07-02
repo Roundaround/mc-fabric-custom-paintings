@@ -11,7 +11,6 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.SinglePreparationResourceReloader;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.profiler.Profiler;
 import net.minecraft.world.level.storage.LevelStorage;
@@ -26,7 +25,6 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
   private static final String META_FILENAME = "custompaintings.json";
   private static final Gson GSON = new GsonBuilder().create();
 
-  private MinecraftServer server;
   private Path directory = null;
 
   public PaintingPackLoader() {
@@ -83,6 +81,11 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
             resource.name(), resource.artist()
         ))
         .toList())));
+
+    ServerPaintingRegistry registry = ServerPaintingRegistry.getInstance();
+    if (registry == null) {
+
+    }
     ServerPaintingRegistry.getInstance().update(packs, result.images);
   }
 

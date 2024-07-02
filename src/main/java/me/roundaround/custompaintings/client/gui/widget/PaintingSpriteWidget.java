@@ -1,6 +1,6 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
-import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
+import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.roundalib.client.gui.layout.IntRect;
 import me.roundaround.roundalib.client.gui.widget.DrawableWidget;
@@ -39,7 +39,7 @@ public class PaintingSpriteWidget extends DrawableWidget {
 
     this.paintingData = paintingData;
     this.border = border;
-    this.sprite = CustomPaintingsClientMod.customPaintingManager.getPaintingSprite(paintingData);
+    this.sprite = ClientPaintingRegistry.getInstance().getSprite(paintingData);
     this.calculateBounds();
   }
 
@@ -86,7 +86,7 @@ public class PaintingSpriteWidget extends DrawableWidget {
   public void setPaintingData(PaintingData paintingData) {
     this.visible = paintingData != null && !paintingData.isEmpty();
     this.paintingData = paintingData != null ? paintingData : PaintingData.EMPTY;
-    this.sprite = CustomPaintingsClientMod.customPaintingManager.getPaintingSprite(this.paintingData);
+    this.sprite = ClientPaintingRegistry.getInstance().getSprite(this.paintingData);
     this.calculateBounds();
   }
 

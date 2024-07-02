@@ -1,8 +1,9 @@
 package me.roundaround.custompaintings.client.gui;
 
-import me.roundaround.custompaintings.client.CustomPaintingManager;
-import me.roundaround.custompaintings.client.CustomPaintingsClientMod;
+import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
+import me.roundaround.custompaintings.registry.VanillaPaintingRegistry;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.AbstractRedstoneGateBlock;
 import net.minecraft.block.BlockState;
@@ -10,11 +11,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.AbstractDecorationEntity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
-import net.minecraft.entity.decoration.painting.PaintingVariant;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.registry.tag.PaintingVariantTags;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
@@ -26,7 +22,7 @@ import java.util.function.Predicate;
 
 public class PaintingEditState {
   private final MinecraftClient client;
-  private final HashMap<String, Group> allPaintings = new HashMap<>();
+  private final HashMap<String, PaintingPack> allPaintings = new HashMap<>();
   private final HashMap<String, Boolean> canStayHashMap = new HashMap<>();
   private final UUID paintingUuid;
   private final int paintingId;
@@ -34,7 +30,7 @@ public class PaintingEditState {
   private final Direction facing;
   private final FiltersState filtersState;
 
-  private Group currentGroup = null;
+  private PaintingPack currentPack = null;
   private PaintingData currentPainting = PaintingData.EMPTY;
   private List<PaintingData> currentPaintings = List.of();
   private StateChangedListener stateChangedListener = null;
@@ -72,17 +68,17 @@ public class PaintingEditState {
     return this.filtersState;
   }
 
-  public Collection<Group> getGroups() {
+  public Collection<PaintingPack> getPacks() {
     return this.allPaintings.values();
   }
 
   public void updatePaintingList() {
-    if (this.currentGroup == null) {
+    if (this.currentPack == null) {
       return;
     }
 
     List<PaintingData> previousCurrentPaintings = this.currentPaintings;
-    this.currentPaintings = this.currentGroup.paintings().stream().filter(this.filtersState).toList();
+    this.currentPaintings = this.currentPack.paintings().stream().filter(this.filtersState).toList();
 
     if (previousCurrentPaintings.size() == this.currentPaintings.size()) {
       boolean atLeastOneDifferent = false;
@@ -112,10 +108,10 @@ public class PaintingEditState {
   }
 
   public boolean areAnyPaintingsFiltered() {
-    if (this.currentGroup == null) {
+    if (this.currentPack == null) {
       return false;
     }
-    return this.currentPaintings.size() < this.currentGroup.paintings().size();
+    return this.currentPaintings.size() < this.currentPack.paintings().size();
   }
 
   public boolean hasPaintingsToIterate() {
@@ -154,23 +150,23 @@ public class PaintingEditState {
     return this.paintingUuid;
   }
 
-  public Group getCurrentGroup() {
-    return this.currentGroup;
+  public PaintingPack getCurrentPack() {
+    return this.currentPack;
   }
 
   public PaintingData getCurrentPainting() {
     return this.currentPainting;
   }
 
-  public void setCurrentGroup(String id) {
+  public void setCurrentPack(String id) {
     if (!this.allPaintings.containsKey(id)) {
       return;
     }
-    this.setCurrentGroup(this.allPaintings.get(id));
+    this.setCurrentPack(this.allPaintings.get(id));
   }
 
-  public void setCurrentGroup(Group group) {
-    this.currentGroup = group;
+  public void setCurrentPack(PaintingPack pack) {
+    this.currentPack = pack;
     this.updatePaintingList();
   }
 
@@ -198,60 +194,39 @@ public class PaintingEditState {
       return;
     }
 
-    Registries.PAINTING_VARIANT.stream().forEach((vanillaVariant) -> {
-      Identifier id = Registries.PAINTING_VARIANT.getId(vanillaVariant);
-      RegistryKey<PaintingVariant> key = RegistryKey.of(Registries.PAINTING_VARIANT.getKey(), id);
-      Optional<RegistryEntry.Reference<PaintingVariant>> maybeEntry = Registries.PAINTING_VARIANT.getEntry(key);
+    this.createVanillaPack();
+    this.createUnplaceableVanillaPack();
 
-      if (maybeEntry.isEmpty()) {
-        return;
-      }
-
-      RegistryEntry<PaintingVariant> entry = maybeEntry.get();
-      boolean placeable = entry.isIn(PaintingVariantTags.PLACEABLE);
-      String groupId = id.getNamespace() + (placeable ? "" : "_unplaceable");
-
-      if (!this.allPaintings.containsKey(groupId)) {
-        String groupName = !placeable ?
-            "Minecraft: The Hidden Ones" :
-            FabricLoader.getInstance()
-                .getModContainer(groupId)
-                .map((mod) -> mod.getMetadata().getName())
-                .orElse(groupId);
-        this.allPaintings.put(groupId, new Group(groupId, groupName, new ArrayList<>()));
-      }
-
-      this.allPaintings.get(groupId).paintings().add(new PaintingData(vanillaVariant));
-    });
-
-    CustomPaintingManager paintingManager = CustomPaintingsClientMod.customPaintingManager;
-    paintingManager.getPacks().forEach((pack) -> {
-      String groupId = pack.id();
-      String groupName = pack.name();
-
-      if (!this.allPaintings.containsKey(groupId)) {
-        this.allPaintings.put(groupId, new Group(groupId, groupName, new ArrayList<>()));
-      }
-
-      pack.paintings().forEach((painting) -> {
-        this.allPaintings.get(groupId)
-            .paintings()
-            .add(new PaintingData(new Identifier(pack.id(), painting.id()), painting.width().orElse(1),
-                painting.height().orElse(1), painting.name().orElse(""), painting.artist().orElse("")
-            ));
-      });
-    });
-
+    this.allPaintings.putAll(ClientPaintingRegistry.getInstance().getPacks());
     this.allPaintings.entrySet().removeIf((entry) -> entry.getValue().paintings().isEmpty());
 
-    this.allPaintings.values().forEach((group) -> {
-      group.paintings().forEach((paintingData) -> {
+    this.allPaintings.values().forEach((pack) -> {
+      pack.paintings().forEach((paintingData) -> {
         String sizeString = paintingData.width() + "x" + paintingData.height();
         if (!this.canStayHashMap.containsKey(sizeString)) {
           this.canStayHashMap.put(sizeString, this.canStay(paintingData));
         }
       });
     });
+  }
+
+  protected void createVanillaPack() {
+    String id = Identifier.DEFAULT_NAMESPACE;
+    // TODO: i18n
+    String name = FabricLoader.getInstance()
+        .getModContainer(id)
+        .map((mod) -> mod.getMetadata().getName())
+        .orElse("Minecraft");
+    List<PaintingData> paintings = VanillaPaintingRegistry.getInstance().getAll(VanillaPaintingRegistry.Placeable.YES);
+    this.allPaintings.put(id, new PaintingPack(id, name, paintings));
+  }
+
+  protected void createUnplaceableVanillaPack() {
+    String id = Identifier.DEFAULT_NAMESPACE + "_unplaceable";
+    // TODO: i18n
+    String name = "Minecraft: The Hidden Ones";
+    List<PaintingData> paintings = VanillaPaintingRegistry.getInstance().getAll(VanillaPaintingRegistry.Placeable.NO);
+    this.allPaintings.put(id, new PaintingPack(id, name, paintings));
   }
 
   public boolean canStay() {

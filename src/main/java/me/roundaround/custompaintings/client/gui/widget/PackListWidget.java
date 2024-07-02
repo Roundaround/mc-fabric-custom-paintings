@@ -1,6 +1,6 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
-import me.roundaround.custompaintings.client.gui.PaintingEditState.Group;
+import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.roundalib.client.gui.GuiUtil;
 import me.roundaround.roundalib.client.gui.widget.LabelWidget;
 import me.roundaround.roundalib.client.gui.widget.NarratableEntryListWidget;
@@ -12,31 +12,30 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.widget.ThreePartsLayoutWidget;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
-
 import org.lwjgl.glfw.GLFW;
 
 import java.util.Collection;
 import java.util.function.Consumer;
 
 @Environment(value = EnvType.CLIENT)
-public class GroupListWidget extends NarratableEntryListWidget<GroupListWidget.Entry> {
-  private final Consumer<String> onGroupSelect;
+public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Entry> {
+  private final Consumer<String> onPackSelect;
 
-  public GroupListWidget(
-      MinecraftClient client, ThreePartsLayoutWidget layout, Consumer<String> onGroupSelect
+  public PackListWidget(
+      MinecraftClient client, ThreePartsLayoutWidget layout, Consumer<String> onPackSelect
   ) {
     super(client, layout);
 
-    this.onGroupSelect = onGroupSelect;
+    this.onPackSelect = onPackSelect;
   }
 
-  public void setGroups(Collection<Group> groups) {
+  public void setGroups(Collection<PaintingPack> packs) {
     this.clearEntries();
-    groups.forEach((group) -> this.addEntry(this.getEntryFactory(this.client.textRenderer, this.onGroupSelect, group)));
+    packs.forEach((pack) -> this.addEntry(this.getEntryFactory(this.client.textRenderer, this.onPackSelect, pack)));
   }
 
-  private EntryFactory<Entry> getEntryFactory(TextRenderer textRenderer, Consumer<String> onSelect, Group group) {
-    return (index, left, top, width) -> new Entry(textRenderer, onSelect, group, index, left, top, width);
+  private EntryFactory<Entry> getEntryFactory(TextRenderer textRenderer, Consumer<String> onSelect, PaintingPack pack) {
+    return (index, left, top, width) -> new Entry(textRenderer, onSelect, pack, index, left, top, width);
   }
 
   @Override
@@ -44,32 +43,20 @@ public class GroupListWidget extends NarratableEntryListWidget<GroupListWidget.E
     return VANILLA_LIST_WIDTH_M;
   }
 
-  @Override
-  protected void renderEntry(DrawContext context, int mouseX, int mouseY, float delta, Entry entry) {
-    boolean showSelected = entry == this.getSelected() || entry == this.getHoveredEntry();
-    if (showSelected) {
-      entry.renderSelectionBackground(context);
-    }
-    super.renderEntry(context, mouseX, mouseY, delta, entry);
-    if (showSelected) {
-      entry.renderSelectionHighlight(context);
-    }
-  }
-
   @Environment(value = EnvType.CLIENT)
   public static class Entry extends NarratableEntryListWidget.Entry {
     private final Consumer<String> onSelect;
-    private final Group group;
+    private final PaintingPack pack;
     private final LabelWidget label;
 
     public Entry(
-        TextRenderer textRenderer, Consumer<String> onSelect, Group group, int index, int left, int top, int width
+        TextRenderer textRenderer, Consumer<String> onSelect, PaintingPack pack, int index, int left, int top, int width
     ) {
       super(index, left, top, width, 17);
       this.onSelect = onSelect;
-      this.group = group;
+      this.pack = pack;
 
-      this.label = LabelWidget.builder(textRenderer, Text.of(group.name()))
+      this.label = LabelWidget.builder(textRenderer, Text.of(pack.name()))
           .refPosition(this.getContentCenterX(), this.getContentCenterY())
           .dimensions(this.getContentWidth(), this.getContentHeight())
           .justifiedCenter()
@@ -109,22 +96,18 @@ public class GroupListWidget extends NarratableEntryListWidget<GroupListWidget.E
 
     @Override
     protected void renderSelectionBackground(DrawContext context) {
-      context.fill(this.getX(), this.getY(), this.getRight(), this.getBottom(), this.isFocused() ? Colors.BLACK : GuiUtil.BACKGROUND_COLOR);
-    }
-
-    @Override
-    protected void renderSelectionHighlight(DrawContext context) {
-      context.drawBorder(
-          this.getX(), this.getY(), this.getWidth(), this.getHeight(), this.isFocused() ? Colors.WHITE : Colors.GRAY);
+      context.fill(this.getX(), this.getY(), this.getRight(), this.getBottom(),
+          this.isFocused() ? Colors.BLACK : GuiUtil.BACKGROUND_COLOR
+      );
     }
 
     @Override
     public Text getNarration() {
-      return Text.literal(this.group.name());
+      return Text.literal(this.pack.name());
     }
 
     private void press() {
-      this.onSelect.accept(this.group.id());
+      this.onSelect.accept(this.pack.id());
     }
   }
 }
