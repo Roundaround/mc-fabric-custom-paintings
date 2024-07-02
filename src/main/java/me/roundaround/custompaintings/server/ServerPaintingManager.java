@@ -3,7 +3,6 @@ package me.roundaround.custompaintings.server;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.registry.VanillaPaintingRegistry;
-import me.roundaround.custompaintings.resource.PaintingPack;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.nbt.NbtCompound;

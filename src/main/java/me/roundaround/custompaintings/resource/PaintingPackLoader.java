@@ -3,8 +3,10 @@ package me.roundaround.custompaintings.resource;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
+import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.server.event.InitialDataPackLoadEvent;
+import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
 import net.minecraft.resource.ResourceManager;
@@ -24,11 +26,12 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
   private static final String META_FILENAME = "custompaintings.json";
   private static final Gson GSON = new GsonBuilder().create();
 
+  private MinecraftServer server;
   private Path directory = null;
 
   public PaintingPackLoader() {
     InitialDataPackLoadEvent.EVENT.register(this::prepForLoading);
-    ServerLifecycleEvents.SERVER_STOPPING.register(this::clear);
+    ServerLifecycleEvents.SERVER_STOPPING.register((server) -> this.clear());
   }
 
   @SuppressWarnings("ResultOfMethodCallIgnored")
@@ -37,7 +40,7 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
     this.directory.toFile().mkdirs();
   }
 
-  private void clear(MinecraftServer server) {
+  private void clear() {
     this.directory = null;
   }
 
@@ -56,7 +59,7 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
     }
 
     try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(this.directory)) {
-      HashMap<String, PaintingPack> packs = new HashMap<>();
+      HashMap<String, PackResource> packs = new HashMap<>();
       HashMap<Identifier, PaintingImage> images = new HashMap<>();
       directoryStream.forEach((path) -> {
         SinglePackResult result = readAsPack(path);
@@ -73,7 +76,14 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
 
   @Override
   protected void apply(LoadResult result, ResourceManager manager, Profiler profiler) {
-    ServerPaintingRegistry.getInstance().setPacks(result.packs);
+    HashMap<String, PaintingPack> packs = new HashMap<>(result.packs.size());
+    result.packs.forEach((packId, pack) -> packs.put(packId, new PaintingPack(packId, pack.name(), pack.paintings()
+        .stream()
+        .map((resource) -> new PaintingData(new Identifier(packId, resource.id()), resource.width(), resource.height(),
+            resource.name(), resource.artist()
+        ))
+        .toList())));
+    ServerPaintingRegistry.getInstance().update(packs, result.images);
   }
 
   private static SinglePackResult readAsPack(Path path) {
@@ -122,9 +132,9 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
       return null;
     }
 
-    PaintingPack pack;
+    PackResource pack;
     try {
-      pack = GSON.fromJson(Files.newBufferedReader(path.resolve(META_FILENAME)), PaintingPack.class);
+      pack = GSON.fromJson(Files.newBufferedReader(path.resolve(META_FILENAME)), PackResource.class);
     } catch (Exception e) {
       CustomPaintingsMod.LOGGER.warn(e);
       CustomPaintingsMod.LOGGER.warn("Failed to parse {} from \"{}\", skipping...", META_FILENAME, path.getFileName());
@@ -160,10 +170,10 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
     return new SinglePackResult(pack.id(), pack, images);
   }
 
-  protected record SinglePackResult(String id, PaintingPack pack, HashMap<Identifier, PaintingImage> images) {
+  protected record SinglePackResult(String id, PackResource pack, HashMap<Identifier, PaintingImage> images) {
   }
 
-  protected record LoadResult(HashMap<String, PaintingPack> packs, HashMap<Identifier, PaintingImage> images) {
+  protected record LoadResult(HashMap<String, PackResource> packs, HashMap<Identifier, PaintingImage> images) {
     public static LoadResult empty() {
       return new LoadResult(new HashMap<>(0), new HashMap<>(0));
     }

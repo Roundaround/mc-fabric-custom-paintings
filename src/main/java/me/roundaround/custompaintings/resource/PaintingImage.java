@@ -52,6 +52,17 @@ public record PaintingImage(Color[] pixels, int width, int height) {
     }
   }
 
+  public byte[] toBytes() {
+    byte[] bytes = new byte[this.pixels.length * 4];
+    for (int i = 0; i < this.pixels.length; i++) {
+      bytes[i * 4] = this.pixels[i].r;
+      bytes[i * 4 + 1] = this.pixels[i].g;
+      bytes[i * 4 + 2] = this.pixels[i].b;
+      bytes[i * 4 + 3] = this.pixels[i].a;
+    }
+    return bytes;
+  }
+
   public int getARGB(int x, int y) {
     return this.getColorInt(x, y, Color::getARGB);
   }
