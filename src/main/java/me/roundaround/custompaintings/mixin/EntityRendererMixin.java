@@ -20,6 +20,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.List;
+
 @Mixin(EntityRenderer.class)
 public abstract class EntityRendererMixin {
   @Final
@@ -51,11 +53,8 @@ public abstract class EntityRendererMixin {
     }
 
     PaintingData paintingData = painting.getCustomData();
-    Text textToRender = paintingData.hasLabel() ? paintingData.getLabel() : text;
+    List<Text> lines = paintingData.hasLabel() ? paintingData.getLabelAsLines() : List.of(text);
     TextRenderer textRenderer = this.textRenderer;
-
-    float x = -textRenderer.getWidth(text) / 2f;
-    float y = 0;
 
     float bgOpacity = MinecraftClient.getInstance().options.getTextBackgroundOpacity(0.25f);
     int bgColor = (int) (bgOpacity * 255f) << 24;
@@ -66,12 +65,19 @@ public abstract class EntityRendererMixin {
     matrixStack.scale(-0.025f, -0.025f, 0.025f);
 
     Matrix4f matrix4f = matrixStack.peek().getPositionMatrix();
-    textRenderer.draw(textToRender, x, y, 0x20FFFFFF, false, matrix4f, vertexConsumers,
-        TextRenderer.TextLayerType.SEE_THROUGH, bgColor, light
-    );
-    textRenderer.draw(textToRender, x, y, Colors.WHITE, false, matrix4f, vertexConsumers,
-        TextRenderer.TextLayerType.NORMAL, 0, light
-    );
+    float y = 0;
+    for (Text line : lines) {
+      float x = -textRenderer.getWidth(line) / 2f;
+
+      textRenderer.draw(line, x, y, 0x20FFFFFF, false, matrix4f, vertexConsumers,
+          TextRenderer.TextLayerType.SEE_THROUGH, bgColor, light
+      );
+      textRenderer.draw(line, x, y, Colors.WHITE, false, matrix4f, vertexConsumers, TextRenderer.TextLayerType.NORMAL,
+          0, light
+      );
+
+      y += textRenderer.fontHeight + 1;
+    }
 
     matrixStack.pop();
   }

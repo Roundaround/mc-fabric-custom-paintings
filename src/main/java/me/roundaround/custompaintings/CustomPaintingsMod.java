@@ -10,12 +10,15 @@ import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.minecraft.entity.data.TrackedDataHandler;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
+import net.minecraft.registry.Registries;
 import net.minecraft.resource.ResourceType;
+import net.minecraft.util.ActionResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -35,6 +38,7 @@ public final class CustomPaintingsMod implements ModInitializer {
     ServerNetworking.registerReceivers();
 
     ServerLifecycleEvents.SERVER_STARTED.register(((server) -> {
+      server.getRegistryManager().getWrapperOrThrow(Registries.PAINTING_VARIANT.getKey());
       VanillaPaintingRegistry.init();
       ServerPaintingRegistry.init(server);
     }));
@@ -48,7 +52,21 @@ public final class CustomPaintingsMod implements ModInitializer {
         return;
       }
       ServerPaintingManager manager = ServerPaintingManager.getInstance(world);
-      manager.registerPainting(painting);
+      manager.loadPainting(painting);
+      manager.fixCustomName(painting);
+    });
+
+    UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
+      if (!(entity instanceof PaintingEntity painting)) {
+        return ActionResult.PASS;
+      }
+
+      if (player.isSpectator() || !player.isSneaking()) {
+        return ActionResult.PASS;
+      }
+
+      painting.setCustomNameVisible(!painting.isCustomNameVisible());
+      return ActionResult.SUCCESS_NO_ITEM_USED;
     });
 
     ResourceManagerHelper.get(ResourceType.SERVER_DATA).registerReloadListener(new PaintingPackLoader());

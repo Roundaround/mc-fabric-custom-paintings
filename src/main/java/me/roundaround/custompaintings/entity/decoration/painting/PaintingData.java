@@ -10,6 +10,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 
+import java.util.List;
 import java.util.Objects;
 
 public record PaintingData(Identifier id, int width, int height, String name, String artist, boolean isVanilla) {
@@ -103,6 +104,22 @@ public record PaintingData(Identifier id, int width, int height, String name, St
     }
 
     return Text.empty().append(this.getNameText()).append(" - ").append(this.getArtistText());
+  }
+
+  public List<Text> getLabelAsLines() {
+    if (!this.hasLabel()) {
+      return List.of();
+    }
+
+    if (!this.hasArtist()) {
+      return List.of(this.getNameText());
+    }
+
+    if (!this.hasName()) {
+      return List.of(this.getArtistText());
+    }
+
+    return List.of(this.getNameText(), this.getArtistText());
   }
 
   public PaintingData setId(Identifier id) {
