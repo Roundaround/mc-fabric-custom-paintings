@@ -3,6 +3,8 @@ package me.roundaround.custompaintings.client.registry;
 import com.google.common.collect.ImmutableList;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
+import me.roundaround.custompaintings.client.texture.BackSprite;
+import me.roundaround.custompaintings.client.texture.LoadingSprite;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
@@ -14,8 +16,6 @@ import net.minecraft.client.resource.metadata.AnimationFrameResourceMetadata;
 import net.minecraft.client.resource.metadata.AnimationResourceMetadata;
 import net.minecraft.client.texture.*;
 import net.minecraft.registry.Registries;
-import net.minecraft.resource.Resource;
-import net.minecraft.resource.ResourceType;
 import net.minecraft.resource.metadata.ResourceMetadata;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
@@ -29,6 +29,8 @@ import java.util.*;
 
 public class ClientPaintingRegistry extends CustomPaintingRegistry implements AutoCloseable {
   private static final Identifier PAINTING_BACK_ID = new Identifier(Identifier.DEFAULT_NAMESPACE, "back");
+  private static final Identifier BACK_TEXTURE_ID = new Identifier(
+      Identifier.DEFAULT_NAMESPACE, "textures/painting/back.png");
 
   private static ClientPaintingRegistry instance = null;
 
@@ -71,7 +73,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
 
   public Sprite getSprite(Identifier id) {
     if (!this.spriteIds.contains(id)) {
-      // TODO: Generate less intense sprite for when the id is in this.neededImages
       return this.getMissingSprite();
     }
     return this.atlas.getSprite(id);
@@ -118,6 +119,8 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
 
     this.neededImages.clear();
     this.neededImages.addAll(ids);
+
+    this.buildSpriteAtlas();
   }
 
   public void setPaintingImage(Identifier id, PaintingImage image) {
@@ -205,24 +208,22 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     this.imageHashes.entrySet().removeIf((entry) -> !this.paintings.containsKey(entry.getKey()));
 
     List<SpriteContents> sprites = new ArrayList<>();
-    sprites.add(this.getMissingSpriteContents());
-    sprites.add(this.getBackSpriteContents());
-    this.images.forEach((id, image) -> sprites.add(getSpriteContents(id, image)));
+    sprites.add(MissingSprite.createSpriteContents());
+    sprites.add(BackSprite.fetch(this.client, PAINTING_BACK_ID, BACK_TEXTURE_ID));
+    this.paintings.values().forEach((painting) -> sprites.add(this.getSpriteContents(painting)));
+
     this.atlas.upload(SpriteLoader.fromAtlas(this.atlas).stitch(sprites, 0, Util.getMainWorkerExecutor()));
 
     this.spriteIds.clear();
     this.spriteIds.addAll(sprites.stream().map(SpriteContents::getId).toList());
   }
 
-  private SpriteContents getMissingSpriteContents() {
-    return MissingSprite.createSpriteContents();
-  }
-
-  private SpriteContents getBackSpriteContents() {
-    SpriteOpener opener = SpriteOpener.create(SpriteLoader.METADATA_READERS);
-    return opener.loadSprite(
-        PAINTING_BACK_ID, new Resource(this.client.getDefaultResourcePack(), this.client.getDefaultResourcePack()
-            .open(ResourceType.CLIENT_RESOURCES, new Identifier("textures/painting/back.png"))));
+  private SpriteContents getSpriteContents(PaintingData painting) {
+    PaintingImage image = this.images.get(painting.id());
+    if (image != null) {
+      return getSpriteContents(painting.id(), image);
+    }
+    return LoadingSprite.generate(painting.id(), painting.getScaledWidth(), painting.getScaledHeight());
   }
 
   private static NativeImage getNativeImage(PaintingImage paintingImage) {
