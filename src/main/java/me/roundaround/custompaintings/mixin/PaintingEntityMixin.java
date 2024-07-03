@@ -15,7 +15,6 @@ import net.minecraft.nbt.NbtElement;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
@@ -47,28 +46,6 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
   @Override
   public void setCustomData(PaintingData paintingData) {
     this.dataTracker.set(CUSTOM_DATA, paintingData);
-
-    if (paintingData.hasLabel()) {
-      this.setCustomNameVisible(true);
-      this.setCustomName(this.getPaintingName());
-    } else {
-      this.setCustomNameVisible(false);
-      this.setCustomName(null);
-    }
-  }
-
-  @Unique
-  private Text getPaintingName() {
-    PaintingData paintingData = this.getCustomData();
-    if (paintingData == null) {
-      return super.getDisplayName();
-    }
-
-    if (!paintingData.hasLabel()) {
-      return super.getDisplayName();
-    }
-
-    return paintingData.getLabel();
   }
 
   @Override

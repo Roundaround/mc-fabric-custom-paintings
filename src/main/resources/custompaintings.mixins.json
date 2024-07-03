@@ -10,7 +10,6 @@
     "VanillaDataPackProviderMixin"
   ],
   "client": [
-    "EntityRendererMixin",
     "GameRendererMixin",
     "PaintingEntityRendererMixin"
   ],
