@@ -12,15 +12,11 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.navigation.NavigationDirection;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.ArrayList;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -210,22 +206,7 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
         self.setActive(this.canStay);
       });
 
-      ArrayList<Text> lines = new ArrayList<>();
-      if (paintingData.hasLabel()) {
-        lines.add(this.getPaintingData().getLabel());
-      }
-
-      MutableText idText = Text.literal("(" + this.getPaintingData().id() + ")");
-      if (this.getPaintingData().hasLabel()) {
-        idText = idText.setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
-      }
-      lines.add(idText);
-
-      lines.add(Text.translatable("custompaintings.painting.dimensions", this.getPaintingData().width(),
-          this.getPaintingData().height()
-      ));
-
-      LabelWidget labels = LabelWidget.builder(textRenderer, lines)
+      LabelWidget labels = LabelWidget.builder(textRenderer, this.getPaintingData().getInfoLines())
           .justifiedLeft()
           .alignedMiddle()
           .overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE)

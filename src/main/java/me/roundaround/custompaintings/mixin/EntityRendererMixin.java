@@ -16,6 +16,7 @@ import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -53,7 +54,6 @@ public abstract class EntityRendererMixin {
     }
 
     PaintingData paintingData = painting.getCustomData();
-    List<Text> lines = paintingData.hasLabel() ? paintingData.getLabelAsLines() : List.of(text);
     TextRenderer textRenderer = this.textRenderer;
 
     float bgOpacity = MinecraftClient.getInstance().options.getTextBackgroundOpacity(0.25f);
@@ -66,7 +66,7 @@ public abstract class EntityRendererMixin {
 
     Matrix4f matrix4f = matrixStack.peek().getPositionMatrix();
     float y = -(textRenderer.fontHeight + 1) / 2f;
-    for (Text line : lines) {
+    for (Text line : this.getEntityLabel(painting)) {
       float x = -textRenderer.getWidth(line) / 2f;
 
       textRenderer.draw(line, x, y, 0x20FFFFFF, false, matrix4f, vertexConsumers,
@@ -80,5 +80,20 @@ public abstract class EntityRendererMixin {
     }
 
     matrixStack.pop();
+  }
+
+  @Unique
+  private List<Text> getEntityLabel(PaintingEntity painting) {
+    Text customName = painting.getCustomName();
+    if (customName != null) {
+      return List.of(customName);
+    }
+
+    PaintingData paintingData = painting.getCustomData();
+    if (paintingData.hasLabel()) {
+      return paintingData.getLabelAsLines();
+    }
+
+    return List.of(paintingData.getIdText());
   }
 }

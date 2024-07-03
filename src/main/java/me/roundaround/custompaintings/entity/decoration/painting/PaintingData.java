@@ -6,10 +6,12 @@ import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.registry.Registries;
 import net.minecraft.text.MutableText;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -120,6 +122,28 @@ public record PaintingData(Identifier id, int width, int height, String name, St
     }
 
     return List.of(this.getNameText(), this.getArtistText());
+  }
+
+  public Text getIdText() {
+    MutableText idText = Text.literal("(" + this.id + ")");
+    if (this.hasLabel()) {
+      idText = idText.setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
+    }
+    return idText;
+  }
+
+  public Text getDimensionsText() {
+    return Text.translatable("custompaintings.painting.dimensions", this.width, this.height);
+  }
+
+  public List<Text> getInfoLines() {
+    ArrayList<Text> lines = new ArrayList<>();
+    if (this.hasLabel()) {
+      lines.add(this.getLabel());
+    }
+    lines.add(this.getIdText());
+    lines.add(this.getDimensionsText());
+    return lines;
   }
 
   public PaintingData setId(Identifier id) {

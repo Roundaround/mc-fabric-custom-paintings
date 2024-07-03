@@ -13,14 +13,12 @@ import me.roundaround.roundalib.client.gui.widget.LinearLayoutWidget;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.*;
 import net.minecraft.screen.ScreenTexts;
-import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.Divider;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -277,13 +275,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
           .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)));
     }
 
-    ArrayList<Text> infoLines = new ArrayList<>();
-    if (paintingData.hasLabel()) {
-      infoLines.add(getLabelText(paintingData));
-    }
-    infoLines.add(getIdText(paintingData));
-    infoLines.add(getDimensionsText(paintingData));
-    return infoLines;
+    return paintingData.getInfoLines();
   }
 
   private Text getControlsText() {
@@ -301,25 +293,6 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
   private static Text getTitleText(PaintingEditState state) {
     return Text.literal(state.getCurrentPack().name() + " - ")
         .append(Text.translatable("custompaintings.painting.title"));
-  }
-
-  private static Text getLabelText(PaintingData paintingData) {
-    if (!paintingData.hasLabel()) {
-      return Text.empty();
-    }
-    return paintingData.getLabel();
-  }
-
-  private static Text getIdText(PaintingData paintingData) {
-    MutableText idText = Text.literal("(" + paintingData.id() + ")");
-    if (paintingData.hasLabel()) {
-      idText = idText.setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
-    }
-    return idText;
-  }
-
-  private static Text getDimensionsText(PaintingData paintingData) {
-    return Text.translatable("custompaintings.painting.dimensions", paintingData.width(), paintingData.height());
   }
 
   private static Text getTooBigText(PaintingData paintingData) {
