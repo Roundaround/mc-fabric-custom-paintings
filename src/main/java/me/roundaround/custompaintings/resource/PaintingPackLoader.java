@@ -85,10 +85,6 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
         ))
         .toList())));
 
-    ServerPaintingRegistry registry = ServerPaintingRegistry.getInstance();
-    if (registry == null) {
-
-    }
     ServerPaintingRegistry.getInstance().update(packs, result.images);
   }
 
