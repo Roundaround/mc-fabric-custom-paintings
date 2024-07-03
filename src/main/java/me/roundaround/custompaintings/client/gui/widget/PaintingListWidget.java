@@ -38,6 +38,7 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
     super(client, 0, 0, 0, 0);
 
     this.setAlternatingRowShading(true);
+    this.setAutoPadForShading(false);
 
     this.state = state;
     this.onPaintingSelect = onPaintingSelect;
