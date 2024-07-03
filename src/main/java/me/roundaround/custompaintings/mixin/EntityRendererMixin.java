@@ -61,11 +61,11 @@ public abstract class EntityRendererMixin {
 
     matrixStack.push();
     matrixStack.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180f - painting.getHorizontalFacing().asRotation()));
-    matrixStack.translate(0, 0.5f - paintingData.height() / 2f, -0.125f);
+    matrixStack.translate(0, -paintingData.height() / 2f, -0.125f);
     matrixStack.scale(-0.025f, -0.025f, 0.025f);
 
     Matrix4f matrix4f = matrixStack.peek().getPositionMatrix();
-    float y = 0;
+    float y = -(textRenderer.fontHeight + 1) / 2f;
     for (Text line : lines) {
       float x = -textRenderer.getWidth(line) / 2f;
 
