@@ -5,15 +5,13 @@ import com.google.gson.GsonBuilder;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
-import me.roundaround.custompaintings.server.event.InitialDataPackLoadEvent;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import me.roundaround.roundalib.PathAccessor;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.SinglePreparationResourceReloader;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.profiler.Profiler;
-import net.minecraft.world.level.storage.LevelStorage;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -28,23 +26,6 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
   private static final Gson GSON = new GsonBuilder().create();
   private static final int MAX_SIZE = 1 << 24;
 
-  private Path directory = null;
-
-  public PaintingPackLoader() {
-    InitialDataPackLoadEvent.EVENT.register(this::prepForLoading);
-    ServerLifecycleEvents.SERVER_STOPPING.register((server) -> this.clear());
-  }
-
-  @SuppressWarnings("ResultOfMethodCallIgnored")
-  private void prepForLoading(LevelStorage.Session session) {
-    this.directory = session.getDirectory().path().resolve(CustomPaintingsMod.MOD_ID);
-    this.directory.toFile().mkdirs();
-  }
-
-  private void clear() {
-    this.directory = null;
-  }
-
   @Override
   public Identifier getFabricId() {
     return new Identifier(CustomPaintingsMod.MOD_ID, "paintings");
@@ -53,13 +34,14 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
   @Override
   protected LoadResult prepare(ResourceManager manager, Profiler profiler) {
     CustomPaintingsMod.LOGGER.info("Loading painting packs");
+    Path packsDir = PathAccessor.getInstance().getPerWorldModDir(CustomPaintingsMod.MOD_ID);
 
-    if (this.directory == null) {
-      CustomPaintingsMod.LOGGER.info("Missing pointer to working directory, skipping");
+    if (packsDir == null) {
+      CustomPaintingsMod.LOGGER.info("Unable to locate packs directory, skipping");
       return LoadResult.empty();
     }
 
-    try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(this.directory)) {
+    try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(packsDir)) {
       HashMap<String, PackResource> packs = new HashMap<>();
       HashMap<Identifier, PaintingImage> images = new HashMap<>();
       directoryStream.forEach((path) -> {
