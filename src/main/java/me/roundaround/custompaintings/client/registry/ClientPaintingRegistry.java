@@ -49,7 +49,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     client.getTextureManager().registerTexture(this.atlas.getId(), this.atlas);
     this.buildSpriteAtlas();
 
-    MinecraftClientEvents.ON_CLOSE_EVENT_BUS.register(this::close);
+    MinecraftClientEvents.CLOSE.register(this::close);
   }
 
   public static ClientPaintingRegistry getInstance() {
@@ -142,8 +142,14 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     }
   }
 
+  protected void close(MinecraftClient client) {
+    this.close();
+  }
+
   @Override
   public void close() {
+    super.close();
+
     this.atlas.clear();
     this.spriteIds.clear();
     this.neededImages.clear();

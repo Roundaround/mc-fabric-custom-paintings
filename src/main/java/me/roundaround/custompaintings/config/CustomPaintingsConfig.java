@@ -1,11 +1,11 @@
 package me.roundaround.custompaintings.config;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.roundalib.config.ModConfig;
+import me.roundaround.roundalib.config.GlobalModConfig;
 import me.roundaround.roundalib.config.option.BooleanConfigOption;
 import me.roundaround.roundalib.config.option.IntConfigOption;
 
-public class CustomPaintingsConfig extends ModConfig {
+public class CustomPaintingsConfig extends GlobalModConfig {
   // Client only
   public final BooleanConfigOption overrideRenderDistance = null;
   public final IntConfigOption renderDistanceScale = null;
