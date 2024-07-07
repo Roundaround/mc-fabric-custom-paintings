@@ -1,5 +1,6 @@
 package me.roundaround.custompaintings.server.registry;
 
+import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
 import me.roundaround.custompaintings.resource.PaintingImage;
@@ -7,7 +8,9 @@ import me.roundaround.custompaintings.server.network.ServerNetworking;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.Util;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -63,6 +66,10 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
         idsToSend.add(id);
       }
     });
+
+    CustomPaintingsMod.LOGGER.info(
+        "{} needs to download {} image(s). Sending list of IDs.", player.getName().getString(), idsToSend.size());
+    long timer = Util.getMeasuringTimeMs();
     ServerNetworking.sendImagesPacket(player, idsToSend);
 
     idsToSend.forEach((id) -> {
@@ -72,5 +79,10 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
       }
       ServerNetworking.sendImagePacket(player, id, image);
     });
+
+    DecimalFormat format = new DecimalFormat("0.##");
+    CustomPaintingsMod.LOGGER.info("Sent {} images to {} in {}s", idsToSend.size(), player.getName().getString(),
+        format.format((Util.getMeasuringTimeMs() - timer) / 1000.0)
+    );
   }
 }
