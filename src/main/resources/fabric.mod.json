@@ -21,6 +21,9 @@
     ],
     "main": [
       "me.roundaround.custompaintings.CustomPaintingsMod"
+    ],
+    "modmenu": [
+      "me.roundaround.custompaintings.compat.modmenu.ModMenuImpl"
     ]
   },
   "mixins": [
@@ -28,7 +31,9 @@
   ],
   "custom": {
     "loom:injected_interfaces": {
-      "net/minecraft/class_1534": ["me/roundaround/custompaintings/entity/decoration/painting/ExpandedPaintingEntity"]
+      "net/minecraft/class_1534": [
+        "me/roundaround/custompaintings/entity/decoration/painting/ExpandedPaintingEntity"
+      ]
     }
   },
   "depends": {

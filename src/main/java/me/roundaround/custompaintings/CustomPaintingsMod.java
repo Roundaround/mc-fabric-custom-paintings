@@ -1,6 +1,7 @@
 package me.roundaround.custompaintings;
 
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
+import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.registry.VanillaPaintingRegistry;
@@ -26,13 +27,15 @@ import org.apache.logging.log4j.Logger;
 public final class CustomPaintingsMod implements ModInitializer {
   public static final String MOD_ID = "custompaintings";
   public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
-  public static final CustomPaintingsConfig CONFIG = new CustomPaintingsConfig();
 
   public static final TrackedDataHandler<PaintingData> CUSTOM_PAINTING_DATA_HANDLER =
       (TrackedDataHandler.ImmutableHandler<PaintingData>) () -> PaintingData.PACKET_CODEC;
 
   @Override
   public void onInitialize() {
+    CustomPaintingsConfig.getInstance().init();
+    CustomPaintingsPerWorldConfig.getInstance().init();
+
     Networking.registerS2CPayloads();
     Networking.registerC2SPayloads();
 
