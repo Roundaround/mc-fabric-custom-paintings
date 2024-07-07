@@ -5,6 +5,7 @@ import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.client.texture.BackSprite;
 import me.roundaround.custompaintings.client.texture.LoadingSprite;
+import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
@@ -93,6 +94,12 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   }
 
   public void checkCombinedImageHash(String combinedImageHash) {
+    if (!CustomPaintingsConfig.getInstance().cacheImages.getValue()) {
+      CustomPaintingsMod.LOGGER.info("Caching disabled; requesting all painting images from server");
+      ClientNetworking.sendHashesPacket(new HashMap<>(0));
+      return;
+    }
+
     if (!Objects.equals(this.combinedImageHash, combinedImageHash) &&
         !Objects.equals(this.pendingCombinedImagesHash, combinedImageHash)) {
       CustomPaintingsMod.LOGGER.info("Requesting painting images from server");
@@ -160,11 +167,21 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   protected void onPacksChanged() {
     CustomPaintingsMod.LOGGER.info("{} painting metadata entries loaded", this.paintings.size());
 
+    if (!CustomPaintingsConfig.getInstance().cacheImages.getValue()) {
+      this.cachedImages.clear();
+      this.imageHashes.clear();
+      this.combinedImageHash = "";
+
+      CustomPaintingsMod.LOGGER.info("Painting image caching disabled, skipping hash generation and cache loading");
+      return;
+    }
+
     this.cachedImages.clear();
 
     Path cacheDir = FabricLoader.getInstance().getGameDir().resolve("data").resolve(CustomPaintingsMod.MOD_ID);
     if (Files.notExists(cacheDir)) {
-      CustomPaintingsMod.LOGGER.info("Painting image cache directory does not exist, skipping hash checks.");
+      CustomPaintingsMod.LOGGER.info(
+          "Painting image cache directory does not exist, skipping hash generation and cache loading");
       return;
     }
 
@@ -199,14 +216,16 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   protected void onImagesChanged() {
     this.buildSpriteAtlas();
 
-    if (!"".equals(this.pendingCombinedImagesHash)) {
-      this.combinedImageHash = this.pendingCombinedImagesHash;
-      this.pendingCombinedImagesHash = "";
-    }
+    if (CustomPaintingsConfig.getInstance().cacheImages.getValue()) {
+      if (!"".equals(this.pendingCombinedImagesHash)) {
+        this.combinedImageHash = this.pendingCombinedImagesHash;
+        this.pendingCombinedImagesHash = "";
+      }
 
-    Util.getIoWorkerExecutor().execute(() -> {
-      writeImagesToFile(Map.copyOf(this.packsMap), Map.copyOf(this.images));
-    });
+      Util.getIoWorkerExecutor().execute(() -> {
+        writeImagesToFile(Map.copyOf(this.packsMap), Map.copyOf(this.images));
+      });
+    }
   }
 
   protected void buildSpriteAtlas() {
