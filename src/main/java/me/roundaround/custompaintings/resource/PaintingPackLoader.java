@@ -41,6 +41,10 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
       return LoadResult.empty();
     }
 
+    if (Files.notExists(packsDir)) {
+      return LoadResult.empty();
+    }
+
     try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(packsDir)) {
       HashMap<String, PackResource> packs = new HashMap<>();
       HashMap<Identifier, PaintingImage> images = new HashMap<>();
