@@ -1,7 +1,7 @@
 package me.roundaround.custompaintings.mixin;
 
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import net.minecraft.client.MinecraftClient;
+import me.roundaround.roundalib.client.gui.GuiUtil;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.EntityRenderDispatcher;
@@ -10,7 +10,6 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.text.Text;
-import net.minecraft.util.Colors;
 import net.minecraft.util.math.RotationAxis;
 import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Final;
@@ -56,24 +55,21 @@ public abstract class EntityRendererMixin {
     PaintingData paintingData = painting.getCustomData();
     TextRenderer textRenderer = this.textRenderer;
 
-    float bgOpacity = MinecraftClient.getInstance().options.getTextBackgroundOpacity(0.25f);
-    int bgColor = (int) (bgOpacity * 255f) << 24;
-
     matrixStack.push();
     matrixStack.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180f - painting.getHorizontalFacing().asRotation()));
     matrixStack.translate(0, -paintingData.height() / 2f, -0.125f);
     matrixStack.scale(-0.025f, -0.025f, 0.025f);
 
     Matrix4f matrix4f = matrixStack.peek().getPositionMatrix();
-    float y = -(textRenderer.fontHeight + 1) / 2f;
+    float y = -(textRenderer.fontHeight + 3) / 2f;
     for (Text line : this.getEntityLabel(painting)) {
       float x = -textRenderer.getWidth(line) / 2f;
 
-      textRenderer.draw(line, x, y, 0x20FFFFFF, false, matrix4f, vertexConsumers,
-          TextRenderer.TextLayerType.SEE_THROUGH, bgColor, light
+      textRenderer.draw(line, x, y, GuiUtil.genColorInt(1f, 1f, 1f, 0.75f), false, matrix4f, vertexConsumers,
+          TextRenderer.TextLayerType.SEE_THROUGH, GuiUtil.BACKGROUND_COLOR, light
       );
-      textRenderer.draw(line, x, y, Colors.WHITE, false, matrix4f, vertexConsumers, TextRenderer.TextLayerType.NORMAL,
-          0, light
+      textRenderer.draw(line, x, y, GuiUtil.LABEL_COLOR, false, matrix4f, vertexConsumers,
+          TextRenderer.TextLayerType.NORMAL, 0, light
       );
 
       y += textRenderer.fontHeight + 1;
