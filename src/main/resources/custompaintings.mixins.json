@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "DecorationItemMixin",
+    "EntityMixin",
     "PaintingEntityAccessor",
     "PaintingEntityMixin",
     "VanillaDataPackProviderMixin"
