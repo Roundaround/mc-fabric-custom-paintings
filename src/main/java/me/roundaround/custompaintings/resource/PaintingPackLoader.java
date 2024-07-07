@@ -16,9 +16,15 @@ import net.minecraft.util.profiler.Profiler;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipException;
+import java.util.zip.ZipFile;
 
 public class PaintingPackLoader extends SinglePreparationResourceReloader<PaintingPackLoader.LoadResult> implements
     IdentifiableResourceReloadListener {
@@ -78,18 +84,18 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
     BasicFileAttributes fileAttributes;
     try {
       fileAttributes = Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+
+      if (fileAttributes.isDirectory()) {
+        return readDirectoryAsPack(path);
+      }
+
+      if (fileAttributes.isRegularFile()) {
+        return readZipAsPack(path);
+      }
     } catch (Exception e) {
       CustomPaintingsMod.LOGGER.warn(e);
       CustomPaintingsMod.LOGGER.warn("Error reading Custom Paintings pack \"{}\", skipping...", path.getFileName());
       return null;
-    }
-
-    if (fileAttributes.isDirectory()) {
-      return readDirectoryAsPack(path);
-    }
-
-    if (fileAttributes.isRegularFile()) {
-      return readZipAsPack(path);
     }
 
     return null;
@@ -109,7 +115,57 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
       return null;
     }
 
-    return null;
+    try (ZipFile zip = new ZipFile(path.toFile())) {
+      ZipEntry zipMeta = zip.getEntry(META_FILENAME);
+      if (zipMeta == null) {
+        CustomPaintingsMod.LOGGER.warn("Found Custom Paintings pack \"{}\" without a {} file, skipping...",
+            path.getFileName(), META_FILENAME
+        );
+        return null;
+      }
+
+      PackResource pack;
+      try (InputStream stream = zip.getInputStream(zipMeta)) {
+        pack = GSON.fromJson(new InputStreamReader(stream), PackResource.class);
+      }
+
+      if (pack.paintings().isEmpty()) {
+        CustomPaintingsMod.LOGGER.warn("No paintings found in \"{}\", skipping...", path.getFileName());
+        return null;
+      }
+
+      HashMap<Identifier, PaintingImage> images = new HashMap<>();
+      pack.paintings().forEach((painting) -> {
+        Identifier id = new Identifier(pack.id(), painting.id());
+        ZipEntry zipImage = zip.getEntry(String.format("images/%s.png", painting.id()));
+        if (zipImage == null) {
+          CustomPaintingsMod.LOGGER.warn("Missing custom painting image file for {}", id);
+          return;
+        }
+
+        try (InputStream stream = zip.getInputStream(zipImage)) {
+          BufferedImage image = ImageIO.read(stream);
+          if (image == null) {
+            throw new IOException("BufferedImage is null");
+          }
+
+          long size = (long) image.getWidth() * image.getHeight();
+          if (size > MAX_SIZE) {
+            CustomPaintingsMod.LOGGER.warn("Image file for {} is too large, skipping", id);
+            return;
+          }
+
+          images.put(id, PaintingImage.read(image));
+        } catch (IOException e) {
+          CustomPaintingsMod.LOGGER.warn(e);
+          CustomPaintingsMod.LOGGER.warn("Failed to read custom painting image file for {}", id);
+        }
+      });
+
+      return new SinglePackResult(pack.id(), pack, images);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private static SinglePackResult readDirectoryAsPack(Path path) {
