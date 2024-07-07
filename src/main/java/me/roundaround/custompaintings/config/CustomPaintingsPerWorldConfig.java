@@ -17,7 +17,6 @@ public class CustomPaintingsPerWorldConfig extends ModConfigImpl implements Worl
     return instance;
   }
 
-  public BooleanConfigOption enableHiddenVanillaPaintings = null;
   public BooleanConfigOption throttleImageDownloads = null;
   public IntConfigOption imagePacketsPerSecond = null;
 
@@ -27,9 +26,6 @@ public class CustomPaintingsPerWorldConfig extends ModConfigImpl implements Worl
 
   @Override
   protected void registerOptions() {
-    this.enableHiddenVanillaPaintings = this.register(
-        BooleanConfigOption.yesNoBuilder(ConfigPath.of("enableHiddenVanillaPaintings")).setDefaultValue(true).build());
-
     this.throttleImageDownloads = this.buildRegistration(
             BooleanConfigOption.yesNoBuilder(ConfigPath.of("throttleImageDownloads")).setDefaultValue(false).build())
         .serverOnly()

@@ -5,7 +5,9 @@ import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.resource.PaintingImage;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
+import net.fabricmc.api.EnvType;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.server.MinecraftServer;
@@ -39,7 +41,12 @@ public final class ServerNetworking {
   }
 
   public static void sendImagePacket(ServerPlayerEntity player, Identifier id, PaintingImage image) {
-    ServerPlayNetworking.send(player, new Networking.ImageS2C(id, image));
+    Networking.ImageS2C payload = new Networking.ImageS2C(id, image);
+    if (FabricLoader.getInstance().getEnvironmentType() == EnvType.SERVER) {
+      ImagePacketQueue.getInstance().add(player, payload);
+    } else {
+      ServerPlayNetworking.send(player, payload);
+    }
   }
 
   public static void sendEditPaintingPacket(

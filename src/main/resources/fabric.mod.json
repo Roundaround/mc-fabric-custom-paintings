@@ -19,6 +19,9 @@
     "client": [
       "me.roundaround.custompaintings.client.CustomPaintingsClientMod"
     ],
+    "server": [
+      "me.roundaround.custompaintings.server.CustomPaintingsServerMod"
+    ],
     "main": [
       "me.roundaround.custompaintings.CustomPaintingsMod"
     ],
