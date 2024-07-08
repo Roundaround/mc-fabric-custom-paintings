@@ -127,6 +127,10 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
       PackResource pack;
       try (InputStream stream = zip.getInputStream(zipMeta)) {
         pack = GSON.fromJson(new InputStreamReader(stream), PackResource.class);
+      } catch (Exception e) {
+        CustomPaintingsMod.LOGGER.warn(e);
+        CustomPaintingsMod.LOGGER.warn("Failed to parse {} from \"{}\", skipping...", META_FILENAME, path.getFileName());
+        return null;
       }
 
       if (pack.paintings().isEmpty()) {
@@ -191,14 +195,9 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
     }
 
     HashMap<Identifier, PaintingImage> images = new HashMap<>();
-    Path imageDir = path.resolve("images");
-    if (!Files.exists(imageDir, LinkOption.NOFOLLOW_LINKS)) {
-      return new SinglePackResult(pack.id(), pack, images);
-    }
-
     pack.paintings().forEach((painting) -> {
       Identifier id = new Identifier(pack.id(), painting.id());
-      Path imagePath = imageDir.resolve(painting.id() + ".png");
+      Path imagePath = path.resolve("images").resolve(painting.id() + ".png");
       if (!Files.exists(imagePath)) {
         CustomPaintingsMod.LOGGER.warn("Missing custom painting image file for {}", id);
         return;
