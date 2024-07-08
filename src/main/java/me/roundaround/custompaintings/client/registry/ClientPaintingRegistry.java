@@ -160,6 +160,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     this.atlas.clear();
     this.spriteIds.clear();
     this.neededImages.clear();
+    this.cachedImages.clear();
     this.pendingCombinedImagesHash = "";
   }
 
