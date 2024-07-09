@@ -3,6 +3,7 @@ package me.roundaround.custompaintings.server.network;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.resource.PaintingImage;
+import me.roundaround.custompaintings.server.CustomPaintingsServerMod;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
 import net.fabricmc.api.EnvType;
@@ -27,13 +28,22 @@ public final class ServerNetworking {
   public static void sendSummaryPacketToAll(
       MinecraftServer server, List<PaintingPack> packs, String combinedImageHash
   ) {
+    Networking.SummaryS2C payload = new Networking.SummaryS2C(packs, combinedImageHash);
     server.getPlayerManager().getPlayerList().forEach((player) -> {
-      ServerPlayNetworking.send(player, new Networking.SummaryS2C(packs, combinedImageHash));
+      sendSummaryPacket(player, payload);
     });
   }
 
   public static void sendSummaryPacket(ServerPlayerEntity player, List<PaintingPack> packs, String combinedImageHash) {
-    ServerPlayNetworking.send(player, new Networking.SummaryS2C(packs, combinedImageHash));
+    sendSummaryPacket(player, new Networking.SummaryS2C(packs, combinedImageHash));
+  }
+
+  private static void sendSummaryPacket(ServerPlayerEntity player, Networking.SummaryS2C payload) {
+    if (!ServerPlayNetworking.canSend(player, payload.getId())) {
+      player.sendMessage(CustomPaintingsServerMod.getDownloadPrompt());
+      return;
+    }
+    ServerPlayNetworking.send(player, payload);
   }
 
   public static void sendImagesPacket(ServerPlayerEntity player, List<Identifier> ids) {

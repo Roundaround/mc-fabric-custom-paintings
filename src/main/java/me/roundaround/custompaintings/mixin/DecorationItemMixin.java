@@ -3,7 +3,9 @@ package me.roundaround.custompaintings.mixin;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
+import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.entity.decoration.painting.PaintingVariants;
@@ -37,7 +39,8 @@ public abstract class DecorationItemMixin {
       Operation<Optional<PaintingEntity>> original,
       @Local(argsOnly = true) ItemUsageContext context
   ) {
-    if (!(context.getPlayer() instanceof ServerPlayerEntity player)) {
+    if (!(context.getPlayer() instanceof ServerPlayerEntity player) ||
+        !ServerPlayNetworking.canSend(player, Networking.EditPaintingS2C.ID)) {
       return original.call(world, pos, facing);
     }
 

@@ -28,8 +28,8 @@ public final class CustomPaintingsMod implements ModInitializer {
   public static final String MOD_ID = "custompaintings";
   public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
 
-  public static final TrackedDataHandler<PaintingData> CUSTOM_PAINTING_DATA_HANDLER =
-      (TrackedDataHandler.ImmutableHandler<PaintingData>) () -> PaintingData.PACKET_CODEC;
+  public static final TrackedDataHandler<PaintingData> CUSTOM_PAINTING_DATA_HANDLER = TrackedDataHandler.create(
+      PaintingData.PACKET_CODEC);
 
   @Override
   public void onInitialize() {
