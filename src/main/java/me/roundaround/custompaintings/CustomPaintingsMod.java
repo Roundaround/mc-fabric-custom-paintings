@@ -10,8 +10,8 @@ import me.roundaround.custompaintings.server.ServerPaintingManager;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
@@ -48,18 +48,13 @@ public final class CustomPaintingsMod implements ModInitializer {
       ServerPaintingRegistry.init(server);
     }));
 
+    ServerWorldEvents.LOAD.register(((server, world) -> {
+      ServerPaintingManager.init(world);
+    }));
+
     ServerPlayConnectionEvents.JOIN.register(((handler, sender, server) -> {
       ServerPaintingRegistry.getInstance().sendSummaryToPlayer(handler.getPlayer());
     }));
-
-    ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
-      if (!(entity instanceof PaintingEntity painting)) {
-        return;
-      }
-      ServerPaintingManager manager = ServerPaintingManager.getInstance(world);
-      manager.loadPainting(painting);
-      manager.fixCustomName(painting);
-    });
 
     UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
       if (!(entity instanceof PaintingEntity painting)) {

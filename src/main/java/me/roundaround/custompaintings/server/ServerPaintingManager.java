@@ -3,6 +3,9 @@ package me.roundaround.custompaintings.server;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.registry.VanillaPaintingRegistry;
+import me.roundaround.custompaintings.server.network.ServerNetworking;
+import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.nbt.NbtCompound;
@@ -11,6 +14,7 @@ import net.minecraft.nbt.NbtList;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import net.minecraft.world.PersistentState;
 
 import java.util.HashMap;
@@ -22,8 +26,27 @@ public class ServerPaintingManager extends PersistentState {
   private final ServerWorld world;
   private final HashMap<UUID, PaintingData> allPaintings = new HashMap<>();
 
+  public static void init(ServerWorld world) {
+    // Just getting the instance also creates/initializes it
+    getInstance(world);
+  }
+
+  public static ServerPaintingManager getInstance(ServerWorld world) {
+    Type<ServerPaintingManager> persistentStateType = new PersistentState.Type<>(
+        () -> new ServerPaintingManager(world), (nbt, registryLookup) -> fromNbt(world, nbt), null);
+    return world.getPersistentStateManager().getOrCreate(persistentStateType, CustomPaintingsMod.MOD_ID);
+  }
+
   private ServerPaintingManager(ServerWorld world) {
     this.world = world;
+
+    ServerEntityEvents.ENTITY_LOAD.register((entity, loadedWorld) -> {
+      if (loadedWorld != this.world || !(entity instanceof PaintingEntity painting)) {
+        return;
+      }
+      this.loadPainting(painting);
+      this.fixCustomName(painting);
+    });
   }
 
   @Override
@@ -49,18 +72,12 @@ public class ServerPaintingManager extends PersistentState {
     return manager;
   }
 
-  public static ServerPaintingManager getInstance(ServerWorld world) {
-    Type<ServerPaintingManager> persistentStateType = new PersistentState.Type<>(
-        () -> new ServerPaintingManager(world), (nbt, registryLookup) -> fromNbt(world, nbt), null);
-    return world.getPersistentStateManager().getOrCreate(persistentStateType, CustomPaintingsMod.MOD_ID);
-  }
-
   public void remove(UUID uuid) {
     this.allPaintings.remove(uuid);
     this.setDirty(true);
   }
 
-  public boolean setPaintingData(UUID uuid, PaintingData paintingData) {
+  private boolean setTrackedData(UUID uuid, PaintingData paintingData) {
     PaintingData previousData = this.allPaintings.put(uuid, paintingData);
     if (previousData == null || !previousData.equals(paintingData)) {
       this.setDirty(true);
@@ -69,14 +86,32 @@ public class ServerPaintingManager extends PersistentState {
     return false;
   }
 
-  public boolean setPaintingDataAndPropagate(UUID uuid, PaintingData paintingData) {
-    boolean stateChanged = this.setPaintingData(uuid, paintingData);
-    this.setCustomDataOnPainting(uuid, paintingData);
-    return stateChanged;
+  public void setPaintingData(int paintingId, Identifier dataId) {
+    Entity entity = this.world.getEntityById(paintingId);
+    if (!(entity instanceof PaintingEntity painting)) {
+      CustomPaintingsMod.LOGGER.error("Received SetPaintingC2S packet with invalid entity id {}", paintingId);
+      return;
+    }
+
+    PaintingData paintingData = ServerPaintingRegistry.getInstance().get(dataId);
+    if (paintingData == null) {
+      // Some kind of error handling?
+      CustomPaintingsMod.LOGGER.error("Received SetPaintingC2S packet with invalid painting data id {}", dataId);
+      return;
+    }
+
+    this.setPaintingData(painting, paintingData);
+  }
+
+  public void setPaintingData(PaintingEntity painting, PaintingData paintingData) {
+    painting.setCustomData(paintingData);
+    if (this.setTrackedData(painting.getUuid(), paintingData)) {
+      ServerNetworking.sendSetPaintingPacket(painting.getId(), paintingData.id());
+    }
   }
 
   public boolean setPaintingDataAndPropagate(PaintingEntity painting, PaintingData paintingData) {
-    boolean stateChanged = this.setPaintingData(painting.getUuid(), paintingData);
+    boolean stateChanged = this.setTrackedData(painting.getUuid(), paintingData);
     this.setCustomDataOnPainting(painting, paintingData);
     return stateChanged;
   }
@@ -102,21 +137,18 @@ public class ServerPaintingManager extends PersistentState {
     PaintingData paintingData = painting.getCustomData();
 
     if (this.allPaintings.containsKey(uuid)) {
-      PaintingData storedData = this.allPaintings.get(uuid);
-      if (!storedData.equals(paintingData)) {
-        this.setCustomDataOnPainting(painting, storedData);
-      }
+      this.setPaintingData(painting, this.allPaintings.get(uuid));
       return;
     }
 
 
     if (paintingData == null || paintingData.isEmpty()) {
-      this.setPaintingDataAndPropagate(
+      this.setPaintingData(
           painting, VanillaPaintingRegistry.getInstance().get(painting.getVariant().value()));
       return;
     }
 
-    this.setPaintingData(uuid, paintingData);
+    this.setTrackedData(uuid, paintingData);
   }
 
   /**

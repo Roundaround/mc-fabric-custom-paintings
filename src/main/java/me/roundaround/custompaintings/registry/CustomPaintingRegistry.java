@@ -22,6 +22,14 @@ public abstract class CustomPaintingRegistry implements AutoCloseable {
 
   protected String combinedImageHash = "";
 
+  public PaintingData get(Identifier id) {
+    return this.paintings.get(id);
+  }
+
+  public PaintingImage getImage(Identifier id) {
+    return this.images.get(id);
+  }
+
   @Override
   public void close() {
     this.packsMap.clear();
