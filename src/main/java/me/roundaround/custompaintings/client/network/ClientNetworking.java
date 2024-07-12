@@ -29,7 +29,7 @@ public final class ClientNetworking {
     ClientPlayNetworking.send(new Networking.SetPaintingC2S(paintingId, dataId));
   }
 
-  public static void registerS2CHandlers() {
+  public static void registerReceivers() {
     ClientPlayNetworking.registerGlobalReceiver(Networking.SummaryS2C.ID, ClientNetworking::handleSummary);
     ClientPlayNetworking.registerGlobalReceiver(Networking.ImagesS2C.ID, ClientNetworking::handleImages);
     ClientPlayNetworking.registerGlobalReceiver(Networking.ImageS2C.ID, ClientNetworking::handleImage);

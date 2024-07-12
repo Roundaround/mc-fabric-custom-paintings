@@ -11,7 +11,7 @@ import net.minecraft.resource.ResourceType;
 public class CustomPaintingsClientMod implements ClientModInitializer {
   @Override
   public void onInitializeClient() {
-    ClientNetworking.registerS2CHandlers();
+    ClientNetworking.registerReceivers();
 
     ClientPlayConnectionEvents.DISCONNECT.register(((handler, client) -> {
       ClientPaintingRegistry.getInstance().close();
