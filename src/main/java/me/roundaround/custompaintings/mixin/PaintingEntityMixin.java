@@ -1,13 +1,10 @@
 package me.roundaround.custompaintings.mixin;
 
-import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.data.DataTracker;
-import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.decoration.AbstractDecorationEntity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.nbt.NbtCompound;
@@ -31,26 +28,10 @@ import java.util.UUID;
 @SuppressWarnings("AddedMixinMembersNamePattern")
 public abstract class PaintingEntityMixin extends AbstractDecorationEntity implements ExpandedPaintingEntity {
   @Unique
-  @SuppressWarnings("WrongEntityDataParameterClass")
-  private static final TrackedData<PaintingData> CUSTOM_DATA = DataTracker.registerData(PaintingEntity.class,
-      CustomPaintingsMod.CUSTOM_PAINTING_DATA_HANDLER
-  );
-
-  @Unique
   private UUID editor = null;
 
   protected PaintingEntityMixin(EntityType<? extends AbstractDecorationEntity> entityType, World world) {
     super(entityType, world);
-  }
-
-  @Override
-  public void setCustomData(PaintingData paintingData) {
-    this.dataTracker.set(CUSTOM_DATA, paintingData);
-  }
-
-  @Override
-  public PaintingData getCustomData() {
-    return this.dataTracker.get(CUSTOM_DATA);
   }
 
   @Override
@@ -83,20 +64,6 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
       return;
     }
     ServerPaintingManager.getInstance((ServerWorld) this.getWorld()).remove(this.getUuid());
-  }
-
-  @Inject(method = "initDataTracker", at = @At(value = "TAIL"))
-  private void initDataTracker(DataTracker.Builder builder, CallbackInfo info) {
-    builder.add(CUSTOM_DATA, PaintingData.EMPTY);
-  }
-
-  // Yarn mapping for onTrackedDataSet broken in 1.20.5+. Need "onTrackedDataSet" for dev and "method_5674" for publish
-//  @Inject(method = "method_5674", at = @At(value = "TAIL"))
-  @Inject(method = "onTrackedDataSet", at = @At(value = "TAIL"))
-  private void onTrackedDataSet(TrackedData<?> data, CallbackInfo info) {
-    if (CUSTOM_DATA.equals(data)) {
-      this.updateAttachmentPosition();
-    }
   }
 
   @Inject(method = "readCustomDataFromNbt", at = @At(value = "HEAD"))

@@ -1,5 +1,6 @@
 package me.roundaround.custompaintings.server.network;
 
+import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.resource.PaintingImage;
@@ -65,6 +66,19 @@ public final class ServerNetworking {
     ServerPlayNetworking.send(player, new Networking.EditPaintingS2C(paintingUuid, paintingId, pos, facing));
   }
 
+  public static void sendSetPaintingPacketToAll(MinecraftServer server, int paintingId, Identifier dataId) {
+    Networking.SetPaintingS2C payload = new Networking.SetPaintingS2C(paintingId, dataId);
+    server.getPlayerManager().getPlayerList().forEach((player) -> {
+      sendSetPaintingPacket(player, payload);
+    });
+  }
+
+  public static void sendSetPaintingPacket(ServerPlayerEntity player, Networking.SetPaintingS2C payload) {
+    if (ServerPlayNetworking.canSend(player, payload.getId())) {
+      ServerPlayNetworking.send(player, payload);
+    }
+  }
+
   public static void registerReceivers() {
     ServerPlayNetworking.registerGlobalReceiver(Networking.HashesC2S.ID, ServerNetworking::handleHashes);
     ServerPlayNetworking.registerGlobalReceiver(Networking.SetPaintingC2S.ID, ServerNetworking::handleSetPainting);
@@ -80,7 +94,7 @@ public final class ServerNetworking {
     context.player().server.execute(() -> {
       ServerPlayerEntity player = context.player();
       ServerWorld world = player.getServerWorld();
-      Entity entity = world.getEntity(payload.paintingUuid());
+      Entity entity = world.getEntityById(payload.paintingId());
       if (!(entity instanceof PaintingEntity painting)) {
         return;
       }
@@ -89,20 +103,23 @@ public final class ServerNetworking {
         return;
       }
 
-      if (payload.customPaintingInfo().isEmpty()) {
+      PaintingData paintingData = ServerPaintingRegistry.getInstance().get(payload.dataId());
+      if (paintingData == null || paintingData.isEmpty()) {
         entity.damage(player.getDamageSources().playerAttack(player), 0f);
         return;
       }
 
-      if (payload.customPaintingInfo().isVanilla()) {
-        painting.setVariant(payload.customPaintingInfo().id());
+      if (paintingData.isVanilla()) {
+        painting.setVariant(paintingData.id());
       }
-
-      ServerPaintingManager.getInstance(world).setPaintingDataAndPropagate(painting, payload.customPaintingInfo());
+      painting.setCustomData(paintingData);
 
       if (!painting.canStayAttached()) {
         painting.damage(player.getDamageSources().playerAttack(player), 0f);
+        return;
       }
+
+      ServerPaintingManager.getInstance(world).setPaintingData(painting, paintingData);
     });
   }
 }

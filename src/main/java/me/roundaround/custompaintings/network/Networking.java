@@ -1,7 +1,6 @@
 package me.roundaround.custompaintings.network;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.resource.PaintingImage;
 import me.roundaround.roundalib.network.CustomCodecs;
@@ -27,6 +26,7 @@ public final class Networking {
   public static final Identifier IMAGES_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "images_s2c");
   public static final Identifier IMAGE_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "image_s2c");
   public static final Identifier EDIT_PAINTING_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "edit_painting_s2c");
+  public static final Identifier SET_PAINTING_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "set_painting_s2c");
 
   public static final Identifier HASHES_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "hashes_c2s");
   public static final Identifier SET_PAINTING_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "set_painting_c2s");
@@ -36,6 +36,7 @@ public final class Networking {
     PayloadTypeRegistry.playS2C().register(ImagesS2C.ID, ImagesS2C.CODEC);
     PayloadTypeRegistry.playS2C().register(ImageS2C.ID, ImageS2C.CODEC);
     PayloadTypeRegistry.playS2C().register(EditPaintingS2C.ID, EditPaintingS2C.CODEC);
+    PayloadTypeRegistry.playS2C().register(SetPaintingS2C.ID, SetPaintingS2C.CODEC);
   }
 
   public static void registerC2SPayloads() {
@@ -92,6 +93,18 @@ public final class Networking {
     }
   }
 
+  public record SetPaintingS2C(int paintingId, Identifier dataId) implements CustomPayload {
+    public static final CustomPayload.Id<SetPaintingS2C> ID = new CustomPayload.Id<>(SET_PAINTING_C2S);
+    public static final PacketCodec<RegistryByteBuf, SetPaintingS2C> CODEC = PacketCodec.tuple(PacketCodecs.INTEGER,
+        SetPaintingS2C::paintingId, Identifier.PACKET_CODEC, SetPaintingS2C::dataId, SetPaintingS2C::new
+    );
+
+    @Override
+    public Id<? extends CustomPayload> getId() {
+      return ID;
+    }
+  }
+
   public record HashesC2S(Map<Identifier, String> hashes) implements CustomPayload {
     public static final CustomPayload.Id<HashesC2S> ID = new CustomPayload.Id<>(HASHES_C2S);
     public static final PacketCodec<RegistryByteBuf, HashesC2S> CODEC = PacketCodec.tuple(
@@ -103,10 +116,10 @@ public final class Networking {
     }
   }
 
-  public record SetPaintingC2S(UUID paintingUuid, PaintingData customPaintingInfo) implements CustomPayload {
+  public record SetPaintingC2S(int paintingId, Identifier dataId) implements CustomPayload {
     public static final CustomPayload.Id<SetPaintingC2S> ID = new CustomPayload.Id<>(SET_PAINTING_C2S);
-    public static final PacketCodec<RegistryByteBuf, SetPaintingC2S> CODEC = PacketCodec.tuple(Uuids.PACKET_CODEC,
-        SetPaintingC2S::paintingUuid, PaintingData.PACKET_CODEC, SetPaintingC2S::customPaintingInfo, SetPaintingC2S::new
+    public static final PacketCodec<RegistryByteBuf, SetPaintingC2S> CODEC = PacketCodec.tuple(PacketCodecs.INTEGER,
+        SetPaintingC2S::paintingId, Identifier.PACKET_CODEC, SetPaintingC2S::dataId, SetPaintingC2S::new
     );
 
     @Override

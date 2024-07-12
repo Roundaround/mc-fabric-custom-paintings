@@ -27,7 +27,7 @@ public abstract class PaintingEditScreen extends Screen {
   }
 
   protected void saveSelection(PaintingData paintingData) {
-    ClientNetworking.sendSetPaintingPacket(this.state.getPaintingUuid(), paintingData);
+    ClientNetworking.sendSetPaintingPacket(this.state.getPaintingId(), paintingData.id());
     Objects.requireNonNull(this.client).setScreen(null);
   }
 }

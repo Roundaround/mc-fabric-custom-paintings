@@ -24,7 +24,6 @@ public class PaintingEditState {
   private final MinecraftClient client;
   private final HashMap<String, PaintingPack> allPaintings = new HashMap<>();
   private final HashMap<String, Boolean> canStayHashMap = new HashMap<>();
-  private final UUID paintingUuid;
   private final int paintingId;
   private final BlockPos blockPos;
   private final Direction facing;
@@ -40,10 +39,9 @@ public class PaintingEditState {
   ) -> entity instanceof AbstractDecorationEntity;
 
   public PaintingEditState(
-      MinecraftClient client, UUID paintingUuid, int paintingId, BlockPos blockPos, Direction facing
+      MinecraftClient client, int paintingId, BlockPos blockPos, Direction facing
   ) {
     this.client = client;
-    this.paintingUuid = paintingUuid;
     this.paintingId = paintingId;
     this.blockPos = blockPos;
     this.facing = facing;
@@ -146,8 +144,8 @@ public class PaintingEditState {
     this.setCurrentPainting(currentIndex + 1);
   }
 
-  public UUID getPaintingUuid() {
-    return this.paintingUuid;
+  public int getPaintingId() {
+    return this.paintingId;
   }
 
   public PaintingPack getCurrentPack() {

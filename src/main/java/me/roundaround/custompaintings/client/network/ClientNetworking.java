@@ -7,11 +7,12 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.network.Networking;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.util.Identifier;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 public final class ClientNetworking {
   private ClientNetworking() {
@@ -21,8 +22,8 @@ public final class ClientNetworking {
     ClientPlayNetworking.send(new Networking.HashesC2S(hashes));
   }
 
-  public static void sendSetPaintingPacket(UUID paintingUuid, PaintingData customPaintingInfo) {
-    ClientPlayNetworking.send(new Networking.SetPaintingC2S(paintingUuid, customPaintingInfo));
+  public static void sendSetPaintingPacket(int paintingId, Identifier dataId) {
+    ClientPlayNetworking.send(new Networking.SetPaintingC2S(paintingId, dataId));
   }
 
   public static void registerS2CHandlers() {
@@ -30,6 +31,7 @@ public final class ClientNetworking {
     ClientPlayNetworking.registerGlobalReceiver(Networking.ImagesS2C.ID, ClientNetworking::handleImages);
     ClientPlayNetworking.registerGlobalReceiver(Networking.ImageS2C.ID, ClientNetworking::handleImage);
     ClientPlayNetworking.registerGlobalReceiver(Networking.EditPaintingS2C.ID, ClientNetworking::handleEditPainting);
+    ClientPlayNetworking.registerGlobalReceiver(Networking.SetPaintingS2C.ID, ClientNetworking::handleSetPainting);
   }
 
   private static void handleSummary(Networking.SummaryS2C payload, ClientPlayNetworking.Context context) {
@@ -57,9 +59,28 @@ public final class ClientNetworking {
   private static void handleEditPainting(Networking.EditPaintingS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
       PaintingEditState state = new PaintingEditState(
-          context.client(), payload.paintingUuid(), payload.paintingId(), payload.pos(), payload.facing());
+          context.client(), payload.paintingId(), payload.pos(), payload.facing());
 
       context.client().setScreen(new PackSelectScreen(state));
+    });
+  }
+
+  private static void handleSetPainting(Networking.SetPaintingS2C payload, ClientPlayNetworking.Context context) {
+    context.client().execute(() -> {
+      PaintingData paintingData = ClientPaintingRegistry.getInstance().get(payload.dataId());
+      if (paintingData == null || paintingData.isEmpty()) {
+        return;
+      }
+
+      Entity entity = context.player().getWorld().getEntityById(payload.paintingId());
+      if (!(entity instanceof PaintingEntity painting)) {
+        return;
+      }
+
+      if (paintingData.isVanilla()) {
+        painting.setVariant(paintingData.id());
+      }
+      painting.setCustomData(paintingData);
     });
   }
 }

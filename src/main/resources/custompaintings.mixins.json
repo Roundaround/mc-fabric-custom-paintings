@@ -6,10 +6,8 @@
   "mixins": [
     "DecorationItemMixin",
     "EntityMixin",
-    "EntityTrackerEntryMixin",
     "PaintingEntityAccessor",
     "PaintingEntityMixin",
-    "ThreadedAnvilChunkStorageEntityTrackerMixin",
     "VanillaDataPackProviderMixin"
   ],
   "client": [

@@ -106,30 +106,8 @@ public class ServerPaintingManager extends PersistentState {
   public void setPaintingData(PaintingEntity painting, PaintingData paintingData) {
     painting.setCustomData(paintingData);
     if (this.setTrackedData(painting.getUuid(), paintingData)) {
-      ServerNetworking.sendSetPaintingPacket(painting.getId(), paintingData.id());
+      ServerNetworking.sendSetPaintingPacketToAll(this.world.getServer(), painting.getId(), paintingData.id());
     }
-  }
-
-  public boolean setPaintingDataAndPropagate(PaintingEntity painting, PaintingData paintingData) {
-    boolean stateChanged = this.setTrackedData(painting.getUuid(), paintingData);
-    this.setCustomDataOnPainting(painting, paintingData);
-    return stateChanged;
-  }
-
-  public void setCustomDataOnPainting(UUID uuid, PaintingData paintingData) {
-    this.findPainting(uuid).ifPresent((painting) -> this.setCustomDataOnPainting(painting, paintingData));
-  }
-
-  public void setCustomDataOnPainting(PaintingEntity painting, PaintingData paintingData) {
-    painting.setCustomData(paintingData);
-  }
-
-  public Optional<PaintingEntity> findPainting(UUID uuid) {
-    Entity entity = this.world.getEntity(uuid);
-    if (!(entity instanceof PaintingEntity painting)) {
-      return Optional.empty();
-    }
-    return Optional.of(painting);
   }
 
   public void loadPainting(PaintingEntity painting) {
@@ -143,8 +121,7 @@ public class ServerPaintingManager extends PersistentState {
 
 
     if (paintingData == null || paintingData.isEmpty()) {
-      this.setPaintingData(
-          painting, VanillaPaintingRegistry.getInstance().get(painting.getVariant().value()));
+      this.setPaintingData(painting, VanillaPaintingRegistry.getInstance().get(painting.getVariant().value()));
       return;
     }
 
