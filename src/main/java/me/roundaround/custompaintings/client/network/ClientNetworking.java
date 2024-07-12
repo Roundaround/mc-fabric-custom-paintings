@@ -1,20 +1,23 @@
 package me.roundaround.custompaintings.client.network;
 
+import me.roundaround.custompaintings.client.ClientPaintingManager;
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.screen.edit.PackSelectScreen;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
-import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.network.Networking;
+import me.roundaround.custompaintings.network.PaintingIdPair;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.util.Identifier;
+import net.minecraft.world.World;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 public final class ClientNetworking {
+  private static final AtomicReference<Networking.SyncAllDataS2C> cachedSyncPayloadRef = new AtomicReference<>();
+
   private ClientNetworking() {
   }
 
@@ -32,6 +35,7 @@ public final class ClientNetworking {
     ClientPlayNetworking.registerGlobalReceiver(Networking.ImageS2C.ID, ClientNetworking::handleImage);
     ClientPlayNetworking.registerGlobalReceiver(Networking.EditPaintingS2C.ID, ClientNetworking::handleEditPainting);
     ClientPlayNetworking.registerGlobalReceiver(Networking.SetPaintingS2C.ID, ClientNetworking::handleSetPainting);
+    ClientPlayNetworking.registerGlobalReceiver(Networking.SyncAllDataS2C.ID, ClientNetworking::handleSyncAllData);
   }
 
   private static void handleSummary(Networking.SummaryS2C payload, ClientPlayNetworking.Context context) {
@@ -41,6 +45,11 @@ public final class ClientNetworking {
       ClientPaintingRegistry.getInstance().setPacks(packs);
 
       ClientPaintingRegistry.getInstance().checkCombinedImageHash(payload.combinedImageHash());
+
+      Networking.SyncAllDataS2C cachedSyncPayload = cachedSyncPayloadRef.getAndSet(null);
+      if (cachedSyncPayload != null) {
+        processSyncPayload(context.client().world, cachedSyncPayload);
+      }
     });
   }
 
@@ -67,20 +76,24 @@ public final class ClientNetworking {
 
   private static void handleSetPainting(Networking.SetPaintingS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
-      PaintingData paintingData = ClientPaintingRegistry.getInstance().get(payload.dataId());
-      if (paintingData == null || paintingData.isEmpty()) {
-        return;
-      }
-
-      Entity entity = context.player().getWorld().getEntityById(payload.paintingId());
-      if (!(entity instanceof PaintingEntity painting)) {
-        return;
-      }
-
-      if (paintingData.isVanilla()) {
-        painting.setVariant(paintingData.id());
-      }
-      painting.setCustomData(paintingData);
+      ClientPaintingManager.getInstance()
+          .trySetPaintingData(context.player().getWorld(), payload.paintingId(), payload.dataId());
     });
+  }
+
+  private static void handleSyncAllData(Networking.SyncAllDataS2C payload, ClientPlayNetworking.Context context) {
+    context.client().execute(() -> {
+      if (!ClientPaintingRegistry.getInstance().hasReceivedPacks()) {
+        cachedSyncPayloadRef.set(payload);
+        return;
+      }
+      processSyncPayload(context.client().world, payload);
+    });
+  }
+
+  private static void processSyncPayload(World world, Networking.SyncAllDataS2C payload) {
+    for (PaintingIdPair ids : payload.paintings()) {
+      ClientPaintingManager.getInstance().trySetPaintingData(world, ids.paintingId(), ids.dataId());
+    }
   }
 }

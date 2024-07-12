@@ -5,7 +5,7 @@ import net.minecraft.util.Identifier;
 import java.util.UUID;
 
 public interface ExpandedPaintingEntity {
-  default void setCustomData(PaintingData info) {
+  default void setCustomData(PaintingData paintingData) {
   }
 
   default void setCustomData(Identifier id, int width, int height, String name, String artist, boolean isVanilla) {

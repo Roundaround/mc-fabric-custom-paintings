@@ -2,29 +2,28 @@ package me.roundaround.custompaintings.server;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.network.PaintingIdPair;
 import me.roundaround.custompaintings.registry.VanillaPaintingRegistry;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
-import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import net.minecraft.world.PersistentState;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 public class ServerPaintingManager extends PersistentState {
   private final ServerWorld world;
   private final HashMap<UUID, PaintingData> allPaintings = new HashMap<>();
+  private final HashMap<UUID, PaintingIdPair> allIds = new HashMap<>();
 
   public static void init(ServerWorld world) {
     // Just getting the instance also creates/initializes it
@@ -46,6 +45,9 @@ public class ServerPaintingManager extends PersistentState {
       }
       this.loadPainting(painting);
       this.fixCustomName(painting);
+
+      ServerNetworking.sendSetPaintingPacketToAll(
+          loadedWorld.getServer(), painting.getId(), painting.getCustomData().id());
     });
   }
 
@@ -72,60 +74,41 @@ public class ServerPaintingManager extends PersistentState {
     return manager;
   }
 
+  public void syncAllDataForPlayer(ServerPlayerEntity player) {
+    if (player.getServerWorld() != this.world) {
+      return;
+    }
+    ServerNetworking.sendSyncAllDataPacket(player, this.allIds.values().stream().toList());
+  }
+
   public void remove(UUID uuid) {
     this.allPaintings.remove(uuid);
+    this.allIds.remove(uuid);
     this.setDirty(true);
-  }
-
-  private boolean setTrackedData(UUID uuid, PaintingData paintingData) {
-    PaintingData previousData = this.allPaintings.put(uuid, paintingData);
-    if (previousData == null || !previousData.equals(paintingData)) {
-      this.setDirty(true);
-      return true;
-    }
-    return false;
-  }
-
-  public void setPaintingData(int paintingId, Identifier dataId) {
-    Entity entity = this.world.getEntityById(paintingId);
-    if (!(entity instanceof PaintingEntity painting)) {
-      CustomPaintingsMod.LOGGER.error("Received SetPaintingC2S packet with invalid entity id {}", paintingId);
-      return;
-    }
-
-    PaintingData paintingData = ServerPaintingRegistry.getInstance().get(dataId);
-    if (paintingData == null) {
-      // Some kind of error handling?
-      CustomPaintingsMod.LOGGER.error("Received SetPaintingC2S packet with invalid painting data id {}", dataId);
-      return;
-    }
-
-    this.setPaintingData(painting, paintingData);
   }
 
   public void setPaintingData(PaintingEntity painting, PaintingData paintingData) {
     painting.setCustomData(paintingData);
-    if (this.setTrackedData(painting.getUuid(), paintingData)) {
+    if (this.setTrackedData(painting.getUuid(), painting.getId(), paintingData)) {
       ServerNetworking.sendSetPaintingPacketToAll(this.world.getServer(), painting.getId(), paintingData.id());
     }
   }
 
   public void loadPainting(PaintingEntity painting) {
     UUID uuid = painting.getUuid();
-    PaintingData paintingData = painting.getCustomData();
 
     if (this.allPaintings.containsKey(uuid)) {
       this.setPaintingData(painting, this.allPaintings.get(uuid));
       return;
     }
 
-
+    PaintingData paintingData = painting.getCustomData();
     if (paintingData == null || paintingData.isEmpty()) {
       this.setPaintingData(painting, VanillaPaintingRegistry.getInstance().get(painting.getVariant().value()));
       return;
     }
 
-    this.setTrackedData(uuid, paintingData);
+    this.setTrackedData(uuid, painting.getId(), paintingData);
   }
 
   /**
@@ -157,5 +140,15 @@ public class ServerPaintingManager extends PersistentState {
       painting.setCustomName(null);
       painting.setCustomNameVisible(false);
     }
+  }
+
+  private boolean setTrackedData(UUID paintingUuid, int paintingId, PaintingData paintingData) {
+    this.allIds.put(paintingUuid, new PaintingIdPair(paintingId, paintingData.id()));
+    PaintingData previousData = this.allPaintings.put(paintingUuid, paintingData);
+    if (previousData == null || !previousData.equals(paintingData)) {
+      this.setDirty(true);
+      return true;
+    }
+    return false;
   }
 }

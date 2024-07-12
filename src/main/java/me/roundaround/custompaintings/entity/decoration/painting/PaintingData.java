@@ -213,8 +213,8 @@ public record PaintingData(Identifier id, int width, int height, String name, St
     nbt.putString("Id", this.id.toString());
     nbt.putInt("Width", this.width);
     nbt.putInt("Height", this.height);
-    nbt.putString("Name", this.name);
-    nbt.putString("Artist", this.artist);
+    nbt.putString("Name", this.name == null ? "" : this.name);
+    nbt.putString("Artist", this.artist == null ? "" : this.artist);
     nbt.putBoolean("Vanilla", this.isVanilla);
     return nbt;
   }

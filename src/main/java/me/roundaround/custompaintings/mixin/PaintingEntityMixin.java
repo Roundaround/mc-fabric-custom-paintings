@@ -28,6 +28,9 @@ import java.util.UUID;
 @SuppressWarnings("AddedMixinMembersNamePattern")
 public abstract class PaintingEntityMixin extends AbstractDecorationEntity implements ExpandedPaintingEntity {
   @Unique
+  private PaintingData paintingData = PaintingData.EMPTY;
+
+  @Unique
   private UUID editor = null;
 
   protected PaintingEntityMixin(EntityType<? extends AbstractDecorationEntity> entityType, World world) {
@@ -42,6 +45,20 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
   @Override
   public UUID getEditor() {
     return this.editor;
+  }
+
+  @Override
+  public void setCustomData(PaintingData paintingData) {
+    boolean changed = !this.paintingData.equals(paintingData);
+    this.paintingData = paintingData;
+    if (changed) {
+      this.updateAttachmentPosition();
+    }
+  }
+
+  @Override
+  public PaintingData getCustomData() {
+    return this.paintingData;
   }
 
   @Override

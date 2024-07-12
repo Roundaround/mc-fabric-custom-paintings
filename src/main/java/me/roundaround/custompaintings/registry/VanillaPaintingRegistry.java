@@ -9,7 +9,6 @@ import net.minecraft.util.Identifier;
 
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 
 public class VanillaPaintingRegistry {
@@ -49,8 +48,8 @@ public class VanillaPaintingRegistry {
     return instance;
   }
 
-  public Optional<PaintingData> get(Identifier identifier) {
-    return Optional.ofNullable(this.all.get(identifier));
+  public PaintingData get(Identifier identifier) {
+    return this.all.get(identifier);
   }
 
   public PaintingData get(PaintingVariant variant) {

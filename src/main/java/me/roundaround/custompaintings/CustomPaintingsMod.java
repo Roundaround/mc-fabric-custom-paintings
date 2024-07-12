@@ -10,6 +10,7 @@ import me.roundaround.custompaintings.server.ServerPaintingManager;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
@@ -20,6 +21,7 @@ import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.registry.Registries;
 import net.minecraft.resource.ResourceType;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.ActionResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -53,7 +55,13 @@ public final class CustomPaintingsMod implements ModInitializer {
     }));
 
     ServerPlayConnectionEvents.JOIN.register(((handler, sender, server) -> {
-      ServerPaintingRegistry.getInstance().sendSummaryToPlayer(handler.getPlayer());
+      ServerPlayerEntity player = handler.getPlayer();
+      ServerPaintingRegistry.getInstance().sendSummaryToPlayer(player);
+      ServerPaintingManager.getInstance(player.getServerWorld()).syncAllDataForPlayer(player);
+    }));
+
+    ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register(((player, origin, destination) -> {
+      ServerPaintingManager.getInstance(destination).syncAllDataForPlayer(player);
     }));
 
     UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {

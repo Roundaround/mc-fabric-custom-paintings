@@ -41,6 +41,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   private final HashSet<Identifier> neededImages = new HashSet<>();
   private final HashMap<Identifier, PaintingImage> cachedImages = new HashMap<>();
 
+  private boolean packsReceived = false;
   private String pendingCombinedImagesHash = "";
   private long waitingForImagesTimer;
 
@@ -87,6 +88,16 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
       return this.client.getPaintingManager().getPaintingSprite(Registries.PAINTING_VARIANT.get(data.id()));
     }
     return this.getSprite(data.id());
+  }
+
+  public boolean hasReceivedPacks() {
+    return this.packsReceived;
+  }
+
+  @Override
+  public void setPacks(HashMap<String, PaintingPack> packsMap) {
+    this.packsReceived = true;
+    super.setPacks(packsMap);
   }
 
   public Map<String, PaintingPack> getPacks() {

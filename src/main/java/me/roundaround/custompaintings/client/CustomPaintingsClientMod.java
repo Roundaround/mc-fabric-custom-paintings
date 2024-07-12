@@ -15,6 +15,7 @@ public class CustomPaintingsClientMod implements ClientModInitializer {
 
     ClientPlayConnectionEvents.DISCONNECT.register(((handler, client) -> {
       ClientPaintingRegistry.getInstance().close();
+      ClientPaintingManager.getInstance().close();
     }));
 
     ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new LegacyPaintingPackChecker());

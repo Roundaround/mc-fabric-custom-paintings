@@ -3,6 +3,7 @@ package me.roundaround.custompaintings.server.network;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.network.Networking;
+import me.roundaround.custompaintings.network.PaintingIdPair;
 import me.roundaround.custompaintings.resource.PaintingImage;
 import me.roundaround.custompaintings.server.CustomPaintingsServerMod;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
@@ -76,6 +77,12 @@ public final class ServerNetworking {
   public static void sendSetPaintingPacket(ServerPlayerEntity player, Networking.SetPaintingS2C payload) {
     if (ServerPlayNetworking.canSend(player, payload.getId())) {
       ServerPlayNetworking.send(player, payload);
+    }
+  }
+
+  public static void sendSyncAllDataPacket(ServerPlayerEntity player, List<PaintingIdPair> ids) {
+    if (ServerPlayNetworking.canSend(player, Networking.SyncAllDataS2C.ID)) {
+      ServerPlayNetworking.send(player, new Networking.SyncAllDataS2C(ids));
     }
   }
 

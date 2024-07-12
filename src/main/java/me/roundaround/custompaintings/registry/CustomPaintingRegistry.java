@@ -23,6 +23,9 @@ public abstract class CustomPaintingRegistry implements AutoCloseable {
   protected String combinedImageHash = "";
 
   public PaintingData get(Identifier id) {
+    if (id.getNamespace().equals(Identifier.DEFAULT_NAMESPACE)) {
+      return VanillaPaintingRegistry.getInstance().get(id);
+    }
     return this.paintings.get(id);
   }
 
