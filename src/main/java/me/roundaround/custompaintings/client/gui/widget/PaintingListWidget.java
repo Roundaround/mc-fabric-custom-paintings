@@ -61,6 +61,8 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
     if (this.getEntryCount() == 0 || this.state.areAnyPaintingsFiltered()) {
       this.addEntry((index, left, top, width) -> new EmptyEntry(index, left, top, width, this.client.textRenderer));
     }
+
+    this.refreshPositions();
   }
 
   @Override
