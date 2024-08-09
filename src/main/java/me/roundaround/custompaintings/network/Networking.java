@@ -5,6 +5,7 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.resource.PaintingImage;
 import me.roundaround.roundalib.network.CustomCodecs;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.codec.PacketCodecs;
@@ -131,9 +132,27 @@ public final class Networking {
 
   public record SetPaintingC2S(int paintingId, Identifier dataId) implements CustomPayload {
     public static final CustomPayload.Id<SetPaintingC2S> ID = new CustomPayload.Id<>(SET_PAINTING_C2S);
-    public static final PacketCodec<RegistryByteBuf, SetPaintingC2S> CODEC = PacketCodec.tuple(PacketCodecs.INTEGER,
-        SetPaintingC2S::paintingId, Identifier.PACKET_CODEC, SetPaintingC2S::dataId, SetPaintingC2S::new
-    );
+    public static final PacketCodec<RegistryByteBuf, SetPaintingC2S> CODEC = PacketCodec.of(
+        SetPaintingC2S::write, SetPaintingC2S::read);
+
+    private static SetPaintingC2S read(PacketByteBuf buf) {
+      int paintingId = buf.readInt();
+      Identifier dataId = null;
+      if (buf.readBoolean()) {
+        dataId = buf.readIdentifier();
+      }
+      return new SetPaintingC2S(paintingId, dataId);
+    }
+
+    private void write(PacketByteBuf buf) {
+      buf.writeInt(this.paintingId);
+      if (this.dataId == null) {
+        buf.writeBoolean(false);
+      } else {
+        buf.writeBoolean(true);
+        buf.writeIdentifier(this.dataId);
+      }
+    }
 
     @Override
     public Id<? extends CustomPayload> getId() {

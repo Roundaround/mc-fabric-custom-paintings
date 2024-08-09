@@ -259,6 +259,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     PaintingData currentPainting = this.state.getCurrentPainting();
     if (currentPack == null || currentPainting == null) {
       this.saveEmpty();
+      return;
     }
     this.saveSelection(currentPainting);
   }
