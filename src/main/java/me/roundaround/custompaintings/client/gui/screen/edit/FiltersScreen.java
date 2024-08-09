@@ -22,7 +22,7 @@ public class FiltersScreen extends PaintingEditScreen {
   public void init() {
     this.layout.addHeader(this.textRenderer, this.title);
 
-    this.layout.addBody(new FilterListWidget(this.state, this.client, this.layout));
+    this.filtersListWidget = this.layout.addBody(new FilterListWidget(this.state, this.client, this.layout));
 
     this.layout.addFooter(ButtonWidget.builder(Text.translatable("custompaintings.filter.reset"), this::resetFilters)
         .size(ButtonWidget.DEFAULT_WIDTH, ButtonWidget.DEFAULT_HEIGHT)
@@ -33,6 +33,9 @@ public class FiltersScreen extends PaintingEditScreen {
 
     this.layout.forEachChild(this::addDrawableChild);
     this.initTabNavigation();
+
+    this.filtersListWidget.updateFilters();
+    this.setInitialFocus(this.filtersListWidget.getFirstFocusable());
   }
 
   @Override

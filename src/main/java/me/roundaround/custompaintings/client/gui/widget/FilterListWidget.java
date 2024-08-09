@@ -10,7 +10,10 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.Element;
+import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.CyclingButtonWidget;
+import net.minecraft.client.gui.widget.SliderWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
@@ -32,18 +35,18 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
     ));
 
     this.addEntry((index, left, top, width) -> new TextFilterEntry(this.client.textRenderer,
-        Text.translatable("custompaintings.filter.any"), () -> state.getFilters().getSearch(),
-        (value) -> state.getFilters().setSearch(value), index, left, top, width
+        Text.translatable("custompaintings.filter.any"), state.getFilters()::getSearch, state.getFilters()::setSearch,
+        index, left, top, width
     ));
 
     this.addEntry((index, left, top, width) -> new TextFilterEntry(this.client.textRenderer,
-        Text.translatable("custompaintings.filter.name"), () -> state.getFilters().getNameSearch(),
-        (value) -> state.getFilters().setNameSearch(value), index, left, top, width
+        Text.translatable("custompaintings.filter.name"), state.getFilters()::getNameSearch,
+        state.getFilters()::setNameSearch, index, left, top, width
     ));
 
     this.addEntry((index, left, top, width) -> new TextFilterEntry(this.client.textRenderer,
-        Text.translatable("custompaintings.filter.artist"), () -> state.getFilters().getArtistSearch(),
-        (value) -> state.getFilters().setArtistSearch(value), index, left, top, width
+        Text.translatable("custompaintings.filter.artist"), state.getFilters()::getArtistSearch,
+        state.getFilters()::setArtistSearch, index, left, top, width
     ));
 
     // TODO: Name/artist is empty
@@ -54,25 +57,33 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
 
     this.addEntry(
         (index, left, top, width) -> new ToggleFilterEntry(Text.translatable("custompaintings.filter.canstay"),
-            ScreenTexts.ON, ScreenTexts.OFF, () -> state.getFilters().getCanStayOnly(),
-            (value) -> state.getFilters().setCanStayOnly(value), index, left, top, width
+            ScreenTexts.ON, ScreenTexts.OFF, state.getFilters()::getCanStayOnly, state.getFilters()::setCanStayOnly,
+            index, left, top, width
         ));
 
-    this.addEntry((index, left, top, width) -> new SizeRangeEntry(() -> state.getFilters().getMinWidth(),
-        () -> state.getFilters().getMaxWidth(), (value) -> state.getFilters().setMinWidth(value),
-        (value) -> state.getFilters().setMaxWidth(value), "custompaintings.filter.minwidth",
-        "custompaintings.filter.maxwidth", index, left, top, width
+    this.addEntry((index, left, top, width) -> new SizeRangeEntry(state.getFilters()::getMinWidth,
+        state.getFilters()::getMaxWidth, state.getFilters()::setMinWidth, state.getFilters()::setMaxWidth,
+        "custompaintings.filter.minwidth", "custompaintings.filter.maxwidth", index, left, top, width
     ));
 
-    this.addEntry((index, left, top, width) -> new SizeRangeEntry(() -> state.getFilters().getMinHeight(),
-        () -> state.getFilters().getMaxHeight(), (value) -> state.getFilters().setMinHeight(value),
-        (value) -> state.getFilters().setMaxHeight(value), "custompaintings.filter.minheight",
-        "custompaintings.filter.maxheight", index, left, top, width
+    this.addEntry((index, left, top, width) -> new SizeRangeEntry(state.getFilters()::getMinHeight,
+        state.getFilters()::getMaxHeight, state.getFilters()::setMinHeight, state.getFilters()::setMaxHeight,
+        "custompaintings.filter.minheight", "custompaintings.filter.maxheight", index, left, top, width
     ));
   }
 
   public void updateFilters() {
     this.forEachEntry(Entry::resetToFilterValue);
+  }
+
+  public Element getFirstFocusable() {
+    return this.children()
+        .stream()
+        .flatMap((entry) -> entry.children().stream())
+        .filter((element -> element instanceof TextFieldWidget || element instanceof ButtonWidget ||
+            element instanceof SliderWidget))
+        .findFirst()
+        .orElse(null);
   }
 
   @Override
@@ -221,8 +232,8 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
       this.textField = new TextFieldWidget(textRenderer, this.getRightControlLeft(), this.getContentTop(),
           this.getHalfControlWidth(), this.getContentHeight(), label
       );
-      this.textField.setText(this.getter.get());
       this.textField.setChangedListener(setter);
+      this.textField.setText(this.getter.get());
 
       this.addDrawableChild(this.textField);
     }

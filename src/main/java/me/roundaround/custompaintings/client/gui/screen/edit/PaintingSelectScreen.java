@@ -64,7 +64,6 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         new TextFieldWidget(this.textRenderer, 0, BUTTON_HEIGHT, Text.translatable("custompaintings.painting.search")),
         (parent, self) -> self.setWidth(parent.getWidth() - parent.getSpacing() - IconButtonWidget.SIZE_V)
     );
-    this.searchBox.setText(this.state.getFilters().getSearch());
     this.searchBox.setChangedListener(this::onSearchBoxChanged);
 
     searchRow.add(IconButtonWidget.builder(BuiltinIcon.FILTER_18, CustomPaintingsMod.MOD_ID)
@@ -136,11 +135,11 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
       Divider divider = new Divider(parent.getWidth() - 2 * GuiUtil.PADDING, 2);
       self.setDimensions(divider.nextInt(), parent.getHeight());
     });
-    this.layout.addBody(FillerWidget.ofWidth(3 * GuiUtil.PADDING));
+    this.layout.addBody(FillerWidget.ofWidth(2 * GuiUtil.PADDING));
     this.layout.addBody(rightPane, (parent, self) -> {
       Divider divider = new Divider(parent.getWidth() - 2 * GuiUtil.PADDING, 2);
       divider.skip(1);
-      self.setDimensions(divider.nextInt() - 2 * GuiUtil.PADDING, parent.getHeight());
+      self.setDimensions(divider.nextInt() - GuiUtil.PADDING, parent.getHeight());
     });
     this.layout.addBody(FillerWidget.ofWidth(GuiUtil.PADDING));
 
@@ -155,6 +154,9 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     this.initTabNavigation();
 
     this.state.setStateChangedListener(this);
+
+    this.searchBox.setText(this.state.getFilters().getSearch());
+    this.setInitialFocus(this.searchBox);
   }
 
   @Override
