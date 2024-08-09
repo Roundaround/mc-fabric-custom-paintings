@@ -3,9 +3,9 @@ package me.roundaround.custompaintings.client.gui.widget;
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.roundalib.client.gui.GuiUtil;
-import me.roundaround.roundalib.client.gui.widget.LabelWidget;
-import me.roundaround.roundalib.client.gui.widget.LinearLayoutWidget;
+import me.roundaround.roundalib.client.gui.layout.linear.LinearLayoutWidget;
 import me.roundaround.roundalib.client.gui.widget.NarratableEntryListWidget;
+import me.roundaround.roundalib.client.gui.widget.drawable.LabelWidget;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
@@ -147,10 +147,10 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
       super(index, left, top, width, HEIGHT, PaintingData.EMPTY);
 
       this.label = LabelWidget.builder(textRenderer, Text.translatable("custompaintings.painting.empty"))
-          .refPosition(this.getContentCenterX(), this.getContentCenterY())
+          .position(this.getContentCenterX(), this.getContentCenterY())
           .dimensions(this.getContentWidth(), this.getContentHeight())
-          .justifiedCenter()
-          .alignedMiddle()
+          .alignSelfCenterX()
+          .alignSelfCenterY()
           .hideBackground()
           .showShadow()
           .build();
@@ -197,24 +197,23 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
       this.onConfirm = onConfirm;
       this.canStay = canStay;
 
-      LinearLayoutWidget layout = this.addLayout(LinearLayoutWidget.horizontal((self) -> {
+      LinearLayoutWidget layout = this.addLayout(LinearLayoutWidget.horizontal().spacing(GuiUtil.PADDING), (self) -> {
         self.setPosition(this.getContentLeft(), this.getContentTop());
         self.setDimensions(this.getContentWidth(), this.getContentHeight());
-      }).spacing(GuiUtil.PADDING));
+      });
 
       layout.add(new PaintingSpriteWidget(paintingData), (parent, self) -> {
         self.setDimensions(this.getContentHeight(), this.getContentHeight());
         self.setActive(this.canStay);
       });
 
-      LabelWidget labels = LabelWidget.builder(textRenderer, this.getPaintingData().getInfoLines())
-          .justifiedLeft()
-          .alignedMiddle()
+      layout.add(LabelWidget.builder(textRenderer, this.getPaintingData().getInfoLines())
+          .alignTextLeft()
+          .alignTextCenterY()
           .overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE)
           .hideBackground()
           .showShadow()
-          .build();
-      layout.add(labels, (parent, self) -> {
+          .build(), (parent, self) -> {
         self.setDimensions(this.getContentWidth() - GuiUtil.PADDING - this.getContentHeight(), this.getContentHeight());
       });
 

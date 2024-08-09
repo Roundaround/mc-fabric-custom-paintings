@@ -2,16 +2,16 @@ package me.roundaround.custompaintings.client.gui.widget;
 
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.roundalib.client.gui.GuiUtil;
+import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import me.roundaround.roundalib.client.gui.widget.IntSliderWidget;
-import me.roundaround.roundalib.client.gui.widget.LabelWidget;
 import me.roundaround.roundalib.client.gui.widget.ParentElementEntryListWidget;
+import me.roundaround.roundalib.client.gui.widget.drawable.LabelWidget;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.widget.CyclingButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.gui.widget.ThreePartsLayoutWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.MathHelper;
@@ -23,9 +23,9 @@ import java.util.function.Supplier;
 @Environment(value = EnvType.CLIENT)
 public class FilterListWidget extends ParentElementEntryListWidget<FilterListWidget.Entry> {
   public FilterListWidget(
-      PaintingEditState state, MinecraftClient client, ThreePartsLayoutWidget layout
+      PaintingEditState state, MinecraftClient client, ThreeSectionLayoutWidget layout
   ) {
-    super(client, layout.getX(), layout.getHeaderHeight(), layout.getWidth(), layout.getContentHeight());
+    super(client, layout);
 
     this.addEntry((index, left, top, width) -> new SectionTitleEntry(this.client.textRenderer,
         Text.translatable("custompaintings.filter.section.search"), index, left, top, width
@@ -123,10 +123,10 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
       this.setForceRowShading(true);
 
       this.label = LabelWidget.builder(textRenderer, label)
-          .refPosition(this.getContentCenterX(), this.getContentCenterY())
+          .position(this.getContentLeft(), this.getContentTop())
           .dimensions(this.getFullControlWidth(), this.getContentHeight())
-          .justifiedCenter()
-          .alignedMiddle()
+          .alignTextCenterX()
+          .alignTextCenterY()
           .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
           .showShadow()
           .hideBackground()
@@ -138,7 +138,7 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
     @Override
     public void refreshPositions() {
       this.label.batchUpdates(() -> {
-        this.label.setPosition(this.getContentCenterX(), this.getContentCenterY());
+        this.label.setPosition(this.getContentLeft(), this.getContentTop());
         this.label.setDimensions(this.getFullControlWidth(), this.getContentHeight());
       });
     }
@@ -207,10 +207,10 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
       this.getter = getter;
 
       this.label = LabelWidget.builder(textRenderer, label)
-          .refPosition(this.getControlLeft(), this.getContentCenterY())
+          .position(this.getControlLeft(), this.getContentCenterY())
           .dimensions(this.getHalfControlWidth(), this.getContentHeight())
-          .justifiedLeft()
-          .alignedMiddle()
+          .alignSelfLeft()
+          .alignSelfCenterY()
           .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
           .showShadow()
           .hideBackground()

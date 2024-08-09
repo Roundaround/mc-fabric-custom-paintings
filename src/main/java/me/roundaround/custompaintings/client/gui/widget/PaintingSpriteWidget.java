@@ -2,8 +2,8 @@ package me.roundaround.custompaintings.client.gui.widget;
 
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.roundalib.client.gui.layout.IntRect;
-import me.roundaround.roundalib.client.gui.widget.DrawableWidget;
+import me.roundaround.roundalib.client.gui.util.IntRect;
+import me.roundaround.roundalib.client.gui.widget.drawable.DrawableWidget;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.texture.Sprite;
 

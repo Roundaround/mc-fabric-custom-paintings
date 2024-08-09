@@ -2,14 +2,14 @@ package me.roundaround.custompaintings.client.gui.widget;
 
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.roundalib.client.gui.GuiUtil;
-import me.roundaround.roundalib.client.gui.widget.LabelWidget;
+import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import me.roundaround.roundalib.client.gui.widget.NarratableEntryListWidget;
+import me.roundaround.roundalib.client.gui.widget.drawable.LabelWidget;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.widget.ThreePartsLayoutWidget;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
 import org.lwjgl.glfw.GLFW;
@@ -22,7 +22,7 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
   private final Consumer<String> onPackSelect;
 
   public PackListWidget(
-      MinecraftClient client, ThreePartsLayoutWidget layout, Consumer<String> onPackSelect
+      MinecraftClient client, ThreeSectionLayoutWidget layout, Consumer<String> onPackSelect
   ) {
     super(client, layout);
 
@@ -57,10 +57,10 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
       this.pack = pack;
 
       this.label = LabelWidget.builder(textRenderer, Text.of(pack.name()))
-          .refPosition(this.getContentCenterX(), this.getContentCenterY())
+          .position(this.getContentLeft(), this.getContentTop())
           .dimensions(this.getContentWidth(), this.getContentHeight())
-          .justifiedCenter()
-          .alignedMiddle()
+          .alignTextCenterX()
+          .alignTextCenterY()
           .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
           .showShadow()
           .hideBackground()
@@ -72,7 +72,7 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
     @Override
     public void refreshPositions() {
       this.label.batchUpdates(() -> {
-        this.label.setPosition(this.getContentCenterX(), this.getContentCenterY());
+        this.label.setPosition(this.getContentLeft(), this.getContentTop());
         this.label.setDimensions(this.getContentWidth(), this.getContentHeight());
       });
     }

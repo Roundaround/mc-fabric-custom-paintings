@@ -6,12 +6,17 @@ import me.roundaround.custompaintings.client.gui.widget.PaintingListWidget;
 import me.roundaround.custompaintings.client.gui.widget.PaintingSpriteWidget;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
+import me.roundaround.roundalib.asset.icon.BuiltinIcon;
 import me.roundaround.roundalib.client.gui.GuiUtil;
+import me.roundaround.roundalib.client.gui.layout.FillerWidget;
+import me.roundaround.roundalib.client.gui.layout.linear.LinearLayoutWidget;
+import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
+import me.roundaround.roundalib.client.gui.util.Axis;
 import me.roundaround.roundalib.client.gui.widget.IconButtonWidget;
-import me.roundaround.roundalib.client.gui.widget.LabelWidget;
-import me.roundaround.roundalib.client.gui.widget.LinearLayoutWidget;
+import me.roundaround.roundalib.client.gui.widget.drawable.LabelWidget;
 import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.*;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
@@ -26,7 +31,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
   protected static final int BUTTON_HEIGHT = 20;
   protected static final int BUTTON_SPACING = GuiUtil.PADDING * 2;
 
-  private final ThreePartsLayoutWidget layout = new ThreePartsLayoutWidget(this);
+  private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
 
   private TextFieldWidget searchBox;
   private PaintingListWidget paintingList;
@@ -43,22 +48,16 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
 
   @Override
   public void init() {
-    this.layout.addHeader(this.title, this.textRenderer);
+    this.layout.addHeader(this.textRenderer, this.title);
 
-    LinearLayoutWidget body = this.layout.addBody(LinearLayoutWidget.horizontal((self) -> {
-      self.setPosition(0, this.layout.getHeaderHeight());
-      self.setDimensions(this.width, this.layout.getContentHeight());
-    }).spacing(2 * GuiUtil.PADDING));
+    this.layout.getBody().flowAxis(Axis.HORIZONTAL).spacing(0);
 
-    LinearLayoutWidget leftPane = body.add(LinearLayoutWidget.vertical().spacing(GuiUtil.PADDING), (parent, self) -> {
-      Divider divider = new Divider(parent.getWidth() - parent.getSpacing(), 2);
-      self.setDimensions(divider.nextInt(), parent.getHeight());
-    });
-    leftPane.getMainPositioner().alignRight();
+    LinearLayoutWidget leftPane = LinearLayoutWidget.vertical()
+        .defaultOffAxisContentAlignEnd()
+        .spacing(GuiUtil.PADDING);
 
     LinearLayoutWidget searchRow = leftPane.add(LinearLayoutWidget.horizontal().spacing(GuiUtil.PADDING),
-        (parent, self) -> self.setDimensions(parent.getWidth() - GuiUtil.PADDING, BUTTON_HEIGHT),
-        Positioner::alignVerticalCenter
+        (parent, self) -> self.setDimensions(leftPane.getWidth() - GuiUtil.PADDING, BUTTON_HEIGHT)
     );
 
     this.searchBox = searchRow.add(
@@ -68,7 +67,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     this.searchBox.setText(this.state.getFilters().getSearch());
     this.searchBox.setChangedListener(this::onSearchBoxChanged);
 
-    searchRow.add(IconButtonWidget.builder(IconButtonWidget.BuiltinIcon.FILTER_18, CustomPaintingsMod.MOD_ID)
+    searchRow.add(IconButtonWidget.builder(BuiltinIcon.FILTER_18, CustomPaintingsMod.MOD_ID)
         .vanillaSize()
         .messageAndTooltip(Text.translatable("custompaintings.painting.filter"))
         .onPress(this::filterButtonPressed)
@@ -81,24 +80,19 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
         }
     );
 
-    LinearLayoutWidget rightPane = body.add(LinearLayoutWidget.vertical().spacing(GuiUtil.PADDING), (parent, self) -> {
-      Divider divider = new Divider(parent.getWidth() - parent.getSpacing(), 2);
-      divider.skip(1);
-      self.setDimensions(divider.nextInt(), parent.getHeight());
-    });
-    rightPane.getMainPositioner().alignHorizontalCenter();
+    LinearLayoutWidget rightPane = LinearLayoutWidget.vertical()
+        .spacing(GuiUtil.PADDING)
+        .defaultOffAxisContentAlignCenter();
 
     this.infoLabel = rightPane.add(LabelWidget.builder(this.textRenderer, this.getInfoLines())
-        .justifiedCenter()
-        .alignedMiddle()
+        .alignTextCenterX()
+        .alignTextCenterY()
         .hideBackground()
         .showShadow()
         .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
         .lineSpacing(1)
         .build(), (parent, self) -> {
-      self.setDimensions(parent.getWidth(),
-          LabelWidget.getDefaultHeight(this.textRenderer, 3, LabelWidget.DEFAULT_PADDING.getVertical(), 1)
-      );
+      self.setWidth(parent.getWidth());
     });
 
     this.paintingSprite = rightPane.add(
@@ -108,45 +102,52 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
           );
         });
 
-    LinearLayoutWidget controlsRow = rightPane.add(LinearLayoutWidget.horizontal().spacing(GuiUtil.PADDING),
-        (parent, self) -> self.setDimensions(parent.getWidth() - 4 * GuiUtil.PADDING, IconButtonWidget.SIZE_V)
-    );
-    controlsRow.getMainPositioner().alignVerticalCenter();
+    LinearLayoutWidget controlsRow = LinearLayoutWidget.horizontal()
+        .spacing(GuiUtil.PADDING)
+        .defaultOffAxisContentAlignCenter();
 
-    this.prevButton = controlsRow.add(
-        IconButtonWidget.builder(IconButtonWidget.BuiltinIcon.PREV_18, CustomPaintingsMod.MOD_ID)
-            .vanillaSize()
-            .messageAndTooltip(Text.translatable("custompaintings.painting.previous"))
-            .onPress((button) -> this.state.setPreviousPainting())
-            .build());
+    this.prevButton = controlsRow.add(IconButtonWidget.builder(BuiltinIcon.PREV_18, CustomPaintingsMod.MOD_ID)
+        .vanillaSize()
+        .messageAndTooltip(Text.translatable("custompaintings.painting.previous"))
+        .onPress((button) -> this.state.setPreviousPainting())
+        .build());
 
     this.controlsLabel = controlsRow.add(LabelWidget.builder(this.textRenderer, this.getControlsText())
-            .justifiedCenter()
-            .alignedMiddle()
-            .hideBackground()
-            .showShadow()
-            .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
-            .build(),
-        (parent, self) -> self.setDimensions(parent.getWidth() - 2 * (GuiUtil.PADDING + IconButtonWidget.SIZE_V),
-            parent.getHeight()
-        )
-    );
+        .alignTextCenterX()
+        .alignTextCenterY()
+        .hideBackground()
+        .showShadow()
+        .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
+        .build(), (parent, self) -> {
+      self.setDimensions(parent.getWidth() - 2 * (GuiUtil.PADDING + IconButtonWidget.SIZE_V), parent.getHeight());
+    });
 
-    this.nextButton = controlsRow.add(
-        IconButtonWidget.builder(IconButtonWidget.BuiltinIcon.NEXT_18, CustomPaintingsMod.MOD_ID)
-            .vanillaSize()
-            .messageAndTooltip(Text.translatable("custompaintings.painting.next"))
-            .onPress((button) -> this.state.setNextPainting())
-            .build());
+    this.nextButton = controlsRow.add(IconButtonWidget.builder(BuiltinIcon.NEXT_18, CustomPaintingsMod.MOD_ID)
+        .vanillaSize()
+        .messageAndTooltip(Text.translatable("custompaintings.painting.next"))
+        .onPress((button) -> this.state.setNextPainting())
+        .build());
 
-    DirectionalLayoutWidget row = DirectionalLayoutWidget.horizontal().spacing(BUTTON_SPACING);
-    this.layout.addFooter(row);
+    rightPane.add(controlsRow, (parent, self) -> {
+      self.setWidth(parent.getWidth());
+    });
 
-    row.add(ButtonWidget.builder(ScreenTexts.BACK, (button) -> {
+    this.layout.addBody(leftPane, (parent, self) -> {
+      Divider divider = new Divider(parent.getWidth() - 2 * GuiUtil.PADDING, 2);
+      self.setDimensions(divider.nextInt(), parent.getHeight());
+    });
+    this.layout.addBody(FillerWidget.ofWidth(3 * GuiUtil.PADDING));
+    this.layout.addBody(rightPane, (parent, self) -> {
+      Divider divider = new Divider(parent.getWidth() - 2 * GuiUtil.PADDING, 2);
+      divider.skip(1);
+      self.setDimensions(divider.nextInt() - 2 * GuiUtil.PADDING, parent.getHeight());
+    });
+    this.layout.addBody(FillerWidget.ofWidth(GuiUtil.PADDING));
+
+    this.layout.addFooter(ButtonWidget.builder(ScreenTexts.BACK, (button) -> {
       Objects.requireNonNull(this.client).setScreen(new PackSelectScreen(this.state));
     }).build());
-
-    this.doneButton = row.add(ButtonWidget.builder(ScreenTexts.DONE, (button) -> {
+    this.doneButton = this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, (button) -> {
       this.saveCurrentSelection();
     }).build());
 

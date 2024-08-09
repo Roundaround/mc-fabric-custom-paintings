@@ -6,7 +6,7 @@ import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
-import me.roundaround.roundalib.PathAccessor;
+import me.roundaround.roundalib.util.PathAccessor;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.SinglePreparationResourceReloader;
@@ -20,10 +20,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
 public class PaintingPackLoader extends SinglePreparationResourceReloader<PaintingPackLoader.LoadResult> implements
@@ -129,7 +127,8 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
         pack = GSON.fromJson(new InputStreamReader(stream), PackResource.class);
       } catch (Exception e) {
         CustomPaintingsMod.LOGGER.warn(e);
-        CustomPaintingsMod.LOGGER.warn("Failed to parse {} from \"{}\", skipping...", META_FILENAME, path.getFileName());
+        CustomPaintingsMod.LOGGER.warn(
+            "Failed to parse {} from \"{}\", skipping...", META_FILENAME, path.getFileName());
         return null;
       }
 

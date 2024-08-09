@@ -2,18 +2,15 @@ package me.roundaround.custompaintings.client.gui.screen.edit;
 
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.widget.FilterListWidget;
-import me.roundaround.roundalib.client.gui.GuiUtil;
-import me.roundaround.roundalib.client.gui.widget.FullBodyWrapperWidget;
+import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.DirectionalLayoutWidget;
-import net.minecraft.client.gui.widget.ThreePartsLayoutWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 
 import java.util.Objects;
 
 public class FiltersScreen extends PaintingEditScreen {
-  protected final ThreePartsLayoutWidget layout = new ThreePartsLayoutWidget(this);
+  protected final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
 
   private FilterListWidget filtersListWidget;
 
@@ -23,18 +20,14 @@ public class FiltersScreen extends PaintingEditScreen {
 
   @Override
   public void init() {
-    this.layout.addHeader(this.title, this.textRenderer);
+    this.layout.addHeader(this.textRenderer, this.title);
 
-    this.filtersListWidget = new FilterListWidget(this.state, this.client, this.layout);
-    this.layout.addBody(new FullBodyWrapperWidget(this.filtersListWidget, this.layout));
+    this.layout.addBody(new FilterListWidget(this.state, this.client, this.layout));
 
-    DirectionalLayoutWidget row = DirectionalLayoutWidget.horizontal().spacing(2 * GuiUtil.PADDING);
-    this.layout.addFooter(row);
-
-    row.add(ButtonWidget.builder(Text.translatable("custompaintings.filter.reset"), this::resetFilters)
+    this.layout.addFooter(ButtonWidget.builder(Text.translatable("custompaintings.filter.reset"), this::resetFilters)
         .size(ButtonWidget.DEFAULT_WIDTH, ButtonWidget.DEFAULT_HEIGHT)
         .build());
-    row.add(ButtonWidget.builder(ScreenTexts.DONE, this::close)
+    this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, this::close)
         .size(ButtonWidget.DEFAULT_WIDTH, ButtonWidget.DEFAULT_HEIGHT)
         .build());
 

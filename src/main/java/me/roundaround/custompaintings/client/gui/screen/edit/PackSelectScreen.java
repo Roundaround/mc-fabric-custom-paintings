@@ -2,8 +2,8 @@ package me.roundaround.custompaintings.client.gui.screen.edit;
 
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.widget.PackListWidget;
+import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.ThreePartsLayoutWidget;
 import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.sound.SoundEvents;
@@ -12,7 +12,7 @@ import net.minecraft.text.Text;
 import java.util.Objects;
 
 public class PackSelectScreen extends PaintingEditScreen {
-  protected final ThreePartsLayoutWidget layout = new ThreePartsLayoutWidget(this);
+  protected final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
 
   public PackSelectScreen(PaintingEditState state) {
     super(Text.translatable("custompaintings.pack.title"), state);
@@ -23,11 +23,11 @@ public class PackSelectScreen extends PaintingEditScreen {
     // If we have filters set, then go back to the group select screen, we should clear the filters.
     this.state.getFilters().reset();
 
-    this.layout.addHeader(this.title, this.textRenderer);
+    this.layout.addHeader(this.textRenderer, this.title);
 
-    PackListWidget groupsListWidget = new PackListWidget(this.client, this.layout, this::selectPack);
+    PackListWidget groupsListWidget = this.layout.addBody(
+        new PackListWidget(this.client, this.layout, this::selectPack));
     groupsListWidget.setGroups(this.state.getPacks());
-    this.layout.addBody(groupsListWidget);
 
     this.layout.addFooter(ButtonWidget.builder(ScreenTexts.CANCEL, this::close).build());
 
