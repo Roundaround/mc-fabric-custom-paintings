@@ -9,7 +9,6 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.nbt.*;
 import net.minecraft.resource.*;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.Pair;
 import net.minecraft.util.profiler.Profiler;
 
 import javax.imageio.ImageIO;
@@ -21,7 +20,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.stream.Collectors;
 
 public class LegacyPaintingPackChecker extends SinglePreparationResourceReloader<LegacyPaintingPackChecker.LoadResult> implements
@@ -43,7 +41,7 @@ public class LegacyPaintingPackChecker extends SinglePreparationResourceReloader
         .resolve("legacy_ignored.dat");
     HashSet<String> ignoredPacks = readIgnoredPacks(ignoredPacksDatFile);
 
-    HashMap<String, LegacyPack> packs = new HashMap<>();
+    HashMap<String, LegacyPackResource> packs = new HashMap<>();
     HashMap<Identifier, PaintingImage> images = new HashMap<>();
 
     manager.streamResourcePacks()
@@ -54,7 +52,7 @@ public class LegacyPaintingPackChecker extends SinglePreparationResourceReloader
             .anyMatch((namespace) -> !Identifier.DEFAULT_NAMESPACE.equals(namespace) &&
                 !Identifier.REALMS_NAMESPACE.equals(namespace)))
         .forEach(((resourcePack) -> {
-          LegacyPack pack;
+          LegacyPackResource pack;
           InputSupplier<InputStream> streamSupplier = resourcePack.openRoot("custompaintings.json");
 
           if (streamSupplier == null) {
@@ -63,7 +61,7 @@ public class LegacyPaintingPackChecker extends SinglePreparationResourceReloader
           }
 
           try (InputStream stream = streamSupplier.get()) {
-            pack = GSON.fromJson(new InputStreamReader(stream), LegacyPack.class);
+            pack = GSON.fromJson(new InputStreamReader(stream), LegacyPackResource.class);
 
             if (ignoredPacks.contains(pack.id())) {
               // Already acknowledged; skip
@@ -154,15 +152,6 @@ public class LegacyPaintingPackChecker extends SinglePreparationResourceReloader
     return new HashSet<>(0);
   }
 
-  public record LoadResult(HashMap<String, LegacyPack> packs, HashMap<Identifier, PaintingImage> images) {
-  }
-
-  public record LegacyPack(String id, String name, List<Painting> paintings, List<Migration> migrations) {
-  }
-
-  public record Painting(String id, String name, String artist, Integer height, Integer width) {
-  }
-
-  public record Migration(String id, String description, List<Pair<String, String>> pairs) {
+  public record LoadResult(HashMap<String, LegacyPackResource> packs, HashMap<Identifier, PaintingImage> images) {
   }
 }
