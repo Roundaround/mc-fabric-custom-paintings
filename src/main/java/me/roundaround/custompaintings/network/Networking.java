@@ -2,7 +2,7 @@ package me.roundaround.custompaintings.network;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
-import me.roundaround.custompaintings.resource.PaintingImage;
+import me.roundaround.custompaintings.resource.Image;
 import me.roundaround.roundalib.network.CustomCodecs;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.network.PacketByteBuf;
@@ -60,10 +60,10 @@ public final class Networking {
     }
   }
 
-  public record ImageS2C(Identifier id, PaintingImage image) implements CustomPayload {
+  public record ImageS2C(Identifier id, Image image) implements CustomPayload {
     public static final CustomPayload.Id<ImageS2C> ID = new CustomPayload.Id<>(IMAGE_S2C);
     public static final PacketCodec<RegistryByteBuf, ImageS2C> CODEC = PacketCodec.tuple(
-        Identifier.PACKET_CODEC, ImageS2C::id, PaintingImage.PACKET_CODEC, ImageS2C::image, ImageS2C::new);
+        Identifier.PACKET_CODEC, ImageS2C::id, Image.PACKET_CODEC, ImageS2C::image, ImageS2C::new);
 
     @Override
     public Id<? extends CustomPayload> getId() {

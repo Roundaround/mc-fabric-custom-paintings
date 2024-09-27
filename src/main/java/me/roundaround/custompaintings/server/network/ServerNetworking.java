@@ -4,7 +4,7 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.network.PaintingIdPair;
-import me.roundaround.custompaintings.resource.PaintingImage;
+import me.roundaround.custompaintings.resource.Image;
 import me.roundaround.custompaintings.server.CustomPaintingsServerMod;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
@@ -52,7 +52,7 @@ public final class ServerNetworking {
     ServerPlayNetworking.send(player, new Networking.ImagesS2C(ids));
   }
 
-  public static void sendImagePacket(ServerPlayerEntity player, Identifier id, PaintingImage image) {
+  public static void sendImagePacket(ServerPlayerEntity player, Identifier id, Image image) {
     Networking.ImageS2C payload = new Networking.ImageS2C(id, image);
     if (FabricLoader.getInstance().getEnvironmentType() == EnvType.SERVER) {
       ImagePacketQueue.getInstance().add(player, payload);

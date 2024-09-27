@@ -51,7 +51,7 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
 
     try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(packsDir)) {
       HashMap<String, PackResource> packs = new HashMap<>();
-      HashMap<Identifier, PaintingImage> images = new HashMap<>();
+      HashMap<Identifier, Image> images = new HashMap<>();
       directoryStream.forEach((path) -> {
         SinglePackResult result = readAsPack(path);
         if (result != null) {
@@ -137,7 +137,7 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
         return null;
       }
 
-      HashMap<Identifier, PaintingImage> images = new HashMap<>();
+      HashMap<Identifier, Image> images = new HashMap<>();
       pack.paintings().forEach((painting) -> {
         Identifier id = new Identifier(pack.id(), painting.id());
         ZipEntry zipImage = zip.getEntry(String.format("images/%s.png", painting.id()));
@@ -158,7 +158,7 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
             return;
           }
 
-          images.put(id, PaintingImage.read(image));
+          images.put(id, Image.read(image));
         } catch (IOException e) {
           CustomPaintingsMod.LOGGER.warn(e);
           CustomPaintingsMod.LOGGER.warn("Failed to read custom painting image file for {}", id);
@@ -193,7 +193,7 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
       return null;
     }
 
-    HashMap<Identifier, PaintingImage> images = new HashMap<>();
+    HashMap<Identifier, Image> images = new HashMap<>();
     pack.paintings().forEach((painting) -> {
       Identifier id = new Identifier(pack.id(), painting.id());
       Path imagePath = path.resolve("images").resolve(painting.id() + ".png");
@@ -214,7 +214,7 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
           return;
         }
 
-        images.put(id, PaintingImage.read(image));
+        images.put(id, Image.read(image));
       } catch (IOException e) {
         CustomPaintingsMod.LOGGER.warn(e);
         CustomPaintingsMod.LOGGER.warn("Failed to read custom painting image file for {}", id);
@@ -224,10 +224,10 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
     return new SinglePackResult(pack.id(), pack, images);
   }
 
-  protected record SinglePackResult(String id, PackResource pack, HashMap<Identifier, PaintingImage> images) {
+  protected record SinglePackResult(String id, PackResource pack, HashMap<Identifier, Image> images) {
   }
 
-  protected record LoadResult(HashMap<String, PackResource> packs, HashMap<Identifier, PaintingImage> images) {
+  protected record LoadResult(HashMap<String, PackResource> packs, HashMap<Identifier, Image> images) {
     public static LoadResult empty() {
       return new LoadResult(new HashMap<>(0), new HashMap<>(0));
     }

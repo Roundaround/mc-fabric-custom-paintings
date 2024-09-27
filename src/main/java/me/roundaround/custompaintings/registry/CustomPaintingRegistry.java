@@ -4,7 +4,7 @@ import com.google.common.hash.Hashing;
 import com.google.common.io.ByteSource;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
-import me.roundaround.custompaintings.resource.PaintingImage;
+import me.roundaround.custompaintings.resource.Image;
 import net.minecraft.util.Identifier;
 
 import java.io.IOException;
@@ -17,7 +17,7 @@ public abstract class CustomPaintingRegistry implements AutoCloseable {
   protected final LinkedHashMap<String, PaintingPack> packsMap = new LinkedHashMap<>();
   protected final ArrayList<PaintingPack> packsList = new ArrayList<>();
   protected final HashMap<Identifier, PaintingData> paintings = new HashMap<>();
-  protected final HashMap<Identifier, PaintingImage> images = new HashMap<>();
+  protected final HashMap<Identifier, Image> images = new HashMap<>();
   protected final HashMap<Identifier, String> imageHashes = new HashMap<>();
 
   protected String combinedImageHash = "";
@@ -32,7 +32,7 @@ public abstract class CustomPaintingRegistry implements AutoCloseable {
     return this.paintings.get(id);
   }
 
-  public PaintingImage getImage(Identifier id) {
+  public Image getImage(Identifier id) {
     return this.images.get(id);
   }
 
@@ -65,7 +65,7 @@ public abstract class CustomPaintingRegistry implements AutoCloseable {
   protected void onPacksChanged() {
   }
 
-  public void setImages(HashMap<Identifier, PaintingImage> images) {
+  public void setImages(HashMap<Identifier, Image> images) {
     this.images.clear();
     this.imageHashes.clear();
 
@@ -85,7 +85,7 @@ public abstract class CustomPaintingRegistry implements AutoCloseable {
   protected void onImagesChanged() {
   }
 
-  protected static HashResult hashImages(HashMap<Identifier, PaintingImage> images) throws IOException {
+  protected static HashResult hashImages(HashMap<Identifier, Image> images) throws IOException {
     HashMap<Identifier, String> imageHashes = new HashMap<>();
 
     TreeSet<Identifier> imageIds = new TreeSet<>(images.keySet());

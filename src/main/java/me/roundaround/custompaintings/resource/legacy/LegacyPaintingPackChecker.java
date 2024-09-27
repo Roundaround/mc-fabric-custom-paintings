@@ -3,7 +3,7 @@ package me.roundaround.custompaintings.resource.legacy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.custompaintings.resource.PaintingImage;
+import me.roundaround.custompaintings.resource.Image;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.nbt.*;
@@ -42,7 +42,7 @@ public class LegacyPaintingPackChecker extends SinglePreparationResourceReloader
     HashSet<String> ignoredPacks = readIgnoredPacks(ignoredPacksDatFile);
 
     HashMap<String, LegacyPackResource> packs = new HashMap<>();
-    HashMap<Identifier, PaintingImage> images = new HashMap<>();
+    HashMap<Identifier, Image> images = new HashMap<>();
 
     manager.streamResourcePacks()
         .filter(
@@ -118,7 +118,7 @@ public class LegacyPaintingPackChecker extends SinglePreparationResourceReloader
                   return;
                 }
 
-                images.put(id, PaintingImage.read(image));
+                images.put(id, Image.read(image));
               } catch (Exception e) {
                 // Silently ignore image
               }
@@ -152,6 +152,6 @@ public class LegacyPaintingPackChecker extends SinglePreparationResourceReloader
     return new HashSet<>(0);
   }
 
-  public record LoadResult(HashMap<String, LegacyPackResource> packs, HashMap<Identifier, PaintingImage> images) {
+  public record LoadResult(HashMap<String, LegacyPackResource> packs, HashMap<Identifier, Image> images) {
   }
 }

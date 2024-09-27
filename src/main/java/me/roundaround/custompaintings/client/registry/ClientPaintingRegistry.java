@@ -9,7 +9,7 @@ import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
-import me.roundaround.custompaintings.resource.PaintingImage;
+import me.roundaround.custompaintings.resource.Image;
 import me.roundaround.roundalib.client.event.MinecraftClientEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
@@ -39,7 +39,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   private final SpriteAtlasTexture atlas;
   private final HashSet<Identifier> spriteIds = new HashSet<>();
   private final HashSet<Identifier> neededImages = new HashSet<>();
-  private final HashMap<Identifier, PaintingImage> cachedImages = new HashMap<>();
+  private final HashMap<Identifier, Image> cachedImages = new HashMap<>();
 
   private boolean packsReceived = false;
   private String pendingCombinedImagesHash = "";
@@ -141,7 +141,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     this.buildSpriteAtlas();
   }
 
-  public void setPaintingImage(Identifier id, PaintingImage image) {
+  public void setPaintingImage(Identifier id, Image image) {
     try {
       this.images.put(id, image);
       this.imageHashes.put(id, image.getHash());
@@ -200,15 +200,15 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     for (Identifier id : this.paintings.keySet()) {
       Path path = cacheDir.resolve(id.getNamespace()).resolve(id.getPath() + ".png");
       if (Files.notExists(path) || !Files.isRegularFile(path)) {
-        this.cachedImages.put(id, PaintingImage.empty());
+        this.cachedImages.put(id, Image.empty());
         continue;
       }
 
       try {
-        PaintingImage image = PaintingImage.read(Files.newInputStream(path));
+        Image image = Image.read(Files.newInputStream(path));
         this.cachedImages.put(id, image);
       } catch (IOException e) {
-        this.cachedImages.put(id, PaintingImage.empty());
+        this.cachedImages.put(id, Image.empty());
       }
     }
 
@@ -256,39 +256,40 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   }
 
   private SpriteContents getSpriteContents(PaintingData painting) {
-    PaintingImage image = this.images.get(painting.id());
+    Image image = this.images.get(painting.id());
     if (image != null) {
       return getSpriteContents(painting.id(), image);
     }
     return LoadingSprite.generate(painting.id(), painting.getScaledWidth(), painting.getScaledHeight());
   }
 
-  private static NativeImage getNativeImage(PaintingImage paintingImage) {
-    NativeImage nativeImage = new NativeImage(paintingImage.width(), paintingImage.height(), false);
-    for (int x = 0; x < paintingImage.width(); x++) {
-      for (int y = 0; y < paintingImage.height(); y++) {
-        nativeImage.setColor(x, y, paintingImage.getABGR(x, y));
+  private static NativeImage getNativeImage(Image image) {
+    NativeImage nativeImage = new NativeImage(image.width(), image.height(), false);
+    for (int x = 0; x < image.width(); x++) {
+      for (int y = 0; y < image.height(); y++) {
+        nativeImage.setColor(x, y, image.getABGR(x, y));
       }
     }
     return nativeImage;
   }
 
-  private static SpriteContents getSpriteContents(Identifier id, PaintingImage paintingImage) {
-    NativeImage nativeImage = getNativeImage(paintingImage);
-    return new SpriteContents(id, new SpriteDimensions(paintingImage.width(), paintingImage.height()), nativeImage,
-        getResourceMetadata(paintingImage)
+  private static SpriteContents getSpriteContents(Identifier id, Image image) {
+    NativeImage nativeImage = getNativeImage(image);
+    return new SpriteContents(id, new SpriteDimensions(image.width(), image.height()), nativeImage,
+        getResourceMetadata(image)
     );
   }
 
-  private static ResourceMetadata getResourceMetadata(PaintingImage paintingImage) {
+  private static ResourceMetadata getResourceMetadata(Image image) {
     return new ResourceMetadata.Builder().add(AnimationResourceMetadata.READER,
-        new AnimationResourceMetadata(ImmutableList.of(new AnimationFrameResourceMetadata(0, -1)),
-            paintingImage.width(), paintingImage.height(), 1, false
+            new AnimationResourceMetadata(ImmutableList.of(new AnimationFrameResourceMetadata(0, -1)), image.width(),
+                image.height(), 1, false
+            )
         )
-    ).build();
+        .build();
   }
 
-  private static void writeImagesToFile(Map<String, PaintingPack> packsMap, Map<Identifier, PaintingImage> images) {
+  private static void writeImagesToFile(Map<String, PaintingPack> packsMap, Map<Identifier, Image> images) {
     Path cacheDir = FabricLoader.getInstance().getGameDir().resolve("data").resolve(CustomPaintingsMod.MOD_ID);
     if (Files.notExists(cacheDir)) {
       try {
@@ -312,7 +313,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
       }
 
       for (PaintingData painting : pack.paintings()) {
-        PaintingImage image = images.get(painting.id());
+        Image image = images.get(painting.id());
         if (image == null || image.isEmpty()) {
           continue;
         }

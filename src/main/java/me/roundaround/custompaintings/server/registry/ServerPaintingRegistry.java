@@ -3,7 +3,7 @@ package me.roundaround.custompaintings.server.registry;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
-import me.roundaround.custompaintings.resource.PaintingImage;
+import me.roundaround.custompaintings.resource.Image;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -44,7 +44,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     this.server = server;
   }
 
-  public void update(HashMap<String, PaintingPack> packs, HashMap<Identifier, PaintingImage> images) {
+  public void update(HashMap<String, PaintingPack> packs, HashMap<Identifier, Image> images) {
     this.setPacks(packs);
     this.setImages(images);
 
@@ -73,7 +73,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     ServerNetworking.sendImagesPacket(player, idsToSend);
 
     idsToSend.forEach((id) -> {
-      PaintingImage image = this.images.get(id);
+      Image image = this.images.get(id);
       if (image == null) {
         return;
       }
