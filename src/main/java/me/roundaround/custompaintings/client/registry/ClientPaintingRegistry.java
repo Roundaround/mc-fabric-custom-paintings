@@ -5,11 +5,13 @@ import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.client.texture.BackSprite;
 import me.roundaround.custompaintings.client.texture.LoadingSprite;
+import me.roundaround.custompaintings.client.texture.VanillaIconSprite;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
 import me.roundaround.custompaintings.resource.Image;
+import me.roundaround.custompaintings.resource.PackIcons;
 import me.roundaround.roundalib.client.event.MinecraftClientEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
@@ -214,7 +216,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     }
 
     for (String packId : this.packsMap.keySet()) {
-      Identifier id = new Identifier("__icon", packId);
+      Identifier id = PackIcons.identifier(packId);
       Path path = cacheDir.resolve(id.getNamespace()).resolve(id.getPath() + ".png");
       if (Files.notExists(path) || !Files.isRegularFile(path)) {
         this.cachedImages.put(id, Image.empty());
@@ -264,6 +266,9 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     List<SpriteContents> sprites = new ArrayList<>();
     sprites.add(MissingSprite.createSpriteContents());
     sprites.add(BackSprite.fetch(this.client, PAINTING_BACK_ID, BACK_TEXTURE_ID));
+    sprites.add(VanillaIconSprite.create(this.client, PackIcons.MINECRAFT_ICON_ID, "vanilla"));
+    // TODO: Use one of the "hidden" paintings as the icon?
+    sprites.add(VanillaIconSprite.create(this.client, PackIcons.MINECRAFT_HIDDEN_ICON_ID, "programmer_art"));
     this.paintings.values().forEach((painting) -> sprites.add(this.getSpriteContents(painting)));
     this.packsMap.keySet().forEach((packId) -> sprites.add(this.getSpriteContents(PaintingData.packIcon(packId))));
 
@@ -276,7 +281,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   @SuppressWarnings("BooleanMethodIsAlwaysInverted")
   private boolean isValidImageId(Identifier id) {
     return this.paintings.containsKey(id) ||
-        (id.getNamespace().equals("__icon") && this.packsMap.containsKey(id.getPath()));
+        (id.getNamespace().equals(PackIcons.ICON_NAMESPACE) && this.packsMap.containsKey(id.getPath()));
   }
 
   private SpriteContents getSpriteContents(PaintingData painting) {
@@ -324,7 +329,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
       }
     }
 
-    Path iconsDir = cacheDir.resolve("__icon");
+    Path iconsDir = cacheDir.resolve(PackIcons.ICON_NAMESPACE);
     AtomicBoolean cacheIcons = new AtomicBoolean(true);
     if (Files.notExists(iconsDir)) {
       try {
@@ -349,7 +354,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
       }
 
       if (cacheIcons.get()) {
-        Image iconImage = images.get(new Identifier("__icon", id));
+        Image iconImage = images.get(PackIcons.identifier(id));
         if (iconImage != null && !iconImage.isEmpty()) {
           Path imagePath = iconsDir.resolve(String.format("%s.png", id));
           try {

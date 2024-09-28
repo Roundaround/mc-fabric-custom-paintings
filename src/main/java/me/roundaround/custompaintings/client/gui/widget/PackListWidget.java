@@ -61,7 +61,8 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
         self.setDimensions(this.getContentWidth(), this.getContentHeight());
       });
 
-      layout.add(ImageSpriteWidget.create(this.pack.id()),
+      layout.add(
+          PaintingSpriteWidget.create(this.pack.id()),
           (parent, self) -> self.setDimensions(this.getContentHeight(), this.getContentHeight())
       );
 

@@ -1,5 +1,6 @@
 package me.roundaround.custompaintings.entity.decoration.painting;
 
+import me.roundaround.custompaintings.resource.PackIcons;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
@@ -35,7 +36,7 @@ public record PaintingData(Identifier id, int width, int height, String name, St
   }
 
   public static PaintingData packIcon(String packId) {
-    return new PaintingData(new Identifier("__icon", packId), 1, 1, "", "");
+    return new PaintingData(PackIcons.identifier(packId), 1, 1, "", "");
   }
 
   public int getScaledWidth() {

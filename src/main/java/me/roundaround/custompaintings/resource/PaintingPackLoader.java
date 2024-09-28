@@ -149,7 +149,7 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
             throw new IOException("BufferedImage is null");
           }
 
-          images.put(new Identifier("__icon", pack.id()), Image.read(image));
+          images.put(PackIcons.identifier(pack.id()), Image.read(image));
         } catch (IOException e) {
           CustomPaintingsMod.LOGGER.warn(e);
           CustomPaintingsMod.LOGGER.warn("Failed to read icon.png file for {}", pack.id());
@@ -223,7 +223,7 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
           throw new IOException("BufferedImage is null");
         }
 
-        images.put(new Identifier("__icon", pack.id()), Image.read(image));
+        images.put(PackIcons.identifier(pack.id()), Image.read(image));
       } catch (IOException e) {
         CustomPaintingsMod.LOGGER.warn(e);
         CustomPaintingsMod.LOGGER.warn("Failed to read icon.png file for {}", pack.id());

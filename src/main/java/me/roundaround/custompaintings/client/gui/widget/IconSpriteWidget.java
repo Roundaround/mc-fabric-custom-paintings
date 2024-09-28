@@ -1,25 +1,24 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
-import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.resource.PackIcons;
+import me.roundaround.roundalib.client.gui.util.Dimensions;
 import me.roundaround.roundalib.client.gui.util.IntRect;
 import me.roundaround.roundalib.client.gui.widget.drawable.DrawableWidget;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.texture.Sprite;
 
-public class ImageSpriteWidget extends DrawableWidget {
-  private PaintingData paintingData;
+public class IconSpriteWidget extends DrawableWidget {
   private boolean border = false;
   private Sprite sprite;
-  private IntRect paintingBounds = IntRect.zero();
+  private IntRect bounds = IntRect.zero();
   private boolean inBatchUpdate = false;
 
-  private ImageSpriteWidget(int x, int y, int width, int height, PaintingData paintingData, boolean border) {
+  private IconSpriteWidget(int x, int y, int width, int height, String packId, boolean border) {
     super(x, y, width, height);
 
-    this.paintingData = paintingData;
     this.border = border;
-    this.sprite = ClientPaintingRegistry.getInstance().getSprite(paintingData);
+    this.sprite = ClientPaintingRegistry.getInstance().getSprite(PackIcons.identifier(packId));
     this.calculateBounds();
   }
 
@@ -63,10 +62,8 @@ public class ImageSpriteWidget extends DrawableWidget {
     this.calculateBounds();
   }
 
-  public void setPaintingData(PaintingData paintingData) {
-    this.visible = paintingData != null && !paintingData.isEmpty();
-    this.paintingData = paintingData != null ? paintingData : PaintingData.EMPTY;
-    this.sprite = ClientPaintingRegistry.getInstance().getSprite(this.paintingData);
+  public void setPackId(String packId) {
+    this.sprite = ClientPaintingRegistry.getInstance().getSprite(PackIcons.identifier(packId));
     this.calculateBounds();
   }
 
@@ -96,43 +93,37 @@ public class ImageSpriteWidget extends DrawableWidget {
       y += 1;
     }
 
-    int scaledWidth = this.paintingData.getScaledWidth(width, height);
-    int scaledHeight = this.paintingData.getScaledHeight(width, height);
+    Dimensions scaledDimensions = PackIcons.getScaledDimensions(
+        this.sprite.getContents().getWidth(), this.sprite.getContents().getHeight(), width, height);
+    int scaledWidth = scaledDimensions.width();
+    int scaledHeight = scaledDimensions.height();
 
-    this.paintingBounds = IntRect.byDimensions(
+    this.bounds = IntRect.byDimensions(
         x + (width - scaledWidth) / 2, y + (height - scaledHeight) / 2, scaledWidth, scaledHeight);
   }
 
   @Override
   protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
-    this.hovered = this.hovered && this.paintingBounds.contains(mouseX, mouseY);
+    this.hovered = this.hovered && this.bounds.contains(mouseX, mouseY);
 
     float color = this.active ? 1f : 0.5f;
 
     if (this.border) {
-      context.fill(this.paintingBounds.left() - 1, this.paintingBounds.top() - 1, this.paintingBounds.right() + 1,
-          this.paintingBounds.bottom() + 1, 0xFF000000
+      context.fill(this.bounds.left() - 1, this.bounds.top() - 1, this.bounds.right() + 1, this.bounds.bottom() + 1,
+          0xFF000000
       );
     }
 
-    context.drawSprite(this.paintingBounds.left(), this.paintingBounds.top(), 1, this.paintingBounds.getWidth(),
-        this.paintingBounds.getHeight(), this.sprite, color, color, color, 1f
+    context.drawSprite(this.bounds.left(), this.bounds.top(), 1, this.bounds.getWidth(), this.bounds.getHeight(),
+        this.sprite, color, color, color, 1f
     );
   }
 
-  public static Builder builder(PaintingData paintingData) {
-    return new Builder(paintingData);
-  }
-
   public static Builder builder(String packId) {
-    return builder(PaintingData.packIcon(packId));
+    return new Builder(packId);
   }
 
-  public static ImageSpriteWidget create(PaintingData paintingData) {
-    return builder(paintingData).build();
-  }
-
-  public static ImageSpriteWidget create(String packId) {
+  public static IconSpriteWidget create(String packId) {
     return builder(packId).build();
   }
 
@@ -143,10 +134,10 @@ public class ImageSpriteWidget extends DrawableWidget {
     private int height = 0;
     private boolean border = false;
 
-    private final PaintingData paintingData;
+    private final String packId;
 
-    private Builder(PaintingData paintingData) {
-      this.paintingData = paintingData;
+    private Builder(String packId) {
+      this.packId = packId;
     }
 
     public Builder x(int x) {
@@ -186,8 +177,8 @@ public class ImageSpriteWidget extends DrawableWidget {
       return this;
     }
 
-    public ImageSpriteWidget build() {
-      return new ImageSpriteWidget(this.x, this.y, this.width, this.height, this.paintingData, this.border);
+    public IconSpriteWidget build() {
+      return new IconSpriteWidget(this.x, this.y, this.width, this.height, this.packId, this.border);
     }
   }
 }
