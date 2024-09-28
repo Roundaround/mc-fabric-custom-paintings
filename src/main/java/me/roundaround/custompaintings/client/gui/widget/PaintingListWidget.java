@@ -255,7 +255,7 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-      if (keyCode == GLFW.GLFW_KEY_ENTER && this.canStay) {
+      if ((keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) && this.canStay) {
         GuiUtil.playClickSound();
         this.onConfirm.accept(this.paintingData);
         return true;

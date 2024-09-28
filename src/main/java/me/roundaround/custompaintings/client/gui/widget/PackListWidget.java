@@ -13,6 +13,7 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
+import net.minecraft.util.Formatting;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.Collection;
@@ -26,6 +27,8 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
       MinecraftClient client, ThreeSectionLayoutWidget layout, Consumer<String> onPackSelect
   ) {
     super(client, layout);
+
+    this.setAlternatingRowShading(true);
 
     this.onPackSelect = onPackSelect;
   }
@@ -46,13 +49,15 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
 
   @Environment(value = EnvType.CLIENT)
   public static class Entry extends NarratableEntryListWidget.Entry {
+    protected static final int HEIGHT = 36;
+
     private final Consumer<String> onSelect;
     private final PaintingPack pack;
 
     public Entry(
         TextRenderer textRenderer, Consumer<String> onSelect, PaintingPack pack, int index, int left, int top, int width
     ) {
-      super(index, left, top, width, 24);
+      super(index, left, top, width, HEIGHT);
       this.onSelect = onSelect;
       this.pack = pack;
 
@@ -61,24 +66,44 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
         self.setDimensions(this.getContentWidth(), this.getContentHeight());
       });
 
-      layout.add(
-          PaintingSpriteWidget.create(this.pack.id()),
+      layout.add(PaintingSpriteWidget.create(this.pack.id()),
           (parent, self) -> self.setDimensions(this.getContentHeight(), this.getContentHeight())
       );
 
-      layout.add(LabelWidget.builder(textRenderer, Text.of(pack.name()))
-              .alignTextLeft()
-              .alignTextCenterY()
-              .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
-              .hideBackground()
-              .showShadow()
-              .build(),
-          (parent, self) -> self.setDimensions(this.getContentWidth() - GuiUtil.PADDING - this.getContentHeight(),
+      LinearLayoutWidget column = LinearLayoutWidget.vertical().spacing(GuiUtil.PADDING).mainAxisContentAlignCenter();
+
+      column.add(LabelWidget.builder(textRenderer, Text.of(pack.name()))
+          .alignTextLeft()
+          .alignTextCenterY()
+          .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
+          .hideBackground()
+          .showShadow()
+          .build(), (parent, self) -> self.setWidth(parent.getWidth()));
+      column.add(LabelWidget.builder(textRenderer, Text.literal(pack.description()).formatted(Formatting.GRAY))
+          .alignTextLeft()
+          .alignTextCenterY()
+          .overflowBehavior(LabelWidget.OverflowBehavior.WRAP)
+          .maxLines(2)
+          .lineSpacing(GuiUtil.PADDING / 2)
+          .hideBackground()
+          .showShadow()
+          .build(), (parent, self) -> self.setWidth(parent.getWidth()));
+
+      layout.add(column,
+          (parent, self) -> self.setDimensions(this.getContentWidth() - GuiUtil.PADDING - this.getIconWidth(),
               this.getContentHeight()
           )
       );
 
       layout.forEachChild(this::addDrawable);
+    }
+
+    private int getIconWidth() {
+      return this.getContentHeight();
+    }
+
+    private int getIconHeight() {
+      return this.getContentHeight();
     }
 
     @Override

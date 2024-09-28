@@ -68,12 +68,13 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
   @Override
   protected void apply(LoadResult result, ResourceManager manager, Profiler profiler) {
     HashMap<String, PaintingPack> packs = new HashMap<>(result.packs.size());
-    result.packs.forEach((packId, pack) -> packs.put(packId, new PaintingPack(packId, pack.name(), pack.paintings()
-        .stream()
-        .map((resource) -> new PaintingData(new Identifier(packId, resource.id()), resource.width(), resource.height(),
-            resource.name(), resource.artist()
-        ))
-        .toList())));
+    result.packs.forEach(
+        (packId, pack) -> packs.put(packId, new PaintingPack(packId, pack.name(), pack.description(), pack.paintings()
+            .stream()
+            .map((resource) -> new PaintingData(new Identifier(packId, resource.id()), resource.width(),
+                resource.height(), resource.name(), resource.artist()
+            ))
+            .toList())));
 
     ServerPaintingRegistry.getInstance().update(packs, result.images);
   }

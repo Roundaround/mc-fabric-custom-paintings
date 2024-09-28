@@ -216,7 +216,8 @@ public class PaintingEditState {
         .map((mod) -> mod.getMetadata().getName())
         .orElse("Minecraft");
     List<PaintingData> paintings = VanillaPaintingRegistry.getInstance().getAll(VanillaPaintingRegistry.Placeable.YES);
-    this.allPaintings.put(id, new PaintingPack(id, name, paintings));
+    // TODO: i18n
+    this.allPaintings.put(id, new PaintingPack(id, name, "Default vanilla paintings.", paintings));
   }
 
   protected void createUnplaceableVanillaPack() {
@@ -224,7 +225,11 @@ public class PaintingEditState {
     // TODO: i18n
     String name = "Minecraft: The Hidden Ones";
     List<PaintingData> paintings = VanillaPaintingRegistry.getInstance().getAll(VanillaPaintingRegistry.Placeable.NO);
-    this.allPaintings.put(id, new PaintingPack(id, name, paintings));
+    // TODO: i18n
+    this.allPaintings.put(
+        id,
+        new PaintingPack(id, name, "Paintings that exist in the game assets but are not normally placeable.", paintings)
+    );
   }
 
   public boolean canStay() {
