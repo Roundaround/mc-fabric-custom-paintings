@@ -138,6 +138,24 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
       }
 
       HashMap<Identifier, Image> images = new HashMap<>();
+
+      ZipEntry zipIconImage = zip.getEntry("icon.png");
+      if (zipIconImage == null) {
+        CustomPaintingsMod.LOGGER.warn("Missing icon.png file for {}", pack.id());
+      } else {
+        try (InputStream stream = zip.getInputStream(zipIconImage)) {
+          BufferedImage image = ImageIO.read(stream);
+          if (image == null) {
+            throw new IOException("BufferedImage is null");
+          }
+
+          images.put(new Identifier("__icon", pack.id()), Image.read(image));
+        } catch (IOException e) {
+          CustomPaintingsMod.LOGGER.warn(e);
+          CustomPaintingsMod.LOGGER.warn("Failed to read icon.png file for {}", pack.id());
+        }
+      }
+
       pack.paintings().forEach((painting) -> {
         Identifier id = new Identifier(pack.id(), painting.id());
         ZipEntry zipImage = zip.getEntry(String.format("images/%s.png", painting.id()));
@@ -194,6 +212,24 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
     }
 
     HashMap<Identifier, Image> images = new HashMap<>();
+
+    Path iconImagePath = path.resolve("icon.png");
+    if (!Files.exists(iconImagePath)) {
+      CustomPaintingsMod.LOGGER.warn("Missing icon.png file for {}", pack.id());
+    } else {
+      try {
+        BufferedImage image = ImageIO.read(Files.newInputStream(iconImagePath, LinkOption.NOFOLLOW_LINKS));
+        if (image == null) {
+          throw new IOException("BufferedImage is null");
+        }
+
+        images.put(new Identifier("__icon", pack.id()), Image.read(image));
+      } catch (IOException e) {
+        CustomPaintingsMod.LOGGER.warn(e);
+        CustomPaintingsMod.LOGGER.warn("Failed to read icon.png file for {}", pack.id());
+      }
+    }
+
     pack.paintings().forEach((painting) -> {
       Identifier id = new Identifier(pack.id(), painting.id());
       Path imagePath = path.resolve("images").resolve(painting.id() + ".png");

@@ -27,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.DecimalFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ClientPaintingRegistry extends CustomPaintingRegistry implements AutoCloseable {
   private static final Identifier PAINTING_BACK_ID = new Identifier(Identifier.DEFAULT_NAMESPACE, "back");
@@ -212,6 +213,22 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
       }
     }
 
+    for (String packId : this.packsMap.keySet()) {
+      Identifier id = new Identifier("__icon", packId);
+      Path path = cacheDir.resolve(id.getNamespace()).resolve(id.getPath() + ".png");
+      if (Files.notExists(path) || !Files.isRegularFile(path)) {
+        this.cachedImages.put(id, Image.empty());
+        continue;
+      }
+
+      try {
+        Image image = Image.read(Files.newInputStream(path));
+        this.cachedImages.put(id, image);
+      } catch (IOException e) {
+        this.cachedImages.put(id, Image.empty());
+      }
+    }
+
     this.combinedImageHash = "";
     this.imageHashes.clear();
 
@@ -241,18 +258,25 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   }
 
   protected void buildSpriteAtlas() {
-    this.images.entrySet().removeIf((entry) -> !this.paintings.containsKey(entry.getKey()));
-    this.imageHashes.entrySet().removeIf((entry) -> !this.paintings.containsKey(entry.getKey()));
+    this.images.entrySet().removeIf((entry) -> !this.isValidImageId(entry.getKey()));
+    this.imageHashes.entrySet().removeIf((entry) -> !this.isValidImageId(entry.getKey()));
 
     List<SpriteContents> sprites = new ArrayList<>();
     sprites.add(MissingSprite.createSpriteContents());
     sprites.add(BackSprite.fetch(this.client, PAINTING_BACK_ID, BACK_TEXTURE_ID));
     this.paintings.values().forEach((painting) -> sprites.add(this.getSpriteContents(painting)));
+    this.packsMap.keySet().forEach((packId) -> sprites.add(this.getSpriteContents(PaintingData.packIcon(packId))));
 
     this.atlas.upload(SpriteLoader.fromAtlas(this.atlas).stitch(sprites, 0, Util.getMainWorkerExecutor()));
 
     this.spriteIds.clear();
     this.spriteIds.addAll(sprites.stream().map(SpriteContents::getId).toList());
+  }
+
+  @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+  private boolean isValidImageId(Identifier id) {
+    return this.paintings.containsKey(id) ||
+        (id.getNamespace().equals("__icon") && this.packsMap.containsKey(id.getPath()));
   }
 
   private SpriteContents getSpriteContents(PaintingData painting) {
@@ -300,6 +324,18 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
       }
     }
 
+    Path iconsDir = cacheDir.resolve("__icon");
+    AtomicBoolean cacheIcons = new AtomicBoolean(true);
+    if (Files.notExists(iconsDir)) {
+      try {
+        Files.createDirectories(iconsDir);
+      } catch (IOException e) {
+        CustomPaintingsMod.LOGGER.warn(
+            "Could not create cache subdirectory, skipping icons: {}", iconsDir.toAbsolutePath());
+        cacheIcons.set(false);
+      }
+    }
+
     packsMap.forEach((id, pack) -> {
       Path packDir = cacheDir.resolve(id);
       if (Files.notExists(packDir)) {
@@ -309,6 +345,19 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
           CustomPaintingsMod.LOGGER.warn(
               "Could not create cache subdirectory, skipping pack: {}", packDir.toAbsolutePath());
           return;
+        }
+      }
+
+      if (cacheIcons.get()) {
+        Image iconImage = images.get(new Identifier("__icon", id));
+        if (iconImage != null && !iconImage.isEmpty()) {
+          Path imagePath = iconsDir.resolve(String.format("%s.png", id));
+          try {
+            ImageIO.write(iconImage.toBufferedImage(), "png", imagePath.toFile());
+          } catch (IOException e) {
+            CustomPaintingsMod.LOGGER.warn(
+                "Failed to write icon to file for {}, skipping: {}", id, imagePath.toAbsolutePath());
+          }
         }
       }
 

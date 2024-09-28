@@ -34,6 +34,10 @@ public record PaintingData(Identifier id, int width, int height, String name, St
     );
   }
 
+  public static PaintingData packIcon(String packId) {
+    return new PaintingData(new Identifier("__icon", packId), 1, 1, "", "");
+  }
+
   public int getScaledWidth() {
     return this.width() * 16;
   }
