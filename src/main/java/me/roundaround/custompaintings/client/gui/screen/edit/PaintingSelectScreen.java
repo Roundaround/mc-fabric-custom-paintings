@@ -2,8 +2,8 @@ package me.roundaround.custompaintings.client.gui.screen.edit;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
+import me.roundaround.custompaintings.client.gui.widget.ImageSpriteWidget;
 import me.roundaround.custompaintings.client.gui.widget.PaintingListWidget;
-import me.roundaround.custompaintings.client.gui.widget.PaintingSpriteWidget;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.roundalib.asset.icon.BuiltinIcon;
@@ -36,7 +36,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
   private TextFieldWidget searchBox;
   private PaintingListWidget paintingList;
   private LabelWidget infoLabel;
-  private PaintingSpriteWidget paintingSprite;
+  private ImageSpriteWidget paintingSprite;
   private IconButtonWidget prevButton;
   private LabelWidget controlsLabel;
   private IconButtonWidget nextButton;
@@ -95,7 +95,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
     });
 
     this.paintingSprite = rightPane.add(
-        new PaintingSpriteWidget(this.state.getCurrentPainting(), true), (parent, self) -> {
+        ImageSpriteWidget.builder(this.state.getCurrentPainting()).border(true).build(), (parent, self) -> {
           self.setDimensions(parent.getWidth() - 2 * GuiUtil.PADDING,
               parent.getHeight() - this.infoLabel.getHeight() - IconButtonWidget.SIZE_V - 2 * parent.getSpacing()
           );

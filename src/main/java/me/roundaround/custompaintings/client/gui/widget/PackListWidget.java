@@ -2,6 +2,7 @@ package me.roundaround.custompaintings.client.gui.widget;
 
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.roundalib.client.gui.GuiUtil;
+import me.roundaround.roundalib.client.gui.layout.linear.LinearLayoutWidget;
 import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import me.roundaround.roundalib.client.gui.widget.NarratableEntryListWidget;
 import me.roundaround.roundalib.client.gui.widget.drawable.LabelWidget;
@@ -47,34 +48,36 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
   public static class Entry extends NarratableEntryListWidget.Entry {
     private final Consumer<String> onSelect;
     private final PaintingPack pack;
-    private final LabelWidget label;
 
     public Entry(
         TextRenderer textRenderer, Consumer<String> onSelect, PaintingPack pack, int index, int left, int top, int width
     ) {
-      super(index, left, top, width, 17);
+      super(index, left, top, width, 24);
       this.onSelect = onSelect;
       this.pack = pack;
 
-      this.label = LabelWidget.builder(textRenderer, Text.of(pack.name()))
-          .position(this.getContentLeft(), this.getContentTop())
-          .dimensions(this.getContentWidth(), this.getContentHeight())
-          .alignTextCenterX()
-          .alignTextCenterY()
-          .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
-          .showShadow()
-          .hideBackground()
-          .build();
-
-      this.addDrawable(this.label);
-    }
-
-    @Override
-    public void refreshPositions() {
-      this.label.batchUpdates(() -> {
-        this.label.setPosition(this.getContentLeft(), this.getContentTop());
-        this.label.setDimensions(this.getContentWidth(), this.getContentHeight());
+      LinearLayoutWidget layout = this.addLayout(LinearLayoutWidget.horizontal().spacing(GuiUtil.PADDING), (self) -> {
+        self.setPosition(this.getContentLeft(), this.getContentTop());
+        self.setDimensions(this.getContentWidth(), this.getContentHeight());
       });
+
+      layout.add(ImageSpriteWidget.create(this.pack.id()),
+          (parent, self) -> self.setDimensions(this.getContentHeight(), this.getContentHeight())
+      );
+
+      layout.add(LabelWidget.builder(textRenderer, Text.of(pack.name()))
+              .alignTextLeft()
+              .alignTextCenterY()
+              .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
+              .hideBackground()
+              .showShadow()
+              .build(),
+          (parent, self) -> self.setDimensions(this.getContentWidth() - GuiUtil.PADDING - this.getContentHeight(),
+              this.getContentHeight()
+          )
+      );
+
+      layout.forEachChild(this::addDrawable);
     }
 
     @Override
