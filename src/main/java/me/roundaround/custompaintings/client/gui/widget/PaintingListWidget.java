@@ -205,7 +205,7 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
       });
 
       layout.add(PaintingSpriteWidget.create(paintingData), (parent, self) -> {
-        self.setDimensions(this.getContentHeight(), this.getContentHeight());
+        self.setDimensions(this.getPaintingWidth(), this.getPaintingHeight());
         self.setActive(this.canStay);
       });
 
@@ -216,10 +216,18 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
           .hideBackground()
           .showShadow()
           .build(), (parent, self) -> {
-        self.setDimensions(this.getContentWidth() - GuiUtil.PADDING - this.getContentHeight(), this.getContentHeight());
+        self.setDimensions(this.getContentWidth() - GuiUtil.PADDING - this.getPaintingWidth(), this.getContentHeight());
       });
 
       layout.forEachChild(this::addDrawable);
+    }
+
+    private int getPaintingWidth() {
+      return this.getContentHeight();
+    }
+
+    private int getPaintingHeight() {
+      return this.getContentHeight();
     }
 
     @Override
