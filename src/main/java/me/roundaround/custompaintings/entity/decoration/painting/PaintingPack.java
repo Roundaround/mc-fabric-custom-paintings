@@ -13,7 +13,7 @@ public record PaintingPack(String id, String name, String description, List<Pain
   public void writeToPacketByteBuf(PacketByteBuf buf) {
     buf.writeString(this.id);
     buf.writeString(this.name);
-    buf.writeString(this.description);
+    buf.writeString(this.description == null ? "" : this.description);
     buf.writeInt(this.paintings.size());
     this.paintings.forEach((painting) -> painting.writeToPacketByteBuf(buf));
   }
