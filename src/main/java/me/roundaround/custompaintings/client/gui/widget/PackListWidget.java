@@ -4,6 +4,7 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.roundalib.client.gui.GuiUtil;
 import me.roundaround.roundalib.client.gui.layout.linear.LinearLayoutWidget;
 import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
+import me.roundaround.roundalib.client.gui.util.IntRect;
 import me.roundaround.roundalib.client.gui.widget.NarratableEntryListWidget;
 import me.roundaround.roundalib.client.gui.widget.drawable.LabelWidget;
 import net.fabricmc.api.EnvType;
@@ -17,6 +18,7 @@ import net.minecraft.util.Formatting;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.Collection;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 @Environment(value = EnvType.CLIENT)
@@ -38,13 +40,25 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
     packs.forEach((pack) -> this.addEntry(this.getEntryFactory(this.client.textRenderer, this.onPackSelect, pack)));
   }
 
-  private EntryFactory<Entry> getEntryFactory(TextRenderer textRenderer, Consumer<String> onSelect, PaintingPack pack) {
-    return (index, left, top, width) -> new Entry(textRenderer, onSelect, pack, index, left, top, width);
-  }
-
   @Override
   protected int getPreferredContentWidth() {
     return VANILLA_LIST_WIDTH_M;
+  }
+
+  @Override
+  protected void renderEntry(DrawContext context, int mouseX, int mouseY, float delta, Entry entry) {
+    boolean isHovered = Objects.equals(entry, this.hoveredEntry);
+    if (isHovered) {
+      entry.renderSelectionBackground(context);
+    }
+    super.renderEntry(context, mouseX, mouseY, delta, entry);
+    if (isHovered) {
+      entry.renderHoverHighlight(context);
+    }
+  }
+
+  private EntryFactory<Entry> getEntryFactory(TextRenderer textRenderer, Consumer<String> onSelect, PaintingPack pack) {
+    return (index, left, top, width) -> new Entry(textRenderer, onSelect, pack, index, left, top, width);
   }
 
   @Environment(value = EnvType.CLIENT)
@@ -67,7 +81,7 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
       });
 
       layout.add(PaintingSpriteWidget.create(this.pack.id()),
-          (parent, self) -> self.setDimensions(this.getContentHeight(), this.getContentHeight())
+          (parent, self) -> self.setDimensions(this.getIconWidth(), this.getIconHeight())
       );
 
       LinearLayoutWidget column = LinearLayoutWidget.vertical().spacing(GuiUtil.PADDING).mainAxisContentAlignCenter();
@@ -84,7 +98,6 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
           .alignTextCenterY()
           .overflowBehavior(LabelWidget.OverflowBehavior.WRAP)
           .maxLines(2)
-          .lineSpacing(GuiUtil.PADDING / 2)
           .hideBackground()
           .showShadow()
           .build(), (parent, self) -> self.setWidth(parent.getWidth()));
@@ -128,6 +141,19 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
       context.fill(this.getX(), this.getY(), this.getRight(), this.getBottom(),
           this.isFocused() ? Colors.BLACK : GuiUtil.BACKGROUND_COLOR
       );
+    }
+
+    protected void renderHoverHighlight(DrawContext context) {
+      context.getMatrices().push();
+      context.getMatrices().translate(0, 0, 1);
+
+      context.drawBorder(this.getX(), this.getY(), this.getWidth(), this.getHeight(), Colors.LIGHT_GRAY);
+
+      IntRect iconBounds = IntRect.byDimensions(
+          this.getContentLeft(), this.getContentTop(), this.getIconWidth(), this.getIconHeight());
+      GuiUtil.fill(context, iconBounds, GuiUtil.genColorInt(0.5f, 0.5f, 0.5f, 0.3f));
+
+      context.getMatrices().pop();
     }
 
     @Override
