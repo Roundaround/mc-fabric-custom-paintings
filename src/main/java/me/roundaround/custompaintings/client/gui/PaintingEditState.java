@@ -210,25 +210,20 @@ public class PaintingEditState {
 
   protected void createVanillaPack() {
     String id = Identifier.DEFAULT_NAMESPACE;
-    // TODO: i18n
     String name = FabricLoader.getInstance()
         .getModContainer(id)
         .map((mod) -> mod.getMetadata().getName())
         .orElse("Minecraft");
     List<PaintingData> paintings = VanillaPaintingRegistry.getInstance().getAll(VanillaPaintingRegistry.Placeable.YES);
-    // TODO: i18n
-    this.allPaintings.put(id, new PaintingPack(id, name, "Default vanilla paintings.", paintings));
+    this.allPaintings.put(id, new PaintingPack(id, name, "Paintings included in vanilla Minecraft.", paintings));
   }
 
   protected void createUnplaceableVanillaPack() {
     String id = Identifier.DEFAULT_NAMESPACE + "_unplaceable";
-    // TODO: i18n
     String name = "Minecraft: The Hidden Ones";
     List<PaintingData> paintings = VanillaPaintingRegistry.getInstance().getAll(VanillaPaintingRegistry.Placeable.NO);
-    // TODO: i18n
-    this.allPaintings.put(
-        id,
-        new PaintingPack(id, name, "Paintings that exist in the game assets but are not normally placeable.", paintings)
+    this.allPaintings.put(id,
+        new PaintingPack(id, name, "Vanilla paintings that aren't normally placeable!", paintings)
     );
   }
 

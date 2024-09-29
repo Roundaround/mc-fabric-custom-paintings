@@ -22,5 +22,11 @@
   "custompaintings.filter.maxwidth": "Max width: %s blocks",
   "custompaintings.filter.minheight": "Min height: %s blocks",
   "custompaintings.filter.maxheight": "Max height: %s blocks",
-  "custompaintings.filter.reset": "Reset"
+  "custompaintings.filter.reset": "Reset",
+  "custompaintings.config.title": "Custom Paintings Config",
+  "custompaintings.overrideRenderDistance.label": "Override vanilla render distance",
+  "custompaintings.renderDistanceScale.label": "Render distance scale",
+  "custompaintings.cacheImages.label": "Cache images from the server locally",
+  "custompaintings.throttleImageDownloads.label": "Throttle image transfers to clients",
+  "custompaintings.imagePacketsPerSecond.label": "Number of image packets per second to allow"
 }
