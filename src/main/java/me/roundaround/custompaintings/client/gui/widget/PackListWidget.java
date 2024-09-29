@@ -75,7 +75,7 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
       this.onSelect = onSelect;
       this.pack = pack;
 
-      LinearLayoutWidget layout = this.addLayout(LinearLayoutWidget.horizontal().spacing(GuiUtil.PADDING), (self) -> {
+      LinearLayoutWidget layout = this.addLayout(LinearLayoutWidget.horizontal().spacing(GuiUtil.PADDING).defaultOffAxisContentAlignCenter(), (self) -> {
         self.setPosition(this.getContentLeft(), this.getContentTop());
         self.setDimensions(this.getContentWidth(), this.getContentHeight());
       });
@@ -88,14 +88,12 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
 
       column.add(LabelWidget.builder(textRenderer, Text.of(pack.name()))
           .alignTextLeft()
-          .alignTextCenterY()
           .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
           .hideBackground()
           .showShadow()
           .build(), (parent, self) -> self.setWidth(parent.getWidth()));
       column.add(LabelWidget.builder(textRenderer, Text.literal(pack.description()).formatted(Formatting.GRAY))
           .alignTextLeft()
-          .alignTextCenterY()
           .overflowBehavior(LabelWidget.OverflowBehavior.WRAP)
           .maxLines(2)
           .hideBackground()

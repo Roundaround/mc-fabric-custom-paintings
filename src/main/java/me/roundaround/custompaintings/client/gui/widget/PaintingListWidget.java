@@ -17,6 +17,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -199,25 +200,40 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
       this.onConfirm = onConfirm;
       this.canStay = canStay;
 
-      LinearLayoutWidget layout = this.addLayout(LinearLayoutWidget.horizontal().spacing(GuiUtil.PADDING), (self) -> {
-        self.setPosition(this.getContentLeft(), this.getContentTop());
-        self.setDimensions(this.getContentWidth(), this.getContentHeight());
-      });
+      LinearLayoutWidget layout = this.addLayout(
+          LinearLayoutWidget.horizontal().spacing(GuiUtil.PADDING).defaultOffAxisContentAlignCenter(), (self) -> {
+            self.setPosition(this.getContentLeft(), this.getContentTop());
+            self.setDimensions(this.getContentWidth(), this.getContentHeight());
+          });
 
       layout.add(PaintingSpriteWidget.create(paintingData), (parent, self) -> {
         self.setDimensions(this.getPaintingWidth(), this.getPaintingHeight());
         self.setActive(this.canStay);
       });
 
-      layout.add(LabelWidget.builder(textRenderer, this.getPaintingData().getInfoLines())
+      LinearLayoutWidget column = LinearLayoutWidget.vertical().spacing(1).mainAxisContentAlignCenter();
+      List<Text> infoLines = this.getPaintingData().getInfoLines();
+      infoLines.forEach((line) -> column.add(LabelWidget.builder(textRenderer, line)
           .alignTextLeft()
-          .alignTextCenterY()
-          .overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE)
+          .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
           .hideBackground()
           .showShadow()
-          .build(), (parent, self) -> {
-        self.setDimensions(this.getContentWidth() - GuiUtil.PADDING - this.getPaintingWidth(), this.getContentHeight());
-      });
+          .build(), (parent, self) -> self.setWidth(parent.getWidth())));
+      layout.add(column,
+          (parent, self) -> self.setDimensions(this.getContentWidth() - GuiUtil.PADDING - this.getPaintingWidth(),
+              this.getContentHeight()
+          )
+      );
+
+      //      layout.add(LabelWidget.builder(textRenderer, this.getPaintingData().getInfoLines())
+      //          .alignTextLeft()
+      //          .overflowBehavior(LabelWidget.OverflowBehavior.TRUNCATE)
+      //          .hideBackground()
+      //          .showShadow()
+      //          .build(), (parent, self) -> {
+      //        self.setWidth(this.getContentWidth() - GuiUtil.PADDING - this.getPaintingWidth(), this
+      //        .getContentHeight());
+      //      });
 
       layout.forEachChild(this::addDrawable);
     }
