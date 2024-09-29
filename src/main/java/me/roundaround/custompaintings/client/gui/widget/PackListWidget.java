@@ -75,7 +75,8 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
             self.setDimensions(this.getContentWidth(), this.getContentHeight());
           });
 
-      layout.add(PaintingSpriteWidget.create(this.pack.id()),
+      layout.add(
+          PaintingSpriteWidget.create(this.pack.id()),
           (parent, self) -> self.setDimensions(this.getIconWidth(), this.getIconHeight())
       );
 
@@ -87,19 +88,19 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
           .hideBackground()
           .showShadow()
           .build(), (parent, self) -> self.setWidth(parent.getWidth()));
-      column.add(LabelWidget.builder(textRenderer, Text.literal(pack.description()).formatted(Formatting.GRAY))
-          .alignTextLeft()
-          .overflowBehavior(LabelWidget.OverflowBehavior.WRAP)
-          .maxLines(2)
-          .hideBackground()
-          .showShadow()
-          .build(), (parent, self) -> self.setWidth(parent.getWidth()));
+      if (pack.description() != null && !pack.description().isBlank()) {
+        column.add(LabelWidget.builder(textRenderer, Text.literal(pack.description()).formatted(Formatting.GRAY))
+            .alignTextLeft()
+            .overflowBehavior(LabelWidget.OverflowBehavior.WRAP)
+            .maxLines(2)
+            .hideBackground()
+            .showShadow()
+            .build(), (parent, self) -> self.setWidth(parent.getWidth()));
+      }
 
-      layout.add(column,
-          (parent, self) -> self.setDimensions(this.getContentWidth() - GuiUtil.PADDING - this.getIconWidth(),
-              this.getContentHeight()
-          )
-      );
+      layout.add(column, (parent, self) -> {
+        self.setDimensions(this.getContentWidth() - GuiUtil.PADDING - this.getIconWidth(), this.getContentHeight());
+      });
 
       layout.forEachChild(this::addDrawable);
     }

@@ -3,7 +3,7 @@ package me.roundaround.custompaintings.client.registry;
 import com.google.common.collect.ImmutableList;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
-import me.roundaround.custompaintings.client.texture.BackSprite;
+import me.roundaround.custompaintings.client.texture.BasicTextureSprite;
 import me.roundaround.custompaintings.client.texture.LoadingSprite;
 import me.roundaround.custompaintings.client.texture.VanillaIconSprite;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
@@ -35,6 +35,8 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   private static final Identifier PAINTING_BACK_ID = new Identifier(Identifier.DEFAULT_NAMESPACE, "back");
   private static final Identifier BACK_TEXTURE_ID = new Identifier(
       Identifier.DEFAULT_NAMESPACE, "textures/painting/back.png");
+  private static final Identifier EARTH_TEXTURE_ID = new Identifier(
+      Identifier.DEFAULT_NAMESPACE, "textures/painting/earth.png");
 
   private static ClientPaintingRegistry instance = null;
 
@@ -265,10 +267,9 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
 
     List<SpriteContents> sprites = new ArrayList<>();
     sprites.add(MissingSprite.createSpriteContents());
-    sprites.add(BackSprite.fetch(this.client, PAINTING_BACK_ID, BACK_TEXTURE_ID));
+    sprites.add(BasicTextureSprite.fetch(this.client, PAINTING_BACK_ID, BACK_TEXTURE_ID));
     sprites.add(VanillaIconSprite.create(this.client, PackIcons.MINECRAFT_ICON_ID, "vanilla"));
-    // TODO: Use one of the "hidden" paintings as the icon?
-    sprites.add(VanillaIconSprite.create(this.client, PackIcons.MINECRAFT_HIDDEN_ICON_ID, "programmer_art"));
+    sprites.add(BasicTextureSprite.fetch(this.client, PackIcons.MINECRAFT_HIDDEN_ICON_ID, EARTH_TEXTURE_ID));
     this.paintings.values().forEach((painting) -> sprites.add(this.getSpriteContents(painting)));
     this.packsMap.keySet().forEach((packId) -> sprites.add(this.getSpriteContents(PaintingData.packIcon(packId))));
 

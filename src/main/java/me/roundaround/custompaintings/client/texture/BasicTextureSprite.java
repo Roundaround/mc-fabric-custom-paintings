@@ -12,7 +12,7 @@ import net.minecraft.util.Identifier;
 import java.io.FileNotFoundException;
 
 @Environment(EnvType.CLIENT)
-public class BackSprite {
+public class BasicTextureSprite {
   public static SpriteContents fetch(MinecraftClient client, Identifier spriteId, Identifier textureId) {
     try {
       SpriteOpener opener = SpriteOpener.create(SpriteLoader.METADATA_READERS);
