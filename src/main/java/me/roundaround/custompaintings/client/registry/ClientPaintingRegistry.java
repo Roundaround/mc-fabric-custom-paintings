@@ -290,6 +290,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     sprites.add(VanillaIconSprite.create(this.client, PackIcons.MINECRAFT_ICON_ID, "vanilla"));
     sprites.add(BasicTextureSprite.fetch(this.client, PackIcons.MINECRAFT_HIDDEN_ICON_ID, EARTH_TEXTURE_ID));
     this.paintings.values().forEach((painting) -> sprites.add(this.getSpriteContents(painting)));
+    // TODO: Stop using PaintingData for this
     this.packsMap.keySet().forEach((packId) -> sprites.add(this.getSpriteContents(PaintingData.packIcon(packId))));
 
     this.atlas.upload(SpriteLoader.fromAtlas(this.atlas).stitch(sprites, 0, Util.getMainWorkerExecutor()));
@@ -305,11 +306,18 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   }
 
   private SpriteContents getSpriteContents(PaintingData painting) {
-    Image image = this.images.get(painting.id());
-    if (image != null) {
-      return getSpriteContents(painting.id(), image);
+    return getSpriteContents(
+        painting.id(), this.images.get(painting.id()), painting.getScaledWidth(), painting.getScaledHeight());
+  }
+
+  private static SpriteContents getSpriteContents(Identifier id, Image image, int width, int height) {
+    if (image == null || image.isEmpty()) {
+      return LoadingSprite.generate(id, width, height);
     }
-    return LoadingSprite.generate(painting.id(), painting.getScaledWidth(), painting.getScaledHeight());
+    NativeImage nativeImage = getNativeImage(image);
+    return new SpriteContents(id, new SpriteDimensions(image.width(), image.height()), nativeImage,
+        getResourceMetadata(image)
+    );
   }
 
   private static NativeImage getNativeImage(Image image) {
@@ -320,13 +328,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
       }
     }
     return nativeImage;
-  }
-
-  private static SpriteContents getSpriteContents(Identifier id, Image image) {
-    NativeImage nativeImage = getNativeImage(image);
-    return new SpriteContents(id, new SpriteDimensions(image.width(), image.height()), nativeImage,
-        getResourceMetadata(image)
-    );
   }
 
   private static ResourceMetadata getResourceMetadata(Image image) {

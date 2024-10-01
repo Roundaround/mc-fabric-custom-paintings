@@ -69,7 +69,7 @@ public final class ServerNetworking {
     }
 
     boolean isThrottled = CustomPaintingsPerWorldConfig.getInstance().throttleImageDownloads.getValue();
-    int maxPacketSize = CustomPaintingsPerWorldConfig.getInstance().maxImagePacketSize.getValue();
+    int maxPacketSize = CustomPaintingsPerWorldConfig.getInstance().maxImagePacketSize.getValue() * 1024;
 
     if (!isThrottled || maxPacketSize == 0) {
       sendImagePacket(player, id, image);
