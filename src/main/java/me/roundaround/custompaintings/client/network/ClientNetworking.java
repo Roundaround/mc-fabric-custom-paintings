@@ -1,5 +1,6 @@
 package me.roundaround.custompaintings.client.network;
 
+import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.ClientPaintingManager;
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.screen.edit.PackSelectScreen;
@@ -11,6 +12,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 
+import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -31,8 +33,10 @@ public final class ClientNetworking {
 
   public static void registerReceivers() {
     ClientPlayNetworking.registerGlobalReceiver(Networking.SummaryS2C.ID, ClientNetworking::handleSummary);
-    ClientPlayNetworking.registerGlobalReceiver(Networking.ImagesS2C.ID, ClientNetworking::handleImages);
     ClientPlayNetworking.registerGlobalReceiver(Networking.ImageS2C.ID, ClientNetworking::handleImage);
+    ClientPlayNetworking.registerGlobalReceiver(Networking.ImageIdsS2C.ID, ClientNetworking::handleImageIds);
+    ClientPlayNetworking.registerGlobalReceiver(Networking.ImageHeaderS2C.ID, ClientNetworking::handleImageHeader);
+    ClientPlayNetworking.registerGlobalReceiver(Networking.ImageChunkS2C.ID, ClientNetworking::handleImageChunk);
     ClientPlayNetworking.registerGlobalReceiver(Networking.EditPaintingS2C.ID, ClientNetworking::handleEditPainting);
     ClientPlayNetworking.registerGlobalReceiver(Networking.SetPaintingS2C.ID, ClientNetworking::handleSetPainting);
     ClientPlayNetworking.registerGlobalReceiver(Networking.SyncAllDataS2C.ID, ClientNetworking::handleSyncAllData);
@@ -53,15 +57,31 @@ public final class ClientNetworking {
     });
   }
 
-  private static void handleImages(Networking.ImagesS2C payload, ClientPlayNetworking.Context context) {
+  private static void handleImage(Networking.ImageS2C payload, ClientPlayNetworking.Context context) {
+    context.client().execute(() -> {
+      CustomPaintingsMod.LOGGER.info("Received full image of {}KB.", formatBytes(payload.image().getBytes().length));
+      ClientPaintingRegistry.getInstance().setPaintingImage(payload.id(), payload.image());
+    });
+  }
+
+  private static void handleImageIds(Networking.ImageIdsS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
       ClientPaintingRegistry.getInstance().trackNeededImages(payload.ids());
     });
   }
 
-  private static void handleImage(Networking.ImageS2C payload, ClientPlayNetworking.Context context) {
+  private static void handleImageHeader(Networking.ImageHeaderS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
-      ClientPaintingRegistry.getInstance().setPaintingImage(payload.id(), payload.image());
+      CustomPaintingsMod.LOGGER.info("Received image header.");
+      ClientPaintingRegistry.getInstance()
+          .setPaintingHeader(payload.id(), payload.width(), payload.height(), payload.totalChunks());
+    });
+  }
+
+  private static void handleImageChunk(Networking.ImageChunkS2C payload, ClientPlayNetworking.Context context) {
+    context.client().execute(() -> {
+      CustomPaintingsMod.LOGGER.info("Received image chunk of {}KB.", formatBytes(payload.bytes().length));
+      ClientPaintingRegistry.getInstance().setPaintingChunk(payload.id(), payload.index(), payload.bytes());
     });
   }
 
@@ -95,5 +115,9 @@ public final class ClientNetworking {
     for (PaintingIdPair ids : payload.paintings()) {
       ClientPaintingManager.getInstance().trySetPaintingData(world, ids.paintingId(), ids.dataId());
     }
+  }
+
+  private static String formatBytes(int bytes) {
+    return new DecimalFormat("0.##").format(bytes / 1024f);
   }
 }

@@ -28,5 +28,6 @@
   "custompaintings.renderDistanceScale.label": "Render distance scale",
   "custompaintings.cacheImages.label": "Cache images from the server locally",
   "custompaintings.throttleImageDownloads.label": "Throttle image transfers to clients",
-  "custompaintings.imagePacketsPerSecond.label": "Number of image packets per second to allow"
+  "custompaintings.maxImagePacketsPerSecond.label": "Number of image packets per second to allow",
+  "custompaintings.maxImagePacketSize.label": "Maximum size for each image packet"
 }

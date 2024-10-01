@@ -70,14 +70,14 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     CustomPaintingsMod.LOGGER.info(
         "{} needs to download {} image(s). Sending list of IDs.", player.getName().getString(), idsToSend.size());
     long timer = Util.getMeasuringTimeMs();
-    ServerNetworking.sendImagesPacket(player, idsToSend);
+    ServerNetworking.sendImageIdsPacket(player, idsToSend);
 
     idsToSend.forEach((id) -> {
       Image image = this.images.get(id);
       if (image == null) {
         return;
       }
-      ServerNetworking.sendImagePacket(player, id, image);
+      ServerNetworking.sendImageInChunkPackets(player, id, image);
     });
 
     DecimalFormat format = new DecimalFormat("0.##");

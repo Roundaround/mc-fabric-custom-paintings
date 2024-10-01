@@ -1,8 +1,8 @@
 package me.roundaround.custompaintings.server.network;
 
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
-import me.roundaround.custompaintings.network.Networking;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
@@ -50,7 +50,7 @@ public class ImagePacketQueue {
     }
   }
 
-  public void add(ServerPlayerEntity player, Networking.ImageS2C payload) {
+  public void add(ServerPlayerEntity player, CustomPayload payload) {
     if (!this.isThrottled) {
       ServerPlayNetworking.send(player, payload);
       return;
@@ -62,12 +62,12 @@ public class ImagePacketQueue {
     this.isThrottled = CustomPaintingsPerWorldConfig.getInstance().throttleImageDownloads.getValue();
     if (this.isThrottled) {
       this.sendCooldown = MathHelper.floor(
-          1000f / CustomPaintingsPerWorldConfig.getInstance().imagePacketsPerSecond.getValue());
+          1000f / CustomPaintingsPerWorldConfig.getInstance().maxImagePacketsPerSecond.getValue());
     } else {
       this.sendCooldown = 0;
     }
   }
 
-  private record Entry(ServerPlayerEntity player, Networking.ImageS2C payload) {
+  private record Entry(ServerPlayerEntity player, CustomPayload payload) {
   }
 }

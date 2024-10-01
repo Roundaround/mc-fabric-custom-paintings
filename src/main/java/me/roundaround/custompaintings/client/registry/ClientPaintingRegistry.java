@@ -30,6 +30,7 @@ import java.nio.file.Path;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 
 public class ClientPaintingRegistry extends CustomPaintingRegistry implements AutoCloseable {
   private static final Identifier PAINTING_BACK_ID = new Identifier(Identifier.DEFAULT_NAMESPACE, "back");
@@ -45,6 +46,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   private final HashSet<Identifier> spriteIds = new HashSet<>();
   private final HashSet<Identifier> neededImages = new HashSet<>();
   private final HashMap<Identifier, Image> cachedImages = new HashMap<>();
+  private final HashMap<Identifier, ImageChunkBuilder> cacheImageBuilders = new HashMap<>();
 
   private boolean packsReceived = false;
   private String pendingCombinedImagesHash = "";
@@ -165,6 +167,22 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     }
   }
 
+  public void setPaintingHeader(Identifier id, int width, int height, int totalChunks) {
+    this.setPart(id, (builder) -> builder.set(width, height, totalChunks));
+  }
+
+  public void setPaintingChunk(Identifier id, int index, byte[] bytes) {
+    this.setPart(id, (builder) -> builder.set(index, bytes));
+  }
+
+  private void setPart(Identifier id, Function<ImageChunkBuilder, Boolean> setter) {
+    ImageChunkBuilder builder = this.cacheImageBuilders.computeIfAbsent(id, (identifier) -> new ImageChunkBuilder());
+    if (setter.apply(builder)) {
+      this.setPaintingImage(id, builder.generate());
+      this.cacheImageBuilders.remove(id);
+    }
+  }
+
   protected void close(MinecraftClient client) {
     this.close();
   }
@@ -177,6 +195,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     this.spriteIds.clear();
     this.neededImages.clear();
     this.cachedImages.clear();
+    this.cacheImageBuilders.clear();
     this.pendingCombinedImagesHash = "";
   }
 
