@@ -1,6 +1,10 @@
 package me.roundaround.custompaintings.client.registry;
 
 import com.google.common.collect.ImmutableList;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.client.texture.BasicTextureSprite;
@@ -27,12 +31,14 @@ import javax.imageio.ImageIO;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 public class ClientPaintingRegistry extends CustomPaintingRegistry implements AutoCloseable {
+  private static final Gson GSON = new GsonBuilder().create();
   private static final Identifier PAINTING_BACK_ID = new Identifier(Identifier.DEFAULT_NAMESPACE, "back");
   private static final Identifier BACK_TEXTURE_ID = new Identifier(
       Identifier.DEFAULT_NAMESPACE, "textures/painting/back.png");
@@ -133,6 +139,8 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   }
 
   public void trackNeededImages(List<Identifier> ids) {
+
+
     this.cachedImages.entrySet().removeIf((entry) -> ids.contains(entry.getKey()));
     if (!this.cachedImages.isEmpty()) {
       CustomPaintingsMod.LOGGER.info("{} painting hashes match, using cached data", this.cachedImages.size());
@@ -140,6 +148,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     }
 
     CustomPaintingsMod.LOGGER.info("Expecting {} painting image(s) from server", ids.size());
+    writeNeededIdsToFile(ids);
     this.waitingForImagesTimer = Util.getMeasuringTimeMs();
 
     this.neededImages.clear();
@@ -339,15 +348,49 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
         .build();
   }
 
-  private static void writeImagesToFile(Map<String, PaintingPack> packsMap, Map<Identifier, Image> images) {
+  private static Path initCacheDir() {
     Path cacheDir = FabricLoader.getInstance().getGameDir().resolve("data").resolve(CustomPaintingsMod.MOD_ID);
     if (Files.notExists(cacheDir)) {
       try {
         Files.createDirectories(cacheDir);
       } catch (IOException e) {
         CustomPaintingsMod.LOGGER.warn("Could not create cache directory: {}", cacheDir.toAbsolutePath());
-        return;
+        return null;
       }
+    }
+    return cacheDir;
+  }
+
+  private static void writeNeededIdsToFile(List<Identifier> ids) {
+    if (!FabricLoader.getInstance().isDevelopmentEnvironment()) {
+      return;
+    }
+
+    Path cacheDir = initCacheDir();
+    if (cacheDir == null) {
+      return;
+    }
+
+    JsonObject json = new JsonObject();
+    JsonArray idsArray = new JsonArray();
+    for (Identifier id : ids) {
+      idsArray.add(id.toString());
+    }
+    json.add("ids", idsArray);
+    String jsonString = GSON.toJson(json);
+
+    Path file = cacheDir.resolve("needed_ids_dump.json");
+    try {
+      Files.writeString(file, jsonString, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+    } catch (IOException e) {
+      CustomPaintingsMod.LOGGER.warn("Could not write needed ids dump: {}", file.toAbsolutePath());
+    }
+  }
+
+  private static void writeImagesToFile(Map<String, PaintingPack> packsMap, Map<Identifier, Image> images) {
+    Path cacheDir = initCacheDir();
+    if (cacheDir == null) {
+      return;
     }
 
     Path iconsDir = cacheDir.resolve(PackIcons.ICON_NAMESPACE);
