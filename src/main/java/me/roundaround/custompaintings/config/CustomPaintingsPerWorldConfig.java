@@ -34,13 +34,13 @@ public class CustomPaintingsPerWorldConfig extends ModConfigImpl implements Worl
         .commit();
 
     this.maxImagePacketsPerSecond = this.buildRegistration(
-            IntConfigOption.builder(ConfigPath.of("maxImagePacketsPerSecond")).setDefaultValue(20).setMinValue(0).build())
+            IntConfigOption.builder(ConfigPath.of("maxImagePacketsPerSecond")).setDefaultValue(40).setMinValue(0).build())
         .serverOnly()
         .commit();
 
     this.maxPerClientImagePacketsPerSecond = this.buildRegistration(
         IntConfigOption.builder(ConfigPath.of("maxPerClientImagePacketsPerSecond"))
-            .setDefaultValue(5)
+            .setDefaultValue(10)
             .setMinValue(0)
             .build()).serverOnly().commit();
 

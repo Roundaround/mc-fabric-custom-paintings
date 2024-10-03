@@ -10,9 +10,10 @@ import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
-import net.minecraft.util.math.MathHelper;
 
 import java.util.ArrayDeque;
+import java.util.HashMap;
+import java.util.UUID;
 
 public class ImagePacketQueue {
   private static ImagePacketQueue instance = null;
@@ -25,8 +26,8 @@ public class ImagePacketQueue {
   }
 
   private final ArrayDeque<Entry> queue = new ArrayDeque<>();
-
-  private long lastSend = -1L;
+  private final ArrayDeque<Long> sentTimestamps = new ArrayDeque<>();
+  private final HashMap<UUID, ArrayDeque<Long>> perPlayerSentTimestamps = new HashMap<>();
 
   private ImagePacketQueue() {
   }
@@ -43,13 +44,38 @@ public class ImagePacketQueue {
       }
     }
 
-    if (Util.getMeasuringTimeMs() - this.lastSend > this.getSendCooldown()) {
-      Entry entry = this.queue.poll();
-      if (entry != null) {
-        this.lastSend = Util.getMeasuringTimeMs();
-        ServerPlayNetworking.send(entry.player, entry.payload);
+    // Remove everything older than 1 second
+    long timestamp = Util.getMeasuringTimeMs();
+    while (!this.sentTimestamps.isEmpty() && (timestamp - this.sentTimestamps.peekFirst() > 1000)) {
+      this.sentTimestamps.pollFirst();
+    }
+    for (HashMap.Entry<UUID, ArrayDeque<Long>> perPlayer : this.perPlayerSentTimestamps.entrySet()) {
+      ArrayDeque<Long> timestamps = perPlayer.getValue();
+      while (!timestamps.isEmpty() && (timestamp - timestamps.peekFirst() > 1000)) {
+        timestamps.pollFirst();
       }
     }
+
+    int maxTotal = CustomPaintingsPerWorldConfig.getInstance().maxImagePacketsPerSecond.getValue();
+    int maxPerPlayer = CustomPaintingsPerWorldConfig.getInstance().maxPerClientImagePacketsPerSecond.getValue();
+    ArrayDeque<Entry> deferred = new ArrayDeque<>();
+
+    while (!this.queue.isEmpty() && this.sentTimestamps.size() <= maxTotal) {
+      Entry entry = this.queue.poll();
+
+      ArrayDeque<Long> sentToPlayer = this.perPlayerSentTimestamps.computeIfAbsent(
+          entry.player().getUuid(), (uuid) -> new ArrayDeque<>());
+      if (sentToPlayer.size() >= maxPerPlayer) {
+        deferred.push(entry);
+        continue;
+      }
+
+      sentToPlayer.push(timestamp);
+      this.sentTimestamps.push(timestamp);
+      ServerPlayNetworking.send(entry.player, entry.payload);
+    }
+
+    this.queue.addAll(deferred);
   }
 
   public void add(ServerPlayerEntity player, Identifier id, Image image) {
@@ -88,10 +114,6 @@ public class ImagePacketQueue {
       return false;
     }
     return CustomPaintingsPerWorldConfig.getInstance().throttleImageDownloads.getValue();
-  }
-
-  private int getSendCooldown() {
-    return MathHelper.floor(1000f / CustomPaintingsPerWorldConfig.getInstance().maxImagePacketsPerSecond.getValue());
   }
 
   private record Entry(ServerPlayerEntity player, CustomPayload payload) {
