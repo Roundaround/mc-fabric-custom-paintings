@@ -77,7 +77,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
       if (image == null) {
         return;
       }
-      ServerNetworking.sendImageInChunkPackets(player, id, image);
+      ServerNetworking.sendImageToPlayer(player, id, image);
     });
 
     DecimalFormat format = new DecimalFormat("0.##");

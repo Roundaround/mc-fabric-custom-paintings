@@ -1,6 +1,5 @@
 package me.roundaround.custompaintings.server.network;
 
-import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.network.Networking;
@@ -9,9 +8,7 @@ import me.roundaround.custompaintings.resource.Image;
 import me.roundaround.custompaintings.server.CustomPaintingsServerMod;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
-import net.fabricmc.api.EnvType;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.server.MinecraftServer;
@@ -21,7 +18,6 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 
-import java.util.ArrayDeque;
 import java.util.List;
 import java.util.UUID;
 
@@ -54,45 +50,8 @@ public final class ServerNetworking {
     ServerPlayNetworking.send(player, new Networking.ImageIdsS2C(ids));
   }
 
-  public static void sendImagePacket(ServerPlayerEntity player, Identifier id, Image image) {
-    Networking.ImageS2C payload = new Networking.ImageS2C(id, image);
-    if (FabricLoader.getInstance().getEnvironmentType() != EnvType.SERVER) {
-      ServerPlayNetworking.send(player, payload);
-      return;
-    }
-    ImagePacketQueue.getInstance().add(player, payload);
-  }
-
-  public static void sendImageInChunkPackets(ServerPlayerEntity player, Identifier id, Image image) {
-    if (FabricLoader.getInstance().getEnvironmentType() != EnvType.SERVER) {
-      ServerPlayNetworking.send(player, new Networking.ImageS2C(id, image));
-    }
-
-    boolean isThrottled = CustomPaintingsPerWorldConfig.getInstance().throttleImageDownloads.getValue();
-    int maxPacketSize = CustomPaintingsPerWorldConfig.getInstance().maxImagePacketSize.getValue() * 1024;
-
-    if (!isThrottled || maxPacketSize == 0) {
-      sendImagePacket(player, id, image);
-      return;
-    }
-
-    byte[] bytes = image.getBytes();
-    int totalSize = bytes.length;
-    ArrayDeque<Networking.ImageChunkS2C> chunks = new ArrayDeque<>();
-
-    for (int start = 0, i = 0; start < totalSize; start += maxPacketSize, i++) {
-      int end = Math.min(start + maxPacketSize, totalSize);
-      byte[] chunk = new byte[end - start];
-      System.arraycopy(bytes, start, chunk, 0, end - start);
-      chunks.add(new Networking.ImageChunkS2C(id, i, chunk));
-    }
-
-    ImagePacketQueue.getInstance()
-        .add(player, new Networking.ImageHeaderS2C(id, image.width(), image.height(), chunks.size()));
-
-    while (!chunks.isEmpty()) {
-      ImagePacketQueue.getInstance().add(player, chunks.pop());
-    }
+  public static void sendImageToPlayer(ServerPlayerEntity player, Identifier id, Image image) {
+    ImagePacketQueue.getInstance().add(player, id, image);
   }
 
   public static void sendEditPaintingPacket(

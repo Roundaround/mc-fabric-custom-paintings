@@ -74,7 +74,7 @@ public record Image(Color[] pixels, int width, int height) {
   }
 
   public byte[] getBytes() {
-    byte[] bytes = new byte[this.pixels.length * 4];
+    byte[] bytes = new byte[this.getSize()];
     for (int i = 0; i < this.pixels.length; i++) {
       bytes[i * 4] = this.pixels[i].r;
       bytes[i * 4 + 1] = this.pixels[i].g;
@@ -82,6 +82,10 @@ public record Image(Color[] pixels, int width, int height) {
       bytes[i * 4 + 3] = this.pixels[i].a;
     }
     return bytes;
+  }
+
+  public int getSize() {
+    return this.pixels.length * 4;
   }
 
   public ByteSource getByteSource() {

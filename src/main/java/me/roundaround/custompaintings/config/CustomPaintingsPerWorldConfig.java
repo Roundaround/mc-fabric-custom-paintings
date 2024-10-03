@@ -19,6 +19,7 @@ public class CustomPaintingsPerWorldConfig extends ModConfigImpl implements Worl
 
   public BooleanConfigOption throttleImageDownloads;
   public IntConfigOption maxImagePacketsPerSecond;
+  public IntConfigOption maxPerClientImagePacketsPerSecond;
   public IntConfigOption maxImagePacketSize;
 
   private CustomPaintingsPerWorldConfig() {
@@ -37,11 +38,16 @@ public class CustomPaintingsPerWorldConfig extends ModConfigImpl implements Worl
         .serverOnly()
         .commit();
 
+    this.maxPerClientImagePacketsPerSecond = this.buildRegistration(
+        IntConfigOption.builder(ConfigPath.of("maxPerClientImagePacketsPerSecond"))
+            .setDefaultValue(5)
+            .setMinValue(0)
+            .build()).serverOnly().commit();
+
     this.maxImagePacketSize = this.buildRegistration(IntConfigOption.builder(ConfigPath.of("maxImagePacketSize"))
-        .setDefaultValue(64)
-        .setStep(16)
+        .setDefaultValue(256)
+        .setStep(64)
         .setMinValue(0)
-        .setMaxValue(256)
         .build()).serverOnly().commit();
   }
 }
