@@ -57,6 +57,12 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   private boolean packsReceived = false;
   private String pendingCombinedImagesHash = "";
   private long waitingForImagesTimer;
+  private int imagesExpected;
+  private int packetsExpected;
+  private int bytesExpected;
+  private int imagesReceived;
+  private int packetsReceived;
+  private int bytesReceived;
 
   private ClientPaintingRegistry(MinecraftClient client) {
     this.client = client;
@@ -138,9 +144,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     this.onImagesChanged();
   }
 
-  public void trackNeededImages(List<Identifier> ids) {
-
-
+  public void trackExpectedPackets(List<Identifier> ids, int imageCount, int packetCount, int byteCount) {
     this.cachedImages.entrySet().removeIf((entry) -> ids.contains(entry.getKey()));
     if (!this.cachedImages.isEmpty()) {
       CustomPaintingsMod.LOGGER.info("{} painting hashes match, using cached data", this.cachedImages.size());
@@ -153,11 +157,41 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
 
     this.neededImages.clear();
     this.neededImages.addAll(ids);
+    this.imagesExpected = imageCount;
+    this.packetsExpected = packetCount;
+    this.bytesExpected = byteCount;
 
     this.buildSpriteAtlas();
   }
 
   public void setPaintingImage(Identifier id, Image image) {
+    this.imagesReceived++;
+    this.packetsReceived++;
+    this.bytesReceived += image.getSize();
+    this.setFull(id, image);
+  }
+
+  public void setPaintingHeader(Identifier id, int width, int height, int totalChunks) {
+    this.packetsReceived++;
+    this.setPart(id, (builder) -> builder.set(width, height, totalChunks));
+  }
+
+  public void setPaintingChunk(Identifier id, int index, byte[] bytes) {
+    this.packetsReceived++;
+    this.bytesReceived += bytes.length;
+    this.setPart(id, (builder) -> builder.set(index, bytes));
+  }
+
+  private void setPart(Identifier id, Function<ImageChunkBuilder, Boolean> setter) {
+    ImageChunkBuilder builder = this.cacheImageBuilders.computeIfAbsent(id, (identifier) -> new ImageChunkBuilder());
+    if (setter.apply(builder)) {
+      this.imagesReceived++;
+      this.setFull(id, builder.generate());
+      this.cacheImageBuilders.remove(id);
+    }
+  }
+
+  private void setFull(Identifier id, Image image) {
     try {
       this.images.put(id, image);
       this.imageHashes.put(id, image.getHash());
@@ -176,20 +210,16 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     }
   }
 
-  public void setPaintingHeader(Identifier id, int width, int height, int totalChunks) {
-    this.setPart(id, (builder) -> builder.set(width, height, totalChunks));
+  public Progress getImageProgress() {
+    return new Progress(this.imagesReceived, this.imagesExpected);
   }
 
-  public void setPaintingChunk(Identifier id, int index, byte[] bytes) {
-    this.setPart(id, (builder) -> builder.set(index, bytes));
+  public Progress getPacketProgress() {
+    return new Progress(this.packetsReceived, this.packetsExpected);
   }
 
-  private void setPart(Identifier id, Function<ImageChunkBuilder, Boolean> setter) {
-    ImageChunkBuilder builder = this.cacheImageBuilders.computeIfAbsent(id, (identifier) -> new ImageChunkBuilder());
-    if (setter.apply(builder)) {
-      this.setPaintingImage(id, builder.generate());
-      this.cacheImageBuilders.remove(id);
-    }
+  public Progress getByteProgress() {
+    return new Progress(this.bytesReceived, this.bytesExpected);
   }
 
   protected void close(MinecraftClient client) {
@@ -446,5 +476,11 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
         }
       }
     });
+  }
+
+  public record Progress(int received, int expected, int percent) {
+    public Progress(int received, int expected) {
+      this(received, expected, Math.clamp(Math.round(100f * (float) received / expected), 0, 100));
+    }
   }
 }

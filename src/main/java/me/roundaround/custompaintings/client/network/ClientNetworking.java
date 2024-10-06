@@ -33,8 +33,9 @@ public final class ClientNetworking {
 
   public static void registerReceivers() {
     ClientPlayNetworking.registerGlobalReceiver(Networking.SummaryS2C.ID, ClientNetworking::handleSummary);
+    ClientPlayNetworking.registerGlobalReceiver(
+        Networking.DownloadSummaryS2C.ID, ClientNetworking::handleDownloadSummary);
     ClientPlayNetworking.registerGlobalReceiver(Networking.ImageS2C.ID, ClientNetworking::handleImage);
-    ClientPlayNetworking.registerGlobalReceiver(Networking.ImageIdsS2C.ID, ClientNetworking::handleImageIds);
     ClientPlayNetworking.registerGlobalReceiver(Networking.ImageHeaderS2C.ID, ClientNetworking::handleImageHeader);
     ClientPlayNetworking.registerGlobalReceiver(Networking.ImageChunkS2C.ID, ClientNetworking::handleImageChunk);
     ClientPlayNetworking.registerGlobalReceiver(Networking.EditPaintingS2C.ID, ClientNetworking::handleEditPainting);
@@ -57,17 +58,20 @@ public final class ClientNetworking {
     });
   }
 
-  private static void handleImage(Networking.ImageS2C payload, ClientPlayNetworking.Context context) {
+  private static void handleDownloadSummary(
+      Networking.DownloadSummaryS2C payload, ClientPlayNetworking.Context context
+  ) {
     context.client().execute(() -> {
-      CustomPaintingsMod.LOGGER.info(
-          "Received full image for {} ({}KB).", payload.id(), formatBytes(payload.image().getBytes().length));
-      ClientPaintingRegistry.getInstance().setPaintingImage(payload.id(), payload.image());
+      ClientPaintingRegistry.getInstance()
+          .trackExpectedPackets(payload.ids(), payload.imageCount(), payload.packetCount(), payload.byteCount());
     });
   }
 
-  private static void handleImageIds(Networking.ImageIdsS2C payload, ClientPlayNetworking.Context context) {
+  private static void handleImage(Networking.ImageS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
-      ClientPaintingRegistry.getInstance().trackNeededImages(payload.ids());
+      CustomPaintingsMod.LOGGER.info(
+          "Received full image for {} ({}KB).", payload.id(), formatBytes(payload.image().getSize()));
+      ClientPaintingRegistry.getInstance().setPaintingImage(payload.id(), payload.image());
     });
   }
 

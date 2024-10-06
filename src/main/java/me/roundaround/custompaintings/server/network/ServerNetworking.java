@@ -4,7 +4,6 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.network.PaintingIdPair;
-import me.roundaround.custompaintings.resource.Image;
 import me.roundaround.custompaintings.server.CustomPaintingsServerMod;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
@@ -18,6 +17,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -46,12 +46,11 @@ public final class ServerNetworking {
     ServerPlayNetworking.send(player, payload);
   }
 
-  public static void sendImageIdsPacket(ServerPlayerEntity player, List<Identifier> ids) {
-    ServerPlayNetworking.send(player, new Networking.ImageIdsS2C(ids));
-  }
-
-  public static void sendImageToPlayer(ServerPlayerEntity player, Identifier id, Image image) {
-    ImagePacketQueue.getInstance().add(player, id, image);
+  public static void sendDownloadSummaryPacket(
+      ServerPlayerEntity player, Collection<Identifier> ids, int imageCount, int packetCount, int byteCount
+  ) {
+    ServerPlayNetworking.send(
+        player, new Networking.DownloadSummaryS2C(ids.stream().toList(), imageCount, packetCount, byteCount));
   }
 
   public static void sendEditPaintingPacket(

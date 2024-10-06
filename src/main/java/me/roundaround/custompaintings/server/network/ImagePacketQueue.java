@@ -32,12 +32,54 @@ public class ImagePacketQueue {
   private ImagePacketQueue() {
   }
 
+  public void add(ServerPlayerEntity player, HashMap<Identifier, Image> images) {
+    Summary summary = images.entrySet()
+        .stream()
+        .map((entry) -> this.add(player, entry.getKey(), entry.getValue()))
+        .reduce(Summary.empty(), Summary::merge);
+    ServerNetworking.sendDownloadSummaryPacket(
+        player, images.keySet(), summary.imageCount, summary.packetCount, summary.byteCount);
+  }
+
+  private Summary add(ServerPlayerEntity player, Identifier id, Image image) {
+    if (!isThrottled()) {
+      ServerPlayNetworking.send(player, new Networking.ImageS2C(id, image));
+      return Summary.singlePacketImage(image);
+    }
+
+    int maxBytes = CustomPaintingsPerWorldConfig.getInstance().maxImagePacketSize.getValue() * 1024;
+    if (maxBytes == 0 || image.getSize() <= maxBytes) {
+      this.queue.add(new Entry(player, new Networking.ImageS2C(id, image)));
+      return Summary.singlePacketImage(image);
+    }
+
+    byte[] bytes = image.getBytes();
+    int totalSize = bytes.length;
+    ArrayDeque<Networking.ImageChunkS2C> chunks = new ArrayDeque<>();
+    Summary summary = Summary.multiPacketImage();
+
+    for (int start = 0, i = 0; start < totalSize; start += maxBytes, i++) {
+      int end = Math.min(start + maxBytes, totalSize);
+      byte[] chunk = new byte[end - start];
+      System.arraycopy(bytes, start, chunk, 0, end - start);
+      chunks.add(new Networking.ImageChunkS2C(id, i, chunk));
+      summary.add(chunk.length);
+    }
+
+    this.queue.add(new Entry(player, new Networking.ImageHeaderS2C(id, image.width(), image.height(), chunks.size())));
+    while (!chunks.isEmpty()) {
+      this.queue.add(new Entry(player, chunks.pop()));
+    }
+
+    return summary;
+  }
+
   public void tick() {
     if (this.queue.isEmpty()) {
       return;
     }
 
-    if (!this.isThrottled()) {
+    if (!isThrottled()) {
       while (!this.queue.isEmpty()) {
         Entry entry = this.queue.poll();
         ServerPlayNetworking.send(entry.player, entry.payload);
@@ -78,38 +120,8 @@ public class ImagePacketQueue {
     this.queue.addAll(deferred);
   }
 
-  public void add(ServerPlayerEntity player, Identifier id, Image image) {
-    if (!this.isThrottled()) {
-      ServerPlayNetworking.send(player, new Networking.ImageS2C(id, image));
-      return;
-    }
-
-    int maxBytes = CustomPaintingsPerWorldConfig.getInstance().maxImagePacketSize.getValue() * 1024;
-    if (maxBytes == 0 || image.getSize() <= maxBytes) {
-      this.queue.add(new Entry(player, new Networking.ImageS2C(id, image)));
-      return;
-    }
-
-    byte[] bytes = image.getBytes();
-    int totalSize = bytes.length;
-    ArrayDeque<Networking.ImageChunkS2C> chunks = new ArrayDeque<>();
-
-    for (int start = 0, i = 0; start < totalSize; start += maxBytes, i++) {
-      int end = Math.min(start + maxBytes, totalSize);
-      byte[] chunk = new byte[end - start];
-      System.arraycopy(bytes, start, chunk, 0, end - start);
-      chunks.add(new Networking.ImageChunkS2C(id, i, chunk));
-    }
-
-    this.queue.add(new Entry(player, new Networking.ImageHeaderS2C(id, image.width(), image.height(), chunks.size())));
-
-    while (!chunks.isEmpty()) {
-      this.queue.add(new Entry(player, chunks.pop()));
-    }
-  }
-
   @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-  private boolean isThrottled() {
+  private static boolean isThrottled() {
     if (FabricLoader.getInstance().getEnvironmentType() != EnvType.SERVER) {
       return false;
     }
@@ -117,5 +129,41 @@ public class ImagePacketQueue {
   }
 
   private record Entry(ServerPlayerEntity player, CustomPayload payload) {
+  }
+
+  public static class Summary {
+    public int packetCount;
+    public int imageCount;
+    public int byteCount;
+
+    private Summary(int packetCount, int imageCount, int byteCount) {
+      this.packetCount = packetCount;
+      this.imageCount = imageCount;
+      this.byteCount = byteCount;
+    }
+
+    public static Summary empty() {
+      return new Summary(0, 0, 0);
+    }
+
+    public static Summary singlePacketImage(Image image) {
+      return new Summary(1, 1, image.getSize());
+    }
+
+    public static Summary multiPacketImage() {
+      return new Summary(1, 1, 0);
+    }
+
+    public void add(int byteCount) {
+      this.packetCount++;
+      this.byteCount += byteCount;
+    }
+
+    public static Summary merge(Summary a, Summary b) {
+      a.packetCount += b.packetCount;
+      a.imageCount += b.imageCount;
+      a.byteCount += b.byteCount;
+      return a;
+    }
   }
 }

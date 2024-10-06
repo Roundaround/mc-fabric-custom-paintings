@@ -26,6 +26,8 @@ public final class Networking {
   public static final Identifier SUMMARY_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "summary_s2c");
   public static final Identifier IMAGE_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "image_s2c");
   public static final Identifier IMAGE_IDS_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "image_ids_s2c");
+  public static final Identifier DOWNLOAD_SUMMARY_S2C = new Identifier(
+      CustomPaintingsMod.MOD_ID, "download_summary_s2c");
   public static final Identifier IMAGE_HEADER_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "image_header_s2c");
   public static final Identifier IMAGE_CHUNK_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "image_chunk_s2c");
   public static final Identifier EDIT_PAINTING_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "edit_painting_s2c");
@@ -39,6 +41,7 @@ public final class Networking {
     PayloadTypeRegistry.playS2C().register(SummaryS2C.ID, SummaryS2C.CODEC);
     PayloadTypeRegistry.playS2C().register(ImageS2C.ID, ImageS2C.CODEC);
     PayloadTypeRegistry.playS2C().register(ImageIdsS2C.ID, ImageIdsS2C.CODEC);
+    PayloadTypeRegistry.playS2C().register(DownloadSummaryS2C.ID, DownloadSummaryS2C.CODEC);
     PayloadTypeRegistry.playS2C().register(ImageHeaderS2C.ID, ImageHeaderS2C.CODEC);
     PayloadTypeRegistry.playS2C().register(ImageChunkS2C.ID, ImageChunkS2C.CODEC);
     PayloadTypeRegistry.playS2C().register(EditPaintingS2C.ID, EditPaintingS2C.CODEC);
@@ -82,6 +85,21 @@ public final class Networking {
 
     @Override
     public Id<ImageIdsS2C> getId() {
+      return ID;
+    }
+  }
+
+  public record DownloadSummaryS2C(List<Identifier> ids, int imageCount, int packetCount, int byteCount) implements
+      CustomPayload {
+    public static final Id<DownloadSummaryS2C> ID = new Id<>(IMAGE_IDS_S2C);
+    public static final PacketCodec<RegistryByteBuf, DownloadSummaryS2C> CODEC = PacketCodec.tuple(
+        CustomCodecs.forList(Identifier.PACKET_CODEC), DownloadSummaryS2C::ids, PacketCodecs.INTEGER,
+        DownloadSummaryS2C::imageCount, PacketCodecs.INTEGER, DownloadSummaryS2C::packetCount, PacketCodecs.INTEGER,
+        DownloadSummaryS2C::byteCount, DownloadSummaryS2C::new
+    );
+
+    @Override
+    public Id<DownloadSummaryS2C> getId() {
       return ID;
     }
   }
