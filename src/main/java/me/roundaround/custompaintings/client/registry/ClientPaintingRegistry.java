@@ -17,6 +17,7 @@ import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
 import me.roundaround.custompaintings.resource.Image;
 import me.roundaround.custompaintings.resource.PackIcons;
 import me.roundaround.roundalib.client.event.MinecraftClientEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.resource.metadata.AnimationFrameResourceMetadata;
@@ -24,6 +25,7 @@ import net.minecraft.client.resource.metadata.AnimationResourceMetadata;
 import net.minecraft.client.texture.*;
 import net.minecraft.registry.Registries;
 import net.minecraft.resource.metadata.ResourceMetadata;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 
@@ -63,6 +65,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   private int imagesReceived;
   private int packetsReceived;
   private int bytesReceived;
+  private long lastDownloadUpdate = 0L;
 
   private ClientPaintingRegistry(MinecraftClient client) {
     this.client = client;
@@ -70,6 +73,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     client.getTextureManager().registerTexture(this.atlas.getId(), this.atlas);
     this.buildSpriteAtlas();
 
+    ClientTickEvents.START_CLIENT_TICK.register(this::tick);
     MinecraftClientEvents.CLOSE.register(this::close);
   }
 
@@ -161,6 +165,12 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     this.packetsExpected = packetCount;
     this.bytesExpected = byteCount;
 
+    if (this.client.player != null) {
+      this.lastDownloadUpdate = System.currentTimeMillis();
+      this.sendMessage(
+          Text.translatable("custompaintings.download.start", this.imagesExpected, formatBytes(this.bytesExpected)));
+    }
+
     this.buildSpriteAtlas();
   }
 
@@ -203,10 +213,9 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     if (this.neededImages.isEmpty()) {
       CustomPaintingsMod.LOGGER.info("All painting images received from server. Refreshing sprite atlas...");
       this.onImagesChanged();
-      DecimalFormat format = new DecimalFormat("0.##");
-      CustomPaintingsMod.LOGGER.info("Painting images downloaded and sprite atlas refreshed in {}s",
-          format.format((Util.getMeasuringTimeMs() - this.waitingForImagesTimer) / 1000.0)
-      );
+      String time = formatToTwoDecimals((Util.getMeasuringTimeMs() - this.waitingForImagesTimer) / 1000.0);
+      CustomPaintingsMod.LOGGER.info("Painting images downloaded and sprite atlas refreshed in {}s", time);
+      this.sendMessage(Text.translatable("custompaintings.download.done", time));
     }
   }
 
@@ -220,6 +229,28 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
 
   public Progress getByteProgress() {
     return new Progress(this.bytesReceived, this.bytesExpected);
+  }
+
+  protected void tick(MinecraftClient client) {
+    if (this.imagesExpected == 0 || this.imagesReceived == this.imagesExpected) {
+      this.imagesExpected = 0;
+      this.packetsExpected = 0;
+      this.bytesExpected = 0;
+      this.imagesReceived = 0;
+      this.packetsReceived = 0;
+      this.bytesReceived = 0;
+      return;
+    }
+
+    long timestamp = System.currentTimeMillis();
+    if (timestamp - this.lastDownloadUpdate > 3000) {
+      this.lastDownloadUpdate = timestamp;
+      this.sendMessage(client,
+          Text.translatable("custompaintings.download.progress", this.imagesReceived, this.imagesExpected,
+              this.getByteProgress().percent() / 100f
+          )
+      );
+    }
   }
 
   protected void close(MinecraftClient client) {
@@ -236,6 +267,12 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     this.cachedImages.clear();
     this.cacheImageBuilders.clear();
     this.pendingCombinedImagesHash = "";
+    this.imagesExpected = 0;
+    this.packetsExpected = 0;
+    this.bytesExpected = 0;
+    this.imagesReceived = 0;
+    this.packetsReceived = 0;
+    this.bytesReceived = 0;
   }
 
   @Override
@@ -347,6 +384,17 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   private SpriteContents getSpriteContents(PaintingData painting) {
     return getSpriteContents(
         painting.id(), this.images.get(painting.id()), painting.getScaledWidth(), painting.getScaledHeight());
+  }
+
+  private void sendMessage(Text text) {
+    this.sendMessage(this.client, text);
+  }
+
+  private void sendMessage(MinecraftClient client, Text text) {
+    if (client.player == null) {
+      return;
+    }
+    client.player.sendMessage(text);
   }
 
   private static SpriteContents getSpriteContents(Identifier id, Image image, int width, int height) {
@@ -476,6 +524,19 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
         }
       }
     });
+  }
+
+  private static String formatBytes(int bytes) {
+    if (bytes >= 512000) {
+      return String.format("%s MB", formatToTwoDecimals(bytes / 1024.0 / 1024.0));
+    } else if (bytes >= 512) {
+      return String.format("%s KB", formatToTwoDecimals(bytes / 1024.0));
+    }
+    return formatToTwoDecimals(bytes / 1024.0 / 1024.0) + " B";
+  }
+
+  private static String formatToTwoDecimals(double value) {
+    return new DecimalFormat("0.##").format(value);
   }
 
   public record Progress(int received, int expected, int percent) {

@@ -29,5 +29,8 @@
   "custompaintings.cacheImages.label": "Cache images from the server locally",
   "custompaintings.throttleImageDownloads.label": "Throttle image transfers to clients",
   "custompaintings.maxImagePacketsPerSecond.label": "Maximum number of image packets per second",
-  "custompaintings.maxImagePacketSize.label": "Maximum size for each image packet in KB"
+  "custompaintings.maxImagePacketSize.label": "Maximum size for each image packet in KB",
+  "custompaintings.download.start": "Downloading %s painting image(s) from server (%s)",
+  "custompaintings.download.progress": "%s/%s painting image(s) downloaded (%s%%)",
+  "custompaintings.download.end": "%s painting image(s) downloaded from server in %ss"
 }
