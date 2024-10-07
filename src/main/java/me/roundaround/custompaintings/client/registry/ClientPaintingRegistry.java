@@ -120,7 +120,69 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   }
 
   public void pullFromCache(UUID serverId) {
+    this.pullFromUnmanagedCache();
+  }
 
+  private void pullFromUnmanagedCache() {
+    if (!this.usingCache()) {
+      this.cachedImages.clear();
+      this.imageHashes.clear();
+      this.combinedImageHash = "";
+
+      CustomPaintingsMod.LOGGER.info("Painting image caching disabled, skipping hash generation and cache loading");
+      return;
+    }
+
+    this.cachedImages.clear();
+
+    Path cacheDir = FabricLoader.getInstance().getGameDir().resolve("data").resolve(CustomPaintingsMod.MOD_ID);
+    if (Files.notExists(cacheDir)) {
+      CustomPaintingsMod.LOGGER.info(
+          "Painting image cache directory does not exist, skipping hash generation and cache loading");
+      return;
+    }
+
+    for (Identifier id : this.paintings.keySet()) {
+      Path path = cacheDir.resolve(id.getNamespace()).resolve(id.getPath() + ".png");
+      if (Files.notExists(path) || !Files.isRegularFile(path)) {
+        this.cachedImages.put(id, Image.empty());
+        continue;
+      }
+
+      try {
+        Image image = Image.read(Files.newInputStream(path));
+        this.cachedImages.put(id, image);
+      } catch (IOException e) {
+        this.cachedImages.put(id, Image.empty());
+      }
+    }
+
+    for (String packId : this.packsMap.keySet()) {
+      Identifier id = PackIcons.identifier(packId);
+      Path path = cacheDir.resolve(id.getNamespace()).resolve(id.getPath() + ".png");
+      if (Files.notExists(path) || !Files.isRegularFile(path)) {
+        this.cachedImages.put(id, Image.empty());
+        continue;
+      }
+
+      try {
+        Image image = Image.read(Files.newInputStream(path));
+        this.cachedImages.put(id, image);
+      } catch (IOException e) {
+        this.cachedImages.put(id, Image.empty());
+      }
+    }
+
+    this.combinedImageHash = "";
+    this.imageHashes.clear();
+
+    try {
+      HashResult hashResult = hashImages(this.cachedImages);
+      this.combinedImageHash = hashResult.combinedImageHash();
+      this.imageHashes.putAll(hashResult.imageHashes());
+    } catch (IOException e) {
+      CustomPaintingsMod.LOGGER.warn("Painting image cache failed to hash. Ignoring.");
+    }
   }
 
   public void checkCombinedImageHash(String combinedImageHash) {
@@ -217,66 +279,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
 
     this.pendingDataRequests.forEach((id, future) -> future.complete(this.get(id)));
     this.pendingDataRequests.clear();
-
-    if (!this.usingCache()) {
-      this.cachedImages.clear();
-      this.imageHashes.clear();
-      this.combinedImageHash = "";
-
-      CustomPaintingsMod.LOGGER.info("Painting image caching disabled, skipping hash generation and cache loading");
-      return;
-    }
-
-    this.cachedImages.clear();
-
-    Path cacheDir = FabricLoader.getInstance().getGameDir().resolve("data").resolve(CustomPaintingsMod.MOD_ID);
-    if (Files.notExists(cacheDir)) {
-      CustomPaintingsMod.LOGGER.info(
-          "Painting image cache directory does not exist, skipping hash generation and cache loading");
-      return;
-    }
-
-    for (Identifier id : this.paintings.keySet()) {
-      Path path = cacheDir.resolve(id.getNamespace()).resolve(id.getPath() + ".png");
-      if (Files.notExists(path) || !Files.isRegularFile(path)) {
-        this.cachedImages.put(id, Image.empty());
-        continue;
-      }
-
-      try {
-        Image image = Image.read(Files.newInputStream(path));
-        this.cachedImages.put(id, image);
-      } catch (IOException e) {
-        this.cachedImages.put(id, Image.empty());
-      }
-    }
-
-    for (String packId : this.packsMap.keySet()) {
-      Identifier id = PackIcons.identifier(packId);
-      Path path = cacheDir.resolve(id.getNamespace()).resolve(id.getPath() + ".png");
-      if (Files.notExists(path) || !Files.isRegularFile(path)) {
-        this.cachedImages.put(id, Image.empty());
-        continue;
-      }
-
-      try {
-        Image image = Image.read(Files.newInputStream(path));
-        this.cachedImages.put(id, image);
-      } catch (IOException e) {
-        this.cachedImages.put(id, Image.empty());
-      }
-    }
-
-    this.combinedImageHash = "";
-    this.imageHashes.clear();
-
-    try {
-      HashResult hashResult = hashImages(this.cachedImages);
-      this.combinedImageHash = hashResult.combinedImageHash();
-      this.imageHashes.putAll(hashResult.imageHashes());
-    } catch (IOException e) {
-      CustomPaintingsMod.LOGGER.warn("Painting image cache failed to hash. Ignoring.");
-    }
   }
 
   @Override
