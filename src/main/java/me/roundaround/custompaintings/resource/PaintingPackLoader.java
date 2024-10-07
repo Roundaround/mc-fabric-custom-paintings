@@ -20,6 +20,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -100,6 +101,18 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
     return null;
   }
 
+  private static String getFolderPrefix(ZipFile zip) {
+    Enumeration<? extends ZipEntry> entries = zip.entries();
+    if (entries.hasMoreElements()) {
+      ZipEntry firstEntry = entries.nextElement();
+      if (firstEntry.isDirectory()) {
+        CustomPaintingsMod.LOGGER.info("Top-level directory found in zip: {}", firstEntry.getName());
+        return firstEntry.getName();
+      }
+    }
+    return "";
+  }
+
   private static SinglePackResult readZipAsPack(Path path) {
     if (!path.getFileName().toString().endsWith(".zip")) {
       CustomPaintingsMod.LOGGER.warn("Found non-zip Custom Paintings file \"{}\", skipping...", path.getFileName());
@@ -115,7 +128,9 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
     }
 
     try (ZipFile zip = new ZipFile(path.toFile())) {
-      ZipEntry zipMeta = zip.getEntry(META_FILENAME);
+      String folderPrefix = getFolderPrefix(zip);
+
+      ZipEntry zipMeta = zip.getEntry(folderPrefix + META_FILENAME);
       if (zipMeta == null) {
         CustomPaintingsMod.LOGGER.warn("Found Custom Paintings pack \"{}\" without a {} file, skipping...",
             path.getFileName(), META_FILENAME
@@ -140,7 +155,7 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
 
       HashMap<Identifier, Image> images = new HashMap<>();
 
-      ZipEntry zipIconImage = zip.getEntry("icon.png");
+      ZipEntry zipIconImage = zip.getEntry(folderPrefix + "icon.png");
       if (zipIconImage == null) {
         CustomPaintingsMod.LOGGER.warn("Missing icon.png file for {}", pack.id());
       } else {
@@ -159,7 +174,7 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
 
       pack.paintings().forEach((painting) -> {
         Identifier id = new Identifier(pack.id(), painting.id());
-        ZipEntry zipImage = zip.getEntry(String.format("images/%s.png", painting.id()));
+        ZipEntry zipImage = zip.getEntry(folderPrefix + String.format("images/%s.png", painting.id()));
         if (zipImage == null) {
           CustomPaintingsMod.LOGGER.warn("Missing custom painting image file for {}", id);
           return;
