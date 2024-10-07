@@ -33,23 +33,29 @@ public class ImagePacketQueue {
   }
 
   public void add(ServerPlayerEntity player, HashMap<Identifier, Image> images) {
+    ArrayDeque<Entry> queue = new ArrayDeque<>();
     Summary summary = images.entrySet()
         .stream()
-        .map((entry) -> this.add(player, entry.getKey(), entry.getValue()))
+        .map((entry) -> this.add(queue, player, entry.getKey(), entry.getValue()))
         .reduce(Summary.empty(), Summary::merge);
+
     ServerNetworking.sendDownloadSummaryPacket(
         player, images.keySet(), summary.imageCount, summary.packetCount, summary.byteCount);
+
+    while (!queue.isEmpty()) {
+      Entry entry = queue.poll();
+      if (isThrottled()) {
+        this.queue.push(entry);
+      } else {
+        ServerPlayNetworking.send(entry.player, entry.payload);
+      }
+    }
   }
 
-  private Summary add(ServerPlayerEntity player, Identifier id, Image image) {
-    if (!isThrottled()) {
-      ServerPlayNetworking.send(player, new Networking.ImageS2C(id, image));
-      return Summary.singlePacketImage(image);
-    }
-
+  private Summary add(ArrayDeque<Entry> queue, ServerPlayerEntity player, Identifier id, Image image) {
     int maxBytes = CustomPaintingsPerWorldConfig.getInstance().maxImagePacketSize.getValue() * 1024;
-    if (maxBytes == 0 || image.getSize() <= maxBytes) {
-      this.queue.add(new Entry(player, new Networking.ImageS2C(id, image)));
+    if (!isThrottled() || maxBytes == 0 || image.getSize() <= maxBytes) {
+      queue.add(new Entry(player, new Networking.ImageS2C(id, image)));
       return Summary.singlePacketImage(image);
     }
 
@@ -66,9 +72,9 @@ public class ImagePacketQueue {
       summary.add(chunk.length);
     }
 
-    this.queue.add(new Entry(player, new Networking.ImageHeaderS2C(id, image.width(), image.height(), chunks.size())));
+    queue.add(new Entry(player, new Networking.ImageHeaderS2C(id, image.width(), image.height(), chunks.size())));
     while (!chunks.isEmpty()) {
-      this.queue.add(new Entry(player, chunks.pop()));
+      queue.add(new Entry(player, chunks.pop()));
     }
 
     return summary;

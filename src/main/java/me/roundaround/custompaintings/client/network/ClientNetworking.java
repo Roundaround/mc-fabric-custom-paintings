@@ -15,12 +15,8 @@ import net.minecraft.world.World;
 import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
 
 public final class ClientNetworking {
-  private static final AtomicReference<Networking.SyncAllDataS2C> cachedSyncPayloadRef = new AtomicReference<>();
-
   private ClientNetworking() {
   }
 
@@ -46,19 +42,14 @@ public final class ClientNetworking {
 
   private static void handleSummary(Networking.SummaryS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
-      // TODO: Pass on to cache manager
-      UUID serverId = payload.serverId();
+      ClientPaintingRegistry registry = ClientPaintingRegistry.getInstance();
 
       HashMap<String, PaintingPack> packs = new HashMap<>(payload.packs().size());
       payload.packs().forEach((pack) -> packs.put(pack.id(), pack));
-      ClientPaintingRegistry.getInstance().setPacks(packs);
+      registry.setPacks(packs);
 
-      ClientPaintingRegistry.getInstance().checkCombinedImageHash(payload.combinedImageHash());
-
-      Networking.SyncAllDataS2C cachedSyncPayload = cachedSyncPayloadRef.getAndSet(null);
-      if (cachedSyncPayload != null) {
-        processSyncPayload(context.client().world, cachedSyncPayload);
-      }
+      registry.pullFromCache(payload.serverId());
+      registry.checkCombinedImageHash(payload.combinedImageHash());
     });
   }
 
@@ -114,18 +105,11 @@ public final class ClientNetworking {
 
   private static void handleSyncAllData(Networking.SyncAllDataS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
-      if (!ClientPaintingRegistry.getInstance().hasReceivedPacks()) {
-        cachedSyncPayloadRef.set(payload);
-        return;
+      World world = context.player().getWorld();
+      for (PaintingIdPair ids : payload.paintings()) {
+        ClientPaintingManager.getInstance().trySetPaintingData(world, ids.paintingId(), ids.dataId());
       }
-      processSyncPayload(context.client().world, payload);
     });
-  }
-
-  private static void processSyncPayload(World world, Networking.SyncAllDataS2C payload) {
-    for (PaintingIdPair ids : payload.paintings()) {
-      ClientPaintingManager.getInstance().trySetPaintingData(world, ids.paintingId(), ids.dataId());
-    }
   }
 
   private static String formatBytes(int bytes) {

@@ -36,6 +36,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.text.DecimalFormat;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
@@ -55,6 +56,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   private final HashSet<Identifier> neededImages = new HashSet<>();
   private final HashMap<Identifier, Image> cachedImages = new HashMap<>();
   private final HashMap<Identifier, ImageChunkBuilder> cacheImageBuilders = new HashMap<>();
+  private final LinkedHashMap<Identifier, CompletableFuture<PaintingData>> pendingDataRequests = new LinkedHashMap<>();
 
   private boolean packsReceived = false;
   private String pendingCombinedImagesHash = "";
@@ -113,22 +115,16 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     return this.getSprite(data.id());
   }
 
-  public boolean hasReceivedPacks() {
-    return this.packsReceived;
-  }
-
-  @Override
-  public void setPacks(HashMap<String, PaintingPack> packsMap) {
-    this.packsReceived = true;
-    super.setPacks(packsMap);
-  }
-
   public Map<String, PaintingPack> getPacks() {
     return Map.copyOf(this.packsMap);
   }
 
+  public void pullFromCache(UUID serverId) {
+
+  }
+
   public void checkCombinedImageHash(String combinedImageHash) {
-    if (!CustomPaintingsConfig.getInstance().cacheImages.getValue()) {
+    if (!this.usingCache()) {
       CustomPaintingsMod.LOGGER.info("Caching disabled; requesting all painting images from server");
       ClientNetworking.sendHashesPacket(new HashMap<>(0));
       return;
@@ -165,7 +161,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     this.packetsExpected = packetCount;
     this.bytesExpected = byteCount;
 
-    if (this.client.player != null) {
+    if (this.client.player != null && !this.client.isInSingleplayer()) {
       this.lastDownloadUpdate = System.currentTimeMillis();
       this.sendMessage(
           Text.translatable("custompaintings.download.start", this.imagesExpected, formatBytes(this.bytesExpected)));
@@ -192,40 +188,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     this.setPart(id, (builder) -> builder.set(index, bytes));
   }
 
-  private void setPart(Identifier id, Function<ImageChunkBuilder, Boolean> setter) {
-    ImageChunkBuilder builder = this.cacheImageBuilders.computeIfAbsent(id, (identifier) -> new ImageChunkBuilder());
-    if (setter.apply(builder)) {
-      this.imagesReceived++;
-      this.setFull(id, builder.generate());
-      this.cacheImageBuilders.remove(id);
-    }
-  }
-
-  private void setFull(Identifier id, Image image) {
-    try {
-      this.images.put(id, image);
-      this.imageHashes.put(id, image.getHash());
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-
-    this.neededImages.remove(id);
-    if (this.neededImages.isEmpty()) {
-      CustomPaintingsMod.LOGGER.info("All painting images received from server. Refreshing sprite atlas...");
-      this.onImagesChanged();
-      String time = formatToTwoDecimals((Util.getMeasuringTimeMs() - this.waitingForImagesTimer) / 1000.0);
-      CustomPaintingsMod.LOGGER.info("Painting images downloaded and sprite atlas refreshed in {}s", time);
-      this.sendMessage(Text.translatable("custompaintings.download.done", this.imagesExpected, time));
-
-      this.imagesExpected = 0;
-      this.packetsExpected = 0;
-      this.bytesExpected = 0;
-      this.imagesReceived = 0;
-      this.packetsReceived = 0;
-      this.bytesReceived = 0;
-    }
-  }
-
   public Progress getImageProgress() {
     return new Progress(this.imagesReceived, this.imagesExpected);
   }
@@ -238,55 +200,25 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     return new Progress(this.bytesReceived, this.bytesExpected);
   }
 
-  protected void tick(MinecraftClient client) {
-    if (this.imagesExpected == 0 || this.imagesReceived == this.imagesExpected) {
-      this.imagesExpected = 0;
-      this.packetsExpected = 0;
-      this.bytesExpected = 0;
-      this.imagesReceived = 0;
-      this.packetsReceived = 0;
-      this.bytesReceived = 0;
-      return;
+  public CompletableFuture<PaintingData> safeGet(Identifier id) {
+    if (this.packsReceived) {
+      return CompletableFuture.completedFuture(this.get(id));
     }
 
-    long timestamp = System.currentTimeMillis();
-    if (timestamp - this.lastDownloadUpdate > 4000) {
-      this.lastDownloadUpdate = timestamp;
-      this.sendMessage(client,
-          Text.translatable("custompaintings.download.progress", this.imagesReceived, this.imagesExpected,
-              this.getByteProgress().percent()
-          )
-      );
-    }
-  }
-
-  protected void close(MinecraftClient client) {
-    this.close();
-  }
-
-  @Override
-  public void close() {
-    super.close();
-
-    this.atlas.clear();
-    this.spriteIds.clear();
-    this.neededImages.clear();
-    this.cachedImages.clear();
-    this.cacheImageBuilders.clear();
-    this.pendingCombinedImagesHash = "";
-    this.imagesExpected = 0;
-    this.packetsExpected = 0;
-    this.bytesExpected = 0;
-    this.imagesReceived = 0;
-    this.packetsReceived = 0;
-    this.bytesReceived = 0;
+    CompletableFuture<PaintingData> future = new CompletableFuture<>();
+    this.pendingDataRequests.put(id, future);
+    return future;
   }
 
   @Override
   protected void onPacksChanged() {
     CustomPaintingsMod.LOGGER.info("{} painting metadata entries loaded", this.paintings.size());
+    this.packsReceived = true;
 
-    if (!CustomPaintingsConfig.getInstance().cacheImages.getValue()) {
+    this.pendingDataRequests.forEach((id, future) -> future.complete(this.get(id)));
+    this.pendingDataRequests.clear();
+
+    if (!this.usingCache()) {
       this.cachedImages.clear();
       this.imageHashes.clear();
       this.combinedImageHash = "";
@@ -351,7 +283,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   protected void onImagesChanged() {
     this.buildSpriteAtlas();
 
-    if (CustomPaintingsConfig.getInstance().cacheImages.getValue()) {
+    if (this.usingCache()) {
       if (!"".equals(this.pendingCombinedImagesHash)) {
         this.combinedImageHash = this.pendingCombinedImagesHash;
         this.pendingCombinedImagesHash = "";
@@ -363,7 +295,95 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     }
   }
 
-  protected void buildSpriteAtlas() {
+  @Override
+  public void close() {
+    super.close();
+
+    this.packsReceived = false;
+    this.atlas.clear();
+    this.spriteIds.clear();
+    this.neededImages.clear();
+    this.cachedImages.clear();
+    this.cacheImageBuilders.clear();
+    this.pendingDataRequests.forEach((id, future) -> future.cancel(true));
+    this.pendingDataRequests.clear();
+    this.pendingCombinedImagesHash = "";
+    this.imagesExpected = 0;
+    this.packetsExpected = 0;
+    this.bytesExpected = 0;
+    this.imagesReceived = 0;
+    this.packetsReceived = 0;
+    this.bytesReceived = 0;
+  }
+
+  private void tick(MinecraftClient client) {
+    if (client.isInSingleplayer()) {
+      return;
+    }
+
+    if (this.imagesExpected == 0 || this.imagesReceived == this.imagesExpected) {
+      this.imagesExpected = 0;
+      this.packetsExpected = 0;
+      this.bytesExpected = 0;
+      this.imagesReceived = 0;
+      this.packetsReceived = 0;
+      this.bytesReceived = 0;
+      return;
+    }
+
+    long timestamp = System.currentTimeMillis();
+    if (timestamp - this.lastDownloadUpdate > 4000) {
+      this.lastDownloadUpdate = timestamp;
+      this.sendMessage(client,
+          Text.translatable("custompaintings.download.progress", this.imagesReceived, this.imagesExpected,
+              this.getByteProgress().percent()
+          )
+      );
+    }
+  }
+
+  private void close(MinecraftClient client) {
+    this.close();
+  }
+
+  private void setPart(Identifier id, Function<ImageChunkBuilder, Boolean> setter) {
+    ImageChunkBuilder builder = this.cacheImageBuilders.computeIfAbsent(id, (identifier) -> new ImageChunkBuilder());
+    if (setter.apply(builder)) {
+      this.imagesReceived++;
+      this.setFull(id, builder.generate());
+      this.cacheImageBuilders.remove(id);
+    }
+  }
+
+  private void setFull(Identifier id, Image image) {
+    try {
+      this.images.put(id, image);
+      this.imageHashes.put(id, image.getHash());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+
+    this.neededImages.remove(id);
+    if (this.neededImages.isEmpty()) {
+      CustomPaintingsMod.LOGGER.info("All painting images received from server. Refreshing sprite atlas...");
+      this.onImagesChanged();
+      String time = formatToTwoDecimals((Util.getMeasuringTimeMs() - this.waitingForImagesTimer) / 1000.0);
+      CustomPaintingsMod.LOGGER.info("Painting images downloaded and sprite atlas refreshed in {}s", time);
+
+      if (!this.client.isInSingleplayer()) {
+        this.sendMessage(Text.translatable("custompaintings.download.done", this.imagesExpected, time));
+      }
+
+      this.imagesExpected = 0;
+      this.packetsExpected = 0;
+      this.bytesExpected = 0;
+      this.imagesReceived = 0;
+      this.packetsReceived = 0;
+      this.bytesReceived = 0;
+    }
+  }
+
+  void buildSpriteAtlas() {
     this.images.entrySet().removeIf((entry) -> !this.isValidImageId(entry.getKey()));
     this.imageHashes.entrySet().removeIf((entry) -> !this.isValidImageId(entry.getKey()));
 
@@ -385,7 +405,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   @SuppressWarnings("BooleanMethodIsAlwaysInverted")
   private boolean isValidImageId(Identifier id) {
     return this.paintings.containsKey(id) ||
-        (id.getNamespace().equals(PackIcons.ICON_NAMESPACE) && this.packsMap.containsKey(id.getPath()));
+           (id.getNamespace().equals(PackIcons.ICON_NAMESPACE) && this.packsMap.containsKey(id.getPath()));
   }
 
   private SpriteContents getSpriteContents(PaintingData painting) {
@@ -402,6 +422,10 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
       return;
     }
     client.player.sendMessage(text);
+  }
+
+  private boolean usingCache() {
+    return CustomPaintingsConfig.getInstance().cacheImages.getValue();
   }
 
   private static SpriteContents getSpriteContents(Identifier id, Image image, int width, int height) {

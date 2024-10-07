@@ -36,18 +36,19 @@ public class ClientPaintingManager implements AutoCloseable {
   }
 
   public void trySetPaintingData(World world, int paintingId, Identifier dataId) {
-    PaintingData paintingData = ClientPaintingRegistry.getInstance().get(dataId);
-    if (paintingData == null || paintingData.isEmpty()) {
-      return;
-    }
+    ClientPaintingRegistry.getInstance().safeGet(dataId).thenAccept((paintingData) -> {
+      if (paintingData == null || paintingData.isEmpty()) {
+        return;
+      }
 
-    Entity entity = world.getEntityById(paintingId);
-    if (!(entity instanceof PaintingEntity painting)) {
-      this.cachedData.put(paintingId, paintingData);
-      return;
-    }
+      Entity entity = world.getEntityById(paintingId);
+      if (!(entity instanceof PaintingEntity painting)) {
+        this.cachedData.put(paintingId, paintingData);
+        return;
+      }
 
-    this.setPaintingData(painting, paintingData);
+      this.setPaintingData(painting, paintingData);
+    });
   }
 
   @Override
