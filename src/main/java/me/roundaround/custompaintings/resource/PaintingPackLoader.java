@@ -28,6 +28,14 @@ import java.util.zip.ZipFile;
 public class PaintingPackLoader extends SinglePreparationResourceReloader<PaintingPackLoader.LoadResult> implements
     IdentifiableResourceReloadListener {
   private static final String META_FILENAME = "custompaintings.json";
+  private static final String LOG_NO_META = "Found Custom Paintings pack \"{}\" without a {} file, skipping...";
+  private static final String LOG_META_PARSE_FAIL = "Failed to parse {} from \"{}\", skipping...";
+  private static final String LOG_NO_PAINTINGS = "No paintings found in \"{}\", skipping...";
+  private static final String LOG_NO_ICON = "Missing icon.png file for {}";
+  private static final String LOG_ICON_READ_FAIL = "Failed to read icon.png file for {}";
+  private static final String LOG_MISSING_PAINTING = "Missing custom painting image file for {}";
+  private static final String LOG_LARGE_IMAGE = "Image file for {} is too large, skipping";
+  private static final String LOG_PAINTING_READ_FAIL = "Failed to read custom painting image file for {}";
   private static final Gson GSON = new GsonBuilder().create();
   private static final int MAX_SIZE = 1 << 24;
 
@@ -103,38 +111,49 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
 
   private static String getFolderPrefix(ZipFile zip) {
     Enumeration<? extends ZipEntry> entries = zip.entries();
-    if (entries.hasMoreElements()) {
-      ZipEntry firstEntry = entries.nextElement();
-      if (firstEntry.isDirectory()) {
-        CustomPaintingsMod.LOGGER.info("Top-level directory found in zip: {}", firstEntry.getName());
-        return firstEntry.getName();
+    if (!entries.hasMoreElements()) {
+      return "";
+    }
+
+    ZipEntry firstEntry = entries.nextElement();
+    if (!firstEntry.isDirectory()) {
+      return "";
+    }
+
+    String folderPrefix = firstEntry.getName();
+    while (entries.hasMoreElements()) {
+      ZipEntry entry = entries.nextElement();
+      if (!entry.getName().startsWith(folderPrefix)) {
+        return "";
       }
     }
-    return "";
+
+    return folderPrefix;
   }
 
   private static SinglePackResult readZipAsPack(Path path) {
-    if (!path.getFileName().toString().endsWith(".zip")) {
-      CustomPaintingsMod.LOGGER.warn("Found non-zip Custom Paintings file \"{}\", skipping...", path.getFileName());
+    String filename = path.getFileName().toString();
+
+    if (!filename.endsWith(".zip")) {
+      CustomPaintingsMod.LOGGER.warn("Found non-zip Custom Paintings file \"{}\", skipping...", filename);
       return null;
     }
 
     if (path.getFileSystem() != FileSystems.getDefault()) {
       CustomPaintingsMod.LOGGER.warn(
-          "Found zip Custom Paintings file \"{}\" outside the system's default file system, skipping...",
-          path.getFileName()
-      );
+          "Found zip Custom Paintings file \"{}\" outside the system's default file system, skipping...", filename);
       return null;
     }
 
     try (ZipFile zip = new ZipFile(path.toFile())) {
       String folderPrefix = getFolderPrefix(zip);
+      if (folderPrefix.isBlank()) {
+        CustomPaintingsMod.LOGGER.info("Folder-in-zip detected in \"{}\", adjusting paths", filename);
+      }
 
       ZipEntry zipMeta = zip.getEntry(folderPrefix + META_FILENAME);
       if (zipMeta == null) {
-        CustomPaintingsMod.LOGGER.warn("Found Custom Paintings pack \"{}\" without a {} file, skipping...",
-            path.getFileName(), META_FILENAME
-        );
+        CustomPaintingsMod.LOGGER.warn(LOG_NO_META, filename, META_FILENAME);
         return null;
       }
 
@@ -143,13 +162,12 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
         pack = GSON.fromJson(new InputStreamReader(stream), PackResource.class);
       } catch (Exception e) {
         CustomPaintingsMod.LOGGER.warn(e);
-        CustomPaintingsMod.LOGGER.warn(
-            "Failed to parse {} from \"{}\", skipping...", META_FILENAME, path.getFileName());
+        CustomPaintingsMod.LOGGER.warn(LOG_META_PARSE_FAIL, META_FILENAME, filename);
         return null;
       }
 
       if (pack.paintings().isEmpty()) {
-        CustomPaintingsMod.LOGGER.warn("No paintings found in \"{}\", skipping...", path.getFileName());
+        CustomPaintingsMod.LOGGER.warn(LOG_NO_PAINTINGS, filename);
         return null;
       }
 
@@ -157,7 +175,7 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
 
       ZipEntry zipIconImage = zip.getEntry(folderPrefix + "icon.png");
       if (zipIconImage == null) {
-        CustomPaintingsMod.LOGGER.warn("Missing icon.png file for {}", pack.id());
+        CustomPaintingsMod.LOGGER.warn(LOG_NO_ICON, pack.id());
       } else {
         try (InputStream stream = zip.getInputStream(zipIconImage)) {
           BufferedImage image = ImageIO.read(stream);
@@ -168,7 +186,7 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
           images.put(PackIcons.identifier(pack.id()), Image.read(image));
         } catch (IOException e) {
           CustomPaintingsMod.LOGGER.warn(e);
-          CustomPaintingsMod.LOGGER.warn("Failed to read icon.png file for {}", pack.id());
+          CustomPaintingsMod.LOGGER.warn(LOG_ICON_READ_FAIL, pack.id());
         }
       }
 
@@ -176,7 +194,7 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
         Identifier id = new Identifier(pack.id(), painting.id());
         ZipEntry zipImage = zip.getEntry(folderPrefix + String.format("images/%s.png", painting.id()));
         if (zipImage == null) {
-          CustomPaintingsMod.LOGGER.warn("Missing custom painting image file for {}", id);
+          CustomPaintingsMod.LOGGER.warn(LOG_MISSING_PAINTING, id);
           return;
         }
 
@@ -188,14 +206,14 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
 
           long size = (long) image.getWidth() * image.getHeight();
           if (size > MAX_SIZE) {
-            CustomPaintingsMod.LOGGER.warn("Image file for {} is too large, skipping", id);
+            CustomPaintingsMod.LOGGER.warn(LOG_LARGE_IMAGE, id);
             return;
           }
 
           images.put(id, Image.read(image));
         } catch (IOException e) {
           CustomPaintingsMod.LOGGER.warn(e);
-          CustomPaintingsMod.LOGGER.warn("Failed to read custom painting image file for {}", id);
+          CustomPaintingsMod.LOGGER.warn(LOG_PAINTING_READ_FAIL, id);
         }
       });
 
@@ -206,10 +224,10 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
   }
 
   private static SinglePackResult readDirectoryAsPack(Path path) {
+    String dirname = path.getFileName().toString();
+
     if (!Files.isRegularFile(path.resolve(META_FILENAME), LinkOption.NOFOLLOW_LINKS)) {
-      CustomPaintingsMod.LOGGER.warn("Found Custom Paintings directory \"{}\" without a {} file, skipping...",
-          path.getFileName(), META_FILENAME
-      );
+      CustomPaintingsMod.LOGGER.warn(LOG_NO_META, dirname, META_FILENAME);
       return null;
     }
 
@@ -218,12 +236,12 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
       pack = GSON.fromJson(Files.newBufferedReader(path.resolve(META_FILENAME)), PackResource.class);
     } catch (Exception e) {
       CustomPaintingsMod.LOGGER.warn(e);
-      CustomPaintingsMod.LOGGER.warn("Failed to parse {} from \"{}\", skipping...", META_FILENAME, path.getFileName());
+      CustomPaintingsMod.LOGGER.warn(LOG_META_PARSE_FAIL, META_FILENAME, dirname);
       return null;
     }
 
     if (pack.paintings().isEmpty()) {
-      CustomPaintingsMod.LOGGER.warn("No paintings found in \"{}\", skipping...", path.getFileName());
+      CustomPaintingsMod.LOGGER.warn(LOG_NO_PAINTINGS, dirname);
       return null;
     }
 
@@ -231,7 +249,7 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
 
     Path iconImagePath = path.resolve("icon.png");
     if (!Files.exists(iconImagePath)) {
-      CustomPaintingsMod.LOGGER.warn("Missing icon.png file for {}", pack.id());
+      CustomPaintingsMod.LOGGER.warn(LOG_NO_ICON, pack.id());
     } else {
       try {
         BufferedImage image = ImageIO.read(Files.newInputStream(iconImagePath, LinkOption.NOFOLLOW_LINKS));
@@ -242,7 +260,7 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
         images.put(PackIcons.identifier(pack.id()), Image.read(image));
       } catch (IOException e) {
         CustomPaintingsMod.LOGGER.warn(e);
-        CustomPaintingsMod.LOGGER.warn("Failed to read icon.png file for {}", pack.id());
+        CustomPaintingsMod.LOGGER.warn(LOG_ICON_READ_FAIL, pack.id());
       }
     }
 
@@ -250,7 +268,7 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
       Identifier id = new Identifier(pack.id(), painting.id());
       Path imagePath = path.resolve("images").resolve(painting.id() + ".png");
       if (!Files.exists(imagePath)) {
-        CustomPaintingsMod.LOGGER.warn("Missing custom painting image file for {}", id);
+        CustomPaintingsMod.LOGGER.warn(LOG_MISSING_PAINTING, id);
         return;
       }
 
@@ -262,14 +280,14 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
 
         long size = (long) image.getWidth() * image.getHeight();
         if (size > MAX_SIZE) {
-          CustomPaintingsMod.LOGGER.warn("Image file for {} is too large, skipping", id);
+          CustomPaintingsMod.LOGGER.warn(LOG_LARGE_IMAGE, id);
           return;
         }
 
         images.put(id, Image.read(image));
       } catch (IOException e) {
         CustomPaintingsMod.LOGGER.warn(e);
-        CustomPaintingsMod.LOGGER.warn("Failed to read custom painting image file for {}", id);
+        CustomPaintingsMod.LOGGER.warn(LOG_PAINTING_READ_FAIL, id);
       }
     });
 
