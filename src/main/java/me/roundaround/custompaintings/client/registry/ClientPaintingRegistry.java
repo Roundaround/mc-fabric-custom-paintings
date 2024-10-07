@@ -250,7 +250,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     }
 
     long timestamp = System.currentTimeMillis();
-    if (timestamp - this.lastDownloadUpdate > 3000) {
+    if (timestamp - this.lastDownloadUpdate > 4000) {
       this.lastDownloadUpdate = timestamp;
       this.sendMessage(client,
           Text.translatable("custompaintings.download.progress", this.imagesReceived, this.imagesExpected,
