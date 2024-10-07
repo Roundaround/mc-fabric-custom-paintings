@@ -254,7 +254,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
       this.lastDownloadUpdate = timestamp;
       this.sendMessage(client,
           Text.translatable("custompaintings.download.progress", this.imagesReceived, this.imagesExpected,
-              this.getByteProgress().percent() / 100f
+              this.getByteProgress().percent()
           )
       );
     }
