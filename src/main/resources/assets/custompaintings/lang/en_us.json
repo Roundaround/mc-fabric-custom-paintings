@@ -32,5 +32,5 @@
   "custompaintings.maxImagePacketSize.label": "Maximum size for each image packet in KB",
   "custompaintings.download.start": "Downloading %s painting image(s) from server (%s)",
   "custompaintings.download.progress": "%s/%s painting image(s) downloaded (%s%%)",
-  "custompaintings.download.end": "%s painting image(s) downloaded from server in %ss"
+  "custompaintings.download.done": "%s painting image(s) downloaded from server in %ss"
 }

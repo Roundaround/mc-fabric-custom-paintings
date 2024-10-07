@@ -215,7 +215,14 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
       this.onImagesChanged();
       String time = formatToTwoDecimals((Util.getMeasuringTimeMs() - this.waitingForImagesTimer) / 1000.0);
       CustomPaintingsMod.LOGGER.info("Painting images downloaded and sprite atlas refreshed in {}s", time);
-      this.sendMessage(Text.translatable("custompaintings.download.done", time));
+      this.sendMessage(Text.translatable("custompaintings.download.done", this.imagesExpected, time));
+
+      this.imagesExpected = 0;
+      this.packetsExpected = 0;
+      this.bytesExpected = 0;
+      this.imagesReceived = 0;
+      this.packetsReceived = 0;
+      this.bytesReceived = 0;
     }
   }
 
