@@ -91,7 +91,7 @@ public final class Networking {
 
   public record DownloadSummaryS2C(List<Identifier> ids, int imageCount, int packetCount, int byteCount) implements
       CustomPayload {
-    public static final Id<DownloadSummaryS2C> ID = new Id<>(IMAGE_IDS_S2C);
+    public static final Id<DownloadSummaryS2C> ID = new Id<>(DOWNLOAD_SUMMARY_S2C);
     public static final PacketCodec<RegistryByteBuf, DownloadSummaryS2C> CODEC = PacketCodec.tuple(
         CustomCodecs.forList(Identifier.PACKET_CODEC), DownloadSummaryS2C::ids, PacketCodecs.INTEGER,
         DownloadSummaryS2C::imageCount, PacketCodecs.INTEGER, DownloadSummaryS2C::packetCount, PacketCodecs.INTEGER,
