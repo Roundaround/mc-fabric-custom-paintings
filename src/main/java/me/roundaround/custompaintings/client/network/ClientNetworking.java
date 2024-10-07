@@ -15,6 +15,7 @@ import net.minecraft.world.World;
 import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class ClientNetworking {
@@ -45,6 +46,9 @@ public final class ClientNetworking {
 
   private static void handleSummary(Networking.SummaryS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
+      // TODO: Pass on to cache manager
+      UUID serverId = payload.serverId();
+
       HashMap<String, PaintingPack> packs = new HashMap<>(payload.packs().size());
       payload.packs().forEach((pack) -> packs.put(pack.id(), pack));
       ClientPaintingRegistry.getInstance().setPacks(packs);

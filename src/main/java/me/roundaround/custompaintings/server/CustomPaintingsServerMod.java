@@ -17,7 +17,6 @@ public class CustomPaintingsServerMod implements DedicatedServerModInitializer {
       ImagePacketQueue.getInstance().tick();
     });
 
-
     homepage = FabricLoader.getInstance()
         .getModContainer(CustomPaintingsMod.MOD_ID)
         .flatMap((container) -> container.getMetadata().getContact().get("homepage"))

@@ -21,7 +21,12 @@ import java.util.List;
 import java.util.UUID;
 
 public class ServerPaintingManager extends PersistentState {
+  private static final String NBT_SERVER_ID = "ServerId";
+  private static final String NBT_PAINTINGS = "Paintings";
+  private static final String NBT_PAINTING_UUID = "PaintingUuid";
+
   private final ServerWorld world;
+  private final UUID serverId;
   private final HashMap<UUID, PaintingData> allPaintings = new HashMap<>();
   private final HashMap<UUID, PaintingIdPair> allIds = new HashMap<>();
 
@@ -31,13 +36,20 @@ public class ServerPaintingManager extends PersistentState {
   }
 
   public static ServerPaintingManager getInstance(ServerWorld world) {
-    Type<ServerPaintingManager> persistentStateType = new PersistentState.Type<>(
-        () -> new ServerPaintingManager(world), (nbt, registryLookup) -> fromNbt(world, nbt), null);
+    Type<ServerPaintingManager> persistentStateType = new PersistentState.Type<>(() -> new ServerPaintingManager(world),
+        (nbt, registryLookup) -> fromNbt(world, nbt), null
+    );
     return world.getPersistentStateManager().getOrCreate(persistentStateType, CustomPaintingsMod.MOD_ID);
   }
 
   private ServerPaintingManager(ServerWorld world) {
+    this(world, CustomPaintingsMod.getOrGenerateServerId());
+    this.markDirty();
+  }
+
+  private ServerPaintingManager(ServerWorld world, UUID serverId) {
     this.world = world;
+    this.serverId = serverId;
 
     ServerEntityEvents.ENTITY_LOAD.register((entity, loadedWorld) -> {
       if (loadedWorld != this.world || !(entity instanceof PaintingEntity painting)) {
@@ -53,25 +65,34 @@ public class ServerPaintingManager extends PersistentState {
 
   @Override
   public NbtCompound writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
+    nbt.putUuid(NBT_SERVER_ID, this.serverId);
+
     NbtList nbtList = new NbtList();
     this.allPaintings.forEach((uuid, paintingData) -> {
       NbtCompound nbtCompound = paintingData.writeToNbt();
-      nbtCompound.putUuid("PaintingUuid", uuid);
+      nbtCompound.putUuid(NBT_PAINTING_UUID, uuid);
       nbtList.add(nbtCompound);
     });
-    nbt.put("Paintings", nbtList);
+    nbt.put(NBT_PAINTINGS, nbtList);
 
     return nbt;
   }
 
   private static ServerPaintingManager fromNbt(ServerWorld world, NbtCompound nbt) {
-    ServerPaintingManager manager = new ServerPaintingManager(world);
-    NbtList nbtList = nbt.getList("Paintings", NbtElement.COMPOUND_TYPE);
+    ServerPaintingManager manager = nbt.containsUuid(NBT_SERVER_ID) ?
+        new ServerPaintingManager(world, nbt.getUuid(NBT_SERVER_ID)) :
+        new ServerPaintingManager(world);
+
+    NbtList nbtList = nbt.getList(NBT_PAINTINGS, NbtElement.COMPOUND_TYPE);
     for (int i = 0; i < nbtList.size(); i++) {
       NbtCompound nbtCompound = nbtList.getCompound(i);
-      manager.allPaintings.put(nbtCompound.getUuid("PaintingUuid"), PaintingData.fromNbt(nbtCompound));
+      manager.allPaintings.put(nbtCompound.getUuid(NBT_PAINTING_UUID), PaintingData.fromNbt(nbtCompound));
     }
     return manager;
+  }
+
+  public UUID getServerId() {
+    return this.serverId;
   }
 
   public void syncAllDataForPlayer(ServerPlayerEntity player) {
@@ -84,7 +105,7 @@ public class ServerPaintingManager extends PersistentState {
   public void remove(UUID uuid) {
     this.allPaintings.remove(uuid);
     this.allIds.remove(uuid);
-    this.setDirty(true);
+    this.markDirty();
   }
 
   public void setPaintingData(PaintingEntity painting, PaintingData paintingData) {
@@ -146,7 +167,7 @@ public class ServerPaintingManager extends PersistentState {
     this.allIds.put(paintingUuid, new PaintingIdPair(paintingId, paintingData.id()));
     PaintingData previousData = this.allPaintings.put(paintingUuid, paintingData);
     if (previousData == null || !previousData.equals(paintingData)) {
-      this.setDirty(true);
+      this.markDirty();
       return true;
     }
     return false;

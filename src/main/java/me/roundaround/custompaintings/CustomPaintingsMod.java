@@ -26,12 +26,15 @@ import net.minecraft.util.ActionResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.UUID;
+
 public final class CustomPaintingsMod implements ModInitializer {
   public static final String MOD_ID = "custompaintings";
   public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
-
   public static final TrackedDataHandler<PaintingData> CUSTOM_PAINTING_DATA_HANDLER = TrackedDataHandler.create(
       PaintingData.PACKET_CODEC);
+
+  private static UUID serverId = null;
 
   @Override
   public void onInitialize() {
@@ -44,25 +47,29 @@ public final class CustomPaintingsMod implements ModInitializer {
     TrackedDataHandlerRegistry.register(CUSTOM_PAINTING_DATA_HANDLER);
     ServerNetworking.registerReceivers();
 
-    ServerLifecycleEvents.SERVER_STARTED.register(((server) -> {
+    ServerLifecycleEvents.SERVER_STARTED.register((server) -> {
       server.getRegistryManager().getWrapperOrThrow(Registries.PAINTING_VARIANT.getKey());
       VanillaPaintingRegistry.init();
       ServerPaintingRegistry.init(server);
-    }));
+    });
 
-    ServerWorldEvents.LOAD.register(((server, world) -> {
+    ServerLifecycleEvents.SERVER_STOPPED.register((server) -> {
+      serverId = null;
+    });
+
+    ServerWorldEvents.LOAD.register((server, world) -> {
       ServerPaintingManager.init(world);
-    }));
+    });
 
-    ServerPlayConnectionEvents.JOIN.register(((handler, sender, server) -> {
+    ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
       ServerPlayerEntity player = handler.getPlayer();
       ServerPaintingRegistry.getInstance().sendSummaryToPlayer(player);
       ServerPaintingManager.getInstance(player.getServerWorld()).syncAllDataForPlayer(player);
-    }));
+    });
 
-    ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register(((player, origin, destination) -> {
+    ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, origin, destination) -> {
       ServerPaintingManager.getInstance(destination).syncAllDataForPlayer(player);
-    }));
+    });
 
     UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
       if (!(entity instanceof PaintingEntity painting)) {
@@ -78,5 +85,12 @@ public final class CustomPaintingsMod implements ModInitializer {
     });
 
     ResourceManagerHelper.get(ResourceType.SERVER_DATA).registerReloadListener(new PaintingPackLoader());
+  }
+
+  public static UUID getOrGenerateServerId() {
+    if (serverId == null) {
+      serverId = UUID.randomUUID();
+    }
+    return serverId;
   }
 }

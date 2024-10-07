@@ -28,22 +28,16 @@ public final class ServerNetworking {
   public static void sendSummaryPacketToAll(
       MinecraftServer server, List<PaintingPack> packs, String combinedImageHash
   ) {
-    Networking.SummaryS2C payload = new Networking.SummaryS2C(packs, combinedImageHash);
-    server.getPlayerManager().getPlayerList().forEach((player) -> {
-      sendSummaryPacket(player, payload);
-    });
+    server.getPlayerManager().getPlayerList().forEach((player) -> sendSummaryPacket(player, packs, combinedImageHash));
   }
 
   public static void sendSummaryPacket(ServerPlayerEntity player, List<PaintingPack> packs, String combinedImageHash) {
-    sendSummaryPacket(player, new Networking.SummaryS2C(packs, combinedImageHash));
-  }
-
-  private static void sendSummaryPacket(ServerPlayerEntity player, Networking.SummaryS2C payload) {
-    if (!ServerPlayNetworking.canSend(player, payload.getId())) {
+    if (!ServerPlayNetworking.canSend(player, Networking.SUMMARY_S2C)) {
       player.sendMessage(CustomPaintingsServerMod.getDownloadPrompt());
       return;
     }
-    ServerPlayNetworking.send(player, payload);
+    UUID serverId = ServerPaintingManager.getInstance(player.getServerWorld()).getServerId();
+    ServerPlayNetworking.send(player, new Networking.SummaryS2C(serverId, packs, combinedImageHash));
   }
 
   public static void sendDownloadSummaryPacket(
