@@ -6,6 +6,9 @@ import me.roundaround.custompaintings.resource.Image;
 import me.roundaround.custompaintings.resource.PackIcons;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.NbtSizeTracker;
 import net.minecraft.util.Identifier;
 
 import java.io.IOException;
@@ -29,6 +32,26 @@ public class CacheManager {
   public void loadFromFile(UUID serverId, Collection<String> packIds, Collection<Identifier> paintingIds) {
     HashSet<Identifier> ids = Stream.concat(packIds.stream().map(PackIcons::identifier), paintingIds.stream())
         .collect(Collectors.toCollection(HashSet::new));
+
+    Path cacheDir = FabricLoader.getInstance()
+        .getGameDir()
+        .resolve("data")
+        .resolve(CustomPaintingsMod.MOD_ID);
+    Path dataFile = cacheDir.resolve("data.dat");
+
+    if (Files.notExists(dataFile) || !Files.isRegularFile(dataFile)) {
+      return;
+    }
+
+    NbtCompound nbt;
+    try {
+      nbt = NbtIo.readCompressed(dataFile, NbtSizeTracker.ofUnlimitedBytes());
+    } catch (IOException e) {
+      CustomPaintingsMod.LOGGER.warn("Failed to load cache data");
+      return;
+    }
+
+    
 
     HashMap<Identifier, Image> globalCache = this.useGlobalCache() ? this.loadCache("global", ids) : new HashMap<>();
     HashMap<Identifier, Image> perServerCache = this.loadCache(serverId.toString(), ids);
