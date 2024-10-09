@@ -10,6 +10,7 @@ import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtSizeTracker;
 import net.minecraft.util.Identifier;
 
+import javax.imageio.ImageIO;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -101,14 +102,48 @@ public class CacheManager {
     return images;
   }
 
-  public void saveToFile(UUID serverId, HashMap<Identifier, Image> images) {
+  public void saveToFile(UUID serverId, HashMap<Identifier, Image> images) throws IOException {
     Path cacheDir = this.getCacheDir();
     Path dataFile = this.getDataFile(cacheDir);
 
-    HashMap<String, PackCacheData> packs = new HashMap<>();
+    HashMap<String, HashMap<Identifier, String>> packs = new HashMap<>();
     images.forEach((id, image) -> {
+      String packId = id.getNamespace();
+      HashMap<Identifier, String> paintings = packs.computeIfAbsent(packId, (k) -> new HashMap<>());
 
+      try {
+        String hash = image.getHash();
+        ImageIO.write(image.toBufferedImage(), "png", cacheDir.resolve(hash + ".png").toFile());
+        paintings.put(id, hash);
+      } catch (IOException e) {
+        CustomPaintingsMod.LOGGER.warn("Failed to save image to cache: {}", id);
+      }
     });
+
+    NbtCompound nbt;
+    try {
+      nbt = NbtIo.readCompressed(dataFile, NbtSizeTracker.ofUnlimitedBytes());
+    } catch (IOException e) {
+      CustomPaintingsMod.LOGGER.warn("Failed to read existing cache data before writing");
+      nbt = new NbtCompound();
+      nbt.put("Data", new NbtCompound());
+    }
+
+    NbtCompound data = nbt.getCompound("Data");
+
+    NbtCompound server = new NbtCompound();
+    packs.forEach((packId, paintingHashes) -> {
+      NbtCompound pack = new NbtCompound();
+      paintingHashes.forEach((paintingId, hash) -> {
+        pack.putString(paintingId.getPath(), hash);
+      });
+      server.put(packId, pack);
+    });
+
+    data.put(serverId.toString(), server);
+    nbt.put("Data", data);
+    nbt.putInt("Version", 1);
+    NbtIo.writeCompressed(nbt, dataFile);
   }
 
   private Path getCacheDir() {
