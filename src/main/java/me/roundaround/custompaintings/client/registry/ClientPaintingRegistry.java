@@ -1,10 +1,6 @@
 package me.roundaround.custompaintings.client.registry;
 
 import com.google.common.collect.ImmutableList;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.client.texture.BasicTextureSprite;
@@ -18,7 +14,6 @@ import me.roundaround.custompaintings.resource.Image;
 import me.roundaround.custompaintings.resource.PackIcons;
 import me.roundaround.roundalib.client.event.MinecraftClientEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.resource.metadata.AnimationFrameResourceMetadata;
 import net.minecraft.client.resource.metadata.AnimationResourceMetadata;
@@ -29,19 +24,13 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 
-import javax.imageio.ImageIO;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 public class ClientPaintingRegistry extends CustomPaintingRegistry implements AutoCloseable {
-  private static final Gson GSON = new GsonBuilder().create();
   private static final Identifier PAINTING_BACK_ID = new Identifier(Identifier.DEFAULT_NAMESPACE, "back");
   private static final Identifier BACK_TEXTURE_ID = new Identifier(
       Identifier.DEFAULT_NAMESPACE, "textures/painting/back.png");
@@ -55,7 +44,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   private final HashSet<Identifier> spriteIds = new HashSet<>();
   private final HashSet<Identifier> neededImages = new HashSet<>();
   private final HashMap<Identifier, Image> cachedImages = new HashMap<>();
-  private final HashMap<Identifier, ImageChunkBuilder> cacheImageBuilders = new HashMap<>();
+  private final HashMap<Identifier, ImageChunkBuilder> imageBuilders = new HashMap<>();
   private final LinkedHashMap<Identifier, CompletableFuture<PaintingData>> pendingDataRequests = new LinkedHashMap<>();
 
   private boolean packsReceived = false;
@@ -120,10 +109,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   }
 
   public void pullFromCache(UUID serverId) {
-    this.pullFromUnmanagedCache();
-  }
-
-  private void pullFromUnmanagedCache() {
     if (!this.usingCache()) {
       this.cachedImages.clear();
       this.imageHashes.clear();
@@ -133,45 +118,15 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
       return;
     }
 
+    HashSet<String> packIds = new HashSet<>(this.packsMap.keySet());
+    HashSet<Identifier> paintingIds = new HashSet<>(this.paintings.keySet());
+    for (String packId : packIds) {
+      paintingIds.add(PackIcons.identifier(packId));
+    }
+    packIds.add(PackIcons.ICON_NAMESPACE);
+
     this.cachedImages.clear();
-
-    Path cacheDir = FabricLoader.getInstance().getGameDir().resolve("data").resolve(CustomPaintingsMod.MOD_ID);
-    if (Files.notExists(cacheDir)) {
-      CustomPaintingsMod.LOGGER.info(
-          "Painting image cache directory does not exist, skipping hash generation and cache loading");
-      return;
-    }
-
-    for (Identifier id : this.paintings.keySet()) {
-      Path path = cacheDir.resolve(id.getNamespace()).resolve(id.getPath() + ".png");
-      if (Files.notExists(path) || !Files.isRegularFile(path)) {
-        this.cachedImages.put(id, Image.empty());
-        continue;
-      }
-
-      try {
-        Image image = Image.read(Files.newInputStream(path));
-        this.cachedImages.put(id, image);
-      } catch (IOException e) {
-        this.cachedImages.put(id, Image.empty());
-      }
-    }
-
-    for (String packId : this.packsMap.keySet()) {
-      Identifier id = PackIcons.identifier(packId);
-      Path path = cacheDir.resolve(id.getNamespace()).resolve(id.getPath() + ".png");
-      if (Files.notExists(path) || !Files.isRegularFile(path)) {
-        this.cachedImages.put(id, Image.empty());
-        continue;
-      }
-
-      try {
-        Image image = Image.read(Files.newInputStream(path));
-        this.cachedImages.put(id, image);
-      } catch (IOException e) {
-        this.cachedImages.put(id, Image.empty());
-      }
-    }
+    this.cachedImages.putAll(CacheManager.getInstance().loadFromFile(serverId, packIds, paintingIds));
 
     this.combinedImageHash = "";
     this.imageHashes.clear();
@@ -214,7 +169,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     }
 
     CustomPaintingsMod.LOGGER.info("Expecting {} painting image(s) from server", ids.size());
-    writeNeededIdsToFile(ids);
     this.waitingForImagesTimer = Util.getMeasuringTimeMs();
 
     this.neededImages.clear();
@@ -248,14 +202,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     this.packetsReceived++;
     this.bytesReceived += bytes.length;
     this.setPart(id, (builder) -> builder.set(index, bytes));
-  }
-
-  public Progress getImageProgress() {
-    return new Progress(this.imagesReceived, this.imagesExpected);
-  }
-
-  public Progress getPacketProgress() {
-    return new Progress(this.packetsReceived, this.packetsExpected);
   }
 
   public Progress getByteProgress() {
@@ -292,7 +238,13 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
       }
 
       Util.getIoWorkerExecutor().execute(() -> {
-        writeImagesToFile(Map.copyOf(this.packsMap), Map.copyOf(this.images));
+        //        writeImagesToFile(Map.copyOf(this.packsMap), Map.copyOf(this.images));
+        try {
+          CacheManager.getInstance().saveToFile(this.images);
+        } catch (IOException e) {
+          CustomPaintingsMod.LOGGER.warn(e);
+          CustomPaintingsMod.LOGGER.warn("Failed to write images and metadata to cache.");
+        }
       });
     }
   }
@@ -306,7 +258,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     this.spriteIds.clear();
     this.neededImages.clear();
     this.cachedImages.clear();
-    this.cacheImageBuilders.clear();
+    this.imageBuilders.clear();
     this.pendingDataRequests.forEach((id, future) -> future.cancel(true));
     this.pendingDataRequests.clear();
     this.pendingCombinedImagesHash = "";
@@ -349,11 +301,11 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   }
 
   private void setPart(Identifier id, Function<ImageChunkBuilder, Boolean> setter) {
-    ImageChunkBuilder builder = this.cacheImageBuilders.computeIfAbsent(id, (identifier) -> new ImageChunkBuilder());
+    ImageChunkBuilder builder = this.imageBuilders.computeIfAbsent(id, (identifier) -> new ImageChunkBuilder());
     if (setter.apply(builder)) {
       this.imagesReceived++;
       this.setFull(id, builder.generate());
-      this.cacheImageBuilders.remove(id);
+      this.imageBuilders.remove(id);
     }
   }
 
@@ -457,106 +409,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
             )
         )
         .build();
-  }
-
-  private static Path initCacheDir() {
-    Path cacheDir = FabricLoader.getInstance().getGameDir().resolve("data").resolve(CustomPaintingsMod.MOD_ID);
-    if (Files.notExists(cacheDir)) {
-      try {
-        Files.createDirectories(cacheDir);
-      } catch (IOException e) {
-        CustomPaintingsMod.LOGGER.warn("Could not create cache directory: {}", cacheDir.toAbsolutePath());
-        return null;
-      }
-    }
-    return cacheDir;
-  }
-
-  private static void writeNeededIdsToFile(List<Identifier> ids) {
-    if (!FabricLoader.getInstance().isDevelopmentEnvironment()) {
-      return;
-    }
-
-    Path cacheDir = initCacheDir();
-    if (cacheDir == null) {
-      return;
-    }
-
-    JsonObject json = new JsonObject();
-    JsonArray idsArray = new JsonArray();
-    for (Identifier id : ids) {
-      idsArray.add(id.toString());
-    }
-    json.add("ids", idsArray);
-    String jsonString = GSON.toJson(json);
-
-    Path file = cacheDir.resolve("needed_ids_dump.json");
-    try {
-      Files.writeString(file, jsonString, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-    } catch (IOException e) {
-      CustomPaintingsMod.LOGGER.warn("Could not write needed ids dump: {}", file.toAbsolutePath());
-    }
-  }
-
-  private static void writeImagesToFile(Map<String, PaintingPack> packsMap, Map<Identifier, Image> images) {
-    Path cacheDir = initCacheDir();
-    if (cacheDir == null) {
-      return;
-    }
-
-    Path iconsDir = cacheDir.resolve(PackIcons.ICON_NAMESPACE);
-    AtomicBoolean cacheIcons = new AtomicBoolean(true);
-    if (Files.notExists(iconsDir)) {
-      try {
-        Files.createDirectories(iconsDir);
-      } catch (IOException e) {
-        CustomPaintingsMod.LOGGER.warn(
-            "Could not create cache subdirectory, skipping icons: {}", iconsDir.toAbsolutePath());
-        cacheIcons.set(false);
-      }
-    }
-
-    packsMap.forEach((id, pack) -> {
-      Path packDir = cacheDir.resolve(id);
-      if (Files.notExists(packDir)) {
-        try {
-          Files.createDirectories(packDir);
-        } catch (IOException e) {
-          CustomPaintingsMod.LOGGER.warn(
-              "Could not create cache subdirectory, skipping pack: {}", packDir.toAbsolutePath());
-          return;
-        }
-      }
-
-      if (cacheIcons.get()) {
-        Image iconImage = images.get(PackIcons.identifier(id));
-        if (iconImage != null && !iconImage.isEmpty()) {
-          Path imagePath = iconsDir.resolve(String.format("%s.png", id));
-          try {
-            ImageIO.write(iconImage.toBufferedImage(), "png", imagePath.toFile());
-          } catch (IOException e) {
-            CustomPaintingsMod.LOGGER.warn(
-                "Failed to write icon to file for {}, skipping: {}", id, imagePath.toAbsolutePath());
-          }
-        }
-      }
-
-      for (PaintingData painting : pack.paintings()) {
-        Image image = images.get(painting.id());
-        if (image == null || image.isEmpty()) {
-          continue;
-        }
-
-        String paintingId = painting.id().getPath();
-        Path imagePath = packDir.resolve(paintingId + ".png");
-        try {
-          ImageIO.write(image.toBufferedImage(), "png", imagePath.toFile());
-        } catch (IOException e) {
-          CustomPaintingsMod.LOGGER.warn(
-              "Failed to write {}:{} to file, skipping: {}", id, paintingId, imagePath.toAbsolutePath());
-        }
-      }
-    });
   }
 
   private static String formatBytes(int bytes) {

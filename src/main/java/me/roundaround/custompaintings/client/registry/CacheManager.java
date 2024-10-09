@@ -2,7 +2,6 @@ package me.roundaround.custompaintings.client.registry;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.resource.Image;
-import me.roundaround.custompaintings.resource.PackIcons;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
@@ -21,6 +20,8 @@ import java.util.UUID;
 public class CacheManager {
   private static CacheManager instance = null;
 
+  private UUID serverId = null;
+
   private CacheManager() {
   }
 
@@ -34,6 +35,8 @@ public class CacheManager {
   public HashMap<Identifier, Image> loadFromFile(
       UUID serverId, HashSet<String> packIds, HashSet<Identifier> paintingIds
   ) {
+    this.serverId = serverId;
+
     HashMap<Identifier, Image> images = new HashMap<>();
     Path cacheDir = this.getCacheDir();
     Path dataFile = this.getDataFile(cacheDir);
@@ -51,21 +54,13 @@ public class CacheManager {
     }
 
     CacheData data = this.parseData(nbt);
-    if (!data.servers.containsKey(serverId)) {
+    if (!data.servers.containsKey(this.serverId)) {
       return images;
     }
 
-    ServerCacheData server = data.servers.get(serverId);
+    ServerCacheData server = data.servers.get(this.serverId);
     HashMap<Identifier, String> requestedHashes = new HashMap<>();
     for (PackCacheData pack : server.packs.values()) {
-      if (pack.packId.equals(PackIcons.ICON_NAMESPACE)) {
-        Identifier iconId = PackIcons.identifier(pack.packId);
-        String iconHash = pack.paintingHashes.get(iconId);
-        if (iconHash != null && !iconHash.isBlank()) {
-          requestedHashes.put(iconId, iconHash);
-        }
-      }
-
       if (packIds.contains(pack.packId)) {
         for (Identifier paintingId : paintingIds) {
           String paintingHash = pack.paintingHashes.get(paintingId);
@@ -99,8 +94,16 @@ public class CacheManager {
     return images;
   }
 
-  public void saveToFile(UUID serverId, HashMap<Identifier, Image> images) throws IOException {
+  public void saveToFile(HashMap<Identifier, Image> images) throws IOException {
+    if (this.serverId == null) {
+      return;
+    }
+
     Path cacheDir = this.getCacheDir();
+    if (Files.notExists(cacheDir)) {
+      Files.createDirectories(cacheDir);
+    }
+
     Path dataFile = this.getDataFile(cacheDir);
 
     HashMap<String, HashMap<Identifier, String>> packs = new HashMap<>();
@@ -137,7 +140,7 @@ public class CacheManager {
       server.put(packId, pack);
     });
 
-    data.put(serverId.toString(), server);
+    data.put(this.serverId.toString(), server);
     nbt.put("Data", data);
     nbt.putInt("Version", 1);
     NbtIo.writeCompressed(nbt, dataFile);
@@ -156,9 +159,9 @@ public class CacheManager {
     NbtCompound data = nbt.contains("Data", NbtElement.COMPOUND_TYPE) ? nbt.getCompound("Data") : new NbtCompound();
 
     HashMap<UUID, ServerCacheData> servers = new HashMap<>();
-    for (String key : nbt.getKeys()) {
+    for (String key : data.getKeys()) {
       UUID serverId = UUID.fromString(key);
-      servers.put(serverId, this.parseServer(serverId, nbt.getCompound(key)));
+      servers.put(serverId, this.parseServer(serverId, data.getCompound(key)));
     }
 
     return new CacheData(version, servers);
