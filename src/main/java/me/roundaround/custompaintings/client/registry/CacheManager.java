@@ -50,15 +50,12 @@ public class CacheManager {
       return images;
     }
 
-    int version = nbt.contains("Version", NbtElement.NUMBER_TYPE) ? nbt.getInt("Version") : 1;
-    NbtCompound data = nbt.contains("Data", NbtElement.COMPOUND_TYPE) ? nbt.getCompound("Data") : new NbtCompound();
-
-    String serverIdStr = serverId.toString();
-    if (!data.contains(serverIdStr, NbtElement.COMPOUND_TYPE)) {
+    CacheData data = this.parseData(nbt);
+    if (!data.servers.containsKey(serverId)) {
       return images;
     }
 
-    ServerCacheData server = this.parseServer(serverIdStr, data.getCompound(serverIdStr));
+    ServerCacheData server = data.servers.get(serverId);
     HashMap<Identifier, String> requestedHashes = new HashMap<>();
     for (PackCacheData pack : server.packs.values()) {
       if (pack.packId.equals(PackIcons.ICON_NAMESPACE)) {
@@ -154,7 +151,20 @@ public class CacheManager {
     return cacheDir.resolve("data.dat");
   }
 
-  private ServerCacheData parseServer(String serverId, NbtCompound nbt) {
+  private CacheData parseData(NbtCompound nbt) {
+    int version = nbt.contains("Version", NbtElement.NUMBER_TYPE) ? nbt.getInt("Version") : 1;
+    NbtCompound data = nbt.contains("Data", NbtElement.COMPOUND_TYPE) ? nbt.getCompound("Data") : new NbtCompound();
+
+    HashMap<UUID, ServerCacheData> servers = new HashMap<>();
+    for (String key : nbt.getKeys()) {
+      UUID serverId = UUID.fromString(key);
+      servers.put(serverId, this.parseServer(serverId, nbt.getCompound(key)));
+    }
+
+    return new CacheData(version, servers);
+  }
+
+  private ServerCacheData parseServer(UUID serverId, NbtCompound nbt) {
     HashMap<String, PackCacheData> packs = new HashMap<>();
     for (String packId : nbt.getKeys()) {
       packs.put(packId, this.parsePack(packId, nbt.getCompound(packId)));
@@ -197,7 +207,10 @@ public class CacheManager {
     }
   }
 
-  private record ServerCacheData(String serverId, HashMap<String, PackCacheData> packs) {
+  private record CacheData(int version, HashMap<UUID, ServerCacheData> servers) {
+  }
+
+  private record ServerCacheData(UUID serverId, HashMap<String, PackCacheData> packs) {
   }
 
   private record PackCacheData(String packId, HashMap<Identifier, String> paintingHashes) {
