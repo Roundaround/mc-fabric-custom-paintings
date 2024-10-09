@@ -20,7 +20,6 @@ public class CustomPaintingsConfig extends ModConfigImpl implements GameScopedFi
   public BooleanConfigOption overrideRenderDistance;
   public IntConfigOption renderDistanceScale;
   public BooleanConfigOption cacheImages;
-  public BooleanConfigOption useGlobalCache;
 
   private CustomPaintingsConfig() {
     super(CustomPaintingsMod.MOD_ID, "game");
@@ -43,12 +42,6 @@ public class CustomPaintingsConfig extends ModConfigImpl implements GameScopedFi
 
     this.cacheImages = this.buildRegistration(
             BooleanConfigOption.yesNoBuilder(ConfigPath.of("cacheImages")).setDefaultValue(true).build())
-        .clientOnly()
-        .commit();
-
-    this.useGlobalCache = this.buildRegistration(
-            BooleanConfigOption.yesNoBuilder(ConfigPath.of("useGlobalCache")).setDefaultValue(true)
-                .build())
         .clientOnly()
         .commit();
   }

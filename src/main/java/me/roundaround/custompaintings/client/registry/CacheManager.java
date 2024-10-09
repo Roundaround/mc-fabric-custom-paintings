@@ -1,12 +1,11 @@
 package me.roundaround.custompaintings.client.registry;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.resource.Image;
 import me.roundaround.custompaintings.resource.PackIcons;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtSizeTracker;
 import net.minecraft.util.Identifier;
@@ -14,33 +13,32 @@ import net.minecraft.util.Identifier;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class CacheManager {
+  private static CacheManager instance = null;
+
   private CacheManager() {
   }
 
-  public static CacheManager getInstance(MinecraftClient client) {
-    return null;
+  public static CacheManager getInstance() {
+    if (instance == null) {
+      instance = new CacheManager();
+    }
+    return instance;
   }
 
-  public void loadFromFile(UUID serverId, Collection<String> packIds, Collection<Identifier> paintingIds) {
-    HashSet<Identifier> ids = Stream.concat(packIds.stream().map(PackIcons::identifier), paintingIds.stream())
-        .collect(Collectors.toCollection(HashSet::new));
-
-    Path cacheDir = FabricLoader.getInstance()
-        .getGameDir()
-        .resolve("data")
-        .resolve(CustomPaintingsMod.MOD_ID);
-    Path dataFile = cacheDir.resolve("data.dat");
+  public HashMap<Identifier, Image> loadFromFile(
+      UUID serverId, HashSet<String> packIds, HashSet<Identifier> paintingIds
+  ) {
+    HashMap<Identifier, Image> images = new HashMap<>();
+    Path cacheDir = this.getCacheDir();
+    Path dataFile = this.getDataFile(cacheDir);
 
     if (Files.notExists(dataFile) || !Files.isRegularFile(dataFile)) {
-      return;
+      return images;
     }
 
     NbtCompound nbt;
@@ -48,40 +46,111 @@ public class CacheManager {
       nbt = NbtIo.readCompressed(dataFile, NbtSizeTracker.ofUnlimitedBytes());
     } catch (IOException e) {
       CustomPaintingsMod.LOGGER.warn("Failed to load cache data");
+      return images;
+    }
+
+    int version = nbt.contains("Version", NbtElement.NUMBER_TYPE) ? nbt.getInt("Version") : 1;
+    NbtCompound data = nbt.contains("Data", NbtElement.COMPOUND_TYPE) ? nbt.getCompound("Data") : new NbtCompound();
+
+    String serverIdStr = serverId.toString();
+    if (!data.contains(serverIdStr, NbtElement.COMPOUND_TYPE)) {
+      return images;
+    }
+
+    ServerCacheData server = this.parseServer(serverIdStr, data.getCompound(serverIdStr));
+    HashMap<Identifier, String> requestedHashes = new HashMap<>();
+    for (PackCacheData pack : server.packs.values()) {
+      if (pack.packId.equals(PackIcons.ICON_NAMESPACE)) {
+        Identifier iconId = PackIcons.identifier(pack.packId);
+        String iconHash = pack.paintingHashes.get(iconId);
+        if (iconHash != null && !iconHash.isBlank()) {
+          requestedHashes.put(iconId, iconHash);
+        }
+      }
+
+      if (packIds.contains(pack.packId)) {
+        for (Identifier paintingId : paintingIds) {
+          String paintingHash = pack.paintingHashes.get(paintingId);
+          if (paintingHash != null && !paintingHash.isBlank()) {
+            requestedHashes.put(paintingId, paintingHash);
+          }
+        }
+      }
+    }
+
+    HashSet<String> usedHashes = new HashSet<>(requestedHashes.values());
+    server.packs.values()
+        .stream()
+        .flatMap((pack) -> pack.paintingHashes.values().stream())
+        .filter((hash) -> !usedHashes.contains(hash))
+        .filter((hash) -> {
+          // TODO: Check if the hash is used by any other server within the last X days and keep it if so.
+          //   Until this is implemented, don't clear images from the cache.
+          return false;
+        })
+        .forEach((hash) -> this.deleteImage(cacheDir, hash));
+
+    requestedHashes.forEach((id, hash) -> {
+      Image image = this.loadImage(cacheDir, hash);
+      if (image == null || image.isEmpty()) {
+        return;
+      }
+      images.put(id, image);
+    });
+
+    return images;
+  }
+
+  public void saveToFile(UUID serverId, HashMap<Identifier, Image> images) {
+    Path cacheDir = this.getCacheDir();
+    Path dataFile = this.getDataFile(cacheDir);
+
+    HashMap<String, PackCacheData> packs = new HashMap<>();
+    images.forEach((id, image) -> {
+
+    });
+  }
+
+  private Path getCacheDir() {
+    return FabricLoader.getInstance().getGameDir().resolve("data").resolve(CustomPaintingsMod.MOD_ID);
+  }
+
+  private Path getDataFile(Path cacheDir) {
+    return cacheDir.resolve("data.dat");
+  }
+
+  private ServerCacheData parseServer(String serverId, NbtCompound nbt) {
+    HashMap<String, PackCacheData> packs = new HashMap<>();
+    for (String packId : nbt.getKeys()) {
+      packs.put(packId, this.parsePack(packId, nbt.getCompound(packId)));
+    }
+    return new ServerCacheData(serverId, packs);
+  }
+
+  private PackCacheData parsePack(String packId, NbtCompound nbt) {
+    HashMap<Identifier, String> paintingHashes = new HashMap<>();
+    for (String paintingId : nbt.getKeys()) {
+      paintingHashes.put(new Identifier(packId, paintingId), nbt.getString(paintingId));
+    }
+    return new PackCacheData(packId, paintingHashes);
+  }
+
+  private void deleteImage(Path cacheDir, String hash) {
+    Path path = cacheDir.resolve(hash + ".png");
+    if (Files.notExists(path) || !Files.isRegularFile(path)) {
       return;
     }
 
-    
-
-    HashMap<Identifier, Image> globalCache = this.useGlobalCache() ? this.loadCache("global", ids) : new HashMap<>();
-    HashMap<Identifier, Image> perServerCache = this.loadCache(serverId.toString(), ids);
-  }
-
-  private boolean useGlobalCache() {
-    return CustomPaintingsConfig.getInstance().useGlobalCache.getValue();
-  }
-
-  private HashMap<Identifier, Image> loadCache(String directory, HashSet<Identifier> ids) {
-    Path cacheDir = FabricLoader.getInstance()
-        .getGameDir()
-        .resolve("data")
-        .resolve(CustomPaintingsMod.MOD_ID)
-        .resolve(directory);
-
-    HashMap<Identifier, Image> cacheMap = new HashMap<>();
-    if (Files.notExists(cacheDir)) {
-      return cacheMap;
+    try {
+      Files.delete(path);
+    } catch (IOException e) {
+      CustomPaintingsMod.LOGGER.warn(e);
+      CustomPaintingsMod.LOGGER.warn("Failed to delete stale cached image {}.png", hash);
     }
-
-    for (Identifier id : ids) {
-      cacheMap.put(id, this.loadImage(id, cacheDir));
-    }
-
-    return cacheMap;
   }
 
-  private Image loadImage(Identifier id, Path cacheDir) {
-    Path path = cacheDir.resolve(id.getNamespace()).resolve(id.getPath() + ".png");
+  private Image loadImage(Path cacheDir, String hash) {
+    Path path = cacheDir.resolve(hash + ".png");
     if (Files.notExists(path) || !Files.isRegularFile(path)) {
       return Image.empty();
     }
@@ -91,5 +160,11 @@ public class CacheManager {
     } catch (IOException e) {
       return Image.empty();
     }
+  }
+
+  private record ServerCacheData(String serverId, HashMap<String, PackCacheData> packs) {
+  }
+
+  private record PackCacheData(String packId, HashMap<Identifier, String> paintingHashes) {
   }
 }
