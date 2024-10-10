@@ -151,7 +151,7 @@ public class CacheManager {
   }
 
   private Path getCacheDir() {
-    return FabricLoader.getInstance().getGameDir().resolve("data").resolve(CustomPaintingsMod.MOD_ID);
+    return FabricLoader.getInstance().getGameDir().resolve("data").resolve(CustomPaintingsMod.MOD_ID).resolve("cache");
   }
 
   private Path getDataFile(Path cacheDir) {
