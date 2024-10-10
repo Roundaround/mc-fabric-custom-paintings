@@ -3,16 +3,14 @@ package me.roundaround.custompaintings.client.registry;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.resource.Image;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtIo;
-import net.minecraft.nbt.NbtSizeTracker;
+import net.minecraft.nbt.*;
 import net.minecraft.util.Identifier;
 
 import javax.imageio.ImageIO;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.UUID;
@@ -53,28 +51,26 @@ public class CacheManager {
       return images;
     }
 
-    CacheData data = this.parseData(nbt);
-    if (!data.servers.containsKey(this.serverId)) {
+    CacheData data = CacheData.fromNbt(nbt);
+    if (!data.byServer.containsKey(this.serverId)) {
       return images;
     }
 
-    ServerCacheData server = data.servers.get(this.serverId);
+    ServerCacheData server = data.byServer.get(this.serverId);
     HashMap<Identifier, String> requestedHashes = new HashMap<>();
-    for (PackCacheData pack : server.packs.values()) {
+    for (PackCacheData pack : server.packs) {
       if (packIds.contains(pack.packId)) {
-        for (Identifier paintingId : paintingIds) {
-          String paintingHash = pack.paintingHashes.get(paintingId);
-          if (paintingHash != null && !paintingHash.isBlank()) {
-            requestedHashes.put(paintingId, paintingHash);
+        for (ImageCacheData image : pack.images) {
+          if (paintingIds.contains(image.id)) {
+            requestedHashes.put(image.id, image.hash);
           }
         }
       }
     }
 
     HashSet<String> usedHashes = new HashSet<>(requestedHashes.values());
-    server.packs.values()
-        .stream()
-        .flatMap((pack) -> pack.paintingHashes.values().stream())
+    server.packs.stream()
+        .flatMap((pack) -> pack.images.stream().map(ImageCacheData::hash))
         .filter((hash) -> !usedHashes.contains(hash))
         .filter((hash) -> {
           // TODO: Check if the hash is used by any other server within the last X days and keep it if so.
@@ -94,7 +90,7 @@ public class CacheManager {
     return images;
   }
 
-  public void saveToFile(HashMap<Identifier, Image> images) throws IOException {
+  public void saveToFile(HashMap<Identifier, Image> images, String combinedHash) throws IOException {
     if (this.serverId == null) {
       return;
     }
@@ -124,26 +120,12 @@ public class CacheManager {
     try {
       nbt = NbtIo.readCompressed(dataFile, NbtSizeTracker.ofUnlimitedBytes());
     } catch (IOException e) {
+      // TODO: Don't warn if file simply doesn't exist.
       CustomPaintingsMod.LOGGER.warn("Failed to read existing cache data before writing");
       nbt = new NbtCompound();
-      nbt.put("Data", new NbtCompound());
     }
 
-    NbtCompound data = nbt.getCompound("Data");
-
-    NbtCompound server = new NbtCompound();
-    packs.forEach((packId, paintingHashes) -> {
-      NbtCompound pack = new NbtCompound();
-      paintingHashes.forEach((paintingId, hash) -> {
-        pack.putString(paintingId.getPath(), hash);
-      });
-      server.put(packId, pack);
-    });
-
-    data.put(this.serverId.toString(), server);
-    nbt.put("Data", data);
-    nbt.putInt("Version", 1);
-    NbtIo.writeCompressed(nbt, dataFile);
+    // TODO: Use all the new toNbt methods to do this, but also merge with existing
   }
 
   private Path getCacheDir() {
@@ -152,35 +134,6 @@ public class CacheManager {
 
   private Path getDataFile(Path cacheDir) {
     return cacheDir.resolve("data.dat");
-  }
-
-  private CacheData parseData(NbtCompound nbt) {
-    int version = nbt.contains("Version", NbtElement.NUMBER_TYPE) ? nbt.getInt("Version") : 1;
-    NbtCompound data = nbt.contains("Data", NbtElement.COMPOUND_TYPE) ? nbt.getCompound("Data") : new NbtCompound();
-
-    HashMap<UUID, ServerCacheData> servers = new HashMap<>();
-    for (String key : data.getKeys()) {
-      UUID serverId = UUID.fromString(key);
-      servers.put(serverId, this.parseServer(serverId, data.getCompound(key)));
-    }
-
-    return new CacheData(version, servers);
-  }
-
-  private ServerCacheData parseServer(UUID serverId, NbtCompound nbt) {
-    HashMap<String, PackCacheData> packs = new HashMap<>();
-    for (String packId : nbt.getKeys()) {
-      packs.put(packId, this.parsePack(packId, nbt.getCompound(packId)));
-    }
-    return new ServerCacheData(serverId, packs);
-  }
-
-  private PackCacheData parsePack(String packId, NbtCompound nbt) {
-    HashMap<Identifier, String> paintingHashes = new HashMap<>();
-    for (String paintingId : nbt.getKeys()) {
-      paintingHashes.put(new Identifier(packId, paintingId), nbt.getString(paintingId));
-    }
-    return new PackCacheData(packId, paintingHashes);
   }
 
   private void deleteImage(Path cacheDir, String hash) {
@@ -210,12 +163,100 @@ public class CacheManager {
     }
   }
 
-  private record CacheData(int version, HashMap<UUID, ServerCacheData> servers) {
+  private record CacheData(int version, HashMap<UUID, ServerCacheData> byServer) {
+    private static final String NBT_VERSION = "Version";
+    private static final String NBT_BY_SERVER = "ByServer";
+
+    public static CacheData fromNbt(NbtCompound nbt) {
+      int version = nbt.contains(NBT_VERSION, NbtElement.INT_TYPE) ? nbt.getInt(NBT_VERSION) : 1;
+      NbtCompound serversNbt = nbt.getCompound(NBT_BY_SERVER);
+      HashMap<UUID, ServerCacheData> byServer = new HashMap<>();
+      for (String key : serversNbt.getKeys()) {
+        UUID serverId = UUID.fromString(key);
+        byServer.put(serverId, ServerCacheData.fromNbt(serversNbt.getCompound(key)));
+      }
+      return new CacheData(version, byServer);
+    }
+
+    public NbtCompound toNbt() {
+      NbtCompound nbt = new NbtCompound();
+      nbt.putInt(NBT_VERSION, this.version);
+      NbtCompound serversNbt = new NbtCompound();
+      this.byServer.forEach((serverId, server) -> serversNbt.put(serverId.toString(), server.toNbt()));
+      nbt.put(NBT_BY_SERVER, serversNbt);
+      return nbt;
+    }
   }
 
-  private record ServerCacheData(UUID serverId, HashMap<String, PackCacheData> packs) {
+  private record ServerCacheData(UUID serverId, String combinedHash, ArrayList<PackCacheData> packs) {
+    private static final String NBT_ID = "Id";
+    private static final String NBT_COMBINED_HASH = "CombinedHash";
+    private static final String NBT_PACKS = "Packs";
+
+    public static ServerCacheData fromNbt(NbtCompound nbt) {
+      UUID serverId = nbt.getUuid(NBT_ID);
+      String combinedHash = nbt.getString(NBT_COMBINED_HASH);
+      ArrayList<PackCacheData> packs = new ArrayList<>();
+      NbtList list = nbt.getList(NBT_PACKS, NbtElement.COMPOUND_TYPE);
+      int size = list.size();
+      for (int i = 0; i < size; i++) {
+        packs.add(PackCacheData.fromNbt(list.getCompound(i)));
+      }
+      return new ServerCacheData(serverId, combinedHash, packs);
+    }
+
+    public NbtCompound toNbt() {
+      NbtCompound nbt = new NbtCompound();
+      nbt.putUuid(NBT_ID, this.serverId);
+      nbt.putString(NBT_COMBINED_HASH, this.combinedHash);
+      NbtList list = new NbtList();
+      this.packs.forEach((pack) -> list.add(pack.toNbt()));
+      nbt.put(NBT_PACKS, list);
+      return nbt;
+    }
   }
 
-  private record PackCacheData(String packId, HashMap<Identifier, String> paintingHashes) {
+  private record PackCacheData(String packId, ArrayList<ImageCacheData> images) {
+    private static final String NBT_ID = "Id";
+    private static final String NBT_IMAGES = "Images";
+
+    public static PackCacheData fromNbt(NbtCompound nbt) {
+      String packId = nbt.getString(NBT_ID);
+      ArrayList<ImageCacheData> images = new ArrayList<>();
+      NbtList list = nbt.getList(NBT_IMAGES, NbtElement.COMPOUND_TYPE);
+      int size = list.size();
+      for (int i = 0; i < size; i++) {
+        images.add(ImageCacheData.fromNbt(list.getCompound(i), packId));
+      }
+      return new PackCacheData(packId, images);
+    }
+
+    public NbtCompound toNbt() {
+      NbtCompound nbt = new NbtCompound();
+      nbt.putString(NBT_ID, this.packId);
+      NbtList list = new NbtList();
+      this.images.forEach((image) -> list.add(image.toNbt()));
+      nbt.put(NBT_IMAGES, list);
+      return nbt;
+    }
+  }
+
+  private record ImageCacheData(Identifier id, String hash, long lastAccess) {
+    private static final String NBT_ID = "Id";
+    private static final String NBT_HASH = "Hash";
+    private static final String NBT_LAST_ACCESS = "LastAccess";
+
+    public static ImageCacheData fromNbt(NbtCompound nbt, String packId) {
+      return new ImageCacheData(
+          new Identifier(packId, nbt.getString(NBT_ID)), nbt.getString(NBT_HASH), nbt.getLong(NBT_LAST_ACCESS));
+    }
+
+    public NbtCompound toNbt() {
+      NbtCompound nbt = new NbtCompound();
+      nbt.putString(NBT_ID, this.id.getPath());
+      nbt.putString(NBT_HASH, this.hash);
+      nbt.putLong(NBT_LAST_ACCESS, System.currentTimeMillis());
+      return nbt;
+    }
   }
 }
