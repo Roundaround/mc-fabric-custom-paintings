@@ -16,6 +16,8 @@ import java.util.HashSet;
 import java.util.UUID;
 
 public class CacheManager {
+  private static final long MS_PER_WEEK = 1000 * 60 * 60 * 24 * 7;
+
   private static CacheManager instance = null;
 
   private UUID serverId = null;
@@ -71,9 +73,13 @@ public class CacheManager {
         .flatMap((pack) -> pack.images.stream().map(ImageCacheData::hash))
         .filter((hash) -> !usedHashes.contains(hash))
         .filter((hash) -> {
-          // TODO: Check if the hash is used by any other server within the last X days and keep it if so.
-          //   Until this is implemented, don't clear images from the cache.
-          return false;
+          if (!data.byHash.containsKey(hash)) {
+            return true;
+          }
+          return data.byHash.get(hash)
+              .stream()
+              .anyMatch((datum) -> !datum.serverId.equals(this.serverId) &&
+                                   System.currentTimeMillis() - datum.lastAccess < MS_PER_WEEK);
         })
         .forEach((hash) -> this.deleteImage(cacheDir, hash));
 
@@ -101,6 +107,7 @@ public class CacheManager {
 
     Path dataFile = this.getDataFile(cacheDir);
     HashMap<String, PackCacheData> packs = new HashMap<>();
+    HashMap<Identifier, String> hashes = new HashMap<>();
 
     images.forEach((id, image) -> {
       try {
@@ -110,6 +117,7 @@ public class CacheManager {
         String hash = image.getHash();
         ImageIO.write(image.toBufferedImage(), "png", cacheDir.resolve(hash + ".png").toFile());
         pack.images.add(new ImageCacheData(id, hash, System.currentTimeMillis()));
+        hashes.put(id, hash);
       } catch (IOException e) {
         CustomPaintingsMod.LOGGER.warn(e);
         CustomPaintingsMod.LOGGER.warn("Failed to save image to cache: {}", id);
@@ -130,6 +138,14 @@ public class CacheManager {
 
     CacheData data = CacheData.fromNbt(nbt);
     data.byServer.put(this.serverId, new ServerCacheData(this.serverId, combinedHash, new ArrayList<>(packs.values())));
+
+    hashes.forEach((id, hash) -> {
+      ArrayList<HashCacheData> hashData = data.byHash.computeIfAbsent(hash, (k) -> new ArrayList<>());
+      hashData.removeIf((datum) -> datum.serverId.equals(this.serverId));
+      hashData.add(new HashCacheData(this.serverId, System.currentTimeMillis()));
+    });
+
+    // TODO: Iterate over all other data and delete anything older than 7 days.
 
     NbtIo.writeCompressed(data.toNbt(), dataFile);
   }
@@ -169,9 +185,11 @@ public class CacheManager {
     }
   }
 
-  private record CacheData(int version, HashMap<UUID, ServerCacheData> byServer) {
+  private record CacheData(int version, HashMap<UUID, ServerCacheData> byServer,
+                           HashMap<String, ArrayList<HashCacheData>> byHash) {
     private static final String NBT_VERSION = "Version";
     private static final String NBT_BY_SERVER = "ByServer";
+    private static final String NBT_BY_HASH = "ByHash";
 
     public static CacheData fromNbt(NbtCompound nbt) {
       int version = nbt.contains(NBT_VERSION, NbtElement.INT_TYPE) ? nbt.getInt(NBT_VERSION) : 1;
@@ -183,7 +201,21 @@ public class CacheManager {
         UUID serverId = UUID.fromString(key);
         byServer.put(serverId, ServerCacheData.fromNbt(serversNbt.getCompound(key)));
       }
-      return new CacheData(version, byServer);
+
+      NbtCompound hashesNbt = nbt.contains(NBT_BY_HASH, NbtElement.COMPOUND_TYPE) ?
+          nbt.getCompound(NBT_BY_HASH) :
+          new NbtCompound();
+      HashMap<String, ArrayList<HashCacheData>> byHash = new HashMap<>();
+      for (String hash : hashesNbt.getKeys()) {
+        ArrayList<HashCacheData> items = byHash.computeIfAbsent(hash, (k) -> new ArrayList<>());
+        NbtList list = hashesNbt.getList(hash, NbtElement.COMPOUND_TYPE);
+        int size = list.size();
+        for (int i = 0; i < size; i++) {
+          items.add(HashCacheData.fromNbt(list.getCompound(i)));
+        }
+      }
+
+      return new CacheData(version, byServer, byHash);
     }
 
     public NbtCompound toNbt() {
@@ -192,6 +224,31 @@ public class CacheManager {
       NbtCompound serversNbt = new NbtCompound();
       this.byServer.forEach((serverId, server) -> serversNbt.put(serverId.toString(), server.toNbt()));
       nbt.put(NBT_BY_SERVER, serversNbt);
+      NbtCompound hashesNbt = new NbtCompound();
+      this.byHash.forEach((hash, data) -> {
+        NbtList list = new NbtList();
+        data.forEach((datum) -> list.add(datum.toNbt()));
+        hashesNbt.put(hash, list);
+      });
+      nbt.put(NBT_BY_HASH, hashesNbt);
+      return nbt;
+    }
+  }
+
+  private record HashCacheData(UUID serverId, long lastAccess) {
+    private static final String NBT_ID = "Id";
+    private static final String NBT_LAST_ACCESS = "LastAccess";
+
+    public static HashCacheData fromNbt(NbtCompound nbt) {
+      UUID serverId = nbt.getUuid(NBT_ID);
+      long lastAccess = nbt.getLong(NBT_LAST_ACCESS);
+      return new HashCacheData(serverId, lastAccess);
+    }
+
+    public NbtCompound toNbt() {
+      NbtCompound nbt = new NbtCompound();
+      nbt.putUuid(NBT_ID, this.serverId);
+      nbt.putLong(NBT_LAST_ACCESS, this.lastAccess);
       return nbt;
     }
   }
