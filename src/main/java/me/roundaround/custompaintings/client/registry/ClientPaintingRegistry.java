@@ -126,17 +126,14 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     packIds.add(PackIcons.ICON_NAMESPACE);
 
     this.cachedImages.clear();
-    this.cachedImages.putAll(CacheManager.getInstance().loadFromFile(serverId, packIds, paintingIds));
-
-    this.combinedImageHash = "";
     this.imageHashes.clear();
+    this.combinedImageHash = "";
 
-    try {
-      HashResult hashResult = hashImages(this.cachedImages);
-      this.combinedImageHash = hashResult.combinedImageHash();
-      this.imageHashes.putAll(hashResult.imageHashes());
-    } catch (IOException e) {
-      CustomPaintingsMod.LOGGER.warn("Painting image cache failed to hash. Ignoring.");
+    CacheManager.CacheRead cacheRead = CacheManager.getInstance().loadFromFile(serverId, packIds, paintingIds);
+    if (cacheRead != null) {
+      this.cachedImages.putAll(cacheRead.images());
+      this.imageHashes.putAll(cacheRead.hashes());
+      this.combinedImageHash = cacheRead.combinedHash();
     }
   }
 
@@ -240,7 +237,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
       Util.getIoWorkerExecutor().execute(() -> {
         //        writeImagesToFile(Map.copyOf(this.packsMap), Map.copyOf(this.images));
         try {
-          CacheManager.getInstance().saveToFile(this.images);
+          CacheManager.getInstance().saveToFile(this.images, this.combinedImageHash);
         } catch (IOException e) {
           CustomPaintingsMod.LOGGER.warn(e);
           CustomPaintingsMod.LOGGER.warn("Failed to write images and metadata to cache.");

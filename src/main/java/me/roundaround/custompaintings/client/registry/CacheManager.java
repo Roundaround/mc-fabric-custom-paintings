@@ -30,17 +30,15 @@ public class CacheManager {
     return instance;
   }
 
-  public HashMap<Identifier, Image> loadFromFile(
+  public CacheRead loadFromFile(
       UUID serverId, HashSet<String> packIds, HashSet<Identifier> paintingIds
   ) {
     this.serverId = serverId;
-
-    HashMap<Identifier, Image> images = new HashMap<>();
     Path cacheDir = this.getCacheDir();
     Path dataFile = this.getDataFile(cacheDir);
 
     if (Files.notExists(dataFile) || !Files.isRegularFile(dataFile)) {
-      return images;
+      return null;
     }
 
     NbtCompound nbt;
@@ -48,12 +46,12 @@ public class CacheManager {
       nbt = NbtIo.readCompressed(dataFile, NbtSizeTracker.ofUnlimitedBytes());
     } catch (IOException e) {
       CustomPaintingsMod.LOGGER.warn("Failed to load cache data");
-      return images;
+      return null;
     }
 
     CacheData data = CacheData.fromNbt(nbt);
     if (!data.byServer.containsKey(this.serverId)) {
-      return images;
+      return null;
     }
 
     ServerCacheData server = data.byServer.get(this.serverId);
@@ -79,6 +77,7 @@ public class CacheManager {
         })
         .forEach((hash) -> this.deleteImage(cacheDir, hash));
 
+    HashMap<Identifier, Image> images = new HashMap<>();
     requestedHashes.forEach((id, hash) -> {
       Image image = this.loadImage(cacheDir, hash);
       if (image == null || image.isEmpty()) {
@@ -87,7 +86,7 @@ public class CacheManager {
       images.put(id, image);
     });
 
-    return images;
+    return new CacheRead(images, requestedHashes, server.combinedHash);
   }
 
   public void saveToFile(HashMap<Identifier, Image> images, String combinedHash) throws IOException {
@@ -101,31 +100,38 @@ public class CacheManager {
     }
 
     Path dataFile = this.getDataFile(cacheDir);
+    HashMap<String, PackCacheData> packs = new HashMap<>();
 
-    HashMap<String, HashMap<Identifier, String>> packs = new HashMap<>();
     images.forEach((id, image) -> {
-      String packId = id.getNamespace();
-      HashMap<Identifier, String> paintings = packs.computeIfAbsent(packId, (k) -> new HashMap<>());
-
       try {
+        String packId = id.getNamespace();
+        PackCacheData pack = packs.computeIfAbsent(packId, (k) -> PackCacheData.empty(packId));
+
         String hash = image.getHash();
         ImageIO.write(image.toBufferedImage(), "png", cacheDir.resolve(hash + ".png").toFile());
-        paintings.put(id, hash);
+        pack.images.add(new ImageCacheData(id, hash, System.currentTimeMillis()));
       } catch (IOException e) {
+        CustomPaintingsMod.LOGGER.warn(e);
         CustomPaintingsMod.LOGGER.warn("Failed to save image to cache: {}", id);
       }
     });
 
     NbtCompound nbt;
-    try {
-      nbt = NbtIo.readCompressed(dataFile, NbtSizeTracker.ofUnlimitedBytes());
-    } catch (IOException e) {
-      // TODO: Don't warn if file simply doesn't exist.
-      CustomPaintingsMod.LOGGER.warn("Failed to read existing cache data before writing");
+    if (Files.notExists(dataFile)) {
       nbt = new NbtCompound();
+    } else {
+      try {
+        nbt = NbtIo.readCompressed(dataFile, NbtSizeTracker.ofUnlimitedBytes());
+      } catch (IOException e) {
+        CustomPaintingsMod.LOGGER.warn("Failed to read existing cache data before writing");
+        nbt = new NbtCompound();
+      }
     }
 
-    // TODO: Use all the new toNbt methods to do this, but also merge with existing
+    CacheData data = CacheData.fromNbt(nbt);
+    data.byServer.put(this.serverId, new ServerCacheData(this.serverId, combinedHash, new ArrayList<>(packs.values())));
+
+    NbtIo.writeCompressed(data.toNbt(), dataFile);
   }
 
   private Path getCacheDir() {
@@ -169,7 +175,9 @@ public class CacheManager {
 
     public static CacheData fromNbt(NbtCompound nbt) {
       int version = nbt.contains(NBT_VERSION, NbtElement.INT_TYPE) ? nbt.getInt(NBT_VERSION) : 1;
-      NbtCompound serversNbt = nbt.getCompound(NBT_BY_SERVER);
+      NbtCompound serversNbt = nbt.contains(NBT_BY_SERVER, NbtElement.COMPOUND_TYPE) ?
+          nbt.getCompound(NBT_BY_SERVER) :
+          new NbtCompound();
       HashMap<UUID, ServerCacheData> byServer = new HashMap<>();
       for (String key : serversNbt.getKeys()) {
         UUID serverId = UUID.fromString(key);
@@ -220,6 +228,10 @@ public class CacheManager {
     private static final String NBT_ID = "Id";
     private static final String NBT_IMAGES = "Images";
 
+    public static PackCacheData empty(String packId) {
+      return new PackCacheData(packId, new ArrayList<>());
+    }
+
     public static PackCacheData fromNbt(NbtCompound nbt) {
       String packId = nbt.getString(NBT_ID);
       ArrayList<ImageCacheData> images = new ArrayList<>();
@@ -255,8 +267,11 @@ public class CacheManager {
       NbtCompound nbt = new NbtCompound();
       nbt.putString(NBT_ID, this.id.getPath());
       nbt.putString(NBT_HASH, this.hash);
-      nbt.putLong(NBT_LAST_ACCESS, System.currentTimeMillis());
+      nbt.putLong(NBT_LAST_ACCESS, this.lastAccess);
       return nbt;
     }
+  }
+
+  public record CacheRead(HashMap<Identifier, Image> images, HashMap<Identifier, String> hashes, String combinedHash) {
   }
 }
