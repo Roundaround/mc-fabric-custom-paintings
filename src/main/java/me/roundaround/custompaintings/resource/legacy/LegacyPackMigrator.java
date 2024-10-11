@@ -22,6 +22,7 @@ import java.io.InputStreamReader;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -47,35 +48,40 @@ public class LegacyPackMigrator {
   }
 
   public void checkForLegacyPacks(MinecraftClient client) {
-    Path ignoredPacksDatFile = FabricLoader.getInstance()
-        .getGameDir()
-        .resolve("data")
-        .resolve(CustomPaintingsMod.MOD_ID)
-        .resolve("legacy_ignored.dat");
-    HashSet<String> ignoredPacks = readIgnoredPacks(ignoredPacksDatFile);
+    CompletableFuture<ConvertPromptData> future = CompletableFuture.supplyAsync(() -> {
+      // TODO: Actually use ignoredPacks
+      // TODO: Consider doing a metadata-only read first, and fully load only after user confirms to convert
 
-    HashMap<String, LegacyPackResource> packs = new HashMap<>();
-    HashMap<Identifier, Image> images = new HashMap<>();
+      Path ignoredPacksDatFile = FabricLoader.getInstance()
+          .getGameDir()
+          .resolve("data")
+          .resolve(CustomPaintingsMod.MOD_ID)
+          .resolve("legacy_ignored.dat");
+      HashSet<String> ignoredPacks = readIgnoredPacks(ignoredPacksDatFile);
 
-    Path resourcePackDir = client.getResourcePackDir();
-    try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(resourcePackDir)) {
-      directoryStream.forEach((path) -> {
-        SinglePackResult result = readAsPack(path);
-        if (result != null) {
-          packs.put(result.pack.packId(), result.pack);
-          images.putAll(result.images);
-        }
-      });
-    } catch (IOException e) {
-      CustomPaintingsMod.LOGGER.warn("Failed to load resource packs during legacy pack migration. Skipping...");
-      return;
-    }
+      HashMap<String, LegacyPackResource> packs = new HashMap<>();
+      HashMap<Identifier, Image> images = new HashMap<>();
 
-    if (packs.isEmpty()) {
-      return;
-    }
+      Path resourcePackDir = client.getResourcePackDir();
+      try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(resourcePackDir)) {
+        directoryStream.forEach((path) -> {
+          SinglePackResult result = readAsPack(path);
+          if (result != null) {
+            packs.put(result.pack.packId(), result.pack);
+            images.putAll(result.images);
+          }
+        });
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
 
-    client.setScreen(new ConvertPromptScreen(client.currentScreen, packs, images));
+      if (packs.isEmpty()) {
+        return new ConvertPromptData();
+      }
+
+      return new ConvertPromptData(packs, images);
+    });
+    client.setScreen(new ConvertPromptScreen(client.currentScreen, future));
   }
 
   public void convertPack(LegacyPackResource legacyPack, HashMap<Identifier, Image> images, Path path) {
@@ -366,5 +372,11 @@ public class LegacyPackMigrator {
   }
 
   private record SinglePackResult(LegacyPackResource pack, HashMap<Identifier, Image> images) {
+  }
+
+  public record ConvertPromptData(HashMap<String, LegacyPackResource> packs, HashMap<Identifier, Image> images) {
+    public ConvertPromptData() {
+      this(new HashMap<>(), new HashMap<>());
+    }
   }
 }
