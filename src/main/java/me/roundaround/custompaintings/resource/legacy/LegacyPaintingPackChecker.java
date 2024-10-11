@@ -3,9 +3,11 @@ package me.roundaround.custompaintings.resource.legacy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.client.gui.screen.ConvertPromptScreen;
 import me.roundaround.custompaintings.resource.Image;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.nbt.*;
 import net.minecraft.resource.*;
 import net.minecraft.util.Identifier;
@@ -34,6 +36,8 @@ public class LegacyPaintingPackChecker extends SinglePreparationResourceReloader
 
   @Override
   protected LoadResult prepare(ResourceManager manager, Profiler profiler) {
+    CustomPaintingsMod.LOGGER.info("Loading legacy painting resource packs...");
+
     Path ignoredPacksDatFile = FabricLoader.getInstance()
         .getGameDir()
         .resolve("data")
@@ -41,7 +45,7 @@ public class LegacyPaintingPackChecker extends SinglePreparationResourceReloader
         .resolve("legacy_ignored.dat");
     HashSet<String> ignoredPacks = readIgnoredPacks(ignoredPacksDatFile);
 
-    HashMap<String, LegacyPackResource> packs = new HashMap<>();
+    HashMap<String, LegacyPackWrapper> packs = new HashMap<>();
     HashMap<Identifier, Image> images = new HashMap<>();
 
     manager.streamResourcePacks()
@@ -50,7 +54,7 @@ public class LegacyPaintingPackChecker extends SinglePreparationResourceReloader
         .filter((resourcePack) -> resourcePack.getNamespaces(ResourceType.CLIENT_RESOURCES)
             .stream()
             .anyMatch((namespace) -> !Identifier.DEFAULT_NAMESPACE.equals(namespace) &&
-                !Identifier.REALMS_NAMESPACE.equals(namespace)))
+                                     !Identifier.REALMS_NAMESPACE.equals(namespace)))
         .forEach(((resourcePack) -> {
           LegacyPackResource pack;
           InputSupplier<InputStream> streamSupplier = resourcePack.openRoot("custompaintings.json");
@@ -72,14 +76,14 @@ public class LegacyPaintingPackChecker extends SinglePreparationResourceReloader
               return;
             }
 
-            packs.put(pack.id(), pack);
+            packs.put(pack.id(), new LegacyPackWrapper(resourcePack.getInfo().title().getString(), pack));
 
             HashMap<Identifier, Identifier> imageIdToPath = new HashMap<>();
 
             resourcePack.getNamespaces(ResourceType.CLIENT_RESOURCES)
                 .stream()
                 .filter((namespace) -> !Identifier.DEFAULT_NAMESPACE.equals(namespace) &&
-                    !Identifier.REALMS_NAMESPACE.equals(namespace))
+                                       !Identifier.REALMS_NAMESPACE.equals(namespace))
                 .forEach((namespace) -> resourcePack.findResources(ResourceType.CLIENT_RESOURCES, namespace,
                     "textures/painting", (id, supplier) -> {
                       if (!id.getPath().endsWith(".png")) {
@@ -133,7 +137,8 @@ public class LegacyPaintingPackChecker extends SinglePreparationResourceReloader
 
   @Override
   protected void apply(LoadResult prepared, ResourceManager manager, Profiler profiler) {
-    // TODO: Prompt user about migrating (saving the in-memory data as a new pack)
+    MinecraftClient client = MinecraftClient.getInstance();
+    client.setScreen(new ConvertPromptScreen(client.currentScreen, prepared.packs, prepared.images));
   }
 
   private static HashSet<String> readIgnoredPacks(Path ignoredPacksDatFile) {
@@ -152,6 +157,6 @@ public class LegacyPaintingPackChecker extends SinglePreparationResourceReloader
     return new HashSet<>(0);
   }
 
-  public record LoadResult(HashMap<String, LegacyPackResource> packs, HashMap<Identifier, Image> images) {
+  public record LoadResult(HashMap<String, LegacyPackWrapper> packs, HashMap<Identifier, Image> images) {
   }
 }
