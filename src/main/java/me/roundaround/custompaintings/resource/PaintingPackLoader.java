@@ -77,13 +77,14 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
   @Override
   protected void apply(LoadResult result, ResourceManager manager, Profiler profiler) {
     HashMap<String, PaintingPack> packs = new HashMap<>(result.packs.size());
-    result.packs.forEach(
-        (packId, pack) -> packs.put(packId, new PaintingPack(packId, pack.name(), pack.description(), pack.paintings()
+    result.packs.forEach((packId, pack) -> packs.put(packId, new PaintingPack(packId, pack.name(), pack.description(),
+        pack.paintings()
             .stream()
             .map((resource) -> new PaintingData(new Identifier(packId, resource.id()), resource.width(),
                 resource.height(), resource.name(), resource.artist()
             ))
-            .toList())));
+            .toList()
+    )));
 
     ServerPaintingRegistry.getInstance().update(packs, result.images);
   }
@@ -147,7 +148,7 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
 
     try (ZipFile zip = new ZipFile(path.toFile())) {
       String folderPrefix = getFolderPrefix(zip);
-      if (folderPrefix.isBlank()) {
+      if (!folderPrefix.isBlank()) {
         CustomPaintingsMod.LOGGER.info("Folder-in-zip detected in \"{}\", adjusting paths", filename);
       }
 
