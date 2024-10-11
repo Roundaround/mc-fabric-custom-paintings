@@ -2,7 +2,7 @@ package me.roundaround.custompaintings.client;
 
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
-import me.roundaround.custompaintings.resource.legacy.LegacyPaintingPackChecker;
+import me.roundaround.custompaintings.resource.legacy.LegacyPaintingPackReloader;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
@@ -18,6 +18,6 @@ public class CustomPaintingsClientMod implements ClientModInitializer {
       ClientPaintingManager.getInstance().close();
     }));
 
-    ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new LegacyPaintingPackChecker());
+    ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new LegacyPaintingPackReloader());
   }
 }

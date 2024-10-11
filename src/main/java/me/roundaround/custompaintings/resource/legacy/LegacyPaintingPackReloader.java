@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.stream.Collectors;
 
-public class LegacyPaintingPackChecker extends SinglePreparationResourceReloader<LegacyPaintingPackChecker.LoadResult> implements
+public class LegacyPaintingPackReloader extends SinglePreparationResourceReloader<LegacyPaintingPackReloader.LoadResult> implements
     IdentifiableResourceReloadListener {
   private static final Gson GSON = new GsonBuilder().create();
   private static final int MAX_SIZE = 1 << 24;
