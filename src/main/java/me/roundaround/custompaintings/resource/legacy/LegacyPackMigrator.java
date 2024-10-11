@@ -31,6 +31,7 @@ public class LegacyPackMigrator {
   private static final String CUSTOM_PAINTINGS_JSON = "custompaintings.json";
   private static final String PACK_MCMETA = "pack.mcmeta";
   private static final String PACK_PNG = "pack.png";
+  private static final String ICON_PNG = "icon.png";
   private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
   private static LegacyPackMigrator instance = null;
@@ -95,7 +96,7 @@ public class LegacyPackMigrator {
 
       Identifier iconId = PackIcons.identifier(pack.id());
       if (images.containsKey(iconId)) {
-        writeImage(zos, "icon.png", images.get(iconId));
+        writeImage(zos, ICON_PNG, images.get(iconId));
       }
 
       for (PaintingResource painting : pack.paintings()) {
