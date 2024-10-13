@@ -95,9 +95,9 @@ public class ConvertPromptScreen extends Screen {
         .resolve("data")
         .resolve(CustomPaintingsMod.MOD_ID)
         .resolve(cleanFilename(filename) + ".zip");
-    LegacyPackMigrator.getInstance().convertPack(pack, this.images, zipFile);
-
-    this.list.getEntry(pack).ifPresent(LegacyPackList.PackEntry::markInactive);
+    if (LegacyPackMigrator.getInstance().convertPack(pack, this.images, zipFile)) {
+      this.list.getEntry(pack).ifPresent(LegacyPackList.PackEntry::markInactive);
+    }
   }
 
   private void convertPacks(ButtonWidget button) {
@@ -142,6 +142,8 @@ public class ConvertPromptScreen extends Screen {
       for (LegacyPackResource pack : packs) {
         this.addEntry(PackEntry.factory(this.client.textRenderer, pack, this.convert));
       }
+
+      this.refreshPositions();
     }
 
     public Optional<PackEntry> getEntry(LegacyPackResource pack) {
@@ -160,7 +162,7 @@ public class ConvertPromptScreen extends Screen {
     }
 
     private static class LoadingEntry extends Entry {
-      private static final Text LOADING_TEXT = Text.literal("Loading...");
+      private static final Text LOADING_TEXT = Text.literal("Loading Legacy Pack List");
 
       private final TextRenderer textRenderer;
 
@@ -197,6 +199,8 @@ public class ConvertPromptScreen extends Screen {
             .dimensions(this.getContentWidth(), this.getContentHeight())
             .alignSelfCenterX()
             .alignSelfCenterY()
+            .alignTextCenterX()
+            .alignTextCenterY()
             .hideBackground()
             .showShadow()
             .build();
@@ -218,9 +222,6 @@ public class ConvertPromptScreen extends Screen {
     }
 
     private static class PackEntry extends Entry {
-      private static final Text LOADING_TEXT = Text.of("Loading...");
-
-      private final TextRenderer textRenderer;
       private final LegacyPackResource pack;
       private final ButtonWidget button;
 
@@ -234,14 +235,13 @@ public class ConvertPromptScreen extends Screen {
           Consumer<LegacyPackResource> convert
       ) {
         super(index, left, top, width);
-        this.textRenderer = textRenderer;
         this.pack = pack;
 
         LinearLayoutWidget layout = this.addLayout(
             LinearLayoutWidget.horizontal().spacing(GuiUtil.PADDING).defaultOffAxisContentAlign(Alignment.CENTER),
             (self) -> {
-              self.setPosition(this.getContentLeft(), this.getContentTop());
-              self.setDimensions(this.getContentWidth(), this.getContentHeight());
+              self.setPositionAndDimensions(
+                  this.getContentLeft(), this.getContentTop(), this.getContentWidth(), this.getContentHeight());
             }
         );
 
@@ -271,13 +271,13 @@ public class ConvertPromptScreen extends Screen {
           self.setWidth(parent.getWidth());
         });
         layout.add(paragraph, (parent, self) -> {
-          self.setDimensions(parent.getContentWidth() - GuiUtil.PADDING - 120, parent.getContentHeight());
+          self.setWidth(width - GuiUtil.PADDING - 80);
         });
 
         this.button = layout.add(ButtonWidget.builder(Text.of("Convert"), (button) -> {
           convert.accept(pack);
         }).build(), (parent, self) -> {
-          self.setDimensions(120, 20);
+          self.setDimensions(80, 20);
         });
 
         layout.forEachChild(this::addDrawableChild);
@@ -288,18 +288,6 @@ public class ConvertPromptScreen extends Screen {
       ) {
         return (index, left, top, width) -> new PackEntry(index, left, top, width, textRenderer, pack, convert);
       }
-
-//      @Override
-//      protected void renderContent(DrawContext context, int mouseX, int mouseY, float delta) {
-//        int x = this.getContentCenterX() - this.textRenderer.getWidth(LOADING_TEXT) / 2;
-//        int y = this.getContentTop() + (this.getContentHeight() - this.textRenderer.fontHeight) / 2;
-//        context.drawText(this.textRenderer, LOADING_TEXT, x, y, GuiUtil.LABEL_COLOR, false);
-//
-//        String spinner = LoadingDisplay.get(Util.getMeasuringTimeMs());
-//        x = this.getContentCenterX() - this.textRenderer.getWidth(spinner) / 2;
-//        y += this.textRenderer.fontHeight;
-//        context.drawText(this.textRenderer, spinner, x, y, Colors.GRAY, false);
-//      }
 
       public String getPackId() {
         return this.pack.packId();

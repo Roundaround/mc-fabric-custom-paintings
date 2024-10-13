@@ -84,7 +84,7 @@ public class LegacyPackMigrator {
     client.setScreen(new ConvertPromptScreen(client.currentScreen, future));
   }
 
-  public void convertPack(LegacyPackResource legacyPack, HashMap<Identifier, Image> images, Path path) {
+  public boolean convertPack(LegacyPackResource legacyPack, HashMap<Identifier, Image> images, Path path) {
     ArrayList<PaintingResource> paintings = new ArrayList<>();
     legacyPack.paintings().forEach((legacyPainting) -> {
       paintings.add(new PaintingResource(legacyPainting.id(), legacyPainting.name(), legacyPainting.artist(),
@@ -94,6 +94,12 @@ public class LegacyPackMigrator {
     paintings.removeIf((painting) -> !images.containsKey(new Identifier(legacyPack.packId(), painting.id())));
     PackResource pack = new PackResource(
         1, legacyPack.packId(), legacyPack.name(), legacyPack.description(), paintings);
+
+    try {
+      Files.createDirectories(path.getParent());
+    } catch (IOException e) {
+      return false;
+    }
 
     try (
         FileOutputStream fos = new FileOutputStream(path.toFile()); ZipOutputStream zos = new ZipOutputStream(fos)
@@ -111,8 +117,12 @@ public class LegacyPackMigrator {
           writeImage(zos, Paths.get("images", painting.id() + ".png").toString(), images.get(paintingId));
         }
       }
-    } catch (IOException e) {
+
+      return true;
+    } catch (IOException ignored) {
     }
+
+    return false;
   }
 
   private static HashSet<String> readIgnoredPacks(Path ignoredPacksDatFile) {
