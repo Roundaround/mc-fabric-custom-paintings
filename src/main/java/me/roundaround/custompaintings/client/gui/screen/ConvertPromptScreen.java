@@ -8,6 +8,7 @@ import me.roundaround.roundalib.client.gui.GuiUtil;
 import me.roundaround.roundalib.client.gui.layout.linear.LinearLayoutWidget;
 import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import me.roundaround.roundalib.client.gui.util.Alignment;
+import me.roundaround.roundalib.client.gui.widget.FlowListWidget;
 import me.roundaround.roundalib.client.gui.widget.ParentElementEntryListWidget;
 import me.roundaround.roundalib.client.gui.widget.drawable.LabelWidget;
 import net.fabricmc.loader.api.FabricLoader;
@@ -25,8 +26,10 @@ import net.minecraft.util.Util;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
@@ -54,18 +57,11 @@ public class ConvertPromptScreen extends Screen {
       this.images.putAll(data.images());
 
       if (this.list != null) {
-        this.list.clearEntries();
-        if (this.packs.isEmpty()) {
-          this.list.addEntry(
-              (index, left, top, width) -> new LegacyPackList.EmptyEntry(index, left, top, width, this.textRenderer));
-        }
-        for (LegacyPackResource pack : this.packs.values()) {
-          this.list.addEntry(
-              (index, left, top, width) -> new LegacyPackList.PackEntry(index, left, top, width, this.textRenderer,
-                  pack, this::convertPack
-              ));
-        }
+        this.list.setPacks(this.packs.values());
       }
+
+      this.clearChildren();
+      this.layout.forEachChild(this::addDrawableChild);
     }, this.executor);
   }
 
@@ -73,10 +69,7 @@ public class ConvertPromptScreen extends Screen {
   protected void init() {
     this.layout.addHeader(this.textRenderer, this.title);
 
-    this.list = new LegacyPackList(this.client, this.layout);
-    this.list.addEntry(
-        (index, left, top, width) -> new LegacyPackList.LoadingEntry(index, left, top, width, this.textRenderer));
-    this.layout.addBody(this.list);
+    this.list = this.layout.addBody(new LegacyPackList(this.client, this.layout, this::convertPack));
 
     this.layout.addFooter(ButtonWidget.builder(Text.of("ALL!"), this::convertPacks).build());
     this.layout.addFooter(ButtonWidget.builder(ScreenTexts.NO, this::close).build());
@@ -91,28 +84,25 @@ public class ConvertPromptScreen extends Screen {
   }
 
   @Override
-  public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-    super.render(context, mouseX, mouseY, delta);
-  }
-
-  @Override
   public void close() {
     Objects.requireNonNull(this.client).setScreen(this.parent);
   }
 
-  private void convertPacks(ButtonWidget button) {
-    this.packs.values().forEach(this::convertPack);
-    this.close();
-  }
-
-  private void convertPack(LegacyPackResource legacyPack) {
-    String filename = legacyPack.filename();
+  private void convertPack(LegacyPackResource pack) {
+    String filename = pack.filename();
     Path zipFile = FabricLoader.getInstance()
         .getGameDir()
         .resolve("data")
         .resolve(CustomPaintingsMod.MOD_ID)
         .resolve(cleanFilename(filename) + ".zip");
-    LegacyPackMigrator.getInstance().convertPack(legacyPack, this.images, zipFile);
+    LegacyPackMigrator.getInstance().convertPack(pack, this.images, zipFile);
+
+    this.list.getEntry(pack).ifPresent(LegacyPackList.PackEntry::markInactive);
+  }
+
+  private void convertPacks(ButtonWidget button) {
+    this.packs.values().forEach(this::convertPack);
+    this.close();
   }
 
   private void close(ButtonWidget button) {
@@ -131,8 +121,34 @@ public class ConvertPromptScreen extends Screen {
   }
 
   private static class LegacyPackList extends ParentElementEntryListWidget<LegacyPackList.Entry> {
-    protected LegacyPackList(MinecraftClient client, ThreeSectionLayoutWidget layout) {
+    private final Consumer<LegacyPackResource> convert;
+
+    public LegacyPackList(
+        MinecraftClient client, ThreeSectionLayoutWidget layout, Consumer<LegacyPackResource> convert
+    ) {
       super(client, layout);
+      this.convert = convert;
+      this.addEntry(LoadingEntry.factory(client.textRenderer));
+    }
+
+    public void setPacks(Collection<LegacyPackResource> packs) {
+      this.clearEntries();
+
+      if (packs.isEmpty()) {
+        this.addEntry(EmptyEntry.factory(this.client.textRenderer));
+        return;
+      }
+
+      for (LegacyPackResource pack : packs) {
+        this.addEntry(PackEntry.factory(this.client.textRenderer, pack, this.convert));
+      }
+    }
+
+    public Optional<PackEntry> getEntry(LegacyPackResource pack) {
+      return this.entries.stream()
+          .map((entry) -> entry instanceof PackEntry packEntry ? packEntry : null)
+          .filter((entry) -> entry != null && pack.packId().equals(entry.getPackId()))
+          .findFirst();
     }
 
     private static abstract class Entry extends ParentElementEntryListWidget.Entry {
@@ -150,8 +166,11 @@ public class ConvertPromptScreen extends Screen {
 
       protected LoadingEntry(int index, int left, int top, int width, TextRenderer textRenderer) {
         super(index, left, top, width);
-
         this.textRenderer = textRenderer;
+      }
+
+      public static FlowListWidget.EntryFactory<LoadingEntry> factory(TextRenderer textRenderer) {
+        return (index, left, top, width) -> new LoadingEntry(index, left, top, width, textRenderer);
       }
 
       @Override
@@ -185,6 +204,10 @@ public class ConvertPromptScreen extends Screen {
         this.addDrawable(this.label);
       }
 
+      public static FlowListWidget.EntryFactory<EmptyEntry> factory(TextRenderer textRenderer) {
+        return (index, left, top, width) -> new EmptyEntry(index, left, top, width, textRenderer);
+      }
+
       @Override
       public void refreshPositions() {
         this.label.batchUpdates(() -> {
@@ -195,6 +218,12 @@ public class ConvertPromptScreen extends Screen {
     }
 
     private static class PackEntry extends Entry {
+      private static final Text LOADING_TEXT = Text.of("Loading...");
+
+      private final TextRenderer textRenderer;
+      private final LegacyPackResource pack;
+      private final ButtonWidget button;
+
       protected PackEntry(
           int index,
           int left,
@@ -205,6 +234,8 @@ public class ConvertPromptScreen extends Screen {
           Consumer<LegacyPackResource> convert
       ) {
         super(index, left, top, width);
+        this.textRenderer = textRenderer;
+        this.pack = pack;
 
         LinearLayoutWidget layout = this.addLayout(
             LinearLayoutWidget.horizontal().spacing(GuiUtil.PADDING).defaultOffAxisContentAlign(Alignment.CENTER),
@@ -243,13 +274,39 @@ public class ConvertPromptScreen extends Screen {
           self.setDimensions(parent.getContentWidth() - GuiUtil.PADDING - 120, parent.getContentHeight());
         });
 
-        layout.add(ButtonWidget.builder(Text.of("Convert"), (button) -> {
+        this.button = layout.add(ButtonWidget.builder(Text.of("Convert"), (button) -> {
           convert.accept(pack);
         }).build(), (parent, self) -> {
           self.setDimensions(120, 20);
         });
 
         layout.forEachChild(this::addDrawableChild);
+      }
+
+      public static FlowListWidget.EntryFactory<PackEntry> factory(
+          TextRenderer textRenderer, LegacyPackResource pack, Consumer<LegacyPackResource> convert
+      ) {
+        return (index, left, top, width) -> new PackEntry(index, left, top, width, textRenderer, pack, convert);
+      }
+
+//      @Override
+//      protected void renderContent(DrawContext context, int mouseX, int mouseY, float delta) {
+//        int x = this.getContentCenterX() - this.textRenderer.getWidth(LOADING_TEXT) / 2;
+//        int y = this.getContentTop() + (this.getContentHeight() - this.textRenderer.fontHeight) / 2;
+//        context.drawText(this.textRenderer, LOADING_TEXT, x, y, GuiUtil.LABEL_COLOR, false);
+//
+//        String spinner = LoadingDisplay.get(Util.getMeasuringTimeMs());
+//        x = this.getContentCenterX() - this.textRenderer.getWidth(spinner) / 2;
+//        y += this.textRenderer.fontHeight;
+//        context.drawText(this.textRenderer, spinner, x, y, Colors.GRAY, false);
+//      }
+
+      public String getPackId() {
+        return this.pack.packId();
+      }
+
+      public void markInactive() {
+        this.button.active = false;
       }
     }
   }
