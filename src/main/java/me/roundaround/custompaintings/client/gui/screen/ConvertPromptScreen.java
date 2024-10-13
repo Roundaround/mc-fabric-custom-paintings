@@ -59,9 +59,6 @@ public class ConvertPromptScreen extends Screen {
       if (this.list != null) {
         this.list.setPacks(this.packs.values());
       }
-
-      this.clearChildren();
-      this.layout.forEachChild(this::addDrawableChild);
     }, this.executor);
   }
 
