@@ -1,10 +1,10 @@
 package me.roundaround.custompaintings.client.gui.screen;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.custompaintings.resource.Image;
 import me.roundaround.custompaintings.resource.legacy.LegacyPackMigrator;
 import me.roundaround.custompaintings.resource.legacy.LegacyPackResource;
 import me.roundaround.roundalib.client.gui.GuiUtil;
+import me.roundaround.roundalib.client.gui.layout.FillerWidget;
 import me.roundaround.roundalib.client.gui.layout.linear.LinearLayoutWidget;
 import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import me.roundaround.roundalib.client.gui.util.Alignment;
@@ -21,11 +21,9 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Objects;
@@ -37,24 +35,23 @@ public class ConvertPromptScreen extends Screen {
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
   private final Screen parent;
   private final HashMap<String, LegacyPackResource> packs = new HashMap<>();
-  private final HashMap<Identifier, Image> images = new HashMap<>();
 
   private LegacyPackList list;
 
   public ConvertPromptScreen(
-      Screen parent, CompletableFuture<LegacyPackMigrator.ConvertPromptData> future
+      Screen parent, CompletableFuture<HashMap<String, LegacyPackResource>> future
   ) {
     super(Text.of("Convert?"));
     this.parent = parent;
 
-    future.whenCompleteAsync((data, exception) -> {
+    future.whenCompleteAsync((packs, exception) -> {
       if (exception != null) {
         // TODO: Handle error
+        CustomPaintingsMod.LOGGER.warn(exception);
         return;
       }
 
-      this.packs.putAll(data.packs());
-      this.images.putAll(data.images());
+      this.packs.putAll(packs);
 
       if (this.list != null) {
         this.list.setPacks(this.packs.values());
@@ -86,15 +83,23 @@ public class ConvertPromptScreen extends Screen {
   }
 
   private void convertPack(LegacyPackResource pack) {
-    String filename = pack.filename();
-    Path zipFile = FabricLoader.getInstance()
+    Path path = FabricLoader.getInstance()
         .getGameDir()
         .resolve("data")
         .resolve(CustomPaintingsMod.MOD_ID)
-        .resolve(cleanFilename(filename) + ".zip");
-    if (LegacyPackMigrator.getInstance().convertPack(pack, this.images, zipFile)) {
-      this.list.getEntry(pack).ifPresent(LegacyPackList.PackEntry::markInactive);
-    }
+        .resolve(cleanFilename(pack.path()) + ".zip");
+
+    // TODO: Some kind of "Save as" dialog
+
+    this.list.getEntry(pack).ifPresent((entry) -> {
+      // TODO: Some kind of loading state on the button
+      entry.setButtonActive(false);
+    });
+    LegacyPackMigrator.getInstance().convertPack(pack, path).thenAcceptAsync((succeeded) -> {
+      if (!succeeded && this.list.getEntry(pack).isPresent()) {
+        this.list.getEntry(pack).get().setButtonActive(true);
+      }
+    }, this.executor);
   }
 
   private void convertPacks(ButtonWidget button) {
@@ -106,10 +111,8 @@ public class ConvertPromptScreen extends Screen {
     this.close();
   }
 
-  private static String cleanFilename(String filename) {
-    Path path = Paths.get(filename);
+  private static String cleanFilename(Path path) {
     String noExtension = path.getFileName().toString();
-
     int dotIndex = noExtension.lastIndexOf(".");
     if (dotIndex > 0 && dotIndex < noExtension.length() - 1) {
       return noExtension.substring(0, dotIndex);
@@ -242,8 +245,13 @@ public class ConvertPromptScreen extends Screen {
             }
         );
 
+        // TODO: Pack icon!
+        layout.add(FillerWidget.empty(), (parent, self) -> {
+          self.setDimensions(parent.getHeight(), parent.getHeight());
+        });
+
         LinearLayoutWidget paragraph = LinearLayoutWidget.vertical().spacing(1);
-        paragraph.add(LabelWidget.builder(textRenderer, Text.of(pack.filename()))
+        paragraph.add(LabelWidget.builder(textRenderer, Text.of(pack.path().getFileName().toString()))
             .alignTextLeft()
             .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
             .hideBackground()
@@ -268,7 +276,7 @@ public class ConvertPromptScreen extends Screen {
           self.setWidth(parent.getWidth());
         });
         layout.add(paragraph, (parent, self) -> {
-          self.setWidth(width - GuiUtil.PADDING - 80);
+          self.setWidth(width - GuiUtil.PADDING - parent.getHeight() - GuiUtil.PADDING - 80);
         });
 
         this.button = layout.add(ButtonWidget.builder(Text.of("Convert"), (button) -> {
@@ -290,8 +298,8 @@ public class ConvertPromptScreen extends Screen {
         return this.pack.packId();
       }
 
-      public void markInactive() {
-        this.button.active = false;
+      public void setButtonActive(boolean active) {
+        this.button.active = active;
       }
     }
   }
