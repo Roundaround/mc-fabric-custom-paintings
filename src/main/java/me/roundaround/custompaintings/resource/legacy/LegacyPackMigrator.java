@@ -89,49 +89,60 @@ public class LegacyPackMigrator {
       client.getTextureManager().registerTexture(this.atlas.getId(), this.atlas);
     }
 
-    CompletableFuture<HashMap<String, LegacyPackResource>> future = CompletableFuture.supplyAsync(() -> {
-      // TODO: Actually use ignoredPacks
-      // TODO: Consider doing a metadata-only read first, and fully load only after user confirms to convert
+    Path resourcePackDir = client.getResourcePackDir();
+    client.setScreen(new ConvertPromptScreen(client.currentScreen,
+        CompletableFuture.supplyAsync(() -> this.checkForLegacyPackMetadata(resourcePackDir))
+            .thenApplyAsync((metas) -> this.uploadIconsSpriteAtlas(client, metas), client)
+    ));
+  }
 
-      Path ignoredPacksDatFile = FabricLoader.getInstance()
-          .getGameDir()
-          .resolve("data")
-          .resolve(CustomPaintingsMod.MOD_ID)
-          .resolve("legacy_ignored.dat");
-      HashSet<String> ignoredPacks = readIgnoredPacks(ignoredPacksDatFile);
+  private HashMap<String, PackMetadata> checkForLegacyPackMetadata(Path resourcePackDir) {
+    Path ignoredPacksDatFile = FabricLoader.getInstance()
+        .getGameDir()
+        .resolve("data")
+        .resolve(CustomPaintingsMod.MOD_ID)
+        .resolve("legacy_ignored.dat");
+    HashSet<String> ignoredPacks = readIgnoredPacks(ignoredPacksDatFile);
 
-      HashMap<String, PackMetadata> metas = new HashMap<>();
+    HashMap<String, PackMetadata> metas = new HashMap<>();
 
-      Path resourcePackDir = client.getResourcePackDir();
-      try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(resourcePackDir)) {
-        directoryStream.forEach((path) -> {
-          PackMetadata metadata = readPackMetadata(path);
-          if (metadata == null) {
-            return;
-          }
-          metas.put(metadata.pack().packId(), metadata);
-        });
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-
-      return metas;
-    }).thenApplyAsync((metas) -> {
-      List<SpriteContents> spriteContents = new ArrayList<>();
-      spriteContents.add(MissingSprite.createSpriteContents());
-      metas.forEach((packId, meta) -> {
-        if (meta.icon() == null) {
+    try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(resourcePackDir)) {
+      directoryStream.forEach((path) -> {
+        PackMetadata metadata = readPackMetadata(path);
+        if (metadata == null) {
           return;
         }
-        spriteContents.add(getIconSpriteContents(PackIcons.identifier(packId), meta.icon()));
+        metas.put(metadata.pack().packId(), metadata);
       });
-      this.atlas.upload(SpriteLoader.fromAtlas(this.atlas).stitch(spriteContents, 0, Util.getMainWorkerExecutor()));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
 
-      HashMap<String, LegacyPackResource> packs = new HashMap<>();
-      metas.forEach((packId, meta) -> packs.put(packId, meta.pack()));
-      return packs;
-    }, client);
-    client.setScreen(new ConvertPromptScreen(client.currentScreen, future));
+    return metas;
+  }
+
+  private HashMap<String, LegacyPackResource> uploadIconsSpriteAtlas(
+      MinecraftClient client, HashMap<String, PackMetadata> metas
+  ) {
+    this.atlas = new SpriteAtlasTexture(
+        new Identifier(CustomPaintingsMod.MOD_ID, "textures/atlas/legacy_pack_icons.png"));
+    client.getTextureManager().registerTexture(this.atlas.getId(), this.atlas);
+
+    List<SpriteContents> spriteContents = new ArrayList<>();
+    spriteContents.add(MissingSprite.createSpriteContents());
+    metas.forEach((packId, meta) -> {
+      if (meta.icon() == null) {
+        return;
+      }
+      Identifier id = PackIcons.identifier(packId);
+      this.spriteIds.add(id);
+      spriteContents.add(getIconSpriteContents(id, meta.icon()));
+    });
+    this.atlas.upload(SpriteLoader.fromAtlas(this.atlas).stitch(spriteContents, 0, Util.getMainWorkerExecutor()));
+
+    HashMap<String, LegacyPackResource> packs = new HashMap<>();
+    metas.forEach((packId, meta) -> packs.put(packId, meta.pack()));
+    return packs;
   }
 
   public CompletableFuture<Boolean> convertPack(LegacyPackResource legacyPack, Path path) {
