@@ -31,7 +31,6 @@ import net.minecraft.util.Util;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -142,15 +141,7 @@ public class ConvertPromptScreen extends Screen {
       this.refreshPositions();
     }
 
-    public Optional<PackEntry> getEntry(LegacyPackResource pack) {
-      return this.entries.stream()
-          .map((entry) -> entry instanceof PackEntry packEntry ? packEntry : null)
-          .filter((entry) -> entry != null && pack.packId().equals(entry.getPackId()))
-          .findFirst();
-    }
-
     private static abstract class Entry extends ParentElementEntryListWidget.Entry {
-
       protected Entry(int index, int left, int top, int width, int contentHeight) {
         super(index, left, top, width, contentHeight);
       }
@@ -281,8 +272,8 @@ public class ConvertPromptScreen extends Screen {
             (parent, self) -> self.setWidth(parent.getWidth())
         );
         layout.add(textSection, (parent, self) -> {
-          self.setWidth(
-              width - parent.getSpacing() - PACK_ICON_SIZE - parent.getSpacing() - 80 - parent.getSpacing() - STATUS_ICON_SIZE);
+          self.setWidth(width - parent.getSpacing() - PACK_ICON_SIZE - parent.getSpacing() - 80 - parent.getSpacing() -
+                        STATUS_ICON_SIZE);
         });
 
         layout.add(FillerWidget.empty());
