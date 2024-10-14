@@ -31,7 +31,7 @@ public class LoadingButtonWidget extends ButtonWidget {
 
     String spinner = LoadingDisplay.get(Util.getMeasuringTimeMs());
     int x = this.getX() + (this.getWidth() - textRenderer.getWidth(spinner)) / 2;
-    int y = this.getY() + (this.getHeight() - textRenderer.fontHeight) / 2;
+    int y = this.getY() + (this.getHeight() - (textRenderer.fontHeight - 1)) / 2;
     context.drawText(textRenderer, spinner, x, y, Colors.WHITE, false);
   }
 }

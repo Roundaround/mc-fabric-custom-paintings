@@ -73,6 +73,10 @@ public class LegacyPackMigrator {
     return this.atlas.getSprite(MissingSprite.getMissingSpriteId());
   }
 
+  public Sprite getSprite(String packId) {
+    return this.getSprite(PackIcons.identifier(packId));
+  }
+
   public Sprite getSprite(Identifier id) {
     if (this.atlas == null) {
       return null;
@@ -588,11 +592,28 @@ public class LegacyPackMigrator {
         ZipInputStream zis = new ZipInputStream(new FileInputStream(path.toFile()));
         ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(temp.toFile()))
     ) {
-      cloneZip(zis, zos);
+      boolean alreadyTagged = false;
 
-      ZipEntry tagEntry = new ZipEntry(tag);
-      zos.putNextEntry(tagEntry);
-      zos.closeEntry();
+      ZipEntry entry;
+      byte[] buffer = new byte[1024];
+      int len;
+      while ((entry = zis.getNextEntry()) != null) {
+        if (entry.getName().equals(tag)) {
+          alreadyTagged = true;
+        }
+
+        zos.putNextEntry(new ZipEntry(entry.getName()));
+        while ((len = zis.read(buffer)) > 0) {
+          zos.write(buffer, 0, len);
+        }
+        zos.closeEntry();
+      }
+
+      if (!alreadyTagged) {
+        ZipEntry tagEntry = new ZipEntry(tag);
+        zos.putNextEntry(tagEntry);
+        zos.closeEntry();
+      }
     }
 
     Path bak = path.resolveSibling(filename + "_bak");

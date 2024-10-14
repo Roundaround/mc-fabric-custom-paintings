@@ -2,6 +2,7 @@ package me.roundaround.custompaintings.client.gui.screen;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.gui.widget.LoadingButtonWidget;
+import me.roundaround.custompaintings.client.gui.widget.SpriteWidget;
 import me.roundaround.custompaintings.resource.legacy.LegacyPackMigrator;
 import me.roundaround.custompaintings.resource.legacy.LegacyPackResource;
 import me.roundaround.custompaintings.resource.legacy.PackMetadata;
@@ -12,6 +13,7 @@ import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidge
 import me.roundaround.roundalib.client.gui.util.Alignment;
 import me.roundaround.roundalib.client.gui.widget.FlowListWidget;
 import me.roundaround.roundalib.client.gui.widget.ParentElementEntryListWidget;
+import me.roundaround.roundalib.client.gui.widget.drawable.DrawableWidget;
 import me.roundaround.roundalib.client.gui.widget.drawable.LabelWidget;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
@@ -22,6 +24,8 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 
 import java.nio.file.Path;
@@ -30,6 +34,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 public class ConvertPromptScreen extends Screen {
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
@@ -145,20 +150,20 @@ public class ConvertPromptScreen extends Screen {
     }
 
     private static abstract class Entry extends ParentElementEntryListWidget.Entry {
-      protected static final int HEIGHT = 36;
 
-      protected Entry(int index, int left, int top, int width) {
-        super(index, left, top, width, HEIGHT);
+      protected Entry(int index, int left, int top, int width, int contentHeight) {
+        super(index, left, top, width, contentHeight);
       }
     }
 
     private static class LoadingEntry extends Entry {
+      private static final int HEIGHT = 36;
       private static final Text LOADING_TEXT = Text.literal("Loading Legacy Pack List");
 
       private final TextRenderer textRenderer;
 
       protected LoadingEntry(int index, int left, int top, int width, TextRenderer textRenderer) {
-        super(index, left, top, width);
+        super(index, left, top, width, HEIGHT);
         this.textRenderer = textRenderer;
       }
 
@@ -180,10 +185,12 @@ public class ConvertPromptScreen extends Screen {
     }
 
     private static class EmptyEntry extends Entry {
+      private static final int HEIGHT = 36;
+
       private final LabelWidget label;
 
       protected EmptyEntry(int index, int left, int top, int width, TextRenderer textRenderer) {
-        super(index, left, top, width);
+        super(index, left, top, width, HEIGHT);
 
         this.label = LabelWidget.builder(textRenderer, Text.literal("No legacy painting packs found!"))
             .position(this.getContentCenterX(), this.getContentCenterY())
@@ -213,13 +220,25 @@ public class ConvertPromptScreen extends Screen {
     }
 
     private static class PackEntry extends Entry {
+      private static final int HEIGHT = 48;
+      private static final int PACK_ICON_SIZE = 36;
+      private static final int STATUS_ICON_SIZE = 18;
       // TODO: i18n
+      private static final Text LINE_NAME = Text.of("Name:");
+      private static final Text LINE_DESCRIPTION = Text.of("Desc:");
+      private static final Text LINE_FILE = Text.of("File:");
+      private static final Text NONE_PLACEHOLDER = Text.literal("< None >")
+          .formatted(Formatting.ITALIC, Formatting.GRAY);
       private static final Text LABEL_CONVERT = Text.of("Convert");
       private static final Text LABEL_RE_CONVERT = Text.of("Re-Convert");
       private static final Text LABEL_IGNORED = Text.of("Ignored");
+      private static final Identifier TEXTURE_SUCCESS = new Identifier("pending_invite/accept");
+      private static final Identifier TEXTURE_FAILURE = new Identifier("pending_invite/reject");
 
       private final LegacyPackResource pack;
       private final LoadingButtonWidget button;
+
+      private Identifier statusTexture;
 
       protected PackEntry(
           int index,
@@ -230,7 +249,7 @@ public class ConvertPromptScreen extends Screen {
           PackMetadata meta,
           Consumer<PackEntry> convert
       ) {
-        super(index, left, top, width);
+        super(index, left, top, width, HEIGHT);
         this.pack = meta.pack();
 
         LinearLayoutWidget layout = this.addLayout(
@@ -241,46 +260,73 @@ public class ConvertPromptScreen extends Screen {
             }
         );
 
-        // TODO: Pack icon!
-        layout.add(FillerWidget.empty(), (parent, self) -> {
-          self.setDimensions(parent.getHeight(), parent.getHeight());
+        layout.add(SpriteWidget.create(LegacyPackMigrator.getInstance().getSprite(pack.packId())), (parent, self) -> {
+          self.setDimensions(PACK_ICON_SIZE, PACK_ICON_SIZE);
         });
 
-        LinearLayoutWidget paragraph = LinearLayoutWidget.vertical().spacing(1);
-        paragraph.add(LabelWidget.builder(textRenderer, Text.of(pack.path().getFileName().toString()))
-            .alignTextLeft()
-            .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
-            .hideBackground()
-            .showShadow()
-            .build(), (parent, self) -> {
-          self.setWidth(parent.getWidth());
+        layout.add(FillerWidget.empty());
+
+        LinearLayoutWidget textSection = LinearLayoutWidget.vertical().spacing(GuiUtil.PADDING);
+        int headerWidth = Stream.of(LINE_FILE, LINE_NAME, LINE_DESCRIPTION)
+            .mapToInt(textRenderer::getWidth)
+            .max()
+            .orElse(1);
+        textSection.add(this.textLine(textRenderer, headerWidth, LINE_FILE, pack.path().getFileName().toString()),
+            (parent, self) -> self.setWidth(parent.getWidth())
+        );
+        textSection.add(this.textLine(textRenderer, headerWidth, LINE_NAME, pack.name()),
+            (parent, self) -> self.setWidth(parent.getWidth())
+        );
+        textSection.add(this.textLine(textRenderer, headerWidth, LINE_DESCRIPTION, pack.description()),
+            (parent, self) -> self.setWidth(parent.getWidth())
+        );
+        layout.add(textSection, (parent, self) -> {
+          self.setWidth(
+              width - parent.getSpacing() - PACK_ICON_SIZE - parent.getSpacing() - 80 - parent.getSpacing() - STATUS_ICON_SIZE);
         });
-        paragraph.add(LabelWidget.builder(textRenderer, Text.of(pack.name()))
-            .alignTextLeft()
-            .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
-            .hideBackground()
-            .showShadow()
-            .build(), (parent, self) -> {
-          self.setWidth(parent.getWidth());
-        });
-        paragraph.add(LabelWidget.builder(textRenderer, Text.of(pack.description()))
-            .alignTextLeft()
-            .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
-            .hideBackground()
-            .showShadow()
-            .build(), (parent, self) -> {
-          self.setWidth(parent.getWidth());
-        });
-        layout.add(paragraph, (parent, self) -> {
-          self.setWidth(width - GuiUtil.PADDING - parent.getHeight() - GuiUtil.PADDING - 80);
-        });
+
+        layout.add(FillerWidget.empty());
 
         // TODO: i18n
         Text label = meta.converted() ? LABEL_RE_CONVERT : meta.ignored() ? LABEL_IGNORED : LABEL_CONVERT;
         this.button = layout.add(new LoadingButtonWidget(0, 0, 80, 20, label, (button) -> convert.accept(this)));
         this.button.active = !meta.ignored();
 
+        this.statusTexture = meta.converted() ? TEXTURE_SUCCESS : null;
+        layout.add(new DrawableWidget(STATUS_ICON_SIZE, STATUS_ICON_SIZE) {
+          @Override
+          protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+            if (PackEntry.this.statusTexture == null) {
+              return;
+            }
+            context.drawGuiTexture(
+                PackEntry.this.statusTexture, this.getX(), this.getY(), this.getWidth(), this.getHeight());
+          }
+        });
+
         layout.forEachChild(this::addDrawableChild);
+      }
+
+      private LinearLayoutWidget textLine(TextRenderer textRenderer, int headerWidth, Text header, String value) {
+        LinearLayoutWidget line = LinearLayoutWidget.horizontal().spacing(2);
+        Text valueText = value == null || value.isBlank() ? NONE_PLACEHOLDER : Text.of(value);
+
+        line.add(
+            LabelWidget.builder(textRenderer, header).hideBackground().showShadow().color(Colors.LIGHT_GRAY).build(),
+            (parent, self) -> {
+              self.setWidth(headerWidth);
+            }
+        );
+        line.add(LabelWidget.builder(textRenderer, valueText)
+            .alignTextLeft()
+            .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
+            .hideBackground()
+            .showShadow()
+            .build(), (parent, self) -> {
+          self.setWidth(parent.getWidth() - parent.getSpacing() - headerWidth);
+        });
+
+        return line;
       }
 
       public static FlowListWidget.EntryFactory<PackEntry> factory(
@@ -304,6 +350,7 @@ public class ConvertPromptScreen extends Screen {
       public void markConvertFinished(boolean succeeded) {
         this.button.setLoading(false);
         this.button.setMessage(succeeded ? LABEL_RE_CONVERT : LABEL_CONVERT);
+        this.statusTexture = succeeded ? TEXTURE_SUCCESS : TEXTURE_FAILURE;
         // TODO: Retry/error label?
       }
     }
