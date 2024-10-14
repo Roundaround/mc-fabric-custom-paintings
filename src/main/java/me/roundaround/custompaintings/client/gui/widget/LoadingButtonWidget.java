@@ -19,6 +19,7 @@ public class LoadingButtonWidget extends ButtonWidget {
 
   public void setLoading(boolean loading) {
     this.loading = loading;
+    this.active = !loading;
   }
 
   @Override

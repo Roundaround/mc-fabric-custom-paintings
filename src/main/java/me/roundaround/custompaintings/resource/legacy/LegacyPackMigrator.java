@@ -179,7 +179,11 @@ public class LegacyPackMigrator {
       try {
         Files.createDirectories(path.getParent());
         if (Files.exists(path)) {
-          Files.move(path, path.resolveSibling(path.getFileName().toString() + "_old"));
+          Path backup = path.resolveSibling(path.getFileName().toString() + "_old");
+          if (Files.exists(backup)) {
+            Files.delete(backup);
+          }
+          Files.move(path, backup);
         }
       } catch (IOException e) {
         return false;

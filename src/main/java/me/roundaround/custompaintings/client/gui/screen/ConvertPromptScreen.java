@@ -215,7 +215,7 @@ public class ConvertPromptScreen extends Screen {
     private static class PackEntry extends Entry {
       // TODO: i18n
       private static final Text LABEL_CONVERT = Text.of("Convert");
-      private static final Text LABEL_CONVERTED = Text.of("Converted");
+      private static final Text LABEL_RE_CONVERT = Text.of("Re-Convert");
       private static final Text LABEL_IGNORED = Text.of("Ignored");
 
       private final LegacyPackResource pack;
@@ -276,8 +276,9 @@ public class ConvertPromptScreen extends Screen {
         });
 
         // TODO: i18n
-        Text label = meta.converted() ? LABEL_CONVERTED : meta.ignored() ? LABEL_IGNORED : LABEL_CONVERT;
+        Text label = meta.converted() ? LABEL_RE_CONVERT : meta.ignored() ? LABEL_IGNORED : LABEL_CONVERT;
         this.button = layout.add(new LoadingButtonWidget(0, 0, 80, 20, label, (button) -> convert.accept(this)));
+        this.button.active = !meta.ignored();
 
         layout.forEachChild(this::addDrawableChild);
       }
@@ -298,13 +299,11 @@ public class ConvertPromptScreen extends Screen {
 
       public void markLoading() {
         this.button.setLoading(true);
-        this.button.active = false;
       }
 
       public void markConvertFinished(boolean succeeded) {
         this.button.setLoading(false);
-        this.button.active = !succeeded;
-        this.button.setMessage(succeeded ? LABEL_CONVERTED : LABEL_CONVERT);
+        this.button.setMessage(succeeded ? LABEL_RE_CONVERT : LABEL_CONVERT);
         // TODO: Retry/error label?
       }
     }
