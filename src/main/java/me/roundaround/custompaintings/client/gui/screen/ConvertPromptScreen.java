@@ -1,6 +1,7 @@
 package me.roundaround.custompaintings.client.gui.screen;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.client.gui.widget.LoadingButtonWidget;
 import me.roundaround.custompaintings.resource.legacy.LegacyPackMigrator;
 import me.roundaround.custompaintings.resource.legacy.LegacyPackResource;
 import me.roundaround.roundalib.client.gui.GuiUtil;
@@ -91,14 +92,9 @@ public class ConvertPromptScreen extends Screen {
 
     // TODO: Some kind of "Save as" dialog
 
-    this.list.getEntry(pack).ifPresent((entry) -> {
-      // TODO: Some kind of loading state on the button
-      entry.setButtonActive(false);
-    });
+    this.list.getEntry(pack).ifPresent(LegacyPackList.PackEntry::setButtonLoading);
     LegacyPackMigrator.getInstance().convertPack(pack, path).thenAcceptAsync((succeeded) -> {
-      if (!succeeded && this.list.getEntry(pack).isPresent()) {
-        this.list.getEntry(pack).get().setButtonActive(true);
-      }
+      this.list.getEntry(pack).ifPresent((entry) -> entry.setButtonNotLoading(!succeeded));
     }, this.executor);
   }
 
@@ -223,7 +219,7 @@ public class ConvertPromptScreen extends Screen {
 
     private static class PackEntry extends Entry {
       private final LegacyPackResource pack;
-      private final ButtonWidget button;
+      private final LoadingButtonWidget button;
 
       protected PackEntry(
           int index,
@@ -279,11 +275,10 @@ public class ConvertPromptScreen extends Screen {
           self.setWidth(width - GuiUtil.PADDING - parent.getHeight() - GuiUtil.PADDING - 80);
         });
 
-        this.button = layout.add(ButtonWidget.builder(Text.of("Convert"), (button) -> {
+        // TODO: i18n
+        this.button = layout.add(new LoadingButtonWidget(0, 0, 80, 20, Text.of("Convert"), (button) -> {
           convert.accept(pack);
-        }).build(), (parent, self) -> {
-          self.setDimensions(80, 20);
-        });
+        }));
 
         layout.forEachChild(this::addDrawableChild);
       }
@@ -298,7 +293,13 @@ public class ConvertPromptScreen extends Screen {
         return this.pack.packId();
       }
 
-      public void setButtonActive(boolean active) {
+      public void setButtonLoading() {
+        this.button.setLoading(true);
+        this.button.active = false;
+      }
+
+      public void setButtonNotLoading(boolean active) {
+        this.button.setLoading(false);
         this.button.active = active;
       }
     }
