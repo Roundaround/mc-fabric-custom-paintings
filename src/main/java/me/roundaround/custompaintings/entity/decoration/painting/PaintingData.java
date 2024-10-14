@@ -1,6 +1,5 @@
 package me.roundaround.custompaintings.entity.decoration.painting;
 
-import me.roundaround.custompaintings.resource.PackIcons;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
@@ -33,10 +32,6 @@ public record PaintingData(Identifier id, int width, int height, String name, St
     this(Registries.PAINTING_VARIANT.getId(vanillaVariant), vanillaVariant.getWidth() / 16,
         vanillaVariant.getHeight() / 16, Registries.PAINTING_VARIANT.getId(vanillaVariant).getPath(), "", true
     );
-  }
-
-  public static PaintingData packIcon(String packId) {
-    return new PaintingData(PackIcons.identifier(packId), 16, 16, "", "");
   }
 
   public int getScaledWidth() {
@@ -187,9 +182,9 @@ public record PaintingData(Identifier id, int width, int height, String name, St
     return switch (category) {
       case SIZE -> this.width() != knownData.width() || this.height() != knownData.height();
       case INFO -> !this.name().equals(knownData.name()) || !this.artist().equals(knownData.artist()) ||
-          this.isVanilla() != knownData.isVanilla();
+                   this.isVanilla() != knownData.isVanilla();
       case EVERYTHING -> this.width() != knownData.width() || this.height() != knownData.height() ||
-          !this.name().equals(knownData.name()) || !this.artist().equals(knownData.artist());
+                         !this.name().equals(knownData.name()) || !this.artist().equals(knownData.artist());
     };
   }
 
@@ -205,8 +200,8 @@ public record PaintingData(Identifier id, int width, int height, String name, St
       return false;
 
     return this.width == that.width && this.height == that.height && this.isVanilla == that.isVanilla &&
-        Objects.equals(this.name, that.name) && Objects.equals(this.id, that.id) &&
-        Objects.equals(this.artist, that.artist);
+           Objects.equals(this.name, that.name) && Objects.equals(this.id, that.id) &&
+           Objects.equals(this.artist, that.artist);
   }
 
   public NbtCompound writeToNbt() {

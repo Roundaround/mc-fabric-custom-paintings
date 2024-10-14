@@ -1,6 +1,8 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
+import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
+import me.roundaround.custompaintings.resource.PackIcons;
 import me.roundaround.roundalib.client.gui.GuiUtil;
 import me.roundaround.roundalib.client.gui.layout.linear.LinearLayoutWidget;
 import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
@@ -76,7 +78,7 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
           });
 
       layout.add(
-          PaintingSpriteWidget.create(this.pack.id()),
+          SpriteWidget.create(ClientPaintingRegistry.getInstance().getSprite(PackIcons.identifier(this.pack.id()))),
           (parent, self) -> self.setDimensions(this.getIconWidth(), this.getIconHeight())
       );
 

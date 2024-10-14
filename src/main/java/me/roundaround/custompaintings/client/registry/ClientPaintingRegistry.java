@@ -344,8 +344,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     sprites.add(VanillaIconSprite.create(this.client, PackIcons.MINECRAFT_ICON_ID, "vanilla"));
     sprites.add(BasicTextureSprite.fetch(this.client, PackIcons.MINECRAFT_HIDDEN_ICON_ID, EARTH_TEXTURE_ID));
     this.paintings.values().forEach((painting) -> sprites.add(this.getSpriteContents(painting)));
-    // TODO: Stop using PaintingData for this
-    this.packsMap.keySet().forEach((packId) -> sprites.add(this.getSpriteContents(PaintingData.packIcon(packId))));
+    this.packsMap.keySet().forEach((packId) -> sprites.add(this.getSpriteContents(packId)));
 
     this.atlas.upload(SpriteLoader.fromAtlas(this.atlas).stitch(sprites, 0, Util.getMainWorkerExecutor()));
 
@@ -362,6 +361,11 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   private SpriteContents getSpriteContents(PaintingData painting) {
     return getSpriteContents(
         painting.id(), this.images.get(painting.id()), painting.getScaledWidth(), painting.getScaledHeight());
+  }
+
+  private SpriteContents getSpriteContents(String packId) {
+    Identifier id = PackIcons.identifier(packId);
+    return getSpriteContents(id, this.images.get(id), 16, 16);
   }
 
   private void sendMessage(Text text) {

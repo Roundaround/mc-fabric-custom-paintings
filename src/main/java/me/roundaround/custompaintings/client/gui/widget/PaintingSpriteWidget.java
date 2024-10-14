@@ -124,16 +124,8 @@ public class PaintingSpriteWidget extends DrawableWidget {
     return new Builder(paintingData);
   }
 
-  public static Builder builder(String packId) {
-    return builder(PaintingData.packIcon(packId));
-  }
-
   public static PaintingSpriteWidget create(PaintingData paintingData) {
     return builder(paintingData).build();
-  }
-
-  public static PaintingSpriteWidget create(String packId) {
-    return builder(packId).build();
   }
 
   public static class Builder {
