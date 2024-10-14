@@ -100,8 +100,7 @@ public class LegacyPackMigrator {
           .resolve("legacy_ignored.dat");
       HashSet<String> ignoredPacks = readIgnoredPacks(ignoredPacksDatFile);
 
-      HashMap<String, LegacyPackResource> packs = new HashMap<>();
-      HashMap<Identifier, Image> icons = new HashMap<>();
+      HashMap<String, PackMetadata> metas = new HashMap<>();
 
       Path resourcePackDir = client.getResourcePackDir();
       try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(resourcePackDir)) {
@@ -110,32 +109,28 @@ public class LegacyPackMigrator {
           if (metadata == null) {
             return;
           }
-
-          packs.put(metadata.pack().packId(), metadata.pack());
-          if (metadata.icon() != null) {
-            icons.put(PackIcons.identifier(metadata.pack().packId()), metadata.icon());
-          }
+          metas.put(metadata.pack().packId(), metadata);
         });
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
 
-      if (packs.isEmpty()) {
-        return packs;
-      }
-
-      // TODO: Have the initial future return back the metadata and raw images, then chain it with a following future
-      //   that stitches together the icons SpriteAtlas in the client's render thread and return that second future.
-
+      return metas;
+    }).thenApplyAsync((metas) -> {
       List<SpriteContents> spriteContents = new ArrayList<>();
       spriteContents.add(MissingSprite.createSpriteContents());
-      icons.forEach((id, image) -> {
-        spriteContents.add(getIconSpriteContents(id, image));
+      metas.forEach((packId, meta) -> {
+        if (meta.icon() == null) {
+          return;
+        }
+        spriteContents.add(getIconSpriteContents(PackIcons.identifier(packId), meta.icon()));
       });
       this.atlas.upload(SpriteLoader.fromAtlas(this.atlas).stitch(spriteContents, 0, Util.getMainWorkerExecutor()));
 
+      HashMap<String, LegacyPackResource> packs = new HashMap<>();
+      metas.forEach((packId, meta) -> packs.put(packId, meta.pack()));
       return packs;
-    });
+    }, client);
     client.setScreen(new ConvertPromptScreen(client.currentScreen, future));
   }
 
@@ -518,14 +513,5 @@ public class LegacyPackMigrator {
   }
 
   private record PackMetadata(LegacyPackResource pack, Image icon) {
-  }
-
-  private record SinglePackResult(LegacyPackResource pack, HashMap<Identifier, Image> images) {
-  }
-
-  public record ConvertPromptData(HashMap<String, LegacyPackResource> packs, HashMap<Identifier, Image> images) {
-    public ConvertPromptData() {
-      this(new HashMap<>(), new HashMap<>());
-    }
   }
 }
