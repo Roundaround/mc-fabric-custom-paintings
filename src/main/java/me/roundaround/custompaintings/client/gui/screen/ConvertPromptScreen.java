@@ -4,6 +4,7 @@ import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.gui.widget.LoadingButtonWidget;
 import me.roundaround.custompaintings.resource.legacy.LegacyPackMigrator;
 import me.roundaround.custompaintings.resource.legacy.LegacyPackResource;
+import me.roundaround.custompaintings.resource.legacy.PackMetadata;
 import me.roundaround.roundalib.client.gui.GuiUtil;
 import me.roundaround.roundalib.client.gui.layout.FillerWidget;
 import me.roundaround.roundalib.client.gui.layout.linear.LinearLayoutWidget;
@@ -12,7 +13,6 @@ import me.roundaround.roundalib.client.gui.util.Alignment;
 import me.roundaround.roundalib.client.gui.widget.FlowListWidget;
 import me.roundaround.roundalib.client.gui.widget.ParentElementEntryListWidget;
 import me.roundaround.roundalib.client.gui.widget.drawable.LabelWidget;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -26,7 +26,6 @@ import net.minecraft.util.Util;
 
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -35,27 +34,25 @@ import java.util.function.Consumer;
 public class ConvertPromptScreen extends Screen {
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
   private final Screen parent;
-  private final HashMap<String, LegacyPackResource> packs = new HashMap<>();
 
   private LegacyPackList list;
 
   public ConvertPromptScreen(
-      Screen parent, CompletableFuture<HashMap<String, LegacyPackResource>> future
+      Screen parent, CompletableFuture<Collection<PackMetadata>> future
   ) {
+    // TODO: i18n
     super(Text.of("Convert?"));
     this.parent = parent;
 
-    future.whenCompleteAsync((packs, exception) -> {
+    future.whenCompleteAsync((metas, exception) -> {
       if (exception != null) {
         // TODO: Handle error
         CustomPaintingsMod.LOGGER.warn(exception);
         return;
       }
 
-      this.packs.putAll(packs);
-
       if (this.list != null) {
-        this.list.setPacks(this.packs.values());
+        this.list.setPacks(metas);
       }
     }, this.executor);
   }
@@ -66,8 +63,9 @@ public class ConvertPromptScreen extends Screen {
 
     this.list = this.layout.addBody(new LegacyPackList(this.client, this.layout, this::convertPack));
 
-    this.layout.addFooter(ButtonWidget.builder(Text.of("ALL!"), this::convertPacks).build());
-    this.layout.addFooter(ButtonWidget.builder(ScreenTexts.NO, this::close).build());
+    // TODO: i18n
+    this.layout.addFooter(ButtonWidget.builder(Text.of("Open Output Folder"), this::openOutDir).build());
+    this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, this::close).build());
 
     this.layout.forEachChild(this::addDrawableChild);
     this.initTabNavigation();
@@ -83,24 +81,21 @@ public class ConvertPromptScreen extends Screen {
     Objects.requireNonNull(this.client).setScreen(this.parent);
   }
 
-  private void convertPack(LegacyPackResource pack) {
-    Path path = FabricLoader.getInstance()
-        .getGameDir()
-        .resolve("data")
-        .resolve(CustomPaintingsMod.MOD_ID)
-        .resolve(cleanFilename(pack.path()) + ".zip");
+  private void convertPack(LegacyPackList.PackEntry entry) {
+    LegacyPackResource pack = entry.getPack();
+    Path path = LegacyPackMigrator.getInstance().getOutDir().resolve(cleanFilename(pack.path()) + ".zip");
 
-    // TODO: Some kind of "Save as" dialog
-
-    this.list.getEntry(pack).ifPresent(LegacyPackList.PackEntry::setButtonLoading);
-    LegacyPackMigrator.getInstance().convertPack(pack, path).thenAcceptAsync((succeeded) -> {
-      this.list.getEntry(pack).ifPresent((entry) -> entry.setButtonNotLoading(!succeeded));
-    }, this.executor);
+    // TODO: Error handling
+    // TODO: Add some kind of timeout on conversion to avoid hanging thread
+    entry.markLoading();
+    LegacyPackMigrator.getInstance().convertPack(pack, path).thenAcceptAsync(entry::markConvertFinished, this.executor);
   }
 
-  private void convertPacks(ButtonWidget button) {
-    this.packs.values().forEach(this::convertPack);
-    this.close();
+  private void openOutDir(ButtonWidget button) {
+    Path outDir = LegacyPackMigrator.getInstance().getOutDir();
+    if (outDir != null) {
+      Util.getOperatingSystem().open(outDir.toUri());
+    }
   }
 
   private void close(ButtonWidget button) {
@@ -117,26 +112,26 @@ public class ConvertPromptScreen extends Screen {
   }
 
   private static class LegacyPackList extends ParentElementEntryListWidget<LegacyPackList.Entry> {
-    private final Consumer<LegacyPackResource> convert;
+    private final Consumer<LegacyPackList.PackEntry> convert;
 
     public LegacyPackList(
-        MinecraftClient client, ThreeSectionLayoutWidget layout, Consumer<LegacyPackResource> convert
+        MinecraftClient client, ThreeSectionLayoutWidget layout, Consumer<LegacyPackList.PackEntry> convert
     ) {
       super(client, layout);
       this.convert = convert;
       this.addEntry(LoadingEntry.factory(client.textRenderer));
     }
 
-    public void setPacks(Collection<LegacyPackResource> packs) {
+    public void setPacks(Collection<PackMetadata> metas) {
       this.clearEntries();
 
-      if (packs.isEmpty()) {
+      if (metas.isEmpty()) {
         this.addEntry(EmptyEntry.factory(this.client.textRenderer));
         return;
       }
 
-      for (LegacyPackResource pack : packs) {
-        this.addEntry(PackEntry.factory(this.client.textRenderer, pack, this.convert));
+      for (PackMetadata meta : metas) {
+        this.addEntry(PackEntry.factory(this.client.textRenderer, meta, this.convert));
       }
 
       this.refreshPositions();
@@ -218,6 +213,11 @@ public class ConvertPromptScreen extends Screen {
     }
 
     private static class PackEntry extends Entry {
+      // TODO: i18n
+      private static final Text LABEL_CONVERT = Text.of("Convert");
+      private static final Text LABEL_CONVERTED = Text.of("Converted");
+      private static final Text LABEL_IGNORED = Text.of("Ignored");
+
       private final LegacyPackResource pack;
       private final LoadingButtonWidget button;
 
@@ -227,11 +227,11 @@ public class ConvertPromptScreen extends Screen {
           int top,
           int width,
           TextRenderer textRenderer,
-          LegacyPackResource pack,
-          Consumer<LegacyPackResource> convert
+          PackMetadata meta,
+          Consumer<PackEntry> convert
       ) {
         super(index, left, top, width);
-        this.pack = pack;
+        this.pack = meta.pack();
 
         LinearLayoutWidget layout = this.addLayout(
             LinearLayoutWidget.horizontal().spacing(GuiUtil.PADDING).defaultOffAxisContentAlign(Alignment.CENTER),
@@ -276,31 +276,36 @@ public class ConvertPromptScreen extends Screen {
         });
 
         // TODO: i18n
-        this.button = layout.add(new LoadingButtonWidget(0, 0, 80, 20, Text.of("Convert"), (button) -> {
-          convert.accept(pack);
-        }));
+        Text label = meta.converted() ? LABEL_CONVERTED : meta.ignored() ? LABEL_IGNORED : LABEL_CONVERT;
+        this.button = layout.add(new LoadingButtonWidget(0, 0, 80, 20, label, (button) -> convert.accept(this)));
 
         layout.forEachChild(this::addDrawableChild);
       }
 
       public static FlowListWidget.EntryFactory<PackEntry> factory(
-          TextRenderer textRenderer, LegacyPackResource pack, Consumer<LegacyPackResource> convert
+          TextRenderer textRenderer, PackMetadata meta, Consumer<PackEntry> convert
       ) {
-        return (index, left, top, width) -> new PackEntry(index, left, top, width, textRenderer, pack, convert);
+        return (index, left, top, width) -> new PackEntry(index, left, top, width, textRenderer, meta, convert);
+      }
+
+      public LegacyPackResource getPack() {
+        return this.pack;
       }
 
       public String getPackId() {
         return this.pack.packId();
       }
 
-      public void setButtonLoading() {
+      public void markLoading() {
         this.button.setLoading(true);
         this.button.active = false;
       }
 
-      public void setButtonNotLoading(boolean active) {
+      public void markConvertFinished(boolean succeeded) {
         this.button.setLoading(false);
-        this.button.active = active;
+        this.button.active = !succeeded;
+        this.button.setMessage(succeeded ? LABEL_CONVERTED : LABEL_CONVERT);
+        // TODO: Retry/error label?
       }
     }
   }

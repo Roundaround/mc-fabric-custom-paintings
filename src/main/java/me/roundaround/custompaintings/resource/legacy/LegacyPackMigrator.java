@@ -15,24 +15,21 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.resource.metadata.AnimationFrameResourceMetadata;
 import net.minecraft.client.resource.metadata.AnimationResourceMetadata;
 import net.minecraft.client.texture.*;
-import net.minecraft.nbt.*;
 import net.minecraft.resource.metadata.ResourceMetadata;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
+import java.util.concurrent.Executor;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 public class LegacyPackMigrator {
@@ -40,13 +37,17 @@ public class LegacyPackMigrator {
   private static final String PACK_MCMETA = "pack.mcmeta";
   private static final String PACK_PNG = "pack.png";
   private static final String ICON_PNG = "icon.png";
+  private static final String TAG_CONVERTED = "converted";
+  private static final String TAG_IGNORED = "ignored";
   private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
   private static LegacyPackMigrator instance = null;
 
   private final HashSet<Identifier> spriteIds = new HashSet<>();
+  private final Executor ioExecutor = Util.getIoWorkerExecutor();
 
   private SpriteAtlasTexture atlas = null;
+  private Path outputDir = null;
 
   private LegacyPackMigrator() {
   }
@@ -82,29 +83,44 @@ public class LegacyPackMigrator {
     return this.atlas.getSprite(id);
   }
 
+  public Path getOutDir() {
+    if (this.outputDir != null) {
+      return this.outputDir;
+    }
+
+    try {
+      Path path = FabricLoader.getInstance()
+          .getGameDir()
+          .resolve("data")
+          .resolve(CustomPaintingsMod.MOD_ID)
+          .resolve("legacy_converted");
+      if (Files.notExists(path)) {
+        Files.createDirectories(path);
+      }
+      this.outputDir = path;
+    } catch (IOException e) {
+      CustomPaintingsMod.LOGGER.warn(e);
+      CustomPaintingsMod.LOGGER.warn("Failed to create output directory for legacy pack conversion.");
+    }
+
+    return this.outputDir;
+  }
+
   public void checkForLegacyPacks(MinecraftClient client) {
-    if (this.atlas == null) {
-      this.atlas = new SpriteAtlasTexture(
-          new Identifier(CustomPaintingsMod.MOD_ID, "textures/atlas/legacy_pack_icons.png"));
-      client.getTextureManager().registerTexture(this.atlas.getId(), this.atlas);
+    if (this.getOutDir() == null) {
+      // TODO: Error reporting
+      return;
     }
 
     Path resourcePackDir = client.getResourcePackDir();
     client.setScreen(new ConvertPromptScreen(client.currentScreen,
-        CompletableFuture.supplyAsync(() -> this.checkForLegacyPackMetadata(resourcePackDir))
+        CompletableFuture.supplyAsync(() -> this.checkForLegacyPackMetadata(resourcePackDir), this.ioExecutor)
             .thenApplyAsync((metas) -> this.uploadIconsSpriteAtlas(client, metas), client)
     ));
   }
 
-  private HashMap<String, PackMetadata> checkForLegacyPackMetadata(Path resourcePackDir) {
-    Path ignoredPacksDatFile = FabricLoader.getInstance()
-        .getGameDir()
-        .resolve("data")
-        .resolve(CustomPaintingsMod.MOD_ID)
-        .resolve("legacy_ignored.dat");
-    HashSet<String> ignoredPacks = readIgnoredPacks(ignoredPacksDatFile);
-
-    HashMap<String, PackMetadata> metas = new HashMap<>();
+  private ArrayList<PackMetadata> checkForLegacyPackMetadata(Path resourcePackDir) {
+    ArrayList<PackMetadata> metas = new ArrayList<>();
 
     try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(resourcePackDir)) {
       directoryStream.forEach((path) -> {
@@ -112,7 +128,7 @@ public class LegacyPackMigrator {
         if (metadata == null) {
           return;
         }
-        metas.put(metadata.pack().packId(), metadata);
+        metas.add(metadata);
       });
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -121,8 +137,8 @@ public class LegacyPackMigrator {
     return metas;
   }
 
-  private HashMap<String, LegacyPackResource> uploadIconsSpriteAtlas(
-      MinecraftClient client, HashMap<String, PackMetadata> metas
+  private Collection<PackMetadata> uploadIconsSpriteAtlas(
+      MinecraftClient client, Collection<PackMetadata> metas
   ) {
     this.atlas = new SpriteAtlasTexture(
         new Identifier(CustomPaintingsMod.MOD_ID, "textures/atlas/legacy_pack_icons.png"));
@@ -130,37 +146,41 @@ public class LegacyPackMigrator {
 
     List<SpriteContents> spriteContents = new ArrayList<>();
     spriteContents.add(MissingSprite.createSpriteContents());
-    metas.forEach((packId, meta) -> {
+    metas.forEach((meta) -> {
       if (meta.icon() == null) {
         return;
       }
-      Identifier id = PackIcons.identifier(packId);
+      Identifier id = PackIcons.identifier(meta.pack().packId());
       this.spriteIds.add(id);
       spriteContents.add(getIconSpriteContents(id, meta.icon()));
     });
     this.atlas.upload(SpriteLoader.fromAtlas(this.atlas).stitch(spriteContents, 0, Util.getMainWorkerExecutor()));
 
-    HashMap<String, LegacyPackResource> packs = new HashMap<>();
-    metas.forEach((packId, meta) -> packs.put(packId, meta.pack()));
-    return packs;
+    return metas;
   }
 
   public CompletableFuture<Boolean> convertPack(LegacyPackResource legacyPack, Path path) {
     return CompletableFuture.supplyAsync(() -> {
       HashMap<Identifier, Image> images = readPaintingImages(legacyPack);
-      ArrayList<PaintingResource> paintings = new ArrayList<>();
+      HashMap<String, PaintingResource> paintings = new HashMap<>();
 
       legacyPack.paintings().forEach((legacyPainting) -> {
-        paintings.add(new PaintingResource(legacyPainting.id(), legacyPainting.name(), legacyPainting.artist(),
-            legacyPainting.height(), legacyPainting.width()
-        ));
+        paintings.put(legacyPainting.id(),
+            new PaintingResource(legacyPainting.id(), legacyPainting.name(), legacyPainting.artist(),
+                legacyPainting.height(), legacyPainting.width()
+            )
+        );
       });
-      paintings.removeIf((painting) -> !images.containsKey(new Identifier(legacyPack.packId(), painting.id())));
+      paintings.keySet().removeIf(paintingId -> !images.containsKey(new Identifier(legacyPack.packId(), paintingId)));
+
       PackResource pack = new PackResource(
-          1, legacyPack.packId(), legacyPack.name(), legacyPack.description(), paintings);
+          1, legacyPack.packId(), legacyPack.name(), legacyPack.description(), new ArrayList<>(paintings.values()));
 
       try {
         Files.createDirectories(path.getParent());
+        if (Files.exists(path)) {
+          Files.move(path, path.resolveSibling(path.getFileName().toString() + "_old"));
+        }
       } catch (IOException e) {
         return false;
       }
@@ -181,13 +201,16 @@ public class LegacyPackMigrator {
             writeImage(zos, Paths.get("images", painting.id() + ".png").toString(), images.get(paintingId));
           }
         }
-
-        return true;
-      } catch (IOException ignored) {
+      } catch (IOException e) {
+        CustomPaintingsMod.LOGGER.warn(
+            "Failed to automatically convert legacy painting pack {}", legacyPack.path().getFileName());
+        return false;
       }
 
-      return false;
-    });
+      writeConvertedTag(legacyPack.path());
+
+      return true;
+    }, this.ioExecutor);
   }
 
   private static SpriteContents getIconSpriteContents(Identifier id, Image image) {
@@ -217,22 +240,6 @@ public class LegacyPackMigrator {
             )
         )
         .build();
-  }
-
-  private static HashSet<String> readIgnoredPacks(Path ignoredPacksDatFile) {
-    if (Files.notExists(ignoredPacksDatFile)) {
-      return new HashSet<>(0);
-    }
-
-    try {
-      NbtCompound data = NbtIo.readCompressed(ignoredPacksDatFile, NbtSizeTracker.ofUnlimitedBytes());
-      NbtList values = data.getList("values", NbtElement.STRING_TYPE);
-      return values.stream().map(NbtElement::asString).collect(Collectors.toCollection(HashSet::new));
-    } catch (IOException e) {
-      CustomPaintingsMod.LOGGER.warn("Could not read {}", ignoredPacksDatFile.toAbsolutePath(), e);
-    }
-
-    return new HashSet<>(0);
   }
 
   private static PackMetadata readPackMetadata(Path path) {
@@ -273,9 +280,12 @@ public class LegacyPackMigrator {
     List<LegacyMigrationResource> migrations = json.migrations();
     String description = meta == null ? "" : meta.pack().description();
 
+    LegacyPackResource pack = new LegacyPackResource(path, packId, name, description, paintings, migrations);
     Image packIcon = readImage(path.resolve(PACK_PNG));
+    boolean converted = Files.exists(path.resolve(TAG_CONVERTED));
+    boolean ignored = Files.exists(path.resolve(TAG_IGNORED));
 
-    return new PackMetadata(new LegacyPackResource(path, packId, name, description, paintings, migrations), packIcon);
+    return new PackMetadata(pack, packIcon, converted, ignored);
   }
 
   private static PackMetadata readPackMetadataFromZip(Path path) {
@@ -304,9 +314,12 @@ public class LegacyPackMigrator {
       List<LegacyMigrationResource> migrations = json.migrations();
       String description = meta == null ? "" : meta.pack().description();
 
+      LegacyPackResource pack = new LegacyPackResource(path, packId, name, description, paintings, migrations);
       Image packIcon = readImage(zip, folderPrefix + PACK_PNG);
+      boolean converted = zip.getEntry(TAG_CONVERTED) != null;
+      boolean ignored = zip.getEntry(TAG_IGNORED) != null;
 
-      return new PackMetadata(new LegacyPackResource(path, packId, name, description, paintings, migrations), packIcon);
+      return new PackMetadata(pack, packIcon, converted, ignored);
     } catch (IOException e) {
       return null;
     }
@@ -523,6 +536,77 @@ public class LegacyPackMigrator {
     ImageIO.write(image.toBufferedImage(), "png", zos);
   }
 
-  private record PackMetadata(LegacyPackResource pack, Image icon) {
+  private static void writeConvertedTag(Path path) {
+    writeTag(path, TAG_CONVERTED);
+  }
+
+  private static void writeIgnoredTag(Path path) {
+    writeTag(path, TAG_IGNORED);
+  }
+
+  private static void writeTag(Path path, String tag) {
+    try {
+      BasicFileAttributes fileAttributes = Files.readAttributes(
+          path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+
+      if (fileAttributes.isDirectory()) {
+        writeTagInDirectory(path, tag);
+      }
+
+      if (fileAttributes.isRegularFile()) {
+        writeTagInZip(path, tag);
+      }
+    } catch (Exception e) {
+      CustomPaintingsMod.LOGGER.warn(e);
+      CustomPaintingsMod.LOGGER.warn(
+          "Error marking tracking tag in legacy Custom Paintings pack \"{}\", skipping...", path.getFileName());
+    }
+  }
+
+  private static void writeTagInDirectory(Path path, String tag) throws IOException {
+    Files.createDirectories(path);
+    Files.write(path.resolve(tag), new byte[0]);
+  }
+
+  private static void writeTagInZip(Path path, String tag) throws IOException {
+    String filename = path.getFileName().toString();
+    if (!filename.endsWith(".zip")) {
+      return;
+    }
+
+    if (path.getFileSystem() != FileSystems.getDefault()) {
+      return;
+    }
+
+    Path temp = path.resolveSibling(filename + "_tmp");
+
+    try (
+        ZipInputStream zis = new ZipInputStream(new FileInputStream(path.toFile()));
+        ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(temp.toFile()))
+    ) {
+      cloneZip(zis, zos);
+
+      ZipEntry tagEntry = new ZipEntry(tag);
+      zos.putNextEntry(tagEntry);
+      zos.closeEntry();
+    }
+
+    Path bak = path.resolveSibling(filename + "_bak");
+    Files.move(path, bak);
+    Files.move(temp, path);
+    Files.delete(bak);
+  }
+
+  private static void cloneZip(ZipInputStream zis, ZipOutputStream zos) throws IOException {
+    ZipEntry entry;
+    byte[] buffer = new byte[1024];
+    int len;
+    while ((entry = zis.getNextEntry()) != null) {
+      zos.putNextEntry(new ZipEntry(entry.getName()));
+      while ((len = zis.read(buffer)) > 0) {
+        zos.write(buffer, 0, len);
+      }
+      zos.closeEntry();
+    }
   }
 }
