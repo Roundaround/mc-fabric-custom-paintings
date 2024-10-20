@@ -27,6 +27,8 @@ import java.util.zip.ZipFile;
 
 public class PaintingPackLoader extends SinglePreparationResourceReloader<PaintingPackLoader.LoadResult> implements
     IdentifiableResourceReloadListener {
+  public static final Identifier FABRIC_ID = new Identifier(CustomPaintingsMod.MOD_ID, "paintings");
+
   private static final String META_FILENAME = "custompaintings.json";
   private static final String LOG_NO_META = "Found Custom Paintings pack \"{}\" without a {} file, skipping...";
   private static final String LOG_META_PARSE_FAIL = "Failed to parse {} from \"{}\", skipping...";
@@ -41,7 +43,7 @@ public class PaintingPackLoader extends SinglePreparationResourceReloader<Painti
 
   @Override
   public Identifier getFabricId() {
-    return new Identifier(CustomPaintingsMod.MOD_ID, "paintings");
+    return FABRIC_ID;
   }
 
   @Override

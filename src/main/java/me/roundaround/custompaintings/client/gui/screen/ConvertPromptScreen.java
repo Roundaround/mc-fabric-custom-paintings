@@ -21,6 +21,7 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.LoadingDisplay;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.CheckboxWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
@@ -30,25 +31,34 @@ import net.minecraft.util.Util;
 
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class ConvertPromptScreen extends Screen {
+  // TODO: i18n
+  private static final Text LABEL_CONVERT = Text.of("Convert");
+  private static final Text LABEL_RE_CONVERT = Text.of("Re-Convert");
+
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
   private final Screen parent;
+  private final HashMap<UUID, Status> globalStatuses = new HashMap<>();
+  private final HashMap<UUID, Status> worldStatuses = new HashMap<>();
 
   private LegacyPackList list;
+  private Path outDir = LegacyPackMigrator.getInstance().getGlobalOutDir();
+  private HashMap<UUID, Status> currentStatuses = this.globalStatuses;
 
   public ConvertPromptScreen(
-      Screen parent, CompletableFuture<Collection<PackMetadata>> future
+      MinecraftClient client, Screen parent
   ) {
     // TODO: i18n
     super(Text.of("Convert?"));
     this.parent = parent;
 
-    future.whenCompleteAsync((metas, exception) -> {
+    LegacyPackMigrator.getInstance().checkForLegacyPacks(client).whenCompleteAsync((metas, exception) -> {
       if (exception != null) {
         // TODO: Handle error
         CustomPaintingsMod.LOGGER.warn(exception);
@@ -63,7 +73,15 @@ public class ConvertPromptScreen extends Screen {
 
   @Override
   protected void init() {
+    assert this.client != null;
+
     this.layout.addHeader(this.textRenderer, this.title);
+    if (this.client.isInSingleplayer()) {
+      // TODO: i18n
+      this.layout.addHeader(CheckboxWidget.builder(Text.of("Convert for current world?"), this.textRenderer)
+          .callback(this::changeOutDir)
+          .build());
+    }
 
     this.list = this.layout.addBody(new LegacyPackList(this.client, this.layout, this::convertPack));
 
@@ -85,20 +103,30 @@ public class ConvertPromptScreen extends Screen {
     Objects.requireNonNull(this.client).setScreen(this.parent);
   }
 
+  private void changeOutDir(CheckboxWidget checkbox, boolean checked) {
+    LegacyPackMigrator migrator = LegacyPackMigrator.getInstance();
+    this.outDir = checked ? migrator.getWorldOutDir() : migrator.getGlobalOutDir();
+    this.currentStatuses = checked ? this.worldStatuses : this.globalStatuses;
+    this.list.updateAllStatuses(this.currentStatuses);
+  }
+
   private void convertPack(LegacyPackList.PackEntry entry) {
     LegacyPackResource pack = entry.getPack();
-    Path path = LegacyPackMigrator.getInstance().getOutDir().resolve(cleanFilename(pack.path()) + ".zip");
+    Path path = this.outDir.resolve(cleanFilename(pack.path()) + ".zip");
 
     // TODO: Error handling
     // TODO: Add some kind of timeout on conversion to avoid hanging thread
     entry.markLoading();
-    LegacyPackMigrator.getInstance().convertPack(pack, path).thenAcceptAsync(entry::markConvertFinished, this.executor);
+    LegacyPackMigrator.getInstance().convertPack(pack, path).thenAcceptAsync((converted) -> {
+      Status status = Status.from(converted);
+      this.currentStatuses.put(entry.getUuid(), status);
+      entry.setStatus(status);
+    }, this.executor);
   }
 
   private void openOutDir(ButtonWidget button) {
-    Path outDir = LegacyPackMigrator.getInstance().getOutDir();
-    if (outDir != null) {
-      Util.getOperatingSystem().open(outDir.toUri());
+    if (this.outDir != null) {
+      Util.getOperatingSystem().open(this.outDir.toUri());
     }
   }
 
@@ -139,6 +167,14 @@ public class ConvertPromptScreen extends Screen {
       }
 
       this.refreshPositions();
+    }
+
+    public void updateAllStatuses(HashMap<UUID, Status> statuses) {
+      this.entries.forEach((entry) -> {
+        if (entry instanceof PackEntry packEntry) {
+          packEntry.setStatus(statuses.getOrDefault(packEntry.getUuid(), Status.NONE));
+        }
+      });
     }
 
     private static abstract class Entry extends ParentElementEntryListWidget.Entry {
@@ -220,12 +256,8 @@ public class ConvertPromptScreen extends Screen {
       private static final Text LINE_FILE = Text.of("File:");
       private static final Text NONE_PLACEHOLDER = Text.literal("< None >")
           .formatted(Formatting.ITALIC, Formatting.GRAY);
-      private static final Text LABEL_CONVERT = Text.of("Convert");
-      private static final Text LABEL_RE_CONVERT = Text.of("Re-Convert");
-      private static final Text LABEL_IGNORED = Text.of("Ignored");
-      private static final Identifier TEXTURE_SUCCESS = new Identifier("pending_invite/accept");
-      private static final Identifier TEXTURE_FAILURE = new Identifier("pending_invite/reject");
 
+      private final UUID uuid;
       private final LegacyPackResource pack;
       private final LoadingButtonWidget button;
 
@@ -241,6 +273,7 @@ public class ConvertPromptScreen extends Screen {
           Consumer<PackEntry> convert
       ) {
         super(index, left, top, width, HEIGHT);
+        this.uuid = meta.uuid();
         this.pack = meta.pack();
 
         LinearLayoutWidget layout = this.addLayout(
@@ -278,12 +311,10 @@ public class ConvertPromptScreen extends Screen {
 
         layout.add(FillerWidget.empty());
 
-        // TODO: i18n
-        Text label = meta.converted() ? LABEL_RE_CONVERT : meta.ignored() ? LABEL_IGNORED : LABEL_CONVERT;
-        this.button = layout.add(new LoadingButtonWidget(0, 0, 80, 20, label, (button) -> convert.accept(this)));
-        this.button.active = !meta.ignored();
-
-        this.statusTexture = meta.converted() ? TEXTURE_SUCCESS : null;
+        Status status = Status.NONE;
+        this.button = layout.add(
+            new LoadingButtonWidget(0, 0, 80, 20, status.getButtonLabel(), (button) -> convert.accept(this)));
+        this.statusTexture = status.getTexture();
         layout.add(new DrawableWidget(STATUS_ICON_SIZE, STATUS_ICON_SIZE) {
           @Override
           protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
@@ -330,20 +361,46 @@ public class ConvertPromptScreen extends Screen {
         return this.pack;
       }
 
-      public String getPackId() {
-        return this.pack.packId();
+      public UUID getUuid() {
+        return this.uuid;
       }
 
       public void markLoading() {
         this.button.setLoading(true);
       }
 
-      public void markConvertFinished(boolean succeeded) {
+      public void setStatus(Status status) {
         this.button.setLoading(false);
-        this.button.setMessage(succeeded ? LABEL_RE_CONVERT : LABEL_CONVERT);
-        this.statusTexture = succeeded ? TEXTURE_SUCCESS : TEXTURE_FAILURE;
+        this.button.setMessage(status.getButtonLabel());
+        this.statusTexture = status.getTexture();
         // TODO: Retry/error label?
       }
+    }
+  }
+
+  private enum Status {
+    NONE(LABEL_CONVERT, null),
+    SUCCESS(LABEL_RE_CONVERT, new Identifier("pending_invite/accept")),
+    FAILURE(LABEL_CONVERT, new Identifier("pending_invite/reject"));
+
+    private final Text buttonLabel;
+    private final Identifier texture;
+
+    Status(Text buttonLabel, Identifier texture) {
+      this.buttonLabel = buttonLabel;
+      this.texture = texture;
+    }
+
+    public static Status from(boolean converted) {
+      return converted ? SUCCESS : FAILURE;
+    }
+
+    public Text getButtonLabel() {
+      return this.buttonLabel;
+    }
+
+    public Identifier getTexture() {
+      return this.texture;
     }
   }
 }

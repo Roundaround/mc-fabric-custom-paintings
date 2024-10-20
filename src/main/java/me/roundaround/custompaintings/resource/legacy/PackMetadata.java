@@ -2,5 +2,10 @@ package me.roundaround.custompaintings.resource.legacy;
 
 import me.roundaround.custompaintings.resource.Image;
 
-public record PackMetadata(LegacyPackResource pack, Image icon, boolean converted, boolean ignored) {
+import java.util.UUID;
+
+public record PackMetadata(UUID uuid, LegacyPackResource pack, Image icon) {
+  public PackMetadata(LegacyPackResource pack, Image icon) {
+    this(UUID.randomUUID(), pack, icon);
+  }
 }

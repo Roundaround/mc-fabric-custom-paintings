@@ -84,6 +84,8 @@ public final class CustomPaintingsMod implements ModInitializer {
       return ActionResult.SUCCESS_NO_ITEM_USED;
     });
 
+    // TODO: Decouple from data packs. Load at same time as initial data pack loading, but not through a registered
+    //  reload listener that requires reloading all data packs in order to reload painting packs.
     ResourceManagerHelper.get(ResourceType.SERVER_DATA).registerReloadListener(new PaintingPackLoader());
   }
 
