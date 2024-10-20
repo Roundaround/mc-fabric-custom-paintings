@@ -3,7 +3,6 @@ package me.roundaround.custompaintings.client.gui.screen;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
-import me.roundaround.custompaintings.resource.PaintingPackLoader;
 import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import me.roundaround.roundalib.client.gui.screen.ConfigScreen;
 import net.minecraft.client.gui.screen.Screen;

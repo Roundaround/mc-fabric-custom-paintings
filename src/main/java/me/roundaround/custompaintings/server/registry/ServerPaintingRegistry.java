@@ -1,21 +1,51 @@
 package me.roundaround.custompaintings.server.registry;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
 import me.roundaround.custompaintings.resource.Image;
+import me.roundaround.custompaintings.resource.PackIcons;
+import me.roundaround.custompaintings.resource.PackResource;
 import me.roundaround.custompaintings.server.network.ImagePacketQueue;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
+import me.roundaround.roundalib.util.PathAccessor;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.text.DecimalFormat;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 public class ServerPaintingRegistry extends CustomPaintingRegistry {
+  private static final String META_FILENAME = "custompaintings.json";
+  private static final String LOG_NO_META = "Found Custom Paintings pack \"{}\" without a {} file, skipping...";
+  private static final String LOG_META_PARSE_FAIL = "Failed to parse {} from \"{}\", skipping...";
+  private static final String LOG_NO_PAINTINGS = "No paintings found in \"{}\", skipping...";
+  private static final String LOG_NO_ICON = "Missing icon.png file for {}";
+  private static final String LOG_ICON_READ_FAIL = "Failed to read icon.png file for {}";
+  private static final String LOG_MISSING_PAINTING = "Missing custom painting image file for {}";
+  private static final String LOG_LARGE_IMAGE = "Image file for {} is too large, skipping";
+  private static final String LOG_PAINTING_READ_FAIL = "Failed to read custom painting image file for {}";
+  private static final Gson GSON = new GsonBuilder().create();
+  private static final int MAX_SIZE = 1 << 24;
+
   private static ServerPaintingRegistry instance = null;
 
   private MinecraftServer server;
@@ -24,7 +54,9 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
   }
 
   public static void init(MinecraftServer server) {
-    getInstance().setServer(server);
+    ServerPaintingRegistry registry = getInstance();
+    registry.setServer(server);
+    registry.loadPaintingPacks();
   }
 
   public static ServerPaintingRegistry getInstance() {
@@ -44,15 +76,17 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     this.server = server;
   }
 
-  public void update(HashMap<String, PaintingPack> packs, HashMap<Identifier, Image> images) {
-    this.setPacks(packs);
-    this.setImages(images);
-
-    if (this.server == null) {
+  public void loadPaintingPacks() {
+    if (this.server == null || !this.server.isRunning()) {
       return;
     }
 
-    ServerNetworking.sendSummaryPacketToAll(this.server, this.packsList, this.combinedImageHash);
+    this.loadPaintingPacks(Util.getIoWorkerExecutor()).thenAcceptAsync((loadResult) -> {
+      this.setPacks(loadResult.packs());
+      this.setImages(loadResult.images());
+
+      ServerNetworking.sendSummaryPacketToAll(this.server, this.packsList, this.combinedImageHash);
+    }, this.server);
   }
 
   public void sendSummaryToPlayer(ServerPlayerEntity player) {
@@ -81,5 +115,259 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     CustomPaintingsMod.LOGGER.info("Sent {} images to {} in {}s", images.size(), player.getName().getString(),
         format.format((Util.getMeasuringTimeMs() - timer) / 1000.0)
     );
+  }
+
+  private CompletableFuture<LoadResult> loadPaintingPacks(Executor executor) {
+    CustomPaintingsMod.LOGGER.info("Loading painting packs");
+    Path packsDir = PathAccessor.getInstance().getPerWorldModDir(CustomPaintingsMod.MOD_ID);
+
+    if (packsDir == null || Files.notExists(packsDir)) {
+      CustomPaintingsMod.LOGGER.info("Unable to locate packs directory, skipping");
+      return CompletableFuture.completedFuture(LoadResult.empty());
+    }
+
+    return CompletableFuture.supplyAsync(() -> {
+      try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(packsDir)) {
+        HashMap<String, PaintingPack> packs = new HashMap<>();
+        HashMap<Identifier, Image> images = new HashMap<>();
+        directoryStream.forEach((path) -> {
+          PackReadResult result = readAsPack(path);
+          if (result == null) {
+            return;
+          }
+
+          String packId = result.id();
+          PackResource resource = result.pack();
+          packs.put(result.id, new PaintingPack(packId, resource.name(), resource.description(),
+              resource.paintings().stream().map((painting) -> {
+                return new PaintingData(new Identifier(packId, painting.id()), painting.width(), painting.height(),
+                    painting.name(), painting.artist()
+                );
+              }).toList()
+          ));
+          images.putAll(result.images);
+        });
+        return new LoadResult(packs, images);
+      } catch (IOException e) {
+        CustomPaintingsMod.LOGGER.warn(e);
+        CustomPaintingsMod.LOGGER.warn("An error occurred trying to load painting packs. Skipping...");
+        return LoadResult.empty();
+      }
+    }, executor);
+  }
+
+  private static PackReadResult readAsPack(Path path) {
+    BasicFileAttributes fileAttributes;
+    try {
+      fileAttributes = Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+
+      if (fileAttributes.isDirectory()) {
+        return readDirectoryAsPack(path);
+      }
+
+      if (fileAttributes.isRegularFile()) {
+        return readZipAsPack(path);
+      }
+    } catch (Exception e) {
+      CustomPaintingsMod.LOGGER.warn(e);
+      CustomPaintingsMod.LOGGER.warn("Error reading Custom Paintings pack \"{}\", skipping...", path.getFileName());
+      return null;
+    }
+
+    return null;
+  }
+
+  private static PackReadResult readZipAsPack(Path path) {
+    String filename = path.getFileName().toString();
+
+    if (!filename.endsWith(".zip")) {
+      CustomPaintingsMod.LOGGER.warn("Found non-zip Custom Paintings file \"{}\", skipping...", filename);
+      return null;
+    }
+
+    if (path.getFileSystem() != FileSystems.getDefault()) {
+      CustomPaintingsMod.LOGGER.warn(
+          "Found zip Custom Paintings file \"{}\" outside the system's default file system, skipping...", filename);
+      return null;
+    }
+
+    try (ZipFile zip = new ZipFile(path.toFile())) {
+      String folderPrefix = getFolderPrefix(zip);
+      if (!folderPrefix.isBlank()) {
+        CustomPaintingsMod.LOGGER.info("Folder-in-zip detected in \"{}\", adjusting paths", filename);
+      }
+
+      ZipEntry zipMeta = zip.getEntry(folderPrefix + META_FILENAME);
+      if (zipMeta == null) {
+        CustomPaintingsMod.LOGGER.warn(LOG_NO_META, filename, META_FILENAME);
+        return null;
+      }
+
+      PackResource pack;
+      try (InputStream stream = zip.getInputStream(zipMeta)) {
+        pack = GSON.fromJson(new InputStreamReader(stream), PackResource.class);
+      } catch (Exception e) {
+        CustomPaintingsMod.LOGGER.warn(e);
+        CustomPaintingsMod.LOGGER.warn(LOG_META_PARSE_FAIL, META_FILENAME, filename);
+        return null;
+      }
+
+      if (pack.paintings().isEmpty()) {
+        CustomPaintingsMod.LOGGER.warn(LOG_NO_PAINTINGS, filename);
+        return null;
+      }
+
+      HashMap<Identifier, Image> images = new HashMap<>();
+
+      ZipEntry zipIconImage = zip.getEntry(folderPrefix + "icon.png");
+      if (zipIconImage == null) {
+        CustomPaintingsMod.LOGGER.warn(LOG_NO_ICON, pack.id());
+      } else {
+        try (InputStream stream = zip.getInputStream(zipIconImage)) {
+          BufferedImage image = ImageIO.read(stream);
+          if (image == null) {
+            throw new IOException("BufferedImage is null");
+          }
+
+          images.put(PackIcons.identifier(pack.id()), Image.read(image));
+        } catch (IOException e) {
+          CustomPaintingsMod.LOGGER.warn(e);
+          CustomPaintingsMod.LOGGER.warn(LOG_ICON_READ_FAIL, pack.id());
+        }
+      }
+
+      pack.paintings().forEach((painting) -> {
+        Identifier id = new Identifier(pack.id(), painting.id());
+        ZipEntry zipImage = zip.getEntry(folderPrefix + String.format("images/%s.png", painting.id()));
+        if (zipImage == null) {
+          CustomPaintingsMod.LOGGER.warn(LOG_MISSING_PAINTING, id);
+          return;
+        }
+
+        try (InputStream stream = zip.getInputStream(zipImage)) {
+          BufferedImage image = ImageIO.read(stream);
+          if (image == null) {
+            throw new IOException("BufferedImage is null");
+          }
+
+          long size = (long) image.getWidth() * image.getHeight();
+          if (size > MAX_SIZE) {
+            CustomPaintingsMod.LOGGER.warn(LOG_LARGE_IMAGE, id);
+            return;
+          }
+
+          images.put(id, Image.read(image));
+        } catch (IOException e) {
+          CustomPaintingsMod.LOGGER.warn(e);
+          CustomPaintingsMod.LOGGER.warn(LOG_PAINTING_READ_FAIL, id);
+        }
+      });
+
+      return new PackReadResult(pack.id(), pack, images);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private static String getFolderPrefix(ZipFile zip) {
+    Enumeration<? extends ZipEntry> entries = zip.entries();
+    if (!entries.hasMoreElements()) {
+      return "";
+    }
+
+    ZipEntry firstEntry = entries.nextElement();
+    if (!firstEntry.isDirectory()) {
+      return "";
+    }
+
+    String folderPrefix = firstEntry.getName();
+    while (entries.hasMoreElements()) {
+      ZipEntry entry = entries.nextElement();
+      if (!entry.getName().startsWith(folderPrefix)) {
+        return "";
+      }
+    }
+
+    return folderPrefix;
+  }
+
+  private static PackReadResult readDirectoryAsPack(Path path) {
+    String dirname = path.getFileName().toString();
+
+    if (!Files.isRegularFile(path.resolve(META_FILENAME), LinkOption.NOFOLLOW_LINKS)) {
+      CustomPaintingsMod.LOGGER.warn(LOG_NO_META, dirname, META_FILENAME);
+      return null;
+    }
+
+    PackResource pack;
+    try {
+      pack = GSON.fromJson(Files.newBufferedReader(path.resolve(META_FILENAME)), PackResource.class);
+    } catch (Exception e) {
+      CustomPaintingsMod.LOGGER.warn(e);
+      CustomPaintingsMod.LOGGER.warn(LOG_META_PARSE_FAIL, META_FILENAME, dirname);
+      return null;
+    }
+
+    if (pack.paintings().isEmpty()) {
+      CustomPaintingsMod.LOGGER.warn(LOG_NO_PAINTINGS, dirname);
+      return null;
+    }
+
+    HashMap<Identifier, Image> images = new HashMap<>();
+
+    Path iconImagePath = path.resolve("icon.png");
+    if (!Files.exists(iconImagePath)) {
+      CustomPaintingsMod.LOGGER.warn(LOG_NO_ICON, pack.id());
+    } else {
+      try {
+        BufferedImage image = ImageIO.read(Files.newInputStream(iconImagePath, LinkOption.NOFOLLOW_LINKS));
+        if (image == null) {
+          throw new IOException("BufferedImage is null");
+        }
+
+        images.put(PackIcons.identifier(pack.id()), Image.read(image));
+      } catch (IOException e) {
+        CustomPaintingsMod.LOGGER.warn(e);
+        CustomPaintingsMod.LOGGER.warn(LOG_ICON_READ_FAIL, pack.id());
+      }
+    }
+
+    pack.paintings().forEach((painting) -> {
+      Identifier id = new Identifier(pack.id(), painting.id());
+      Path imagePath = path.resolve("images").resolve(painting.id() + ".png");
+      if (!Files.exists(imagePath)) {
+        CustomPaintingsMod.LOGGER.warn(LOG_MISSING_PAINTING, id);
+        return;
+      }
+
+      try {
+        BufferedImage image = ImageIO.read(Files.newInputStream(imagePath, LinkOption.NOFOLLOW_LINKS));
+        if (image == null) {
+          throw new IOException("BufferedImage is null");
+        }
+
+        long size = (long) image.getWidth() * image.getHeight();
+        if (size > MAX_SIZE) {
+          CustomPaintingsMod.LOGGER.warn(LOG_LARGE_IMAGE, id);
+          return;
+        }
+
+        images.put(id, Image.read(image));
+      } catch (IOException e) {
+        CustomPaintingsMod.LOGGER.warn(e);
+        CustomPaintingsMod.LOGGER.warn(LOG_PAINTING_READ_FAIL, id);
+      }
+    });
+
+    return new PackReadResult(pack.id(), pack, images);
+  }
+
+  private record PackReadResult(String id, PackResource pack, HashMap<Identifier, Image> images) {
+  }
+
+  private record LoadResult(HashMap<String, PaintingPack> packs, HashMap<Identifier, Image> images) {
+    public static LoadResult empty() {
+      return new LoadResult(new HashMap<>(0), new HashMap<>(0));
+    }
   }
 }
