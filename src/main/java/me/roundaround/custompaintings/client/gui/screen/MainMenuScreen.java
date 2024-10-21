@@ -27,6 +27,7 @@ public class MainMenuScreen extends Screen {
 
     this.layout.addHeader(this.textRenderer, this.title);
 
+    this.layout.getBody().mainAxisContentAlignStart();
     // TODO: i18n
     this.layout.addBody(ButtonWidget.builder(Text.of("Configuration"), this::navigateConfig).build());
     this.layout.addBody(ButtonWidget.builder(Text.of("Convert Legacy Packs"), this::navigateConvert).build());
