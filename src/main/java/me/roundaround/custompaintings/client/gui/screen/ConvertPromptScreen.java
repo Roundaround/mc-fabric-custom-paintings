@@ -48,8 +48,8 @@ public class ConvertPromptScreen extends Screen {
   private final HashMap<UUID, Status> worldStatuses = new HashMap<>();
 
   private LegacyPackList list;
-  private Path outDir = LegacyPackMigrator.getInstance().getGlobalOutDir();
-  private HashMap<UUID, Status> currentStatuses = this.globalStatuses;
+  private Path outDir;
+  private HashMap<UUID, Status> currentStatuses;
 
   public ConvertPromptScreen(
       MinecraftClient client, Screen parent
@@ -57,6 +57,8 @@ public class ConvertPromptScreen extends Screen {
     // TODO: i18n
     super(Text.of("Convert?"));
     this.parent = parent;
+
+    this.setOutDir(client.isInSingleplayer());
 
     LegacyPackMigrator.getInstance().checkForLegacyPacks(client).whenCompleteAsync((metas, exception) -> {
       if (exception != null) {
@@ -80,6 +82,7 @@ public class ConvertPromptScreen extends Screen {
       // TODO: i18n
       this.layout.addHeader(CheckboxWidget.builder(Text.of("Convert for current world?"), this.textRenderer)
           .callback(this::changeOutDir)
+          .checked(true)
           .build());
     }
 
@@ -103,10 +106,14 @@ public class ConvertPromptScreen extends Screen {
     Objects.requireNonNull(this.client).setScreen(this.parent);
   }
 
-  private void changeOutDir(CheckboxWidget checkbox, boolean checked) {
+  private void setOutDir(boolean worldScoped) {
     LegacyPackMigrator migrator = LegacyPackMigrator.getInstance();
-    this.outDir = checked ? migrator.getWorldOutDir() : migrator.getGlobalOutDir();
-    this.currentStatuses = checked ? this.worldStatuses : this.globalStatuses;
+    this.outDir = worldScoped ? migrator.getWorldOutDir() : migrator.getGlobalOutDir();
+    this.currentStatuses = worldScoped ? this.worldStatuses : this.globalStatuses;
+  }
+
+  private void changeOutDir(CheckboxWidget checkbox, boolean checked) {
+    this.setOutDir(checked);
     this.list.updateAllStatuses(this.currentStatuses);
   }
 
