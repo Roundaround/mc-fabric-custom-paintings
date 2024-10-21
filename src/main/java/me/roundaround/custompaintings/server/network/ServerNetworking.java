@@ -74,12 +74,22 @@ public final class ServerNetworking {
 
   public static void registerReceivers() {
     ServerPlayNetworking.registerGlobalReceiver(Networking.HashesC2S.ID, ServerNetworking::handleHashes);
+    ServerPlayNetworking.registerGlobalReceiver(Networking.ReloadC2S.ID, ServerNetworking::handleReload);
     ServerPlayNetworking.registerGlobalReceiver(Networking.SetPaintingC2S.ID, ServerNetworking::handleSetPainting);
   }
 
   private static void handleHashes(Networking.HashesC2S payload, ServerPlayNetworking.Context context) {
     context.player().server.execute(() -> {
       ServerPaintingRegistry.getInstance().checkPlayerHashes(context.player(), payload.hashes());
+    });
+  }
+
+  private static void handleReload(Networking.ReloadC2S payload, ServerPlayNetworking.Context context) {
+    context.player().server.execute(() -> {
+      if (!context.player().hasPermissionLevel(2)) {
+        return;
+      }
+      ServerPaintingRegistry.getInstance().reloadPaintingPacks();
     });
   }
 

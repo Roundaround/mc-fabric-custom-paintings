@@ -35,6 +35,7 @@ public final class Networking {
   public static final Identifier SYNC_ALL_DATA_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "sync_all_data_s2c");
 
   public static final Identifier HASHES_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "hashes_c2s");
+  public static final Identifier RELOAD_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "reload_c2s");
   public static final Identifier SET_PAINTING_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "set_painting_c2s");
 
   public static void registerS2CPayloads() {
@@ -51,6 +52,7 @@ public final class Networking {
 
   public static void registerC2SPayloads() {
     PayloadTypeRegistry.playC2S().register(HashesC2S.ID, HashesC2S.CODEC);
+    PayloadTypeRegistry.playC2S().register(ReloadC2S.ID, ReloadC2S.CODEC);
     PayloadTypeRegistry.playC2S().register(SetPaintingC2S.ID, SetPaintingC2S.CODEC);
   }
 
@@ -174,6 +176,16 @@ public final class Networking {
 
     @Override
     public Id<HashesC2S> getId() {
+      return ID;
+    }
+  }
+
+  public record ReloadC2S() implements CustomPayload {
+    public static final Id<ReloadC2S> ID = new Id<>(RELOAD_C2S);
+    public static final PacketCodec<RegistryByteBuf, ReloadC2S> CODEC = CustomCodecs.empty(ReloadC2S::new);
+
+    @Override
+    public Id<ReloadC2S> getId() {
       return ID;
     }
   }

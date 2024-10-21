@@ -5,7 +5,6 @@ import me.roundaround.custompaintings.client.ClientPaintingManager;
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.screen.edit.PackSelectScreen;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
-import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.network.PaintingIdPair;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -13,7 +12,6 @@ import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 
 import java.text.DecimalFormat;
-import java.util.HashMap;
 import java.util.Map;
 
 public final class ClientNetworking {
@@ -22,6 +20,10 @@ public final class ClientNetworking {
 
   public static void sendHashesPacket(Map<Identifier, String> hashes) {
     ClientPlayNetworking.send(new Networking.HashesC2S(hashes));
+  }
+
+  public static void sendReloadPacket() {
+    ClientPlayNetworking.send(new Networking.ReloadC2S());
   }
 
   public static void sendSetPaintingPacket(int paintingId, Identifier dataId) {
@@ -42,14 +44,8 @@ public final class ClientNetworking {
 
   private static void handleSummary(Networking.SummaryS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
-      ClientPaintingRegistry registry = ClientPaintingRegistry.getInstance();
-
-      HashMap<String, PaintingPack> packs = new HashMap<>(payload.packs().size());
-      payload.packs().forEach((pack) -> packs.put(pack.id(), pack));
-      registry.setPacks(packs);
-
-      registry.pullFromCache(payload.serverId());
-      registry.checkCombinedImageHash(payload.combinedImageHash());
+      ClientPaintingRegistry.getInstance()
+          .processSummary(payload.packs(), payload.serverId(), payload.combinedImageHash());
     });
   }
 

@@ -108,13 +108,23 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     return Map.copyOf(this.packsMap);
   }
 
-  public void pullFromCache(UUID serverId) {
-    if (!this.usingCache()) {
-      this.cachedImages.clear();
-      this.imageHashes.clear();
-      this.combinedImageHash = "";
+  public void processSummary(List<PaintingPack> packsList, UUID serverId, String combinedImageHash) {
+    HashMap<String, PaintingPack> packs = new HashMap<>(packsList.size());
+    packsList.forEach((pack) -> packs.put(pack.id(), pack));
+    this.setPacks(packs);
 
-      CustomPaintingsMod.LOGGER.info("Painting image caching disabled, skipping hash generation and cache loading");
+    if (combinedImageHash.equals(this.combinedImageHash)) {
+      CustomPaintingsMod.LOGGER.info("Loaded painting hash matches, skipping server image download");
+      return;
+    }
+
+    this.cachedImages.clear();
+    this.imageHashes.clear();
+    this.combinedImageHash = "";
+
+    if (!this.usingCache()) {
+      CustomPaintingsMod.LOGGER.info("Painting image caching disabled, requesting all painting images from server");
+      ClientNetworking.sendHashesPacket(new HashMap<>(0));
       return;
     }
 
@@ -125,37 +135,28 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     }
     packIds.add(PackIcons.ICON_NAMESPACE);
 
-    this.cachedImages.clear();
-    this.imageHashes.clear();
-    this.combinedImageHash = "";
+    CompletableFuture.supplyAsync(
+            () -> CacheManager.getInstance().loadFromFile(serverId, packIds, paintingIds), Util.getIoWorkerExecutor())
+        .thenAcceptAsync((cacheRead) -> {
+          if (cacheRead != null) {
+            this.cachedImages.putAll(cacheRead.images());
+            this.imageHashes.putAll(cacheRead.hashes());
+            this.combinedImageHash = cacheRead.combinedHash();
+          }
 
-    CacheManager.CacheRead cacheRead = CacheManager.getInstance().loadFromFile(serverId, packIds, paintingIds);
-    if (cacheRead != null) {
-      this.cachedImages.putAll(cacheRead.images());
-      this.imageHashes.putAll(cacheRead.hashes());
-      this.combinedImageHash = cacheRead.combinedHash();
-    }
-  }
+          if (!Objects.equals(this.combinedImageHash, combinedImageHash) &&
+              !Objects.equals(this.pendingCombinedImagesHash, combinedImageHash)) {
+            CustomPaintingsMod.LOGGER.info("Requesting painting images from server");
+            ClientNetworking.sendHashesPacket(this.imageHashes);
+            this.pendingCombinedImagesHash = combinedImageHash;
+            return;
+          }
 
-  public void checkCombinedImageHash(String combinedImageHash) {
-    if (!this.usingCache()) {
-      CustomPaintingsMod.LOGGER.info("Caching disabled; requesting all painting images from server");
-      ClientNetworking.sendHashesPacket(new HashMap<>(0));
-      return;
-    }
-
-    if (!Objects.equals(this.combinedImageHash, combinedImageHash) &&
-        !Objects.equals(this.pendingCombinedImagesHash, combinedImageHash)) {
-      CustomPaintingsMod.LOGGER.info("Requesting painting images from server");
-      ClientNetworking.sendHashesPacket(this.imageHashes);
-      this.pendingCombinedImagesHash = combinedImageHash;
-      return;
-    }
-
-    CustomPaintingsMod.LOGGER.info("Combined painting hash matches, skipping server image download");
-    this.images.clear();
-    this.images.putAll(this.cachedImages);
-    this.onImagesChanged();
+          CustomPaintingsMod.LOGGER.info("Cached painting hash matches, skipping server image download");
+          this.images.clear();
+          this.images.putAll(this.cachedImages);
+          this.onImagesChanged();
+        }, this.client);
   }
 
   public void trackExpectedPackets(List<Identifier> ids, int imageCount, int packetCount, int byteCount) {
@@ -235,7 +236,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
       }
 
       Util.getIoWorkerExecutor().execute(() -> {
-        //        writeImagesToFile(Map.copyOf(this.packsMap), Map.copyOf(this.images));
         try {
           CacheManager.getInstance().saveToFile(this.images, this.combinedImageHash);
         } catch (IOException e) {

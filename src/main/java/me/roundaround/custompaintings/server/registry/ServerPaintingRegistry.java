@@ -3,7 +3,6 @@ package me.roundaround.custompaintings.server.registry;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
 import me.roundaround.custompaintings.resource.Image;
@@ -29,7 +28,6 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -77,14 +75,29 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
   public void setServer(MinecraftServer server) {
     this.server = server;
-    ServerNetworking.sendSummaryPacketToAll(this.server, this.packsList, this.combinedImageHash);
+    this.sendSummaryToAll();
   }
 
-  public void loadPaintingPacks() {
-    this.loadPaintingPacks(Util.getIoWorkerExecutor()).thenAccept((loadResult) -> {
+  public void firstLoadPaintingPacks() {
+    LoadResult loadResult = this.loadPaintingPacks();
+    this.setPacks(loadResult.packs());
+    this.setImages(loadResult.images());
+  }
+
+  public void reloadPaintingPacks() {
+    if (this.server == null || !this.server.isRunning()) {
+      return;
+    }
+
+    CompletableFuture.supplyAsync(this::loadPaintingPacks, Util.getIoWorkerExecutor()).thenAcceptAsync((loadResult) -> {
       this.setPacks(loadResult.packs());
       this.setImages(loadResult.images());
-    });
+      this.sendSummaryToAll();
+    }, this.server);
+  }
+
+  public void sendSummaryToAll() {
+    ServerNetworking.sendSummaryPacketToAll(this.server, this.packsList, this.combinedImageHash);
   }
 
   public void sendSummaryToPlayer(ServerPlayerEntity player) {
@@ -115,43 +128,38 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     );
   }
 
-  private CompletableFuture<LoadResult> loadPaintingPacks(Executor executor) {
+  private LoadResult loadPaintingPacks() {
     CustomPaintingsMod.LOGGER.info("Loading painting packs");
     Path packsDir = PathAccessor.getInstance().getPerWorldModDir(CustomPaintingsMod.MOD_ID);
 
     if (packsDir == null || Files.notExists(packsDir)) {
       CustomPaintingsMod.LOGGER.info("Unable to locate packs directory, skipping");
-      return CompletableFuture.completedFuture(LoadResult.empty());
+      return LoadResult.empty();
     }
 
-    return CompletableFuture.supplyAsync(() -> {
-      try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(packsDir)) {
-        HashMap<String, PaintingPack> packs = new HashMap<>();
-        HashMap<Identifier, Image> images = new HashMap<>();
-        directoryStream.forEach((path) -> {
-          PackReadResult result = readAsPack(path);
-          if (result == null) {
-            return;
-          }
+    try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(packsDir)) {
+      HashMap<String, PaintingPack> packs = new HashMap<>();
+      HashMap<Identifier, Image> images = new HashMap<>();
+      directoryStream.forEach((path) -> {
+        PackReadResult result = readAsPack(path);
+        if (result == null) {
+          return;
+        }
 
-          String packId = result.id();
-          PackResource resource = result.pack();
-          packs.put(result.id, new PaintingPack(packId, resource.name(), resource.description(),
-              resource.paintings().stream().map((painting) -> {
-                return new PaintingData(new Identifier(packId, painting.id()), painting.width(), painting.height(),
-                    painting.name(), painting.artist()
-                );
-              }).toList()
-          ));
-          images.putAll(result.images);
-        });
-        return new LoadResult(packs, images);
-      } catch (IOException e) {
-        CustomPaintingsMod.LOGGER.warn(e);
-        CustomPaintingsMod.LOGGER.warn("An error occurred trying to load painting packs. Skipping...");
-        return LoadResult.empty();
-      }
-    }, executor);
+        PackResource resource = result.pack();
+        packs.put(resource.id(), resource.toData());
+        images.putAll(result.images);
+      });
+
+      CustomPaintingsMod.LOGGER.info("Loaded {} pack(s) with {} painting(s)", packs.size(),
+          packs.values().stream().mapToInt((pack) -> pack.paintings().size()).sum()
+      );
+      return new LoadResult(packs, images);
+    } catch (IOException e) {
+      CustomPaintingsMod.LOGGER.warn(e);
+      CustomPaintingsMod.LOGGER.warn("An error occurred trying to load painting packs. Skipping...");
+      return LoadResult.empty();
+    }
   }
 
   private static PackReadResult readAsPack(Path path) {
@@ -261,7 +269,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
         }
       });
 
-      return new PackReadResult(pack.id(), pack, images);
+      return new PackReadResult(pack, images);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -357,10 +365,10 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
       }
     });
 
-    return new PackReadResult(pack.id(), pack, images);
+    return new PackReadResult(pack, images);
   }
 
-  private record PackReadResult(String id, PackResource pack, HashMap<Identifier, Image> images) {
+  private record PackReadResult(PackResource pack, HashMap<Identifier, Image> images) {
   }
 
   private record LoadResult(HashMap<String, PaintingPack> packs, HashMap<Identifier, Image> images) {

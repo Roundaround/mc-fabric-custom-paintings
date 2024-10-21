@@ -1,6 +1,7 @@
 package me.roundaround.custompaintings.client.gui.screen;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
 import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
@@ -22,12 +23,17 @@ public class MainMenuScreen extends Screen {
 
   @Override
   protected void init() {
+    assert this.client != null;
+
     this.layout.addHeader(this.textRenderer, this.title);
 
     // TODO: i18n
     this.layout.addBody(ButtonWidget.builder(Text.of("Configuration"), this::navigateConfig).build());
     this.layout.addBody(ButtonWidget.builder(Text.of("Convert Legacy Packs"), this::navigateConvert).build());
-    this.layout.addBody(ButtonWidget.builder(Text.of("Reload Packs"), this::reloadPacks).build());
+
+    if (this.client.world != null) {
+      this.layout.addBody(ButtonWidget.builder(Text.of("Reload Packs"), this::reloadPacks).build());
+    }
 
     this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, this::close).build());
 
@@ -66,6 +72,13 @@ public class MainMenuScreen extends Screen {
 
   private void reloadPacks(ButtonWidget button) {
     assert this.client != null;
-    // TODO: Send packet to server to reload packs
+    if (this.client.player == null) {
+      return;
+    }
+
+    this.client.setScreen(null);
+    // TODO: i18n
+    this.client.player.sendMessage(Text.of("Reloading painting packs"));
+    ClientNetworking.sendReloadPacket();
   }
 }

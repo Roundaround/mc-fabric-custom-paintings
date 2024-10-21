@@ -6,9 +6,11 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.registry.VanillaPaintingRegistry;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
+import me.roundaround.custompaintings.server.command.CustomPaintingsCommand;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
@@ -43,6 +45,10 @@ public final class CustomPaintingsMod implements ModInitializer {
 
     TrackedDataHandlerRegistry.register(CUSTOM_PAINTING_DATA_HANDLER);
     ServerNetworking.registerReceivers();
+
+    CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+      CustomPaintingsCommand.register(dispatcher);
+    });
 
     ServerLifecycleEvents.SERVER_STARTED.register((server) -> {
       server.getRegistryManager().getWrapperOrThrow(Registries.PAINTING_VARIANT.getKey());

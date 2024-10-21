@@ -14,6 +14,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class SaveLoadingDataPacksMixin {
   @Inject(method = "load", at = @At(value = "RETURN"))
   private void onLoad(CallbackInfoReturnable<Pair<DataConfiguration, LifecycledResourceManager>> cir) {
-    ServerPaintingRegistry.getInstance().loadPaintingPacks();
+    ServerPaintingRegistry.getInstance().firstLoadPaintingPacks();
   }
 }
