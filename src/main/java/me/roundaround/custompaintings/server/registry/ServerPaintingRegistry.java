@@ -55,8 +55,11 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
   public static void init(MinecraftServer server) {
     ServerPaintingRegistry registry = getInstance();
+    if (server == null || !server.isRunning()) {
+      return;
+    }
+
     registry.setServer(server);
-    registry.loadPaintingPacks();
   }
 
   public static ServerPaintingRegistry getInstance() {
@@ -74,19 +77,14 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
   public void setServer(MinecraftServer server) {
     this.server = server;
+    ServerNetworking.sendSummaryPacketToAll(this.server, this.packsList, this.combinedImageHash);
   }
 
   public void loadPaintingPacks() {
-    if (this.server == null || !this.server.isRunning()) {
-      return;
-    }
-
-    this.loadPaintingPacks(Util.getIoWorkerExecutor()).thenAcceptAsync((loadResult) -> {
+    this.loadPaintingPacks(Util.getIoWorkerExecutor()).thenAccept((loadResult) -> {
       this.setPacks(loadResult.packs());
       this.setImages(loadResult.images());
-
-      ServerNetworking.sendSummaryPacketToAll(this.server, this.packsList, this.combinedImageHash);
-    }, this.server);
+    });
   }
 
   public void sendSummaryToPlayer(ServerPlayerEntity player) {
