@@ -328,7 +328,4 @@ public class CacheManager {
       return nbt;
     }
   }
-
-  public record CacheRead(HashMap<Identifier, Image> images, HashMap<Identifier, String> hashes, String combinedHash) {
-  }
 }

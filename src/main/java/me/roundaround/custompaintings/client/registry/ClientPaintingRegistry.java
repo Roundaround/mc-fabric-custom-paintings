@@ -109,6 +109,8 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   }
 
   public void processSummary(List<PaintingPack> packsList, UUID serverId, String combinedImageHash) {
+    boolean first = this.packsMap.isEmpty();
+
     HashMap<String, PaintingPack> packs = new HashMap<>(packsList.size());
     packsList.forEach((pack) -> packs.put(pack.id(), pack));
     this.setPacks(packs);
@@ -119,13 +121,21 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     }
 
     this.cachedImages.clear();
+    this.images.clear();
     this.imageHashes.clear();
-    this.combinedImageHash = "";
 
-    if (!this.usingCache()) {
-      CustomPaintingsMod.LOGGER.info("Painting image caching disabled, requesting all painting images from server");
-      ClientNetworking.sendHashesPacket(new HashMap<>(0));
+    if (first) {
+      this.postCacheRead(this.readCache(serverId), combinedImageHash);
       return;
+    }
+
+    CompletableFuture.supplyAsync(() -> this.readCache(serverId), Util.getIoWorkerExecutor())
+        .thenAcceptAsync((cacheRead) -> this.postCacheRead(cacheRead, combinedImageHash), this.client);
+  }
+
+  private CacheRead readCache(UUID serverId) {
+    if (!this.usingCache()) {
+      return null;
     }
 
     HashSet<String> packIds = new HashSet<>(this.packsMap.keySet());
@@ -135,28 +145,27 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     }
     packIds.add(PackIcons.ICON_NAMESPACE);
 
-    CompletableFuture.supplyAsync(
-            () -> CacheManager.getInstance().loadFromFile(serverId, packIds, paintingIds), Util.getIoWorkerExecutor())
-        .thenAcceptAsync((cacheRead) -> {
-          if (cacheRead != null) {
-            this.cachedImages.putAll(cacheRead.images());
-            this.imageHashes.putAll(cacheRead.hashes());
-            this.combinedImageHash = cacheRead.combinedHash();
-          }
+    return CacheManager.getInstance().loadFromFile(serverId, packIds, paintingIds);
+  }
 
-          if (!Objects.equals(this.combinedImageHash, combinedImageHash) &&
-              !Objects.equals(this.pendingCombinedImagesHash, combinedImageHash)) {
-            CustomPaintingsMod.LOGGER.info("Requesting painting images from server");
-            ClientNetworking.sendHashesPacket(this.imageHashes);
-            this.pendingCombinedImagesHash = combinedImageHash;
-            return;
-          }
+  private void postCacheRead(CacheRead cacheRead, String newCombinedImageHash) {
+    if (cacheRead != null) {
+      this.cachedImages.putAll(cacheRead.images());
+      this.imageHashes.putAll(cacheRead.hashes());
+      this.combinedImageHash = cacheRead.combinedHash();
+    }
 
-          CustomPaintingsMod.LOGGER.info("Cached painting hash matches, skipping server image download");
-          this.images.clear();
-          this.images.putAll(this.cachedImages);
-          this.onImagesChanged();
-        }, this.client);
+    if (Objects.equals(this.combinedImageHash, newCombinedImageHash) ||
+        Objects.equals(this.pendingCombinedImagesHash, newCombinedImageHash)) {
+      CustomPaintingsMod.LOGGER.info("Cached painting hash matches, skipping server image download");
+    } else {
+      CustomPaintingsMod.LOGGER.info("Requesting painting images from server");
+      ClientNetworking.sendHashesPacket(this.imageHashes);
+      this.pendingCombinedImagesHash = newCombinedImageHash;
+    }
+
+    this.images.putAll(this.cachedImages);
+    this.onImagesChanged();
   }
 
   public void trackExpectedPackets(List<Identifier> ids, int imageCount, int packetCount, int byteCount) {
