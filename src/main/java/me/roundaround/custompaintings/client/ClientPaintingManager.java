@@ -10,15 +10,8 @@ import net.minecraft.world.World;
 
 import java.util.HashMap;
 
-public class ClientPaintingManager implements AutoCloseable {
+public class ClientPaintingManager {
   private static ClientPaintingManager instance = null;
-
-  public static ClientPaintingManager getInstance() {
-    if (instance == null) {
-      instance = new ClientPaintingManager();
-    }
-    return instance;
-  }
 
   private final HashMap<Integer, PaintingData> cachedData = new HashMap<>();
 
@@ -29,10 +22,17 @@ public class ClientPaintingManager implements AutoCloseable {
       }
 
       PaintingData paintingData = this.cachedData.get(painting.getId());
-      if (paintingData != null) {
+      if (paintingData != null && !paintingData.isEmpty()) {
         this.setPaintingData(painting, paintingData);
       }
     }));
+  }
+
+  public static ClientPaintingManager getInstance() {
+    if (instance == null) {
+      instance = new ClientPaintingManager();
+    }
+    return instance;
   }
 
   public void trySetPaintingData(World world, int paintingId, Identifier dataId) {
@@ -51,7 +51,6 @@ public class ClientPaintingManager implements AutoCloseable {
     });
   }
 
-  @Override
   public void close() {
     this.cachedData.clear();
   }
@@ -61,6 +60,5 @@ public class ClientPaintingManager implements AutoCloseable {
       painting.setVariant(paintingData.id());
     }
     painting.setCustomData(paintingData);
-    this.cachedData.remove(painting.getId());
   }
 }
