@@ -352,8 +352,8 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     sprites.add(BasicTextureSprite.fetch(this.client, PAINTING_BACK_ID, BACK_TEXTURE_ID));
     sprites.add(VanillaIconSprite.create(this.client, PackIcons.MINECRAFT_ICON_ID, "vanilla"));
     sprites.add(BasicTextureSprite.fetch(this.client, PackIcons.MINECRAFT_HIDDEN_ICON_ID, EARTH_TEXTURE_ID));
-    this.paintings.values().forEach((painting) -> sprites.add(this.getSpriteContents(painting)));
-    this.packsMap.keySet().forEach((packId) -> sprites.add(this.getSpriteContents(packId)));
+    this.paintings.values().forEach((painting) -> this.getSpriteContents(painting).ifPresent(sprites::add));
+    this.packsMap.keySet().forEach((packId) -> this.getSpriteContents(packId).ifPresent(sprites::add));
 
     this.atlas.upload(SpriteLoader.fromAtlas(this.atlas).stitch(sprites, 0, Util.getMainWorkerExecutor()));
 
@@ -367,14 +367,27 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
            (id.getNamespace().equals(PackIcons.ICON_NAMESPACE) && this.packsMap.containsKey(id.getPath()));
   }
 
-  private SpriteContents getSpriteContents(PaintingData painting) {
-    return getSpriteContents(
+  private Optional<SpriteContents> getSpriteContents(PaintingData painting) {
+    return this.getSpriteContents(
         painting.id(), this.images.get(painting.id()), painting.getScaledWidth(), painting.getScaledHeight());
   }
 
-  private SpriteContents getSpriteContents(String packId) {
+  private Optional<SpriteContents> getSpriteContents(String packId) {
     Identifier id = PackIcons.identifier(packId);
-    return getSpriteContents(id, this.images.get(id), 16, 16);
+    return this.getSpriteContents(id, this.images.get(id), 16, 16);
+  }
+
+  private Optional<SpriteContents> getSpriteContents(Identifier id, Image image, int width, int height) {
+    if (image == null || image.isEmpty()) {
+      if (this.neededImages.contains(id)) {
+        return Optional.of(LoadingSprite.generate(id, width, height));
+      }
+      return Optional.empty();
+    }
+    NativeImage nativeImage = getNativeImage(image);
+    return Optional.of(new SpriteContents(id, new SpriteDimensions(image.width(), image.height()), nativeImage,
+        getResourceMetadata(image)
+    ));
   }
 
   private void sendMessage(Text text) {
@@ -390,16 +403,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
 
   private boolean usingCache() {
     return CustomPaintingsConfig.getInstance().cacheImages.getValue();
-  }
-
-  private static SpriteContents getSpriteContents(Identifier id, Image image, int width, int height) {
-    if (image == null || image.isEmpty()) {
-      return LoadingSprite.generate(id, width, height);
-    }
-    NativeImage nativeImage = getNativeImage(image);
-    return new SpriteContents(id, new SpriteDimensions(image.width(), image.height()), nativeImage,
-        getResourceMetadata(image)
-    );
   }
 
   private static NativeImage getNativeImage(Image image) {
