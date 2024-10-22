@@ -58,6 +58,7 @@ public class ServerPaintingManager extends PersistentState {
       this.loadPainting(painting);
       this.fixCustomName(painting);
 
+      // TODO: If painting data is unknown (or non matching?) send full data object instead of just id
       ServerNetworking.sendSetPaintingPacketToAll(
           loadedWorld.getServer(), painting.getId(), painting.getCustomData().id());
     });
