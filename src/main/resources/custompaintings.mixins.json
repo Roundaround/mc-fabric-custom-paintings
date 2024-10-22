@@ -13,7 +13,6 @@
   ],
   "client": [
     "EntityRendererMixin",
-    "GameRendererMixin",
     "PaintingEntityRendererMixin"
   ],
   "server": [],
