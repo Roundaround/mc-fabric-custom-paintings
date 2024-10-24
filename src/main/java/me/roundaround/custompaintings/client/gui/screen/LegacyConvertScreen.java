@@ -37,7 +37,7 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-public class ConvertPromptScreen extends Screen {
+public class LegacyConvertScreen extends Screen {
   private static final Text LABEL_CONVERT = Text.translatable("custompaintings.legacy.convert");
   private static final Text LABEL_RE_CONVERT = Text.translatable("custompaintings.legacy.reConvert");
 
@@ -50,7 +50,7 @@ public class ConvertPromptScreen extends Screen {
   private Path outDir;
   private HashMap<UUID, Status> currentStatuses;
 
-  public ConvertPromptScreen(
+  public LegacyConvertScreen(
       MinecraftClient client, Screen parent
   ) {
     super(Text.translatable("custompaintings.legacy.title"));

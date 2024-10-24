@@ -69,7 +69,7 @@ public class MainMenuScreen extends Screen {
 
   private void navigateConvert(ButtonWidget button) {
     assert this.client != null;
-    this.client.setScreen(new ConvertPromptScreen(this.client, this));
+    this.client.setScreen(new LegacyConvertScreen(this.client, this));
   }
 
   private void reloadPacks(ButtonWidget button) {
