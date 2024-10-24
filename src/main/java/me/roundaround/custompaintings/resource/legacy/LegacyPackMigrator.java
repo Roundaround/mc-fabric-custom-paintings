@@ -286,6 +286,16 @@ public class LegacyPackMigrator {
       return null;
     }
 
+    String dirname = path.getFileName().toString();
+    long lastModified = 0;
+    try {
+      lastModified = Files.getLastModifiedTime(path).toMillis();
+    } catch (IOException ignored) {
+    }
+
+    // TODO: Store in output and use to match up previously migrated packs.
+    LegacyPackId instanceId = new LegacyPackId(false, dirname, lastModified);
+
     PackMcmeta meta = readPackMcmeta(path.resolve(PACK_MCMETA));
 
     String packId = json.id();
@@ -310,6 +320,12 @@ public class LegacyPackMigrator {
       return null;
     }
 
+    long lastModified = 0;
+    try {
+      lastModified = Files.getLastModifiedTime(path).toMillis();
+    } catch (IOException ignored) {
+    }
+
     try (ZipFile zip = new ZipFile(path.toFile())) {
       String folderPrefix = getFolderPrefix(zip);
 
@@ -317,6 +333,9 @@ public class LegacyPackMigrator {
       if (json == null) {
         return null;
       }
+
+      // TODO: Store in output and use to match up previously migrated packs.
+      LegacyPackId instanceId = new LegacyPackId(true, filename, lastModified);
 
       PackMcmeta meta = readPackMcmeta(zip, folderPrefix + PACK_MCMETA);
 
