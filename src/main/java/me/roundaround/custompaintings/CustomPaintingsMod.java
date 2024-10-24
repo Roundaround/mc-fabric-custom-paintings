@@ -50,17 +50,14 @@ public final class CustomPaintingsMod implements ModInitializer {
       CustomPaintingsCommand.register(dispatcher);
     });
 
-    ServerLifecycleEvents.SERVER_STARTED.register((server) -> {
-      server.getRegistryManager().getWrapperOrThrow(Registries.PAINTING_VARIANT.getKey());
-      VanillaPaintingRegistry.init();
-      ServerPaintingRegistry.init(server);
-    });
-
     ServerLifecycleEvents.SERVER_STOPPED.register((server) -> {
       serverId = null;
     });
 
     ServerWorldEvents.LOAD.register((server, world) -> {
+      server.getRegistryManager().getWrapperOrThrow(Registries.PAINTING_VARIANT.getKey());
+      VanillaPaintingRegistry.init();
+      ServerPaintingRegistry.init(server);
       ServerPaintingManager.init(world);
     });
 

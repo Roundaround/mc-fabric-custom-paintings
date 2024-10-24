@@ -2,13 +2,14 @@ package me.roundaround.custompaintings.client;
 
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.network.PaintingAssignment;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientEntityEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
-import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 
 import java.util.HashMap;
+import java.util.concurrent.CompletableFuture;
 
 public class ClientPaintingManager {
   private static ClientPaintingManager instance = null;
@@ -35,8 +36,12 @@ public class ClientPaintingManager {
     return instance;
   }
 
-  public void trySetPaintingData(World world, int paintingId, Identifier dataId) {
-    ClientPaintingRegistry.getInstance().safeGet(dataId).thenAccept((paintingData) -> {
+  public void trySetPaintingData(World world, PaintingAssignment assignment) {
+    int paintingId = assignment.getPaintingId();
+    CompletableFuture<PaintingData> future = assignment.isKnown() ?
+        ClientPaintingRegistry.getInstance().safeGet(assignment.getDataId()) :
+        CompletableFuture.completedFuture(assignment.getData());
+    future.thenAccept((paintingData) -> {
       if (paintingData == null || paintingData.isEmpty()) {
         return;
       }

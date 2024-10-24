@@ -2,15 +2,17 @@ package me.roundaround.custompaintings.server;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.custompaintings.network.PaintingIdPair;
+import me.roundaround.custompaintings.network.PaintingAssignment;
 import me.roundaround.custompaintings.registry.VanillaPaintingRegistry;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
+import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
@@ -28,7 +30,7 @@ public class ServerPaintingManager extends PersistentState {
   private final ServerWorld world;
   private final UUID serverId;
   private final HashMap<UUID, PaintingData> allPaintings = new HashMap<>();
-  private final HashMap<UUID, PaintingIdPair> allIds = new HashMap<>();
+  private final HashMap<UUID, Integer> networkIds = new HashMap<>();
 
   public static void init(ServerWorld world) {
     // Just getting the instance also creates/initializes it
@@ -58,9 +60,8 @@ public class ServerPaintingManager extends PersistentState {
       this.loadPainting(painting);
       this.fixCustomName(painting);
 
-      // TODO: If painting data is unknown (or non matching?) send full data object instead of just id
       ServerNetworking.sendSetPaintingPacketToAll(
-          loadedWorld.getServer(), painting.getId(), painting.getCustomData().id());
+          loadedWorld.getServer(), PaintingAssignment.from(painting.getId(), handleUnknown(painting.getCustomData())));
     });
   }
 
@@ -100,19 +101,25 @@ public class ServerPaintingManager extends PersistentState {
     if (player.getServerWorld() != this.world) {
       return;
     }
-    ServerNetworking.sendSyncAllDataPacket(player, this.allIds.values().stream().toList());
+    List<PaintingAssignment> assignments = this.allPaintings.entrySet().stream().map((entry) -> {
+      UUID id = entry.getKey();
+      PaintingData data = entry.getValue();
+      return PaintingAssignment.from(this.networkIds.get(id), handleUnknown(data));
+    }).toList();
+    ServerNetworking.sendSyncAllDataPacket(player, assignments);
   }
 
   public void remove(UUID uuid) {
     this.allPaintings.remove(uuid);
-    this.allIds.remove(uuid);
+    this.networkIds.remove(uuid);
     this.markDirty();
   }
 
-  public void setPaintingData(PaintingEntity painting, PaintingData paintingData) {
-    painting.setCustomData(paintingData);
-    if (this.setTrackedData(painting.getUuid(), painting.getId(), paintingData)) {
-      ServerNetworking.sendSetPaintingPacketToAll(this.world.getServer(), painting.getId(), paintingData.id());
+  public void setPaintingData(PaintingEntity painting, PaintingData data) {
+    painting.setCustomData(data);
+    if (this.setTrackedData(painting.getUuid(), painting.getId(), data)) {
+      ServerNetworking.sendSetPaintingPacketToAll(
+          this.world.getServer(), PaintingAssignment.from(painting.getId(), handleUnknown(data)));
     }
   }
 
@@ -164,13 +171,29 @@ public class ServerPaintingManager extends PersistentState {
     }
   }
 
-  private boolean setTrackedData(UUID paintingUuid, int paintingId, PaintingData paintingData) {
-    this.allIds.put(paintingUuid, new PaintingIdPair(paintingId, paintingData.id()));
-    PaintingData previousData = this.allPaintings.put(paintingUuid, paintingData);
-    if (previousData == null || !previousData.equals(paintingData)) {
+  private boolean setTrackedData(UUID paintingUuid, int paintingId, PaintingData data) {
+    this.networkIds.put(paintingUuid, paintingId);
+    PaintingData previousData = this.allPaintings.put(paintingUuid, data);
+    if (previousData == null || !previousData.equals(data)) {
       this.markDirty();
       return true;
     }
     return false;
+  }
+
+  private static PaintingData handleUnknown(PaintingData data) {
+    if (data == null || data.isUnknown()) {
+      return data;
+    }
+    if (!ServerPaintingRegistry.getInstance().contains(data.id())) {
+      return data.toUnknown();
+    }
+    return data;
+  }
+
+  public static void syncAllDataForAllPlayers(MinecraftServer server) {
+    server.getPlayerManager()
+        .getPlayerList()
+        .forEach((player) -> getInstance(player.getServerWorld()).syncAllDataForPlayer(player));
   }
 }

@@ -3,7 +3,7 @@ package me.roundaround.custompaintings.server.network;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.network.Networking;
-import me.roundaround.custompaintings.network.PaintingIdPair;
+import me.roundaround.custompaintings.network.PaintingAssignment;
 import me.roundaround.custompaintings.server.CustomPaintingsServerMod;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
@@ -53,8 +53,8 @@ public final class ServerNetworking {
     ServerPlayNetworking.send(player, new Networking.EditPaintingS2C(paintingUuid, paintingId, pos, facing));
   }
 
-  public static void sendSetPaintingPacketToAll(MinecraftServer server, int paintingId, Identifier dataId) {
-    Networking.SetPaintingS2C payload = new Networking.SetPaintingS2C(paintingId, dataId);
+  public static void sendSetPaintingPacketToAll(MinecraftServer server, PaintingAssignment assignment) {
+    Networking.SetPaintingS2C payload = new Networking.SetPaintingS2C(assignment);
     server.getPlayerManager().getPlayerList().forEach((player) -> {
       sendSetPaintingPacket(player, payload);
     });
@@ -66,7 +66,7 @@ public final class ServerNetworking {
     }
   }
 
-  public static void sendSyncAllDataPacket(ServerPlayerEntity player, List<PaintingIdPair> ids) {
+  public static void sendSyncAllDataPacket(ServerPlayerEntity player, List<PaintingAssignment> ids) {
     if (ServerPlayNetworking.canSend(player, Networking.SyncAllDataS2C.ID)) {
       ServerPlayNetworking.send(player, new Networking.SyncAllDataS2C(ids));
     }
@@ -89,7 +89,7 @@ public final class ServerNetworking {
       if (!context.player().hasPermissionLevel(2)) {
         return;
       }
-      ServerPaintingRegistry.getInstance().reloadPaintingPacks();
+      ServerPaintingRegistry.getInstance().reloadPaintingPacks(ServerPaintingManager::syncAllDataForAllPlayers);
     });
   }
 

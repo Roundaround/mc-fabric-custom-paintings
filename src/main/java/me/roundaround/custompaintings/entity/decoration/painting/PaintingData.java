@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Objects;
 
 public record PaintingData(Identifier id, int width, int height, String name, String artist, boolean isVanilla) {
+  public static final Identifier UNKNOWN_ID = new Identifier("__unknown", "__unknown");
   public static final PaintingData EMPTY = new PaintingData(null, 0, 0);
   public static final PacketCodec<PacketByteBuf, PaintingData> PACKET_CODEC = PacketCodec.of(
       PaintingData::writeToPacketByteBuf, PaintingData::fromPacketByteBuf);
@@ -54,6 +55,10 @@ public record PaintingData(Identifier id, int width, int height, String name, St
 
   public boolean isEmpty() {
     return this.id == null;
+  }
+
+  public boolean isUnknown() {
+    return Objects.equals(this.id, UNKNOWN_ID);
   }
 
   public boolean hasName() {
@@ -174,6 +179,10 @@ public record PaintingData(Identifier id, int width, int height, String name, St
     return new PaintingData(this.id, this.width, this.height, name, artist, this.isVanilla);
   }
 
+  public PaintingData toUnknown() {
+    return unknown(this.width, this.height);
+  }
+
   public boolean isMismatched(PaintingData knownData) {
     return this.isMismatched(knownData, MismatchedCategory.EVERYTHING);
   }
@@ -258,6 +267,10 @@ public record PaintingData(Identifier id, int width, int height, String name, St
     String artist = buf.readString();
     boolean isVanilla = buf.readBoolean();
     return new PaintingData(id, width, height, name, artist, isVanilla);
+  }
+
+  public static PaintingData unknown(int width, int height) {
+    return new PaintingData(UNKNOWN_ID, width, height);
   }
 
   public enum MismatchedCategory {

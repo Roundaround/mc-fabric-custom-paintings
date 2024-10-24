@@ -146,11 +146,10 @@ public final class Networking {
     }
   }
 
-  public record SetPaintingS2C(int paintingId, Identifier dataId) implements CustomPayload {
+  public record SetPaintingS2C(PaintingAssignment assignment) implements CustomPayload {
     public static final Id<SetPaintingS2C> ID = new Id<>(SET_PAINTING_S2C);
-    public static final PacketCodec<RegistryByteBuf, SetPaintingS2C> CODEC = PacketCodec.tuple(PacketCodecs.INTEGER,
-        SetPaintingS2C::paintingId, Identifier.PACKET_CODEC, SetPaintingS2C::dataId, SetPaintingS2C::new
-    );
+    public static final PacketCodec<RegistryByteBuf, SetPaintingS2C> CODEC = PacketCodec.tuple(
+        PaintingAssignment.PACKET_CODEC, SetPaintingS2C::assignment, SetPaintingS2C::new);
 
     @Override
     public Id<SetPaintingS2C> getId() {
@@ -158,10 +157,10 @@ public final class Networking {
     }
   }
 
-  public record SyncAllDataS2C(List<PaintingIdPair> paintings) implements CustomPayload {
+  public record SyncAllDataS2C(List<PaintingAssignment> assignments) implements CustomPayload {
     public static final Id<SyncAllDataS2C> ID = new Id<>(SYNC_ALL_DATA_S2C);
     public static final PacketCodec<RegistryByteBuf, SyncAllDataS2C> CODEC = PacketCodec.tuple(
-        CustomCodecs.forList(PaintingIdPair.PACKET_CODEC), SyncAllDataS2C::paintings, SyncAllDataS2C::new);
+        CustomCodecs.forList(PaintingAssignment.PACKET_CODEC), SyncAllDataS2C::assignments, SyncAllDataS2C::new);
 
     @Override
     public Id<SyncAllDataS2C> getId() {

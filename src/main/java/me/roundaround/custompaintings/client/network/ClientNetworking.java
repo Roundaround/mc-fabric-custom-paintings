@@ -6,7 +6,7 @@ import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.screen.edit.PackSelectScreen;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.network.Networking;
-import me.roundaround.custompaintings.network.PaintingIdPair;
+import me.roundaround.custompaintings.network.PaintingAssignment;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
@@ -94,16 +94,15 @@ public final class ClientNetworking {
 
   private static void handleSetPainting(Networking.SetPaintingS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
-      ClientPaintingManager.getInstance()
-          .trySetPaintingData(context.player().getWorld(), payload.paintingId(), payload.dataId());
+      ClientPaintingManager.getInstance().trySetPaintingData(context.player().getWorld(), payload.assignment());
     });
   }
 
   private static void handleSyncAllData(Networking.SyncAllDataS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
       World world = context.player().getWorld();
-      for (PaintingIdPair ids : payload.paintings()) {
-        ClientPaintingManager.getInstance().trySetPaintingData(world, ids.paintingId(), ids.dataId());
+      for (PaintingAssignment assignment : payload.assignments()) {
+        ClientPaintingManager.getInstance().trySetPaintingData(world, assignment);
       }
     });
   }

@@ -3,6 +3,7 @@ package me.roundaround.custompaintings.server.command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.server.ServerPaintingManager;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -14,7 +15,7 @@ public class CustomPaintingsCommand {
 
   private static LiteralArgumentBuilder<ServerCommandSource> reloadSub() {
     return CommandManager.literal("reload").requires(CustomPaintingsCommand::isOpPlayer).executes((context) -> {
-      ServerPaintingRegistry.getInstance().reloadPaintingPacks();
+      ServerPaintingRegistry.getInstance().reloadPaintingPacks(ServerPaintingManager::syncAllDataForAllPlayers);
       return 0;
     });
   }

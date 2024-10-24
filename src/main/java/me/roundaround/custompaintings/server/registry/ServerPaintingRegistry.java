@@ -28,6 +28,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -84,7 +85,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     this.setImages(loadResult.images());
   }
 
-  public void reloadPaintingPacks() {
+  public void reloadPaintingPacks(Consumer<MinecraftServer> onSucceed) {
     if (this.server == null || !this.server.isRunning()) {
       return;
     }
@@ -93,6 +94,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
       this.setPacks(loadResult.packs());
       this.setImages(loadResult.images());
       this.sendSummaryToAll();
+      onSucceed.accept(this.server);
     }, this.server);
   }
 
