@@ -32,5 +32,19 @@
   "custompaintings.maxImagePacketSize.label": "Maximum size for each image packet in KB",
   "custompaintings.download.start": "§6[CP]§r Downloading %s custom painting image(s) from server (%s)",
   "custompaintings.download.progress": "§6[CP]§r %s/%s downloaded (%s%%)",
-  "custompaintings.download.done": "§6[CP]§r %s downloaded in %ss"
+  "custompaintings.download.done": "§6[CP]§r %s downloaded in %ss",
+  "custompaintings.legacy.title": "Convert Legacy (Pre-3.0.0) Resource Packs",
+  "custompaintings.legacy.convert": "Convert",
+  "custompaintings.legacy.reConvert": "Re-Convert",
+  "custompaintings.legacy.direct": "Output directly for current world",
+  "custompaintings.legacy.output": "Open Output Folder",
+  "custompaintings.legacy.name": "Name:",
+  "custompaintings.legacy.desc": "Desc:",
+  "custompaintings.legacy.file": "File:",
+  "custompaintings.legacy.none": "< None >",
+  "custompaintings.main.title": "Custom Paintings Main Menu",
+  "custompaintings.main.config": "Configuration",
+  "custompaintings.main.legacy": "Convert Legacy Packs",
+  "custompaintings.main.reload": "Reload Packs",
+  "custompaintings.main.reloadingMessage": "Reloading painting packs"
 }

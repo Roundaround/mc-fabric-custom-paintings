@@ -38,9 +38,8 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class ConvertPromptScreen extends Screen {
-  // TODO: i18n
-  private static final Text LABEL_CONVERT = Text.of("Convert");
-  private static final Text LABEL_RE_CONVERT = Text.of("Re-Convert");
+  private static final Text LABEL_CONVERT = Text.translatable("custompaintings.legacy.convert");
+  private static final Text LABEL_RE_CONVERT = Text.translatable("custompaintings.legacy.reConvert");
 
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
   private final Screen parent;
@@ -54,8 +53,7 @@ public class ConvertPromptScreen extends Screen {
   public ConvertPromptScreen(
       MinecraftClient client, Screen parent
   ) {
-    // TODO: i18n
-    super(Text.of("Convert?"));
+    super(Text.translatable("custompaintings.legacy.title"));
     this.parent = parent;
 
     this.setOutDir(client.isInSingleplayer());
@@ -79,17 +77,17 @@ public class ConvertPromptScreen extends Screen {
 
     this.layout.addHeader(this.textRenderer, this.title);
     if (this.client.isInSingleplayer()) {
-      // TODO: i18n
-      this.layout.addHeader(CheckboxWidget.builder(Text.of("Convert for current world?"), this.textRenderer)
-          .callback(this::changeOutDir)
-          .checked(true)
-          .build());
+      this.layout.addHeader(
+          CheckboxWidget.builder(Text.translatable("custompaintings.legacy.direct"), this.textRenderer)
+              .callback(this::changeOutDir)
+              .checked(true)
+              .build());
     }
 
     this.list = this.layout.addBody(new LegacyPackList(this.client, this.layout, this::convertPack));
 
-    // TODO: i18n
-    this.layout.addFooter(ButtonWidget.builder(Text.of("Open Output Folder"), this::openOutDir).build());
+    this.layout.addFooter(
+        ButtonWidget.builder(Text.translatable("custompaintings.legacy.output"), this::openOutDir).build());
     this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, this::close).build());
 
     this.layout.forEachChild(this::addDrawableChild);
@@ -257,11 +255,10 @@ public class ConvertPromptScreen extends Screen {
       private static final int HEIGHT = 48;
       private static final int PACK_ICON_SIZE = 36;
       private static final int STATUS_ICON_SIZE = 18;
-      // TODO: i18n
-      private static final Text LINE_NAME = Text.of("Name:");
-      private static final Text LINE_DESCRIPTION = Text.of("Desc:");
-      private static final Text LINE_FILE = Text.of("File:");
-      private static final Text NONE_PLACEHOLDER = Text.literal("< None >")
+      private static final Text LINE_NAME = Text.translatable("custompaintings.legacy.name");
+      private static final Text LINE_DESCRIPTION = Text.translatable("custompaintings.legacy.desc");
+      private static final Text LINE_FILE = Text.translatable("custompaintings.legacy.file");
+      private static final Text NONE_PLACEHOLDER = Text.translatable("custompaintings.legacy.none")
           .formatted(Formatting.ITALIC, Formatting.GRAY);
 
       private final UUID uuid;

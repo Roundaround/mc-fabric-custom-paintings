@@ -16,8 +16,7 @@ public class MainMenuScreen extends Screen {
   private final Screen parent;
 
   public MainMenuScreen(Screen parent) {
-    // TODO: i18n
-    super(Text.of("Custom Paintings"));
+    super(Text.translatable("custompaintings.main.title"));
     this.parent = parent;
   }
 
@@ -28,12 +27,14 @@ public class MainMenuScreen extends Screen {
     this.layout.addHeader(this.textRenderer, this.title);
 
     this.layout.getBody().mainAxisContentAlignStart();
-    // TODO: i18n
-    this.layout.addBody(ButtonWidget.builder(Text.of("Configuration"), this::navigateConfig).build());
-    this.layout.addBody(ButtonWidget.builder(Text.of("Convert Legacy Packs"), this::navigateConvert).build());
+    this.layout.addBody(
+        ButtonWidget.builder(Text.translatable("custompaintings.main.config"), this::navigateConfig).build());
+    this.layout.addBody(
+        ButtonWidget.builder(Text.translatable("custompaintings.main.legacy"), this::navigateConvert).build());
 
     if (this.client.world != null) {
-      this.layout.addBody(ButtonWidget.builder(Text.of("Reload Packs"), this::reloadPacks).build());
+      this.layout.addBody(
+          ButtonWidget.builder(Text.translatable("custompaintings.main.reload"), this::reloadPacks).build());
     }
 
     this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, this::close).build());
@@ -78,8 +79,7 @@ public class MainMenuScreen extends Screen {
     }
 
     this.client.setScreen(null);
-    // TODO: i18n
-    this.client.player.sendMessage(Text.of("Reloading painting packs"));
+    this.client.player.sendMessage(Text.translatable("custompaintings.main.reloadingMessage"));
     ClientNetworking.sendReloadPacket();
   }
 }
