@@ -1,6 +1,6 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
-import me.roundaround.custompaintings.client.gui.PaintingEditState;
+import me.roundaround.custompaintings.client.gui.FiltersState;
 import me.roundaround.roundalib.client.gui.GuiUtil;
 import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import me.roundaround.roundalib.client.gui.widget.IntSliderWidget;
@@ -26,7 +26,7 @@ import java.util.function.Supplier;
 @Environment(value = EnvType.CLIENT)
 public class FilterListWidget extends ParentElementEntryListWidget<FilterListWidget.Entry> {
   public FilterListWidget(
-      PaintingEditState state, MinecraftClient client, ThreeSectionLayoutWidget layout
+      FiltersState state, MinecraftClient client, ThreeSectionLayoutWidget layout
   ) {
     super(client, layout);
 
@@ -35,18 +35,17 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
     ));
 
     this.addEntry((index, left, top, width) -> new TextFilterEntry(this.client.textRenderer,
-        Text.translatable("custompaintings.filter.any"), state.getFilters()::getSearch, state.getFilters()::setSearch,
-        index, left, top, width
+        Text.translatable("custompaintings.filter.any"), state::getSearch, state::setSearch, index, left, top, width
     ));
 
     this.addEntry((index, left, top, width) -> new TextFilterEntry(this.client.textRenderer,
-        Text.translatable("custompaintings.filter.name"), state.getFilters()::getNameSearch,
-        state.getFilters()::setNameSearch, index, left, top, width
+        Text.translatable("custompaintings.filter.name"), state::getNameSearch, state::setNameSearch, index, left, top,
+        width
     ));
 
     this.addEntry((index, left, top, width) -> new TextFilterEntry(this.client.textRenderer,
-        Text.translatable("custompaintings.filter.artist"), state.getFilters()::getArtistSearch,
-        state.getFilters()::setArtistSearch, index, left, top, width
+        Text.translatable("custompaintings.filter.artist"), state::getArtistSearch, state::setArtistSearch, index, left,
+        top, width
     ));
 
     // TODO: Name/artist is empty
@@ -57,19 +56,20 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
 
     this.addEntry(
         (index, left, top, width) -> new ToggleFilterEntry(Text.translatable("custompaintings.filter.canstay"),
-            ScreenTexts.ON, ScreenTexts.OFF, state.getFilters()::getCanStayOnly, state.getFilters()::setCanStayOnly,
-            index, left, top, width
+            ScreenTexts.ON, ScreenTexts.OFF, state::getCanStayOnly, state::setCanStayOnly, index, left, top, width
         ));
 
-    this.addEntry((index, left, top, width) -> new SizeRangeEntry(state.getFilters()::getMinWidth,
-        state.getFilters()::getMaxWidth, state.getFilters()::setMinWidth, state.getFilters()::setMaxWidth,
-        "custompaintings.filter.minwidth", "custompaintings.filter.maxwidth", index, left, top, width
-    ));
+    this.addEntry(
+        (index, left, top, width) -> new SizeRangeEntry(state::getMinWidth, state::getMaxWidth, state::setMinWidth,
+            state::setMaxWidth, "custompaintings.filter.minwidth", "custompaintings.filter.maxwidth", index, left, top,
+            width
+        ));
 
-    this.addEntry((index, left, top, width) -> new SizeRangeEntry(state.getFilters()::getMinHeight,
-        state.getFilters()::getMaxHeight, state.getFilters()::setMinHeight, state.getFilters()::setMaxHeight,
-        "custompaintings.filter.minheight", "custompaintings.filter.maxheight", index, left, top, width
-    ));
+    this.addEntry(
+        (index, left, top, width) -> new SizeRangeEntry(state::getMinHeight, state::getMaxHeight, state::setMinHeight,
+            state::setMaxHeight, "custompaintings.filter.minheight", "custompaintings.filter.maxheight", index, left,
+            top, width
+        ));
   }
 
   public void updateFilters() {
@@ -81,7 +81,7 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
         .stream()
         .flatMap((entry) -> entry.children().stream())
         .filter((element -> element instanceof TextFieldWidget || element instanceof ButtonWidget ||
-            element instanceof SliderWidget))
+                            element instanceof SliderWidget))
         .findFirst()
         .orElse(null);
   }
