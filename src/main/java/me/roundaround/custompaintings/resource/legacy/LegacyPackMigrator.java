@@ -127,8 +127,16 @@ public class LegacyPackMigrator {
 
   public CompletableFuture<Collection<PackMetadata>> checkForLegacyPacks(MinecraftClient client) {
     Path resourcePackDir = client.getResourcePackDir();
-    return CompletableFuture.supplyAsync(() -> this.checkForLegacyPackMetadata(resourcePackDir), this.ioExecutor)
-        .thenApplyAsync((metas) -> this.uploadIconsSpriteAtlas(client, metas), client);
+    boolean isSinglePlayer = client.isInSingleplayer();
+
+    return CompletableFuture.supplyAsync(() -> {
+      Collection<PackMetadata> metas = this.checkForLegacyPackMetadata(resourcePackDir);
+      HashMap<String, Path> globalConvertedIds = this.lookUpConvertedPacks(this.getGlobalOutDir());
+      HashMap<String, Path> worldConvertedIds = isSinglePlayer ?
+          this.lookUpConvertedPacks(this.getWorldOutDir()) :
+          new HashMap<>();
+      return new LegacyPackCheckResult(metas, globalConvertedIds, worldConvertedIds);
+    }, this.ioExecutor).thenApplyAsync((result) -> this.uploadIconsSpriteAtlas(client, result.metas()), client);
   }
 
   private ArrayList<PackMetadata> checkForLegacyPackMetadata(Path resourcePackDir) {
@@ -143,10 +151,71 @@ public class LegacyPackMigrator {
         metas.add(metadata);
       });
     } catch (IOException e) {
+      // TODO: Handle exception
       throw new RuntimeException(e);
     }
 
     return metas;
+  }
+
+  private HashMap<String, Path> lookUpConvertedPacks(Path directory) {
+    HashMap<String, Path> map = new HashMap<>();
+
+    try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(directory)) {
+      directoryStream.forEach((path) -> {
+        try {
+          BasicFileAttributes fileAttributes = Files.readAttributes(
+              path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+
+          String legacyPackId = null;
+          if (fileAttributes.isDirectory()) {
+            legacyPackId = readLegacyPackIdFromDirectory(path);
+          } else if (fileAttributes.isRegularFile()) {
+            legacyPackId = readLegacyPackIdFromZip(path);
+          }
+
+          if (legacyPackId != null) {
+            map.put(legacyPackId, path);
+          }
+        } catch (IOException ignored) {
+        }
+      });
+    } catch (IOException e) {
+      // TODO: Handle exception
+      throw new RuntimeException(e);
+    }
+
+    return map;
+  }
+
+  private String readLegacyPackIdFromDirectory(Path path) {
+    LegacyPackIdWrapper parsed;
+    try {
+      parsed = GSON.fromJson(Files.newBufferedReader(path.resolve(CUSTOM_PAINTINGS_JSON)), LegacyPackIdWrapper.class);
+    } catch (Exception e) {
+      return null;
+    }
+    return parsed.legacyPackId();
+  }
+
+  private String readLegacyPackIdFromZip(Path path) {
+    try (ZipFile zip = new ZipFile(path.toFile())) {
+      ZipEntry jsonEntry = zip.getEntry(CUSTOM_PAINTINGS_JSON);
+      if (jsonEntry == null) {
+        return null;
+      }
+
+      LegacyPackIdWrapper parsed;
+      try (InputStream stream = zip.getInputStream(jsonEntry)) {
+        parsed = GSON.fromJson(new InputStreamReader(stream), LegacyPackIdWrapper.class);
+      } catch (Exception ignored) {
+        return null;
+      }
+
+      return parsed.legacyPackId();
+    } catch (IOException e) {
+      return null;
+    }
   }
 
   private Collection<PackMetadata> uploadIconsSpriteAtlas(
@@ -561,5 +630,12 @@ public class LegacyPackMigrator {
     ZipEntry entry = new ZipEntry(path);
     zos.putNextEntry(entry);
     ImageIO.write(image.toBufferedImage(), "png", zos);
+  }
+
+  private record LegacyPackCheckResult(Collection<PackMetadata> metas, HashMap<String, Path> globalConvertedIds,
+                                       HashMap<String, Path> worldConvertedIds) {
+  }
+
+  private record LegacyPackIdWrapper(String legacyPackId) {
   }
 }

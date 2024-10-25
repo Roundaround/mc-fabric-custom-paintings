@@ -165,9 +165,8 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
   }
 
   private static PackReadResult readAsPack(Path path) {
-    BasicFileAttributes fileAttributes;
     try {
-      fileAttributes = Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+      BasicFileAttributes fileAttributes = Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
 
       if (fileAttributes.isDirectory()) {
         return readDirectoryAsPack(path);
@@ -273,6 +272,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
       return new PackReadResult(pack, images);
     } catch (IOException e) {
+      // TODO: Handle exception
       throw new RuntimeException(e);
     }
   }
