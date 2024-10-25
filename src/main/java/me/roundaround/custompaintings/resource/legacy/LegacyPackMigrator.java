@@ -125,18 +125,24 @@ public class LegacyPackMigrator {
     return this.globalOutDir;
   }
 
-  public CompletableFuture<Collection<PackMetadata>> checkForLegacyPacks(MinecraftClient client) {
+  public CompletableFuture<LegacyPackCheckResult> checkForLegacyPacks(MinecraftClient client) {
     Path resourcePackDir = client.getResourcePackDir();
     boolean isSinglePlayer = client.isInSingleplayer();
 
-    return CompletableFuture.supplyAsync(() -> {
-      Collection<PackMetadata> metas = this.checkForLegacyPackMetadata(resourcePackDir);
-      HashMap<String, Path> globalConvertedIds = this.lookUpConvertedPacks(this.getGlobalOutDir());
-      HashMap<String, Path> worldConvertedIds = isSinglePlayer ?
-          this.lookUpConvertedPacks(this.getWorldOutDir()) :
-          new HashMap<>();
-      return new LegacyPackCheckResult(metas, globalConvertedIds, worldConvertedIds);
-    }, this.ioExecutor).thenApplyAsync((result) -> this.uploadIconsSpriteAtlas(client, result.metas()), client);
+    return CompletableFuture.supplyAsync(
+        () -> this.loadAllDataFromFiles(resourcePackDir, isSinglePlayer), this.ioExecutor).thenApplyAsync((result) -> {
+      this.uploadIconsSpriteAtlas(client, result.metas());
+      return result;
+    }, client);
+  }
+
+  private LegacyPackCheckResult loadAllDataFromFiles(Path resourcePackDir, boolean isSinglePlayer) {
+    Collection<PackMetadata> metas = this.checkForLegacyPackMetadata(resourcePackDir);
+    HashMap<String, Path> globalConvertedIds = this.lookUpConvertedPacks(this.getGlobalOutDir());
+    HashMap<String, Path> worldConvertedIds = isSinglePlayer ?
+        this.lookUpConvertedPacks(this.getWorldOutDir()) :
+        new HashMap<>();
+    return new LegacyPackCheckResult(metas, globalConvertedIds, worldConvertedIds);
   }
 
   private ArrayList<PackMetadata> checkForLegacyPackMetadata(Path resourcePackDir) {
@@ -151,8 +157,9 @@ public class LegacyPackMigrator {
         metas.add(metadata);
       });
     } catch (IOException e) {
-      // TODO: Handle exception
-      throw new RuntimeException(e);
+      CustomPaintingsMod.LOGGER.warn(e);
+      CustomPaintingsMod.LOGGER.warn(
+          "Error while checking for legacy packs in the resource pack directory...exiting early.");
     }
 
     return metas;
@@ -181,8 +188,8 @@ public class LegacyPackMigrator {
         }
       });
     } catch (IOException e) {
-      // TODO: Handle exception
-      throw new RuntimeException(e);
+      CustomPaintingsMod.LOGGER.warn(e);
+      CustomPaintingsMod.LOGGER.warn("Error while looking up list of already-converted packs...exiting early.");
     }
 
     return map;
@@ -218,7 +225,7 @@ public class LegacyPackMigrator {
     }
   }
 
-  private Collection<PackMetadata> uploadIconsSpriteAtlas(
+  private void uploadIconsSpriteAtlas(
       MinecraftClient client, Collection<PackMetadata> metas
   ) {
     this.atlas = new SpriteAtlasTexture(
@@ -236,8 +243,6 @@ public class LegacyPackMigrator {
       spriteContents.add(getIconSpriteContents(id, meta.icon()));
     });
     this.atlas.upload(SpriteLoader.fromAtlas(this.atlas).stitch(spriteContents, 0, Util.getMainWorkerExecutor()));
-
-    return metas;
   }
 
   public CompletableFuture<Boolean> convertPack(PackMetadata metadata, Path path) {
@@ -630,10 +635,6 @@ public class LegacyPackMigrator {
     ZipEntry entry = new ZipEntry(path);
     zos.putNextEntry(entry);
     ImageIO.write(image.toBufferedImage(), "png", zos);
-  }
-
-  private record LegacyPackCheckResult(Collection<PackMetadata> metas, HashMap<String, Path> globalConvertedIds,
-                                       HashMap<String, Path> worldConvertedIds) {
   }
 
   private record LegacyPackIdWrapper(String legacyPackId) {

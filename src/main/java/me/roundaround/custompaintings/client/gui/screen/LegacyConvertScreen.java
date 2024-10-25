@@ -11,16 +11,18 @@ import me.roundaround.roundalib.client.gui.layout.linear.LinearLayoutWidget;
 import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import me.roundaround.roundalib.client.gui.util.Alignment;
 import me.roundaround.roundalib.client.gui.widget.FlowListWidget;
+import me.roundaround.roundalib.client.gui.widget.IconButtonWidget;
 import me.roundaround.roundalib.client.gui.widget.ParentElementEntryListWidget;
-import me.roundaround.roundalib.client.gui.widget.drawable.DrawableWidget;
 import me.roundaround.roundalib.client.gui.widget.drawable.LabelWidget;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.LoadingDisplay;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.CheckboxWidget;
+import net.minecraft.client.gui.widget.Widget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
@@ -31,23 +33,27 @@ import net.minecraft.util.Util;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class LegacyConvertScreen extends Screen {
   private static final Text LABEL_CONVERT = Text.translatable("custompaintings.legacy.convert");
   private static final Text LABEL_RE_CONVERT = Text.translatable("custompaintings.legacy.reConvert");
+  // TODO: i18n
+  private static final Text TOOLTIP_SUCCESS = Text.literal("View output file");
+  private static final Text TOOLTIP_FAILURE = Text.literal("An error occurred");
 
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
   private final Screen parent;
-  private final HashMap<UUID, Status> globalStatuses = new HashMap<>();
-  private final HashMap<UUID, Status> worldStatuses = new HashMap<>();
+  private final HashMap<String, ConvertState> globalStates = new HashMap<>();
+  private final HashMap<String, ConvertState> worldStates = new HashMap<>();
 
   private LegacyPackList list;
   private Path outDir;
-  private HashMap<UUID, Status> currentStatuses;
+  private HashMap<String, ConvertState> currentStates;
 
   public LegacyConvertScreen(
       MinecraftClient client, Screen parent
@@ -57,17 +63,36 @@ public class LegacyConvertScreen extends Screen {
 
     this.setOutDir(client.isInSingleplayer());
 
-    LegacyPackMigrator.getInstance().checkForLegacyPacks(client).whenCompleteAsync((metas, exception) -> {
-      if (exception != null) {
-        // TODO: Handle error
-        CustomPaintingsMod.LOGGER.warn(exception);
-        return;
-      }
+    LegacyPackMigrator.getInstance()
+        .checkForLegacyPacks(client)
+        .orTimeout(30, TimeUnit.SECONDS)
+        .whenCompleteAsync((result, exception) -> {
+          if (exception != null) {
+            CustomPaintingsMod.LOGGER.warn(exception);
+            if (this.list != null) {
+              this.list.showErrorMessage();
+            }
+            return;
+          }
 
-      if (this.list != null) {
-        this.list.setPacks(metas);
-      }
-    }, this.executor);
+          for (PackMetadata meta : result.metas()) {
+            String legacyPackId = meta.id().asString();
+
+            Path globalOutPath = result.globalConvertedIds().get(legacyPackId);
+            if (globalOutPath != null) {
+              this.globalStates.put(legacyPackId, ConvertState.success(globalOutPath));
+            }
+
+            Path worldOutPath = result.worldConvertedIds().get(legacyPackId);
+            if (worldOutPath != null) {
+              this.worldStates.put(legacyPackId, ConvertState.success(worldOutPath));
+            }
+          }
+
+          if (this.list != null) {
+            this.list.setPacks(this.currentStates, result.metas());
+          }
+        }, this.executor);
   }
 
   @Override
@@ -106,26 +131,34 @@ public class LegacyConvertScreen extends Screen {
   private void setOutDir(boolean worldScoped) {
     LegacyPackMigrator migrator = LegacyPackMigrator.getInstance();
     this.outDir = worldScoped ? migrator.getWorldOutDir() : migrator.getGlobalOutDir();
-    this.currentStatuses = worldScoped ? this.worldStatuses : this.globalStatuses;
+    this.currentStates = worldScoped ? this.worldStates : this.globalStates;
   }
 
   private void changeOutDir(CheckboxWidget checkbox, boolean checked) {
     this.setOutDir(checked);
-    this.list.updateAllStatuses(this.currentStatuses);
+    this.list.updateAllStates(this.currentStates);
   }
 
   private void convertPack(LegacyPackList.PackEntry entry) {
+    String legacyPackId = entry.getLegacyPackId();
     PackMetadata meta = entry.getMeta();
     Path path = this.outDir.resolve(cleanFilename(meta.pack().path()) + ".zip");
 
-    // TODO: Error handling
-    // TODO: Add some kind of timeout on conversion to avoid hanging thread
     entry.markLoading();
-    LegacyPackMigrator.getInstance().convertPack(meta, path).thenAcceptAsync((converted) -> {
-      Status status = Status.from(converted);
-      this.currentStatuses.put(entry.getUuid(), status);
-      entry.setStatus(status);
-    }, this.executor);
+    LegacyPackMigrator.getInstance()
+        .convertPack(meta, path)
+        .orTimeout(30, TimeUnit.SECONDS)
+        .whenCompleteAsync((converted, exception) -> {
+          ConvertState state;
+          if (converted == null || !converted || exception != null) {
+            // TODO: Include error message to show as a tooltip
+            state = ConvertState.failed();
+          } else {
+            state = ConvertState.success(path);
+          }
+          this.currentStates.put(legacyPackId, state);
+          entry.setState(state);
+        }, this.executor);
   }
 
   private void openOutDir(ButtonWidget button) {
@@ -158,7 +191,13 @@ public class LegacyConvertScreen extends Screen {
       this.addEntry(LoadingEntry.factory(client.textRenderer));
     }
 
-    public void setPacks(Collection<PackMetadata> metas) {
+    public void showErrorMessage() {
+      this.clearEntries();
+      this.addEntry(ErrorEntry.factory(this.client.textRenderer));
+      this.refreshPositions();
+    }
+
+    public void setPacks(HashMap<String, ConvertState> currentStates, Collection<PackMetadata> metas) {
       this.clearEntries();
 
       if (metas.isEmpty()) {
@@ -167,16 +206,17 @@ public class LegacyConvertScreen extends Screen {
       }
 
       for (PackMetadata meta : metas) {
-        this.addEntry(PackEntry.factory(this.client.textRenderer, meta, this.convert));
+        ConvertState state = currentStates.getOrDefault(meta.id().asString(), ConvertState.none());
+        this.addEntry(PackEntry.factory(this.client.textRenderer, state, meta, this.convert));
       }
 
       this.refreshPositions();
     }
 
-    public void updateAllStatuses(HashMap<UUID, Status> statuses) {
+    public void updateAllStates(HashMap<String, ConvertState> states) {
       this.entries.forEach((entry) -> {
         if (entry instanceof PackEntry packEntry) {
-          packEntry.setStatus(statuses.getOrDefault(packEntry.getUuid(), Status.NONE));
+          packEntry.setState(states.getOrDefault(packEntry.getLegacyPackId(), ConvertState.none()));
         }
       });
     }
@@ -189,6 +229,7 @@ public class LegacyConvertScreen extends Screen {
 
     private static class LoadingEntry extends Entry {
       private static final int HEIGHT = 36;
+      // TODO: i18n
       private static final Text LOADING_TEXT = Text.literal("Loading Legacy Pack List");
 
       private final TextRenderer textRenderer;
@@ -223,6 +264,7 @@ public class LegacyConvertScreen extends Screen {
       protected EmptyEntry(int index, int left, int top, int width, TextRenderer textRenderer) {
         super(index, left, top, width, HEIGHT);
 
+        // TODO: i18n
         this.label = LabelWidget.builder(textRenderer, Text.literal("No legacy painting packs found!"))
             .position(this.getContentCenterX(), this.getContentCenterY())
             .dimensions(this.getContentWidth(), this.getContentHeight())
@@ -250,20 +292,62 @@ public class LegacyConvertScreen extends Screen {
       }
     }
 
+    private static class ErrorEntry extends Entry {
+      private static final int HEIGHT = 36;
+
+      private final LabelWidget label;
+
+      protected ErrorEntry(int index, int left, int top, int width, TextRenderer textRenderer) {
+        super(index, left, top, width, HEIGHT);
+
+        // TODO: i18n
+        this.label = LabelWidget.builder(textRenderer,
+                List.of(Text.literal("Failed to load legacy packs."), Text.literal("Check the logs for details."))
+            )
+            .position(this.getContentCenterX(), this.getContentCenterY())
+            .dimensions(this.getContentWidth(), this.getContentHeight())
+            .alignSelfCenterX()
+            .alignSelfCenterY()
+            .alignTextCenterX()
+            .alignTextCenterY()
+            .hideBackground()
+            .showShadow()
+            .color(Colors.RED)
+            .build();
+
+        this.addDrawable(this.label);
+      }
+
+      public static FlowListWidget.EntryFactory<ErrorEntry> factory(TextRenderer textRenderer) {
+        return (index, left, top, width) -> new ErrorEntry(index, left, top, width, textRenderer);
+      }
+
+      @Override
+      public void refreshPositions() {
+        this.label.batchUpdates(() -> {
+          this.label.setPosition(this.getContentCenterX(), this.getContentCenterY());
+          this.label.setDimensions(this.getContentWidth(), this.getContentHeight());
+        });
+      }
+    }
+
     private static class PackEntry extends Entry {
       private static final int HEIGHT = 48;
       private static final int PACK_ICON_SIZE = 36;
-      private static final int STATUS_ICON_SIZE = 18;
+      private static final int CONVERT_BUTTON_SIZE = 80;
+      private static final int STATUS_BUTTON_SIZE = 18;
       private static final Text LINE_NAME = Text.translatable("custompaintings.legacy.name");
       private static final Text LINE_DESCRIPTION = Text.translatable("custompaintings.legacy.desc");
       private static final Text LINE_FILE = Text.translatable("custompaintings.legacy.file");
       private static final Text NONE_PLACEHOLDER = Text.translatable("custompaintings.legacy.none")
           .formatted(Formatting.ITALIC, Formatting.GRAY);
 
+      private final String legacyPackId;
       private final PackMetadata meta;
-      private final LoadingButtonWidget button;
+      private final LoadingButtonWidget convertButton;
+      private final IconButtonWidget statusButton;
 
-      private Identifier statusTexture;
+      private Path outPath;
 
       protected PackEntry(
           int index,
@@ -271,11 +355,14 @@ public class LegacyConvertScreen extends Screen {
           int top,
           int width,
           TextRenderer textRenderer,
+          ConvertState initialState,
           PackMetadata meta,
           Consumer<PackEntry> convert
       ) {
         super(index, left, top, width, HEIGHT);
+        this.legacyPackId = meta.id().asString();
         this.meta = meta;
+        this.outPath = initialState.path;
 
         LinearLayoutWidget layout = this.addLayout(
             LinearLayoutWidget.horizontal().spacing(GuiUtil.PADDING).defaultOffAxisContentAlign(Alignment.CENTER),
@@ -309,26 +396,37 @@ public class LegacyConvertScreen extends Screen {
             (parent, self) -> self.setWidth(parent.getWidth())
         );
         layout.add(textSection, (parent, self) -> {
-          self.setWidth(width - parent.getSpacing() - PACK_ICON_SIZE - parent.getSpacing() - 80 - parent.getSpacing() -
-                        STATUS_ICON_SIZE);
+          int textSectionWidth = this.getContentWidth();
+          textSectionWidth -= (parent.getChildren().size() - 1) * parent.getSpacing();
+          for (Widget widget : parent.getChildren()) {
+            if (widget != self) {
+              textSectionWidth -= widget.getWidth();
+            }
+          }
+          self.setWidth(textSectionWidth);
         });
 
         layout.add(FillerWidget.empty());
 
-        Status status = Status.NONE;
-        this.button = layout.add(
-            new LoadingButtonWidget(0, 0, 80, 20, status.getButtonLabel(), (button) -> convert.accept(this)));
-        this.statusTexture = status.getTexture();
-        layout.add(new DrawableWidget(STATUS_ICON_SIZE, STATUS_ICON_SIZE) {
-          @Override
-          protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
-            if (PackEntry.this.statusTexture == null) {
-              return;
-            }
-            context.drawGuiTexture(
-                PackEntry.this.statusTexture, this.getX(), this.getY(), this.getWidth(), this.getHeight());
-          }
-        });
+        Status status = initialState.status;
+        this.convertButton = layout.add(new LoadingButtonWidget(0, 0, CONVERT_BUTTON_SIZE, 20, status.getButtonLabel(),
+            (button) -> convert.accept(this)
+        ));
+        this.statusButton = layout.add(IconButtonWidget.builder(status.getTexture(), IconButtonWidget.SIZE_L)
+            .dimensions(20)
+            .tooltip(status.getTooltip())
+            .onPress((button) -> {
+              if (this.outPath == null) {
+                return;
+              }
+              Util.getOperatingSystem().open(this.outPath.getParent().toUri());
+            })
+            .build());
+        if (status == Status.NONE) {
+          this.statusButton.visible = false;
+        } else {
+          this.statusButton.active = status == Status.SUCCESS;
+        }
 
         layout.forEachChild(this::addDrawableChild);
       }
@@ -356,55 +454,89 @@ public class LegacyConvertScreen extends Screen {
       }
 
       public static FlowListWidget.EntryFactory<PackEntry> factory(
-          TextRenderer textRenderer, PackMetadata meta, Consumer<PackEntry> convert
+          TextRenderer textRenderer, ConvertState initialState, PackMetadata meta, Consumer<PackEntry> convert
       ) {
-        return (index, left, top, width) -> new PackEntry(index, left, top, width, textRenderer, meta, convert);
+        return (index, left, top, width) -> new PackEntry(
+            index, left, top, width, textRenderer, initialState, meta, convert);
+      }
+
+      public String getLegacyPackId() {
+        return this.legacyPackId;
       }
 
       public PackMetadata getMeta() {
         return this.meta;
       }
 
-      public UUID getUuid() {
-        return this.meta.uuid();
-      }
-
       public void markLoading() {
-        this.button.setLoading(true);
+        this.convertButton.setLoading(true);
       }
 
-      public void setStatus(Status status) {
-        this.button.setLoading(false);
-        this.button.setMessage(status.getButtonLabel());
-        this.statusTexture = status.getTexture();
-        // TODO: Retry/error label?
+      public void setState(ConvertState state) {
+        this.convertButton.setLoading(false);
+        this.convertButton.setMessage(state.status.getButtonLabel());
+
+        if (state.status == Status.NONE) {
+          this.statusButton.visible = false;
+        } else {
+          this.outPath = state.path;
+          this.statusButton.visible = true;
+          this.statusButton.active = state.status == Status.SUCCESS;
+          this.statusButton.setTexture(state.status.getTexture());
+          this.statusButton.setTooltip(Tooltip.of(state.status.getTooltip()));
+        }
       }
     }
   }
 
   private enum Status {
-    NONE(LABEL_CONVERT, null),
-    SUCCESS(LABEL_RE_CONVERT, new Identifier("pending_invite/accept")),
-    FAILURE(LABEL_CONVERT, new Identifier("pending_invite/reject"));
+    NONE(LABEL_CONVERT, null, null),
+    SUCCESS(LABEL_RE_CONVERT, TOOLTIP_SUCCESS, new Identifier("pending_invite/accept")),
+    FAILURE(LABEL_CONVERT, TOOLTIP_FAILURE, new Identifier("pending_invite/reject"));
 
     private final Text buttonLabel;
+    private final Text tooltip;
     private final Identifier texture;
 
-    Status(Text buttonLabel, Identifier texture) {
+    Status(Text buttonLabel, Text tooltip, Identifier texture) {
       this.buttonLabel = buttonLabel;
+      this.tooltip = tooltip;
       this.texture = texture;
-    }
-
-    public static Status from(boolean converted) {
-      return converted ? SUCCESS : FAILURE;
     }
 
     public Text getButtonLabel() {
       return this.buttonLabel;
     }
 
+    // TODO: Tooltip based on actual error?
+    public Text getTooltip() {
+      return this.tooltip;
+    }
+
     public Identifier getTexture() {
       return this.texture;
+    }
+  }
+
+  private static class ConvertState {
+    public Status status;
+    public Path path;
+
+    private ConvertState(Status status, Path path) {
+      this.status = status;
+      this.path = path;
+    }
+
+    public static ConvertState success(Path path) {
+      return new ConvertState(Status.SUCCESS, path);
+    }
+
+    public static ConvertState none() {
+      return new ConvertState(Status.NONE, null);
+    }
+
+    public static ConvertState failed() {
+      return new ConvertState(Status.FAILURE, null);
     }
   }
 }
