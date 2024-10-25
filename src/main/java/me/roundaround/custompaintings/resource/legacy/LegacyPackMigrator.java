@@ -171,8 +171,9 @@ public class LegacyPackMigrator {
     return metas;
   }
 
-  public CompletableFuture<Boolean> convertPack(LegacyPackResource legacyPack, Path path) {
+  public CompletableFuture<Boolean> convertPack(PackMetadata metadata, Path path) {
     return CompletableFuture.supplyAsync(() -> {
+      LegacyPackResource legacyPack = metadata.pack();
       HashMap<Identifier, Image> images = readPaintingImages(legacyPack);
       HashMap<String, PaintingResource> paintings = new HashMap<>();
 
@@ -185,8 +186,9 @@ public class LegacyPackMigrator {
       });
       paintings.keySet().removeIf(paintingId -> !images.containsKey(new Identifier(legacyPack.packId(), paintingId)));
 
-      PackResource pack = new PackResource(
-          1, legacyPack.packId(), legacyPack.name(), legacyPack.description(), new ArrayList<>(paintings.values()));
+      PackResource pack = new PackResource(1, legacyPack.packId(), legacyPack.name(), legacyPack.description(),
+          metadata.id().asString(), new ArrayList<>(paintings.values())
+      );
 
       try {
         Files.createDirectories(path.getParent());
@@ -293,9 +295,7 @@ public class LegacyPackMigrator {
     } catch (IOException ignored) {
     }
 
-    // TODO: Store in output and use to match up previously migrated packs.
     LegacyPackId instanceId = new LegacyPackId(false, dirname, lastModified);
-
     PackMcmeta meta = readPackMcmeta(path.resolve(PACK_MCMETA));
 
     String packId = json.id();
@@ -307,7 +307,7 @@ public class LegacyPackMigrator {
     LegacyPackResource pack = new LegacyPackResource(path, packId, name, description, paintings, migrations);
     Image packIcon = readImage(path.resolve(PACK_PNG));
 
-    return new PackMetadata(pack, packIcon);
+    return new PackMetadata(instanceId, pack, packIcon);
   }
 
   private static PackMetadata readPackMetadataFromZip(Path path) {
@@ -334,9 +334,7 @@ public class LegacyPackMigrator {
         return null;
       }
 
-      // TODO: Store in output and use to match up previously migrated packs.
       LegacyPackId instanceId = new LegacyPackId(true, filename, lastModified);
-
       PackMcmeta meta = readPackMcmeta(zip, folderPrefix + PACK_MCMETA);
 
       String packId = json.id();
@@ -348,7 +346,7 @@ public class LegacyPackMigrator {
       LegacyPackResource pack = new LegacyPackResource(path, packId, name, description, paintings, migrations);
       Image packIcon = readImage(zip, folderPrefix + PACK_PNG);
 
-      return new PackMetadata(pack, packIcon);
+      return new PackMetadata(instanceId, pack, packIcon);
     } catch (IOException e) {
       return null;
     }

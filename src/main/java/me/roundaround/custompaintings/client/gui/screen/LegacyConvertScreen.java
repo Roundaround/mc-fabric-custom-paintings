@@ -4,7 +4,6 @@ import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.gui.widget.LoadingButtonWidget;
 import me.roundaround.custompaintings.client.gui.widget.SpriteWidget;
 import me.roundaround.custompaintings.resource.legacy.LegacyPackMigrator;
-import me.roundaround.custompaintings.resource.legacy.LegacyPackResource;
 import me.roundaround.custompaintings.resource.legacy.PackMetadata;
 import me.roundaround.roundalib.client.gui.GuiUtil;
 import me.roundaround.roundalib.client.gui.layout.FillerWidget;
@@ -116,13 +115,13 @@ public class LegacyConvertScreen extends Screen {
   }
 
   private void convertPack(LegacyPackList.PackEntry entry) {
-    LegacyPackResource pack = entry.getPack();
-    Path path = this.outDir.resolve(cleanFilename(pack.path()) + ".zip");
+    PackMetadata meta = entry.getMeta();
+    Path path = this.outDir.resolve(cleanFilename(meta.pack().path()) + ".zip");
 
     // TODO: Error handling
     // TODO: Add some kind of timeout on conversion to avoid hanging thread
     entry.markLoading();
-    LegacyPackMigrator.getInstance().convertPack(pack, path).thenAcceptAsync((converted) -> {
+    LegacyPackMigrator.getInstance().convertPack(meta, path).thenAcceptAsync((converted) -> {
       Status status = Status.from(converted);
       this.currentStatuses.put(entry.getUuid(), status);
       entry.setStatus(status);
@@ -261,8 +260,7 @@ public class LegacyConvertScreen extends Screen {
       private static final Text NONE_PLACEHOLDER = Text.translatable("custompaintings.legacy.none")
           .formatted(Formatting.ITALIC, Formatting.GRAY);
 
-      private final UUID uuid;
-      private final LegacyPackResource pack;
+      private final PackMetadata meta;
       private final LoadingButtonWidget button;
 
       private Identifier statusTexture;
@@ -277,8 +275,7 @@ public class LegacyConvertScreen extends Screen {
           Consumer<PackEntry> convert
       ) {
         super(index, left, top, width, HEIGHT);
-        this.uuid = meta.uuid();
-        this.pack = meta.pack();
+        this.meta = meta;
 
         LinearLayoutWidget layout = this.addLayout(
             LinearLayoutWidget.horizontal().spacing(GuiUtil.PADDING).defaultOffAxisContentAlign(Alignment.CENTER),
@@ -288,9 +285,11 @@ public class LegacyConvertScreen extends Screen {
             }
         );
 
-        layout.add(SpriteWidget.create(LegacyPackMigrator.getInstance().getSprite(pack.packId())), (parent, self) -> {
-          self.setDimensions(PACK_ICON_SIZE, PACK_ICON_SIZE);
-        });
+        layout.add(SpriteWidget.create(LegacyPackMigrator.getInstance().getSprite(this.meta.pack().packId())),
+            (parent, self) -> {
+              self.setDimensions(PACK_ICON_SIZE, PACK_ICON_SIZE);
+            }
+        );
 
         layout.add(FillerWidget.empty());
 
@@ -299,13 +298,14 @@ public class LegacyConvertScreen extends Screen {
             .mapToInt(textRenderer::getWidth)
             .max()
             .orElse(1);
-        textSection.add(this.textLine(textRenderer, headerWidth, LINE_FILE, pack.path().getFileName().toString()),
+        textSection.add(
+            this.textLine(textRenderer, headerWidth, LINE_FILE, this.meta.pack().path().getFileName().toString()),
             (parent, self) -> self.setWidth(parent.getWidth())
         );
-        textSection.add(this.textLine(textRenderer, headerWidth, LINE_NAME, pack.name()),
+        textSection.add(this.textLine(textRenderer, headerWidth, LINE_NAME, this.meta.pack().name()),
             (parent, self) -> self.setWidth(parent.getWidth())
         );
-        textSection.add(this.textLine(textRenderer, headerWidth, LINE_DESCRIPTION, pack.description()),
+        textSection.add(this.textLine(textRenderer, headerWidth, LINE_DESCRIPTION, this.meta.pack().description()),
             (parent, self) -> self.setWidth(parent.getWidth())
         );
         layout.add(textSection, (parent, self) -> {
@@ -361,12 +361,12 @@ public class LegacyConvertScreen extends Screen {
         return (index, left, top, width) -> new PackEntry(index, left, top, width, textRenderer, meta, convert);
       }
 
-      public LegacyPackResource getPack() {
-        return this.pack;
+      public PackMetadata getMeta() {
+        return this.meta;
       }
 
       public UUID getUuid() {
-        return this.uuid;
+        return this.meta.uuid();
       }
 
       public void markLoading() {
