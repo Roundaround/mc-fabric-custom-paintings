@@ -244,6 +244,10 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
         this.pendingCombinedImagesHash = "";
       }
 
+      if (!this.neededImages.isEmpty()) {
+        return;
+      }
+
       Util.getIoWorkerExecutor().execute(() -> {
         try {
           CacheManager.getInstance().saveToFile(this.images, this.combinedImageHash);
