@@ -10,6 +10,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.CyclingButtonWidget;
@@ -142,7 +143,7 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
       super(index, left, top, width, HEIGHT);
 
       this.setForceRowShading(true);
-      this.setMarginY(GuiUtil.PADDING);
+      this.setMarginY(2 * GuiUtil.PADDING);
 
       this.label = LabelWidget.builder(textRenderer, label)
           .position(this.getContentLeft(), this.getContentTop())
@@ -163,6 +164,13 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
         this.label.setPosition(this.getContentLeft(), this.getContentTop());
         this.label.setDimensions(this.getFullControlWidth(), this.getContentHeight());
       });
+    }
+
+    @Override
+    protected void renderRowShade(DrawContext context) {
+      renderRowShade(context, this.getX(), this.getY() + this.margin.top(), this.getRight(),
+          this.getBottom() - this.margin.bottom(), this.getRowShadeFadeWidth(), this.getRowShadeStrength()
+      );
     }
   }
 
