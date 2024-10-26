@@ -43,12 +43,22 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
         width
     ));
 
+    this.addEntry(
+        (index, left, top, width) -> new ToggleFilterEntry(Text.translatable("custompaintings.filter.name.empty"),
+            ScreenTexts.YES, ScreenTexts.NO, state::getNonEmptyNameOnly, state::setNonEmptyNameOnly, index, left, top,
+            width
+        ));
+
     this.addEntry((index, left, top, width) -> new TextFilterEntry(this.client.textRenderer,
         Text.translatable("custompaintings.filter.artist"), state::getArtistSearch, state::setArtistSearch, index, left,
         top, width
     ));
 
-    // TODO: Name/artist is empty
+    this.addEntry(
+        (index, left, top, width) -> new ToggleFilterEntry(Text.translatable("custompaintings.filter.artist.empty"),
+            ScreenTexts.YES, ScreenTexts.NO, state::getNonEmptyArtistOnly, state::setNonEmptyArtistOnly, index, left,
+            top, width
+        ));
 
     this.addEntry((index, left, top, width) -> new SectionTitleEntry(this.client.textRenderer,
         Text.translatable("custompaintings.filter.section.size"), index, left, top, width
@@ -56,7 +66,7 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
 
     this.addEntry(
         (index, left, top, width) -> new ToggleFilterEntry(Text.translatable("custompaintings.filter.canstay"),
-            ScreenTexts.ON, ScreenTexts.OFF, state::getCanStayOnly, state::setCanStayOnly, index, left, top, width
+            ScreenTexts.YES, ScreenTexts.NO, state::getCanStayOnly, state::setCanStayOnly, index, left, top, width
         ));
 
     this.addEntry(
@@ -132,6 +142,7 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
       super(index, left, top, width, HEIGHT);
 
       this.setForceRowShading(true);
+      this.setMarginY(GuiUtil.PADDING);
 
       this.label = LabelWidget.builder(textRenderer, label)
           .position(this.getContentLeft(), this.getContentTop())
