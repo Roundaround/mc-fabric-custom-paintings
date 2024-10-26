@@ -10,10 +10,7 @@ import javax.imageio.ImageIO;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.UUID;
+import java.util.*;
 
 public class CacheManager {
   private static final long MS_PER_WEEK = 1000 * 60 * 60 * 24 * 7;
@@ -95,7 +92,7 @@ public class CacheManager {
     return new CacheRead(images, requestedHashes, server.combinedHash);
   }
 
-  public void saveToFile(HashMap<Identifier, Image> images, String combinedHash) throws IOException {
+  public void saveToFile(Map<Identifier, Image> images, String combinedHash) throws IOException {
     if (this.serverId == null) {
       return;
     }

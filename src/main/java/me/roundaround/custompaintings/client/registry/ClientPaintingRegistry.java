@@ -1,6 +1,7 @@
 package me.roundaround.custompaintings.client.registry;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.client.texture.BasicTextureSprite;
@@ -248,9 +249,10 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
         return;
       }
 
+      final ImmutableMap<Identifier, Image> images = ImmutableMap.copyOf(this.images);
       Util.getIoWorkerExecutor().execute(() -> {
         try {
-          CacheManager.getInstance().saveToFile(this.images, this.combinedImageHash);
+          CacheManager.getInstance().saveToFile(images, this.combinedImageHash);
         } catch (IOException e) {
           CustomPaintingsMod.LOGGER.warn(e);
           CustomPaintingsMod.LOGGER.warn("Failed to write images and metadata to cache.");
