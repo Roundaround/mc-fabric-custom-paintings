@@ -40,11 +40,10 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class LegacyConvertScreen extends Screen {
-  private static final Text LABEL_CONVERT = Text.translatable("custompaintings.legacy.convert");
-  private static final Text LABEL_RE_CONVERT = Text.translatable("custompaintings.legacy.reConvert");
-  // TODO: i18n
-  private static final Text TOOLTIP_SUCCESS = Text.literal("View output file");
-  private static final Text TOOLTIP_FAILURE = Text.literal("An error occurred");
+  private static final Text LABEL_CONVERT = Text.translatable("custompaintings.legacy.entry.convert");
+  private static final Text LABEL_RE_CONVERT = Text.translatable("custompaintings.legacy.entry.reConvert");
+  private static final Text TOOLTIP_SUCCESS = Text.translatable("custompaintings.legacy.entry.viewOutput");
+  private static final Text TOOLTIP_FAILURE = Text.translatable("custompaintings.legacy.entry.error");
 
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
   private final Screen parent;
@@ -229,8 +228,7 @@ public class LegacyConvertScreen extends Screen {
 
     private static class LoadingEntry extends Entry {
       private static final int HEIGHT = 36;
-      // TODO: i18n
-      private static final Text LOADING_TEXT = Text.literal("Loading Legacy Pack List");
+      private static final Text LOADING_TEXT = Text.translatable("custompaintings.legacy.loading");
 
       private final TextRenderer textRenderer;
 
@@ -258,14 +256,14 @@ public class LegacyConvertScreen extends Screen {
 
     private static class EmptyEntry extends Entry {
       private static final int HEIGHT = 36;
+      private static final Text MESSAGE = Text.translatable("custompaintings.legacy.none");
 
       private final LabelWidget label;
 
       protected EmptyEntry(int index, int left, int top, int width, TextRenderer textRenderer) {
         super(index, left, top, width, HEIGHT);
 
-        // TODO: i18n
-        this.label = LabelWidget.builder(textRenderer, Text.literal("No legacy painting packs found!"))
+        this.label = LabelWidget.builder(textRenderer, MESSAGE)
             .position(this.getContentCenterX(), this.getContentCenterY())
             .dimensions(this.getContentWidth(), this.getContentHeight())
             .alignSelfCenterX()
@@ -294,16 +292,15 @@ public class LegacyConvertScreen extends Screen {
 
     private static class ErrorEntry extends Entry {
       private static final int HEIGHT = 36;
+      private static final Text MESSAGE_LINE_1 = Text.translatable("custompaintings.legacy.error1");
+      private static final Text MESSAGE_LINE_2 = Text.translatable("custompaintings.legacy.error2");
 
       private final LabelWidget label;
 
       protected ErrorEntry(int index, int left, int top, int width, TextRenderer textRenderer) {
         super(index, left, top, width, HEIGHT);
 
-        // TODO: i18n
-        this.label = LabelWidget.builder(textRenderer,
-                List.of(Text.literal("Failed to load legacy packs."), Text.literal("Check the logs for details."))
-            )
+        this.label = LabelWidget.builder(textRenderer, List.of(MESSAGE_LINE_1, MESSAGE_LINE_2))
             .position(this.getContentCenterX(), this.getContentCenterY())
             .dimensions(this.getContentWidth(), this.getContentHeight())
             .alignSelfCenterX()
@@ -335,11 +332,11 @@ public class LegacyConvertScreen extends Screen {
       private static final int HEIGHT = 48;
       private static final int PACK_ICON_SIZE = 36;
       private static final int CONVERT_BUTTON_SIZE = 80;
-      private static final int STATUS_BUTTON_SIZE = 18;
-      private static final Text LINE_NAME = Text.translatable("custompaintings.legacy.name");
-      private static final Text LINE_DESCRIPTION = Text.translatable("custompaintings.legacy.desc");
-      private static final Text LINE_FILE = Text.translatable("custompaintings.legacy.file");
-      private static final Text NONE_PLACEHOLDER = Text.translatable("custompaintings.legacy.none")
+      private static final int STATUS_BUTTON_SIZE = 20;
+      private static final Text LINE_NAME = Text.translatable("custompaintings.legacy.entry.name");
+      private static final Text LINE_DESCRIPTION = Text.translatable("custompaintings.legacy.entry.desc");
+      private static final Text LINE_FILE = Text.translatable("custompaintings.legacy.entry.file");
+      private static final Text NONE_PLACEHOLDER = Text.translatable("custompaintings.legacy.entry.emptyField")
           .formatted(Formatting.ITALIC, Formatting.GRAY);
 
       private final String legacyPackId;
@@ -409,11 +406,12 @@ public class LegacyConvertScreen extends Screen {
         layout.add(FillerWidget.empty());
 
         Status status = initialState.status;
-        this.convertButton = layout.add(new LoadingButtonWidget(0, 0, CONVERT_BUTTON_SIZE, 20, status.getButtonLabel(),
-            (button) -> convert.accept(this)
-        ));
+        this.convertButton = layout.add(
+            new LoadingButtonWidget(0, 0, CONVERT_BUTTON_SIZE, ButtonWidget.DEFAULT_HEIGHT, status.getButtonLabel(),
+                (button) -> convert.accept(this)
+            ));
         this.statusButton = layout.add(IconButtonWidget.builder(status.getTexture(), IconButtonWidget.SIZE_L)
-            .dimensions(20)
+            .dimensions(STATUS_BUTTON_SIZE)
             .tooltip(status.getTooltip())
             .onPress((button) -> {
               if (this.outPath == null) {
