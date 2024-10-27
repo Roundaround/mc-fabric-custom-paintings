@@ -54,5 +54,7 @@
   "custompaintings.main.config": "Configuration",
   "custompaintings.main.legacy": "Convert Legacy Packs",
   "custompaintings.main.reload": "Reload Packs",
+  "custompaintings.main.reload.notInWorld": "Not currently in a world",
+  "custompaintings.main.reload.notOp": "Cannot reload packs without OP permissions",
   "custompaintings.main.reloadingMessage": "Reloading painting packs"
 }

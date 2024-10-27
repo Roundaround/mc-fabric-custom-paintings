@@ -7,6 +7,7 @@ import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
 import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import me.roundaround.roundalib.client.gui.screen.ConfigScreen;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
@@ -32,9 +33,14 @@ public class MainMenuScreen extends Screen {
     this.layout.addBody(
         ButtonWidget.builder(Text.translatable("custompaintings.main.legacy"), this::navigateConvert).build());
 
-    if (this.client.world != null) {
-      this.layout.addBody(
-          ButtonWidget.builder(Text.translatable("custompaintings.main.reload"), this::reloadPacks).build());
+    ButtonWidget reloadButton = this.layout.addBody(
+        ButtonWidget.builder(Text.translatable("custompaintings.main.reload"), this::reloadPacks).build());
+    if (this.client.world == null) {
+      reloadButton.active = false;
+      reloadButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.reload.notInWorld")));
+    } else if (this.client.player != null && !this.client.player.hasPermissionLevel(2)) {
+      reloadButton.active = false;
+      reloadButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.reload.notOp")));
     }
 
     this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, this::close).build());
@@ -74,7 +80,7 @@ public class MainMenuScreen extends Screen {
 
   private void reloadPacks(ButtonWidget button) {
     assert this.client != null;
-    if (this.client.player == null) {
+    if (this.client.player == null || this.client.world == null || !this.client.player.hasPermissionLevel(2)) {
       return;
     }
 
