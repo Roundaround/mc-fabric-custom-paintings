@@ -63,7 +63,7 @@ public class LegacyConvertScreen extends Screen {
     this.setOutDir(client.isInSingleplayer());
 
     LegacyPackMigrator.getInstance()
-        .checkForLegacyPacks(client)
+        .checkForLegacyPacksAndConvertedIds(client)
         .orTimeout(30, TimeUnit.SECONDS)
         .whenCompleteAsync((result, exception) -> {
           if (exception != null) {

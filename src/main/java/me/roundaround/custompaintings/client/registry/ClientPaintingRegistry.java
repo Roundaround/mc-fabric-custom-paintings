@@ -13,6 +13,7 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
 import me.roundaround.custompaintings.resource.Image;
 import me.roundaround.custompaintings.resource.PackIcons;
+import me.roundaround.custompaintings.resource.legacy.LegacyPackMigrator;
 import me.roundaround.roundalib.client.event.MinecraftClientEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
@@ -29,7 +30,9 @@ import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class ClientPaintingRegistry extends CustomPaintingRegistry implements AutoCloseable {
   private static final Identifier PAINTING_BACK_ID = new Identifier(Identifier.DEFAULT_NAMESPACE, "back");
@@ -115,6 +118,25 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     HashMap<String, PaintingPack> packs = new HashMap<>(packsList.size());
     packsList.forEach((pack) -> packs.put(pack.id(), pack));
     this.setPacks(packs);
+
+    if (this.client.isInSingleplayer()) {
+      LegacyPackMigrator.getInstance()
+          .checkForLegacyPacks(this.client)
+          .orTimeout(30, TimeUnit.SECONDS)
+          .thenAcceptAsync((metas) -> {
+            if (this.client.player == null) {
+              return;
+            }
+
+            HashSet<String> alreadyLoaded = this.packsMap.values().stream().map(PaintingPack::legacyPackId).filter((id) -> id != null && !id.isBlank()).collect(
+                Collectors.toCollection(HashSet::new));
+            HashSet<String> potentiallyNew = metas.stream().map((meta) -> meta.id().asString()).collect(Collectors.toCollection(HashSet::new));
+            if (!alreadyLoaded.containsAll(potentiallyNew)) {
+              // TODO: Prompt with clickable actions to navigate to convert screen or ignore
+              this.client.player.sendMessage(Text.literal(""));
+            }
+          });
+    }
 
     if (combinedImageHash.equals(this.combinedImageHash)) {
       CustomPaintingsMod.LOGGER.info("Loaded painting hash matches, skipping server image download");

@@ -125,7 +125,12 @@ public class LegacyPackMigrator {
     return this.globalOutDir;
   }
 
-  public CompletableFuture<LegacyPackCheckResult> checkForLegacyPacks(MinecraftClient client) {
+  public CompletableFuture<Collection<PackMetadata>> checkForLegacyPacks(MinecraftClient client) {
+    Path resourcePackDir = client.getResourcePackDir();
+    return CompletableFuture.supplyAsync(() -> this.checkForLegacyPackMetadata(resourcePackDir), this.ioExecutor);
+  }
+
+  public CompletableFuture<LegacyPackCheckResult> checkForLegacyPacksAndConvertedIds(MinecraftClient client) {
     Path resourcePackDir = client.getResourcePackDir();
     boolean isSinglePlayer = client.isInSingleplayer();
 

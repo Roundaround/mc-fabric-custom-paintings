@@ -6,7 +6,8 @@ import net.minecraft.network.codec.PacketCodec;
 import java.util.ArrayList;
 import java.util.List;
 
-public record PaintingPack(String id, String name, String description, List<PaintingData> paintings) {
+public record PaintingPack(String id, String name, String description, String legacyPackId,
+                           List<PaintingData> paintings) {
   public static final PacketCodec<PacketByteBuf, PaintingPack> PACKET_CODEC = PacketCodec.of(
       PaintingPack::writeToPacketByteBuf, PaintingPack::fromPacketByteBuf);
 
@@ -14,6 +15,7 @@ public record PaintingPack(String id, String name, String description, List<Pain
     buf.writeString(this.id);
     buf.writeString(this.name);
     buf.writeString(this.description == null ? "" : this.description);
+    buf.writeString(this.legacyPackId == null ? "" : this.legacyPackId);
     buf.writeInt(this.paintings.size());
     this.paintings.forEach((painting) -> painting.writeToPacketByteBuf(buf));
   }
@@ -22,11 +24,12 @@ public record PaintingPack(String id, String name, String description, List<Pain
     String id = buf.readString();
     String name = buf.readString();
     String description = buf.readString();
+    String legacyPackId = buf.readString();
     int count = buf.readInt();
     List<PaintingData> paintings = new ArrayList<>(count);
     for (int i = 0; i < count; i++) {
       paintings.add(PaintingData.fromPacketByteBuf(buf));
     }
-    return new PaintingPack(id, name, description, paintings);
+    return new PaintingPack(id, name, description, legacyPackId, paintings);
   }
 }
