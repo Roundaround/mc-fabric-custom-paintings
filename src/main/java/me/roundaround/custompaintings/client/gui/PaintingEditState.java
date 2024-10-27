@@ -17,7 +17,10 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 public class PaintingEditState {
@@ -275,10 +278,10 @@ public class PaintingEditState {
 
   private Box getBoundingBox(int width, int height) {
     double posX = this.blockPos.getX() + 0.5 - this.facing.getOffsetX() * 0.46875 +
-        this.facing.rotateYCounterclockwise().getOffsetX() * this.offsetForEven(width);
+                  this.facing.rotateYCounterclockwise().getOffsetX() * this.offsetForEven(width);
     double posY = this.blockPos.getY() + 0.5 + this.offsetForEven(height);
     double posZ = this.blockPos.getZ() + 0.5 - this.facing.getOffsetZ() * 0.46875 +
-        this.facing.rotateYCounterclockwise().getOffsetZ() * this.offsetForEven(width);
+                  this.facing.rotateYCounterclockwise().getOffsetZ() * this.offsetForEven(width);
 
     double sizeX = (this.facing.getAxis() == Direction.Axis.Z ? width : 1) / 32D;
     double sizeY = height / 32D;
@@ -289,9 +292,6 @@ public class PaintingEditState {
 
   private double offsetForEven(int size) {
     return size % 32 == 0 ? 0.5 : 0;
-  }
-
-  public record Group(String id, String name, ArrayList<PaintingData> paintings) {
   }
 
   public interface StateChangedListener {
