@@ -349,7 +349,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     }
   }
 
-  void buildSpriteAtlas() {
+  private void buildSpriteAtlas() {
     this.images.entrySet().removeIf((entry) -> !this.isValidImageId(entry.getKey()));
     this.imageHashes.entrySet().removeIf((entry) -> !this.isValidImageId(entry.getKey()));
 
