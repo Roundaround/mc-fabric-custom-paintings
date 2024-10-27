@@ -61,7 +61,7 @@ public class ServerPaintingManager extends PersistentState {
       this.fixCustomName(painting);
 
       ServerNetworking.sendSetPaintingPacketToAll(
-          loadedWorld.getServer(), PaintingAssignment.from(painting.getId(), handleUnknown(painting.getCustomData())));
+          loadedWorld.getServer(), PaintingAssignment.from(painting.getId(), dataOrUnknown(painting.getCustomData())));
     });
   }
 
@@ -104,7 +104,7 @@ public class ServerPaintingManager extends PersistentState {
     List<PaintingAssignment> assignments = this.allPaintings.entrySet().stream().map((entry) -> {
       UUID id = entry.getKey();
       PaintingData data = entry.getValue();
-      return PaintingAssignment.from(this.networkIds.get(id), handleUnknown(data));
+      return PaintingAssignment.from(this.networkIds.get(id), dataOrUnknown(data));
     }).toList();
     ServerNetworking.sendSyncAllDataPacket(player, assignments);
   }
@@ -119,7 +119,7 @@ public class ServerPaintingManager extends PersistentState {
     painting.setCustomData(data);
     if (this.setTrackedData(painting.getUuid(), painting.getId(), data)) {
       ServerNetworking.sendSetPaintingPacketToAll(
-          this.world.getServer(), PaintingAssignment.from(painting.getId(), handleUnknown(data)));
+          this.world.getServer(), PaintingAssignment.from(painting.getId(), dataOrUnknown(data)));
     }
   }
 
@@ -181,7 +181,7 @@ public class ServerPaintingManager extends PersistentState {
     return false;
   }
 
-  private static PaintingData handleUnknown(PaintingData data) {
+  private static PaintingData dataOrUnknown(PaintingData data) {
     if (data == null || data.isUnknown()) {
       return data;
     }
