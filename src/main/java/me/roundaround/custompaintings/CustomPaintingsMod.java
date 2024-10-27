@@ -2,7 +2,6 @@ package me.roundaround.custompaintings;
 
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
-import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.registry.VanillaPaintingRegistry;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
@@ -16,8 +15,6 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
-import net.minecraft.entity.data.TrackedDataHandler;
-import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -30,8 +27,6 @@ import java.util.UUID;
 public final class CustomPaintingsMod implements ModInitializer {
   public static final String MOD_ID = "custompaintings";
   public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
-  public static final TrackedDataHandler<PaintingData> CUSTOM_PAINTING_DATA_HANDLER = TrackedDataHandler.create(
-      PaintingData.PACKET_CODEC);
 
   private static UUID serverId = null;
 
@@ -43,7 +38,6 @@ public final class CustomPaintingsMod implements ModInitializer {
     Networking.registerS2CPayloads();
     Networking.registerC2SPayloads();
 
-    TrackedDataHandlerRegistry.register(CUSTOM_PAINTING_DATA_HANDLER);
     ServerNetworking.registerReceivers();
 
     CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
