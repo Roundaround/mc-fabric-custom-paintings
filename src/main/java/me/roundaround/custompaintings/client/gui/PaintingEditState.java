@@ -1,8 +1,8 @@
 package me.roundaround.custompaintings.client.gui;
 
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
-import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
+import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.registry.VanillaPaintingRegistry;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.AbstractRedstoneGateBlock;
@@ -218,7 +218,8 @@ public class PaintingEditState {
         .map((mod) -> mod.getMetadata().getName())
         .orElse("Minecraft");
     List<PaintingData> paintings = VanillaPaintingRegistry.getInstance().getAll(VanillaPaintingRegistry.Placeable.YES);
-    this.allPaintings.put(id, new PackData(id, name, "Paintings included in vanilla Minecraft.", null, paintings));
+    this.allPaintings.put(
+        id, new PackData(id, name, "Paintings included in vanilla Minecraft.", null, paintings, List.of()));
   }
 
   protected void createUnplaceableVanillaPack() {
@@ -226,7 +227,7 @@ public class PaintingEditState {
     String name = "Minecraft: The Hidden Ones";
     List<PaintingData> paintings = VanillaPaintingRegistry.getInstance().getAll(VanillaPaintingRegistry.Placeable.NO);
     this.allPaintings.put(id,
-        new PackData(id, name, "Vanilla paintings that aren't normally placeable!", null, paintings)
+        new PackData(id, name, "Vanilla paintings that aren't normally placeable!", null, paintings, List.of())
     );
   }
 
