@@ -196,4 +196,10 @@ public class ServerPaintingManager extends PersistentState {
         .getPlayerList()
         .forEach((player) -> getInstance(player.getServerWorld()).syncAllDataForPlayer(player));
   }
+
+  public static void runMigration(ServerPlayerEntity sourcePlayer) {
+    if (sourcePlayer == null || !sourcePlayer.hasPermissionLevel(2)) {
+      return;
+    }
+  }
 }

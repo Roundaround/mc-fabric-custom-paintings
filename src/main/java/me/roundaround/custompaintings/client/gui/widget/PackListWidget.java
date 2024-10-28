@@ -1,7 +1,7 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
-import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
+import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.resource.PackIcons;
 import me.roundaround.roundalib.client.gui.GuiUtil;
 import me.roundaround.roundalib.client.gui.layout.linear.LinearLayoutWidget;
@@ -34,7 +34,7 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
     this.onPackSelect = onPackSelect;
   }
 
-  public void setGroups(Collection<PaintingPack> packs) {
+  public void setGroups(Collection<PackData> packs) {
     this.clearEntries();
     packs.forEach((pack) -> this.addEntry(this.getEntryFactory(this.client.textRenderer, this.onPackSelect, pack)));
   }
@@ -53,7 +53,7 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
     return super.keyPressed(keyCode, scanCode, modifiers);
   }
 
-  private EntryFactory<Entry> getEntryFactory(TextRenderer textRenderer, Consumer<String> onSelect, PaintingPack pack) {
+  private EntryFactory<Entry> getEntryFactory(TextRenderer textRenderer, Consumer<String> onSelect, PackData pack) {
     return (index, left, top, width) -> new Entry(textRenderer, onSelect, pack, index, left, top, width);
   }
 
@@ -62,10 +62,10 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
     protected static final int HEIGHT = 36;
 
     private final Consumer<String> onSelect;
-    private final PaintingPack pack;
+    private final PackData pack;
 
     public Entry(
-        TextRenderer textRenderer, Consumer<String> onSelect, PaintingPack pack, int index, int left, int top, int width
+        TextRenderer textRenderer, Consumer<String> onSelect, PackData pack, int index, int left, int top, int width
     ) {
       super(index, left, top, width, HEIGHT);
       this.onSelect = onSelect;

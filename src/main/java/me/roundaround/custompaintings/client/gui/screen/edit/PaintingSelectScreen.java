@@ -5,7 +5,7 @@ import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.widget.PaintingSpriteWidget;
 import me.roundaround.custompaintings.client.gui.widget.PaintingListWidget;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
+import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.roundalib.asset.icon.BuiltinIcon;
 import me.roundaround.roundalib.client.gui.GuiUtil;
 import me.roundaround.roundalib.client.gui.layout.FillerWidget;
@@ -258,7 +258,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
   }
 
   private void saveCurrentSelection() {
-    PaintingPack currentPack = this.state.getCurrentPack();
+    PackData currentPack = this.state.getCurrentPack();
     PaintingData currentPainting = this.state.getCurrentPainting();
     if (currentPack == null || currentPainting == null) {
       this.saveEmpty();
@@ -287,7 +287,7 @@ public class PaintingSelectScreen extends PaintingEditScreen implements Painting
       return Text.empty();
     }
 
-    PaintingPack currentPack = this.state.getCurrentPack();
+    PackData currentPack = this.state.getCurrentPack();
     int currentPaintingIndex = currentPack.paintings().indexOf(this.state.getCurrentPainting());
     return Text.translatable("custompaintings.painting.number", currentPaintingIndex + 1,
         currentPack.paintings().size()

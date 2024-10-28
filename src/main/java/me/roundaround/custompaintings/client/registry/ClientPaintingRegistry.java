@@ -10,7 +10,7 @@ import me.roundaround.custompaintings.client.texture.VanillaIconSprite;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
+import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
 import me.roundaround.custompaintings.resource.Image;
 import me.roundaround.custompaintings.resource.PackIcons;
@@ -111,14 +111,14 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     return this.getSprite(data.id());
   }
 
-  public Map<String, PaintingPack> getPacks() {
+  public Map<String, PackData> getPacks() {
     return Map.copyOf(this.packsMap);
   }
 
-  public void processSummary(List<PaintingPack> packsList, UUID serverId, String combinedImageHash) {
+  public void processSummary(List<PackData> packsList, UUID serverId, String combinedImageHash) {
     boolean first = this.packsMap.isEmpty();
 
-    HashMap<String, PaintingPack> packs = new HashMap<>(packsList.size());
+    HashMap<String, PackData> packs = new HashMap<>(packsList.size());
     packsList.forEach((pack) -> packs.put(pack.id(), pack));
     this.setPacks(packs);
 
@@ -158,7 +158,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
 
           HashSet<String> alreadyLoaded = this.packsMap.values()
               .stream()
-              .map(PaintingPack::legacyPackId)
+              .map(PackData::legacyPackId)
               .filter((id) -> id != null && !id.isBlank())
               .collect(Collectors.toCollection(HashSet::new));
           HashSet<String> legacyPacks = metas.stream()

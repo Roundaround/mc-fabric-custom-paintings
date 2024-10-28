@@ -3,7 +3,7 @@ package me.roundaround.custompaintings.server.registry;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
+import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
 import me.roundaround.custompaintings.resource.Image;
 import me.roundaround.custompaintings.resource.PackIcons;
@@ -140,7 +140,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     }
 
     try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(packsDir)) {
-      HashMap<String, PaintingPack> packs = new HashMap<>();
+      HashMap<String, PackData> packs = new HashMap<>();
       HashMap<Identifier, Image> images = new HashMap<>();
       directoryStream.forEach((path) -> {
         PackReadResult result = readAsPack(path);
@@ -373,7 +373,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
   private record PackReadResult(PackResource pack, HashMap<Identifier, Image> images) {
   }
 
-  private record LoadResult(HashMap<String, PaintingPack> packs, HashMap<Identifier, Image> images) {
+  private record LoadResult(HashMap<String, PackData> packs, HashMap<Identifier, Image> images) {
     public static LoadResult empty() {
       return new LoadResult(new HashMap<>(0), new HashMap<>(0));
     }

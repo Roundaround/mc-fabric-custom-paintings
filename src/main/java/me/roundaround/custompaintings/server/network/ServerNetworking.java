@@ -1,7 +1,7 @@
 package me.roundaround.custompaintings.server.network;
 
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
+import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.network.PaintingAssignment;
 import me.roundaround.custompaintings.server.CustomPaintingsServerMod;
@@ -26,12 +26,12 @@ public final class ServerNetworking {
   }
 
   public static void sendSummaryPacketToAll(
-      MinecraftServer server, List<PaintingPack> packs, String combinedImageHash
+      MinecraftServer server, List<PackData> packs, String combinedImageHash
   ) {
     server.getPlayerManager().getPlayerList().forEach((player) -> sendSummaryPacket(player, packs, combinedImageHash));
   }
 
-  public static void sendSummaryPacket(ServerPlayerEntity player, List<PaintingPack> packs, String combinedImageHash) {
+  public static void sendSummaryPacket(ServerPlayerEntity player, List<PackData> packs, String combinedImageHash) {
     if (!ServerPlayNetworking.canSend(player, Networking.SUMMARY_S2C)) {
       player.sendMessage(CustomPaintingsServerMod.getDownloadPrompt());
       return;

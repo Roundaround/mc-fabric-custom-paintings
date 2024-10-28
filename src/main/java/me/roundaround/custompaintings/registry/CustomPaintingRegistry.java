@@ -3,7 +3,7 @@ package me.roundaround.custompaintings.registry;
 import com.google.common.hash.Hashing;
 import com.google.common.io.ByteSource;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
+import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.resource.Image;
 import net.minecraft.util.Identifier;
 
@@ -14,8 +14,8 @@ import java.util.LinkedHashMap;
 import java.util.TreeSet;
 
 public abstract class CustomPaintingRegistry implements AutoCloseable {
-  protected final LinkedHashMap<String, PaintingPack> packsMap = new LinkedHashMap<>();
-  protected final ArrayList<PaintingPack> packsList = new ArrayList<>();
+  protected final LinkedHashMap<String, PackData> packsMap = new LinkedHashMap<>();
+  protected final ArrayList<PackData> packsList = new ArrayList<>();
   protected final HashMap<Identifier, PaintingData> paintings = new HashMap<>();
   protected final HashMap<Identifier, Image> images = new HashMap<>();
   protected final HashMap<Identifier, String> imageHashes = new HashMap<>();
@@ -51,7 +51,7 @@ public abstract class CustomPaintingRegistry implements AutoCloseable {
     this.combinedImageHash = "";
   }
 
-  public void setPacks(HashMap<String, PaintingPack> packsMap) {
+  public void setPacks(HashMap<String, PackData> packsMap) {
     this.packsMap.clear();
     this.packsList.clear();
     this.paintings.clear();

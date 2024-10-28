@@ -2,7 +2,7 @@ package me.roundaround.custompaintings.client.gui;
 
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
+import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.registry.VanillaPaintingRegistry;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.AbstractRedstoneGateBlock;
@@ -25,14 +25,14 @@ import java.util.function.Predicate;
 
 public class PaintingEditState {
   private final MinecraftClient client;
-  private final HashMap<String, PaintingPack> allPaintings = new HashMap<>();
+  private final HashMap<String, PackData> allPaintings = new HashMap<>();
   private final HashMap<String, Boolean> canStayHashMap = new HashMap<>();
   private final int paintingId;
   private final BlockPos blockPos;
   private final Direction facing;
   private final FiltersState filtersState;
 
-  private PaintingPack currentPack = null;
+  private PackData currentPack = null;
   private PaintingData currentPainting = PaintingData.EMPTY;
   private List<PaintingData> currentPaintings = List.of();
   private StateChangedListener stateChangedListener = null;
@@ -69,7 +69,7 @@ public class PaintingEditState {
     return this.filtersState;
   }
 
-  public Collection<PaintingPack> getPacks() {
+  public Collection<PackData> getPacks() {
     return this.allPaintings.values();
   }
 
@@ -151,7 +151,7 @@ public class PaintingEditState {
     return this.paintingId;
   }
 
-  public PaintingPack getCurrentPack() {
+  public PackData getCurrentPack() {
     return this.currentPack;
   }
 
@@ -166,7 +166,7 @@ public class PaintingEditState {
     this.setCurrentPack(this.allPaintings.get(id));
   }
 
-  public void setCurrentPack(PaintingPack pack) {
+  public void setCurrentPack(PackData pack) {
     this.currentPack = pack;
     this.updatePaintingList();
   }
@@ -218,7 +218,7 @@ public class PaintingEditState {
         .map((mod) -> mod.getMetadata().getName())
         .orElse("Minecraft");
     List<PaintingData> paintings = VanillaPaintingRegistry.getInstance().getAll(VanillaPaintingRegistry.Placeable.YES);
-    this.allPaintings.put(id, new PaintingPack(id, name, "Paintings included in vanilla Minecraft.", null, paintings));
+    this.allPaintings.put(id, new PackData(id, name, "Paintings included in vanilla Minecraft.", null, paintings));
   }
 
   protected void createUnplaceableVanillaPack() {
@@ -226,7 +226,7 @@ public class PaintingEditState {
     String name = "Minecraft: The Hidden Ones";
     List<PaintingData> paintings = VanillaPaintingRegistry.getInstance().getAll(VanillaPaintingRegistry.Placeable.NO);
     this.allPaintings.put(id,
-        new PaintingPack(id, name, "Vanilla paintings that aren't normally placeable!", null, paintings)
+        new PackData(id, name, "Vanilla paintings that aren't normally placeable!", null, paintings)
     );
   }
 

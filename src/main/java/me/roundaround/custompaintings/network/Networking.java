@@ -1,7 +1,7 @@
 package me.roundaround.custompaintings.network;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
+import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.resource.Image;
 import me.roundaround.roundalib.network.CustomCodecs;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
@@ -56,10 +56,10 @@ public final class Networking {
     PayloadTypeRegistry.playC2S().register(SetPaintingC2S.ID, SetPaintingC2S.CODEC);
   }
 
-  public record SummaryS2C(UUID serverId, List<PaintingPack> packs, String combinedImageHash) implements CustomPayload {
+  public record SummaryS2C(UUID serverId, List<PackData> packs, String combinedImageHash) implements CustomPayload {
     public static final Id<SummaryS2C> ID = new Id<>(SUMMARY_S2C);
     public static final PacketCodec<RegistryByteBuf, SummaryS2C> CODEC = PacketCodec.tuple(Uuids.PACKET_CODEC,
-        SummaryS2C::serverId, CustomCodecs.forList(PaintingPack.PACKET_CODEC), SummaryS2C::packs, PacketCodecs.STRING,
+        SummaryS2C::serverId, CustomCodecs.forList(PackData.PACKET_CODEC), SummaryS2C::packs, PacketCodecs.STRING,
         SummaryS2C::combinedImageHash, SummaryS2C::new
     );
 
