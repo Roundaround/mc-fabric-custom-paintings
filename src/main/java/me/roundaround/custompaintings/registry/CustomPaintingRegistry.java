@@ -2,6 +2,7 @@ package me.roundaround.custompaintings.registry;
 
 import com.google.common.hash.Hashing;
 import com.google.common.io.ByteSource;
+import me.roundaround.custompaintings.entity.decoration.painting.MigrationData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.resource.Image;
@@ -17,6 +18,7 @@ public abstract class CustomPaintingRegistry implements AutoCloseable {
   protected final LinkedHashMap<String, PackData> packsMap = new LinkedHashMap<>();
   protected final ArrayList<PackData> packsList = new ArrayList<>();
   protected final HashMap<Identifier, PaintingData> paintings = new HashMap<>();
+  protected final HashMap<Identifier, MigrationData> migrations = new HashMap<>();
   protected final HashMap<Identifier, Image> images = new HashMap<>();
   protected final HashMap<Identifier, String> imageHashes = new HashMap<>();
 
@@ -37,15 +39,12 @@ public abstract class CustomPaintingRegistry implements AutoCloseable {
     return this.paintings.get(id);
   }
 
-  public Image getImage(Identifier id) {
-    return this.images.get(id);
-  }
-
   @Override
   public void close() {
     this.packsMap.clear();
     this.packsList.clear();
     this.paintings.clear();
+    this.migrations.clear();
     this.images.clear();
     this.imageHashes.clear();
     this.combinedImageHash = "";
@@ -55,12 +54,16 @@ public abstract class CustomPaintingRegistry implements AutoCloseable {
     this.packsMap.clear();
     this.packsList.clear();
     this.paintings.clear();
+    this.migrations.clear();
 
     this.packsMap.putAll(packsMap);
     this.packsMap.forEach((id, pack) -> {
       this.packsList.add(pack);
       pack.paintings().forEach((painting) -> {
         this.paintings.put(painting.id(), painting);
+      });
+      pack.migrations().forEach((migration) -> {
+        this.migrations.put(migration.id(), migration);
       });
     });
 

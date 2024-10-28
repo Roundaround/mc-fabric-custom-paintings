@@ -1,6 +1,7 @@
 package me.roundaround.custompaintings.server;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.entity.decoration.painting.MigrationData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.network.PaintingAssignment;
 import me.roundaround.custompaintings.registry.VanillaPaintingRegistry;
@@ -18,6 +19,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.world.PersistentState;
 
+import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
@@ -31,6 +33,7 @@ public class ServerPaintingManager extends PersistentState {
   private final UUID serverId;
   private final HashMap<UUID, PaintingData> allPaintings = new HashMap<>();
   private final HashMap<UUID, Integer> networkIds = new HashMap<>();
+  private final ArrayDeque<MigrationData> runMigrations = new ArrayDeque<>();
 
   public static void init(ServerWorld world) {
     // Just getting the instance also creates/initializes it
@@ -59,6 +62,7 @@ public class ServerPaintingManager extends PersistentState {
       }
       this.loadPainting(painting);
       this.fixCustomName(painting);
+      // TODO: this.runThroughMigrations(painting);
 
       ServerNetworking.sendSetPaintingPacketToAll(
           loadedWorld.getServer(), PaintingAssignment.from(painting.getId(), dataOrUnknown(painting.getCustomData())));
@@ -197,9 +201,23 @@ public class ServerPaintingManager extends PersistentState {
         .forEach((player) -> getInstance(player.getServerWorld()).syncAllDataForPlayer(player));
   }
 
-  public static void runMigration(ServerPlayerEntity sourcePlayer) {
+  public static void runMigration(ServerPlayerEntity sourcePlayer, MigrationData migration) {
     if (sourcePlayer == null || !sourcePlayer.hasPermissionLevel(2)) {
       return;
     }
+
+    MinecraftServer server = sourcePlayer.getServer();
+    if (server == null || !server.isRunning()) {
+      return;
+    }
+
+    server.getWorlds().forEach((world) -> {
+      ServerPaintingManager.getInstance(world).runMigrations.push(migration);
+      migration.pairs().forEach((from, to) -> {
+        // TODO: getAllPaintings(world, from).forEach(convert(to))
+      });
+    });
+
+    syncAllDataForAllPlayers(server);
   }
 }
