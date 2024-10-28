@@ -4,8 +4,11 @@ import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
+import me.roundaround.roundalib.client.gui.GuiUtil;
 import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import me.roundaround.roundalib.client.gui.screen.ConfigScreen;
+import me.roundaround.roundalib.client.gui.widget.drawable.LabelWidget;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -13,6 +16,8 @@ import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 
 public class MainMenuScreen extends Screen {
+  private static final int BUTTON_WIDTH = ButtonWidget.field_49479;
+
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
   private final Screen parent;
 
@@ -27,14 +32,17 @@ public class MainMenuScreen extends Screen {
 
     this.layout.addHeader(this.textRenderer, this.title);
 
-    this.layout.getBody().mainAxisContentAlignStart();
-    this.layout.addBody(
-        ButtonWidget.builder(Text.translatable("custompaintings.main.config"), this::navigateConfig).build());
-    this.layout.addBody(
-        ButtonWidget.builder(Text.translatable("custompaintings.main.legacy"), this::navigateConvert).build());
+    this.layout.addBody(ButtonWidget.builder(Text.translatable("custompaintings.main.config"), this::navigateConfig)
+        .width(BUTTON_WIDTH)
+        .build());
+    this.layout.addBody(ButtonWidget.builder(Text.translatable("custompaintings.main.legacy"), this::navigateConvert)
+        .width(BUTTON_WIDTH)
+        .build());
 
     ButtonWidget reloadButton = this.layout.addBody(
-        ButtonWidget.builder(Text.translatable("custompaintings.main.reload"), this::reloadPacks).build());
+        ButtonWidget.builder(Text.translatable("custompaintings.main.reload"), this::reloadPacks)
+            .width(BUTTON_WIDTH)
+            .build());
     if (this.client.world == null) {
       reloadButton.active = false;
       reloadButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.reload.notInWorld")));
@@ -43,7 +51,18 @@ public class MainMenuScreen extends Screen {
       reloadButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.reload.notOp")));
     }
 
-    this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, this::close).build());
+    this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, this::close).width(BUTTON_WIDTH).build());
+
+    FabricLoader.getInstance().getModContainer(CustomPaintingsMod.MOD_ID).ifPresent((mod) -> {
+      Text version = Text.of("v" + mod.getMetadata().getVersion().getFriendlyString());
+      this.layout.addNonPositioned(LabelWidget.builder(this.textRenderer, version)
+          .hideBackground()
+          .showShadow()
+          .alignSelfRight()
+          .alignSelfBottom()
+          .alignTextRight()
+          .build(), (parent, self) -> self.setPosition(this.width - GuiUtil.PADDING, this.height - GuiUtil.PADDING));
+    });
 
     this.layout.forEachChild(this::addDrawableChild);
     this.initTabNavigation();
