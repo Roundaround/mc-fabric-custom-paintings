@@ -21,6 +21,7 @@ public class CustomPaintingsPerWorldConfig extends ModConfigImpl implements Worl
   public IntConfigOption maxImagePacketsPerSecond;
   public IntConfigOption maxPerClientImagePacketsPerSecond;
   public IntConfigOption maxImagePacketSize;
+  public BooleanConfigOption silenceConvertPrompt;
 
   private CustomPaintingsPerWorldConfig() {
     super(CustomPaintingsMod.MOD_ID, "world");
@@ -49,5 +50,10 @@ public class CustomPaintingsPerWorldConfig extends ModConfigImpl implements Worl
         .setStep(64)
         .setMinValue(0)
         .build()).serverOnly().commit();
+
+    this.silenceConvertPrompt = this.buildRegistration(
+            BooleanConfigOption.yesNoBuilder(ConfigPath.of("silenceConvertPrompt")).setDefaultValue(false).build())
+        .singlePlayerOnly()
+        .commit();
   }
 }

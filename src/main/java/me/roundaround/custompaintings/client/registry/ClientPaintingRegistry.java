@@ -8,6 +8,7 @@ import me.roundaround.custompaintings.client.texture.BasicTextureSprite;
 import me.roundaround.custompaintings.client.texture.LoadingSprite;
 import me.roundaround.custompaintings.client.texture.VanillaIconSprite;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
+import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingPack;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
@@ -22,7 +23,9 @@ import net.minecraft.client.resource.metadata.AnimationResourceMetadata;
 import net.minecraft.client.texture.*;
 import net.minecraft.registry.Registries;
 import net.minecraft.resource.metadata.ResourceMetadata;
+import net.minecraft.text.ClickEvent;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 
@@ -119,24 +122,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     packsList.forEach((pack) -> packs.put(pack.id(), pack));
     this.setPacks(packs);
 
-    if (this.client.isInSingleplayer()) {
-      LegacyPackMigrator.getInstance()
-          .checkForLegacyPacks(this.client)
-          .orTimeout(30, TimeUnit.SECONDS)
-          .thenAcceptAsync((metas) -> {
-            if (this.client.player == null) {
-              return;
-            }
-
-            HashSet<String> alreadyLoaded = this.packsMap.values().stream().map(PaintingPack::legacyPackId).filter((id) -> id != null && !id.isBlank()).collect(
-                Collectors.toCollection(HashSet::new));
-            HashSet<String> potentiallyNew = metas.stream().map((meta) -> meta.id().asString()).collect(Collectors.toCollection(HashSet::new));
-            if (!alreadyLoaded.containsAll(potentiallyNew)) {
-              // TODO: Prompt with clickable actions to navigate to convert screen or ignore
-              this.client.player.sendMessage(Text.literal(""));
-            }
-          });
-    }
+    this.checkAndPromptForLegacyPacks();
 
     if (combinedImageHash.equals(this.combinedImageHash)) {
       CustomPaintingsMod.LOGGER.info("Loaded painting hash matches, skipping server image download");
@@ -154,6 +140,49 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
 
     CompletableFuture.supplyAsync(() -> this.readCache(serverId), Util.getIoWorkerExecutor())
         .thenAcceptAsync((cacheRead) -> this.postCacheRead(cacheRead, combinedImageHash), this.client);
+  }
+
+  private void checkAndPromptForLegacyPacks() {
+    if (!this.client.isInSingleplayer() || CustomPaintingsConfig.getInstance().silenceAllConvertPrompts.getValue() ||
+        CustomPaintingsPerWorldConfig.getInstance().silenceConvertPrompt.getValue()) {
+      return;
+    }
+
+    LegacyPackMigrator.getInstance()
+        .checkForLegacyPacks(this.client)
+        .orTimeout(30, TimeUnit.SECONDS)
+        .thenAcceptAsync((metas) -> {
+          if (this.client.player == null) {
+            return;
+          }
+
+          HashSet<String> alreadyLoaded = this.packsMap.values()
+              .stream()
+              .map(PaintingPack::legacyPackId)
+              .filter((id) -> id != null && !id.isBlank())
+              .collect(Collectors.toCollection(HashSet::new));
+          HashSet<String> legacyPacks = metas.stream()
+              .map((meta) -> meta.id().asString())
+              .collect(Collectors.toCollection(HashSet::new));
+          legacyPacks.removeAll(alreadyLoaded);
+
+          if (!legacyPacks.isEmpty()) {
+            Text ignoreLink = Text.translatable("custompaintings.legacy.prompt.ignore")
+                .styled((style) -> style.withColor(Formatting.LIGHT_PURPLE)
+                    .withItalic(true)
+                    .withUnderline(true)
+                    .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, CustomPaintingsMod.MSG_CMD_IGNORE)));
+            Text openScreenLink = Text.translatable("custompaintings.legacy.prompt.openConvertScreen")
+                .styled((style) -> style.withColor(Formatting.LIGHT_PURPLE)
+                    .withItalic(true)
+                    .withUnderline(true)
+                    .withClickEvent(
+                        new ClickEvent(ClickEvent.Action.RUN_COMMAND, CustomPaintingsMod.MSG_CMD_OPEN_CONVERT_SCREEN)));
+
+            this.client.player.sendMessage(
+                Text.translatable("custompaintings.legacy.prompt", legacyPacks.size(), ignoreLink, openScreenLink));
+          }
+        }, this.client);
   }
 
   private CacheRead readCache(UUID serverId) {
