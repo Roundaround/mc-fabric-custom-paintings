@@ -168,13 +168,11 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
 
           if (!legacyPacks.isEmpty()) {
             Text ignoreLink = Text.translatable("custompaintings.legacy.prompt.ignore")
-                .styled((style) -> style.withColor(Formatting.LIGHT_PURPLE)
-                    .withItalic(true)
+                .styled((style) -> style.withColor(Formatting.BLUE)
                     .withUnderline(true)
                     .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, CustomPaintingsMod.MSG_CMD_IGNORE)));
             Text openScreenLink = Text.translatable("custompaintings.legacy.prompt.openConvertScreen")
-                .styled((style) -> style.withColor(Formatting.LIGHT_PURPLE)
-                    .withItalic(true)
+                .styled((style) -> style.withColor(Formatting.BLUE)
                     .withUnderline(true)
                     .withClickEvent(
                         new ClickEvent(ClickEvent.Action.RUN_COMMAND, CustomPaintingsMod.MSG_CMD_OPEN_CONVERT_SCREEN)));
