@@ -5,10 +5,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.texture.LoadingSprite;
-import me.roundaround.custompaintings.resource.Image;
-import me.roundaround.custompaintings.resource.PackIcons;
-import me.roundaround.custompaintings.resource.PackResource;
-import me.roundaround.custompaintings.resource.PaintingResource;
+import me.roundaround.custompaintings.resource.*;
 import me.roundaround.roundalib.util.PathAccessor;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
@@ -181,9 +178,9 @@ public class LegacyPackMigrator {
 
           String legacyPackId = null;
           if (fileAttributes.isDirectory()) {
-            legacyPackId = readLegacyPackIdFromDirectory(path);
+            legacyPackId = this.readLegacyPackIdFromDirectory(path);
           } else if (fileAttributes.isRegularFile()) {
-            legacyPackId = readLegacyPackIdFromZip(path);
+            legacyPackId = this.readLegacyPackIdFromZip(path);
           }
 
           if (legacyPackId != null) {
@@ -255,6 +252,7 @@ public class LegacyPackMigrator {
       LegacyPackResource legacyPack = metadata.pack();
       HashMap<Identifier, Image> images = readPaintingImages(legacyPack);
       HashMap<String, PaintingResource> paintings = new HashMap<>();
+      HashMap<String, MigrationResource> migrations = new HashMap<>();
 
       legacyPack.paintings().forEach((legacyPainting) -> {
         paintings.put(legacyPainting.id(),
@@ -265,8 +263,17 @@ public class LegacyPackMigrator {
       });
       paintings.keySet().removeIf(paintingId -> !images.containsKey(new Identifier(legacyPack.packId(), paintingId)));
 
+      legacyPack.migrations().forEach((legacyMigration) -> {
+        List<MigrationPair<String>> pairs = legacyMigration.pairs()
+            .stream()
+            .map((legacyPair) -> new MigrationPair<>(legacyPair.getLeft(), legacyPair.getRight()))
+            .toList();
+        migrations.put(
+            legacyMigration.id(), new MigrationResource(legacyMigration.id(), legacyMigration.description(), pairs));
+      });
+
       PackResource pack = new PackResource(1, legacyPack.packId(), legacyPack.name(), legacyPack.description(),
-          metadata.id().asString(), new ArrayList<>(paintings.values())
+          metadata.id().asString(), new ArrayList<>(paintings.values()), new ArrayList<>(migrations.values())
       );
 
       try {
