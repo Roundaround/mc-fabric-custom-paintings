@@ -36,7 +36,9 @@ public class LegacyPackMigrator {
   private static final String PACK_MCMETA = "pack.mcmeta";
   private static final String PACK_PNG = "pack.png";
   private static final String ICON_PNG = "icon.png";
-  private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+  private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
+      .registerTypeAdapterFactory(EmptyListTypeAdapterFactory.getInstance())
+      .create();
 
   private static LegacyPackMigrator instance = null;
 
@@ -273,7 +275,7 @@ public class LegacyPackMigrator {
       });
 
       PackResource pack = new PackResource(1, legacyPack.packId(), legacyPack.name(), legacyPack.description(),
-          metadata.id().asString(), new ArrayList<>(paintings.values()), new ArrayList<>(migrations.values())
+          metadata.id().asString(), List.copyOf(paintings.values()), List.copyOf(migrations.values())
       );
 
       try {

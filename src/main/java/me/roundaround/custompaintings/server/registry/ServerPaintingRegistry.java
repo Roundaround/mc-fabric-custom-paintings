@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
+import me.roundaround.custompaintings.resource.EmptyListTypeAdapterFactory;
 import me.roundaround.custompaintings.resource.Image;
 import me.roundaround.custompaintings.resource.PackIcons;
 import me.roundaround.custompaintings.resource.PackResource;
@@ -42,7 +43,9 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
   private static final String LOG_MISSING_PAINTING = "Missing custom painting image file for {}";
   private static final String LOG_LARGE_IMAGE = "Image file for {} is too large, skipping";
   private static final String LOG_PAINTING_READ_FAIL = "Failed to read custom painting image file for {}";
-  private static final Gson GSON = new GsonBuilder().create();
+  private static final Gson GSON = new GsonBuilder().registerTypeAdapterFactory(
+          EmptyListTypeAdapterFactory.getInstance())
+      .create();
   private static final int MAX_SIZE = 1 << 24;
 
   private static ServerPaintingRegistry instance = null;
@@ -166,7 +169,8 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
   private static PackReadResult readAsPack(Path path) {
     try {
-      BasicFileAttributes fileAttributes = Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+      BasicFileAttributes fileAttributes = Files.readAttributes(
+          path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
 
       if (fileAttributes.isDirectory()) {
         return readDirectoryAsPack(path);
