@@ -39,14 +39,25 @@ public class MainMenuScreen extends Screen {
         .width(BUTTON_WIDTH)
         .build());
 
+    ButtonWidget migrationsButton = this.layout.addBody(
+        ButtonWidget.builder(Text.translatable("custompaintings.main.migrate"), this::navigateMigrate)
+            .width(BUTTON_WIDTH)
+            .build());
     ButtonWidget reloadButton = this.layout.addBody(
         ButtonWidget.builder(Text.translatable("custompaintings.main.reload"), this::reloadPacks)
             .width(BUTTON_WIDTH)
             .build());
+
     if (this.client.world == null) {
+      migrationsButton.active = false;
+      migrationsButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.migrate.notInWorld")));
+
       reloadButton.active = false;
       reloadButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.reload.notInWorld")));
     } else if (this.client.player != null && !this.client.player.hasPermissionLevel(2)) {
+      migrationsButton.active = false;
+      migrationsButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.migrate.notOp")));
+
       reloadButton.active = false;
       reloadButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.reload.notOp")));
     }
@@ -95,6 +106,11 @@ public class MainMenuScreen extends Screen {
   private void navigateConvert(ButtonWidget button) {
     assert this.client != null;
     this.client.setScreen(new LegacyConvertScreen(this.client, this));
+  }
+
+  private void navigateMigrate(ButtonWidget button) {
+    assert this.client != null;
+    this.client.setScreen(new MigrationsScreen(this));
   }
 
   private void reloadPacks(ButtonWidget button) {
