@@ -25,7 +25,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Mixin(PaintingEntity.class)
-@SuppressWarnings("AddedMixinMembersNamePattern")
 public abstract class PaintingEntityMixin extends AbstractDecorationEntity implements ExpandedPaintingEntity {
   @Unique
   private PaintingData paintingData = PaintingData.EMPTY;

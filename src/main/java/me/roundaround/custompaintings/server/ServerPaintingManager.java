@@ -8,7 +8,6 @@ import me.roundaround.custompaintings.registry.VanillaPaintingRegistry;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
-import net.minecraft.entity.EntityType;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
@@ -21,10 +20,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.PersistentState;
 
-import java.util.ArrayDeque;
-import java.util.HashMap;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class ServerPaintingManager extends PersistentState {
   private static final String NBT_SERVER_ID = "ServerId";
@@ -35,7 +31,6 @@ public class ServerPaintingManager extends PersistentState {
   private final UUID serverId;
   private final HashMap<UUID, PaintingData> allPaintings = new HashMap<>();
   private final HashMap<UUID, Integer> networkIds = new HashMap<>();
-  private final ArrayDeque<MigrationData> runMigrations = new ArrayDeque<>();
 
   public static void init(ServerWorld world) {
     // Just getting the instance also creates/initializes it
@@ -64,7 +59,6 @@ public class ServerPaintingManager extends PersistentState {
       }
       this.loadPainting(painting);
       this.fixCustomName(painting);
-      this.runThroughMigrations(painting);
 
       ServerNetworking.sendSetPaintingPacketToAll(
           loadedWorld.getServer(), PaintingAssignment.from(painting.getId(), dataOrUnknown(painting.getCustomData())));
@@ -177,26 +171,21 @@ public class ServerPaintingManager extends PersistentState {
     }
   }
 
-  private void runThroughMigrations(PaintingEntity painting) {
-    Identifier id = painting.getCustomData().id();
-    if (id == null) {
-      return;
+  private boolean setTrackedData(UUID paintingUuid, Integer paintingId, PaintingData data) {
+    if (paintingId != null) {
+      this.networkIds.put(paintingUuid, paintingId);
     }
 
-    // TODO: Keep a full queue of all the ids, in case any are undefined by the current packs, then walk backward
-    //  until we find the first defined one.
-    Wrapper<Identifier> currentId = new Wrapper<>(id);
-    this.runMigrations.forEach((migration) -> {
-      migration.pairs().forEach((from, to) -> {
-        if (currentId.get().equals(from)) {
-          currentId.set(to);
-        }
-      });
-    });
+    PaintingData previousData = this.allPaintings.put(paintingUuid, data);
+    if (previousData == null || !previousData.equals(data)) {
+      this.markDirty();
+      return true;
+    }
+
+    return false;
   }
 
-  private boolean setTrackedData(UUID paintingUuid, int paintingId, PaintingData data) {
-    this.networkIds.put(paintingUuid, paintingId);
+  private boolean setTrackedData(UUID paintingUuid, PaintingData data) {
     PaintingData previousData = this.allPaintings.put(paintingUuid, data);
     if (previousData == null || !previousData.equals(data)) {
       this.markDirty();
@@ -232,44 +221,44 @@ public class ServerPaintingManager extends PersistentState {
     }
 
     ServerPaintingRegistry registry = ServerPaintingRegistry.getInstance();
+    var changed = new Object() {
+      boolean value = false;
+    };
+
     server.getWorlds().forEach((world) -> {
       ServerPaintingManager manager = ServerPaintingManager.getInstance(world);
-      manager.runMigrations.push(migration);
-      migration.pairs().forEach((from, to) -> {
-        PaintingData data = registry.get(to);
-        if (data == null || data.isEmpty()) {
+      manager.allPaintings.forEach((paintingUuid, currentData) -> {
+        Identifier id = currentData.id();
+        ArrayDeque<Identifier> ids = new ArrayDeque<>(List.of(id));
+        migration.pairs().forEach((from, to) -> {
+          if (Objects.equals(ids.peek(), from)) {
+            ids.push(to);
+          }
+        });
+
+        Iterator<Identifier> itr = ids.iterator();
+        while (itr.hasNext() && !registry.contains(itr.next())) {
+          itr.remove();
+        }
+
+        Identifier targetId = ids.peek();
+        if (id.equals(targetId)) {
           return;
         }
 
-        world.getEntitiesByType(EntityType.PAINTING, (entity) -> true)
-            .stream()
-            .map((entity) -> (PaintingEntity) entity)
-            .filter((painting) -> from.equals(painting.getCustomData().id()))
-            .forEach((painting) -> {
-              // TODO: Track all changes first, then update all paintings at once in case multiple migrations need to
-              //  touch the same painting
-              painting.setCustomData(data);
-              manager.setTrackedData(painting.getUuid(), painting.getId(), data);
-            });
+        PaintingData data = registry.get(targetId);
+        Integer paintingId = null;
+        if (world.getEntity(paintingUuid) instanceof PaintingEntity painting) {
+          paintingId = painting.getId();
+          painting.setCustomData(data);
+        }
+
+        changed.value = changed.value || manager.setTrackedData(paintingUuid, paintingId, data);
       });
     });
 
-    syncAllDataForAllPlayers(server);
-  }
-
-  private static class Wrapper<T> {
-    private T value;
-
-    public Wrapper(T value) {
-      this.value = value;
-    }
-
-    public void set(T value) {
-      this.value = value;
-    }
-
-    public T get() {
-      return this.value;
+    if (changed.value) {
+      syncAllDataForAllPlayers(server);
     }
   }
 }
