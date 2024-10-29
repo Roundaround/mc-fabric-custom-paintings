@@ -8,6 +8,7 @@ import me.roundaround.custompaintings.registry.VanillaPaintingRegistry;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
+import net.minecraft.entity.EntityType;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
@@ -17,6 +18,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import net.minecraft.world.PersistentState;
 
 import java.util.ArrayDeque;
@@ -62,7 +64,7 @@ public class ServerPaintingManager extends PersistentState {
       }
       this.loadPainting(painting);
       this.fixCustomName(painting);
-      // TODO: this.runThroughMigrations(painting);
+      this.runThroughMigrations(painting);
 
       ServerNetworking.sendSetPaintingPacketToAll(
           loadedWorld.getServer(), PaintingAssignment.from(painting.getId(), dataOrUnknown(painting.getCustomData())));
@@ -127,7 +129,7 @@ public class ServerPaintingManager extends PersistentState {
     }
   }
 
-  public void loadPainting(PaintingEntity painting) {
+  private void loadPainting(PaintingEntity painting) {
     UUID uuid = painting.getUuid();
 
     if (this.allPaintings.containsKey(uuid)) {
@@ -150,7 +152,7 @@ public class ServerPaintingManager extends PersistentState {
    * toggling label visibility with interaction, we don't need this hacky implementation. For any existing paintings
    * in the world, we want to try to detect when we might have set these parameters and remove them.
    */
-  public void fixCustomName(PaintingEntity painting) {
+  private void fixCustomName(PaintingEntity painting) {
     PaintingData paintingData = painting.getCustomData();
     Text customName = painting.getCustomName();
 
@@ -173,6 +175,24 @@ public class ServerPaintingManager extends PersistentState {
       painting.setCustomName(null);
       painting.setCustomNameVisible(false);
     }
+  }
+
+  private void runThroughMigrations(PaintingEntity painting) {
+    Identifier id = painting.getCustomData().id();
+    if (id == null) {
+      return;
+    }
+
+    // TODO: Keep a full queue of all the ids, in case any are undefined by the current packs, then walk backward
+    //  until we find the first defined one.
+    Wrapper<Identifier> currentId = new Wrapper<>(id);
+    this.runMigrations.forEach((migration) -> {
+      migration.pairs().forEach((from, to) -> {
+        if (currentId.get().equals(from)) {
+          currentId.set(to);
+        }
+      });
+    });
   }
 
   private boolean setTrackedData(UUID paintingUuid, int paintingId, PaintingData data) {
@@ -211,13 +231,45 @@ public class ServerPaintingManager extends PersistentState {
       return;
     }
 
+    ServerPaintingRegistry registry = ServerPaintingRegistry.getInstance();
     server.getWorlds().forEach((world) -> {
-      ServerPaintingManager.getInstance(world).runMigrations.push(migration);
+      ServerPaintingManager manager = ServerPaintingManager.getInstance(world);
+      manager.runMigrations.push(migration);
       migration.pairs().forEach((from, to) -> {
-        // TODO: getAllPaintings(world, from).forEach(convert(to))
+        PaintingData data = registry.get(to);
+        if (data == null || data.isEmpty()) {
+          return;
+        }
+
+        world.getEntitiesByType(EntityType.PAINTING, (entity) -> true)
+            .stream()
+            .map((entity) -> (PaintingEntity) entity)
+            .filter((painting) -> from.equals(painting.getCustomData().id()))
+            .forEach((painting) -> {
+              // TODO: Track all changes first, then update all paintings at once in case multiple migrations need to
+              //  touch the same painting
+              painting.setCustomData(data);
+              manager.setTrackedData(painting.getUuid(), painting.getId(), data);
+            });
       });
     });
 
     syncAllDataForAllPlayers(server);
+  }
+
+  private static class Wrapper<T> {
+    private T value;
+
+    public Wrapper(T value) {
+      this.value = value;
+    }
+
+    public void set(T value) {
+      this.value = value;
+    }
+
+    public T get() {
+      return this.value;
+    }
   }
 }
