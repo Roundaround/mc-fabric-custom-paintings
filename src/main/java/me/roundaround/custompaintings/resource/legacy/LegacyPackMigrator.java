@@ -37,7 +37,8 @@ public class LegacyPackMigrator {
   private static final String PACK_PNG = "pack.png";
   private static final String ICON_PNG = "icon.png";
   private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
-      .registerTypeAdapterFactory(EmptyListTypeAdapterFactory.getInstance())
+      .registerTypeAdapter(CustomPaintingsJson.class, new CustomPaintingsJson.TypeAdapter())
+      .registerTypeAdapter(PackResource.class, new PackResource.TypeAdapter())
       .create();
 
   private static LegacyPackMigrator instance = null;

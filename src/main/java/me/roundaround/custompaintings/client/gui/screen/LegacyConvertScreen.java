@@ -163,6 +163,9 @@ public class LegacyConvertScreen extends Screen {
           ConvertState state;
           if (converted == null || !converted || exception != null) {
             // TODO: Include error message to show as a tooltip
+            if (exception != null) {
+              CustomPaintingsMod.LOGGER.warn(exception);
+            }
             state = ConvertState.failed();
           } else {
             state = ConvertState.success(path);
