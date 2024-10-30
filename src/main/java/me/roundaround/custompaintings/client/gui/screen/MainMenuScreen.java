@@ -35,9 +35,15 @@ public class MainMenuScreen extends Screen {
     this.layout.addBody(ButtonWidget.builder(Text.translatable("custompaintings.main.config"), this::navigateConfig)
         .width(BUTTON_WIDTH)
         .build());
-    this.layout.addBody(ButtonWidget.builder(Text.translatable("custompaintings.main.legacy"), this::navigateConvert)
-        .width(BUTTON_WIDTH)
-        .build());
+
+    ButtonWidget legacyButton = this.layout.addBody(
+        ButtonWidget.builder(Text.translatable("custompaintings.main.legacy"), this::navigateConvert)
+            .width(BUTTON_WIDTH)
+            .build());
+    if (this.client.world != null && !this.client.isInSingleplayer()) {
+      legacyButton.active = false;
+      legacyButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.legacy.multiplayer")));
+    }
 
     ButtonWidget migrationsButton = this.layout.addBody(
         ButtonWidget.builder(Text.translatable("custompaintings.main.migrate"), this::navigateMigrate)
@@ -105,6 +111,10 @@ public class MainMenuScreen extends Screen {
 
   private void navigateConvert(ButtonWidget button) {
     assert this.client != null;
+    if (this.client.world != null && !this.client.isInSingleplayer()) {
+      return;
+    }
+
     this.client.setScreen(new LegacyConvertScreen(this.client, this));
   }
 
