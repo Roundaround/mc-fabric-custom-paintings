@@ -8,8 +8,7 @@
     "EntityMixin",
     "PaintingEntityAccessor",
     "PaintingEntityMixin",
-    "SaveLoadingDataPacksMixin",
-    "VanillaDataPackProviderMixin"
+    "SaveLoadingDataPacksMixin"
   ],
   "client": [
     "EntityRendererMixin",
