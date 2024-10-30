@@ -14,7 +14,7 @@ import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
 import me.roundaround.custompaintings.resource.Image;
 import me.roundaround.custompaintings.resource.PackIcons;
-import me.roundaround.custompaintings.resource.legacy.LegacyPackMigrator;
+import me.roundaround.custompaintings.resource.legacy.LegacyPackConverter;
 import me.roundaround.roundalib.client.event.MinecraftClientEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
@@ -148,7 +148,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
       return;
     }
 
-    LegacyPackMigrator.getInstance()
+    LegacyPackConverter.getInstance()
         .checkForLegacyPacks(this.client)
         .orTimeout(30, TimeUnit.SECONDS)
         .thenAcceptAsync((metas) -> {

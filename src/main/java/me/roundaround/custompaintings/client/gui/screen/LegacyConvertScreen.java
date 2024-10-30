@@ -3,7 +3,7 @@ package me.roundaround.custompaintings.client.gui.screen;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.gui.widget.LoadingButtonWidget;
 import me.roundaround.custompaintings.client.gui.widget.SpriteWidget;
-import me.roundaround.custompaintings.resource.legacy.LegacyPackMigrator;
+import me.roundaround.custompaintings.resource.legacy.LegacyPackConverter;
 import me.roundaround.custompaintings.resource.legacy.PackMetadata;
 import me.roundaround.roundalib.client.gui.GuiUtil;
 import me.roundaround.roundalib.client.gui.layout.FillerWidget;
@@ -63,7 +63,7 @@ public class LegacyConvertScreen extends Screen {
 
     this.setOutDir(client.isInSingleplayer());
 
-    LegacyPackMigrator.getInstance()
+    LegacyPackConverter.getInstance()
         .checkForLegacyPacksAndConvertedIds(client)
         .orTimeout(30, TimeUnit.SECONDS)
         .whenCompleteAsync((result, exception) -> {
@@ -140,7 +140,7 @@ public class LegacyConvertScreen extends Screen {
   }
 
   private void setOutDir(boolean worldScoped) {
-    LegacyPackMigrator migrator = LegacyPackMigrator.getInstance();
+    LegacyPackConverter migrator = LegacyPackConverter.getInstance();
     this.outDir = worldScoped ? migrator.getWorldOutDir() : migrator.getGlobalOutDir();
     this.currentStates = worldScoped ? this.worldStates : this.globalStates;
   }
@@ -156,7 +156,7 @@ public class LegacyConvertScreen extends Screen {
     Path path = this.outDir.resolve(cleanFilename(meta.pack().path()) + ".zip");
 
     entry.markLoading();
-    LegacyPackMigrator.getInstance()
+    LegacyPackConverter.getInstance()
         .convertPack(meta, path)
         .orTimeout(30, TimeUnit.SECONDS)
         .whenCompleteAsync((converted, exception) -> {
@@ -384,7 +384,7 @@ public class LegacyConvertScreen extends Screen {
             }
         );
 
-        layout.add(SpriteWidget.create(LegacyPackMigrator.getInstance().getSprite(this.meta.pack().packId())),
+        layout.add(SpriteWidget.create(LegacyPackConverter.getInstance().getSprite(this.meta.pack().packId())),
             (parent, self) -> {
               self.setDimensions(PACK_ICON_SIZE, PACK_ICON_SIZE);
             }

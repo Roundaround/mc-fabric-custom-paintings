@@ -31,7 +31,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
-public class LegacyPackMigrator {
+public class LegacyPackConverter {
   private static final String CUSTOM_PAINTINGS_JSON = "custompaintings.json";
   private static final String PACK_MCMETA = "pack.mcmeta";
   private static final String PACK_PNG = "pack.png";
@@ -41,7 +41,7 @@ public class LegacyPackMigrator {
       .registerTypeAdapter(PackResource.class, new PackResource.TypeAdapter())
       .create();
 
-  private static LegacyPackMigrator instance = null;
+  private static LegacyPackConverter instance = null;
 
   private final HashSet<Identifier> spriteIds = new HashSet<>();
   private final Executor ioExecutor = Util.getIoWorkerExecutor();
@@ -49,12 +49,12 @@ public class LegacyPackMigrator {
   private SpriteAtlasTexture atlas = null;
   private Path globalOutDir = null;
 
-  private LegacyPackMigrator() {
+  private LegacyPackConverter() {
   }
 
-  public static LegacyPackMigrator getInstance() {
+  public static LegacyPackConverter getInstance() {
     if (instance == null) {
-      instance = new LegacyPackMigrator();
+      instance = new LegacyPackConverter();
     }
     return instance;
   }
