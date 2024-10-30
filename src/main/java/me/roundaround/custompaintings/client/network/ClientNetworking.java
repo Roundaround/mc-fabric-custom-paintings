@@ -46,8 +46,7 @@ public final class ClientNetworking {
   private static void handleSummary(Networking.SummaryS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
       if (context.client().isInSingleplayer() && payload.skipped()) {
-        // TODO: i18n
-        context.player().sendMessage(Text.of("Loading painting packs skipped due to an error in loading."));
+        context.player().sendMessage(Text.translatable("custompaintings.loadingSkipped"));
       }
       ClientPaintingRegistry.getInstance()
           .processSummary(payload.packs(), payload.serverId(), payload.combinedImageHash());

@@ -36,6 +36,7 @@
   "custompaintings.maxImagePacketsPerSecond.label": "Maximum number of image packets per second",
   "custompaintings.maxImagePacketSize.label": "Maximum size for each image packet in KB",
   "custompaintings.silenceConvertPrompt.label": "Silence legacy pack conversion prompts for this world",
+  "custompaintings.loadingSkipped": "§6[CP]§r Painting pack loading skipped while in safe mode",
   "custompaintings.download.start": "§6[CP]§r Downloading %s custom painting image(s) from server (%s)",
   "custompaintings.download.progress": "§6[CP]§r %s/%s downloaded (%s%%)",
   "custompaintings.download.done": "§6[CP]§r %s downloaded in %ss",
@@ -60,8 +61,12 @@
   "custompaintings.main.title": "Custom Paintings Main Menu",
   "custompaintings.main.config": "Configuration",
   "custompaintings.main.legacy": "Convert Legacy Packs",
+  "custompaintings.main.legacy.multiplayer": "Not available for multiplayer servers",
+  "custompaintings.main.migrate": "Auto-migrate old paintings",
+  "custompaintings.main.migrate.notInWorld": "Requires being connected to a world/server",
+  "custompaintings.main.migrate.notOp": "Requires OP permissions",
   "custompaintings.main.reload": "Reload Packs",
-  "custompaintings.main.reload.notInWorld": "Not currently in a world",
-  "custompaintings.main.reload.notOp": "Cannot reload packs without OP permissions",
+  "custompaintings.main.reload.notInWorld": "Requires being connected to a world/server",
+  "custompaintings.main.reload.notOp": "Requires OP permissions",
   "custompaintings.main.reloadingMessage": "§6[CP]§r Reloading painting packs"
 }
