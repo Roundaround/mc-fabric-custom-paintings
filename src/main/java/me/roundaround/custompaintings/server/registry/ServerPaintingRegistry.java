@@ -282,9 +282,11 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
       return new PackReadResult(pack, images);
     } catch (IOException e) {
-      // TODO: Handle exception
-      throw new RuntimeException(e);
+      CustomPaintingsMod.LOGGER.warn(e);
+      CustomPaintingsMod.LOGGER.warn("Failed to load Custom Paintings pack \"{}\", skipping...", filename);
     }
+
+    return null;
   }
 
   private static String getFolderPrefix(ZipFile zip) {
