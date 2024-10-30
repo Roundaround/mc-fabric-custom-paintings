@@ -50,6 +50,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
   private static ServerPaintingRegistry instance = null;
 
   private MinecraftServer server;
+  private boolean skipped = false;
 
   private ServerPaintingRegistry() {
   }
@@ -81,7 +82,12 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     this.sendSummaryToAll();
   }
 
+  public void markPackLoadingSkipped() {
+    this.skipped = true;
+  }
+
   public void firstLoadPaintingPacks() {
+    this.skipped = false;
     LoadResult loadResult = this.loadPaintingPacks();
     this.setPacks(loadResult.packs());
     this.setImages(loadResult.images());
@@ -92,6 +98,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
       return;
     }
 
+    this.skipped = false;
     CompletableFuture.supplyAsync(this::loadPaintingPacks, Util.getIoWorkerExecutor()).thenAcceptAsync((loadResult) -> {
       this.setPacks(loadResult.packs());
       this.setImages(loadResult.images());
@@ -101,11 +108,11 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
   }
 
   public void sendSummaryToAll() {
-    ServerNetworking.sendSummaryPacketToAll(this.server, this.packsList, this.combinedImageHash);
+    ServerNetworking.sendSummaryPacketToAll(this.server, this.packsList, this.combinedImageHash, this.skipped);
   }
 
   public void sendSummaryToPlayer(ServerPlayerEntity player) {
-    ServerNetworking.sendSummaryPacket(player, this.packsList, this.combinedImageHash);
+    ServerNetworking.sendSummaryPacket(player, this.packsList, this.combinedImageHash, this.skipped);
   }
 
   public void checkPlayerHashes(ServerPlayerEntity player, Map<Identifier, String> hashes) {

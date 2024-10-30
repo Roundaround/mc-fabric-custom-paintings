@@ -8,6 +8,7 @@ import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.network.PaintingAssignment;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 
@@ -44,6 +45,10 @@ public final class ClientNetworking {
 
   private static void handleSummary(Networking.SummaryS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
+      if (context.client().isInSingleplayer() && payload.skipped()) {
+        // TODO: i18n
+        context.player().sendMessage(Text.of("Loading painting packs skipped due to an error in loading."));
+      }
       ClientPaintingRegistry.getInstance()
           .processSummary(payload.packs(), payload.serverId(), payload.combinedImageHash());
     });

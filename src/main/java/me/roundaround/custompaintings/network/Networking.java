@@ -56,11 +56,12 @@ public final class Networking {
     PayloadTypeRegistry.playC2S().register(SetPaintingC2S.ID, SetPaintingC2S.CODEC);
   }
 
-  public record SummaryS2C(UUID serverId, List<PackData> packs, String combinedImageHash) implements CustomPayload {
+  public record SummaryS2C(UUID serverId, List<PackData> packs, String combinedImageHash, boolean skipped) implements
+      CustomPayload {
     public static final Id<SummaryS2C> ID = new Id<>(SUMMARY_S2C);
     public static final PacketCodec<RegistryByteBuf, SummaryS2C> CODEC = PacketCodec.tuple(Uuids.PACKET_CODEC,
         SummaryS2C::serverId, CustomCodecs.forList(PackData.PACKET_CODEC), SummaryS2C::packs, PacketCodecs.STRING,
-        SummaryS2C::combinedImageHash, SummaryS2C::new
+        SummaryS2C::combinedImageHash, PacketCodecs.BOOL, SummaryS2C::skipped, SummaryS2C::new
     );
 
     @Override

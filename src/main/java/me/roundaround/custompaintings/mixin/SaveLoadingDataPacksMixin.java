@@ -21,6 +21,7 @@ public abstract class SaveLoadingDataPacksMixin {
   @Inject(method = "load", at = @At(value = "RETURN"))
   private void onLoad(CallbackInfoReturnable<Pair<DataConfiguration, LifecycledResourceManager>> cir) {
     if (this.safeMode) {
+      ServerPaintingRegistry.getInstance().markPackLoadingSkipped();
       return;
     }
     ServerPaintingRegistry.getInstance().firstLoadPaintingPacks();
