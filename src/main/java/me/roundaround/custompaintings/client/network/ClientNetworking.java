@@ -3,19 +3,27 @@ package me.roundaround.custompaintings.client.network;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.ClientPaintingManager;
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
+import me.roundaround.custompaintings.client.gui.screen.MigrationsScreen;
 import me.roundaround.custompaintings.client.gui.screen.edit.PackSelectScreen;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.network.PaintingAssignment;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 
 import java.text.DecimalFormat;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 public final class ClientNetworking {
+  private static final HashMap<Integer, CompletableFuture<Boolean>> migrationFutures = new HashMap<>();
+
+  private static int nextReqId = 0;
+
   private ClientNetworking() {
   }
 
@@ -31,6 +39,10 @@ public final class ClientNetworking {
     ClientPlayNetworking.send(new Networking.SetPaintingC2S(paintingId, dataId));
   }
 
+  public static void sendRunMigrationPacket(Identifier id) {
+    ClientPlayNetworking.send(new Networking.RunMigrationC2S(id));
+  }
+
   public static void registerReceivers() {
     ClientPlayNetworking.registerGlobalReceiver(Networking.SummaryS2C.ID, ClientNetworking::handleSummary);
     ClientPlayNetworking.registerGlobalReceiver(
@@ -41,6 +53,10 @@ public final class ClientNetworking {
     ClientPlayNetworking.registerGlobalReceiver(Networking.EditPaintingS2C.ID, ClientNetworking::handleEditPainting);
     ClientPlayNetworking.registerGlobalReceiver(Networking.SetPaintingS2C.ID, ClientNetworking::handleSetPainting);
     ClientPlayNetworking.registerGlobalReceiver(Networking.SyncAllDataS2C.ID, ClientNetworking::handleSyncAllData);
+    ClientPlayNetworking.registerGlobalReceiver(
+        Networking.SyncFinishedMigrationsS2C.ID, ClientNetworking::handleSyncFinishedMigrations);
+    ClientPlayNetworking.registerGlobalReceiver(
+        Networking.MigrationFinishS2C.ID, ClientNetworking::handleMigrationFinish);
   }
 
   private static void handleSummary(Networking.SummaryS2C payload, ClientPlayNetworking.Context context) {
@@ -108,6 +124,27 @@ public final class ClientNetworking {
       for (PaintingAssignment assignment : payload.assignments()) {
         ClientPaintingManager.getInstance().trySetPaintingData(world, assignment);
       }
+    });
+  }
+
+  private static void handleSyncFinishedMigrations(
+      Networking.SyncFinishedMigrationsS2C payload, ClientPlayNetworking.Context context
+  ) {
+    context.client().execute(() -> {
+      ClientPaintingManager.getInstance().setFinishedMigrations(payload.migrations());
+    });
+  }
+
+  private static void handleMigrationFinish(
+      Networking.MigrationFinishS2C payload, ClientPlayNetworking.Context context
+  ) {
+    context.client().execute(() -> {
+      ClientPaintingManager.getInstance().markMigrationFinished(payload.id(), payload.succeeded());
+      Screen currentScreen = context.client().currentScreen;
+      if (!(currentScreen instanceof MigrationsScreen screen)) {
+        return;
+      }
+      screen.onMigrationFinished(payload.id(), payload.succeeded());
     });
   }
 

@@ -503,7 +503,7 @@ public class LegacyConvertScreen extends Screen {
   }
 
   private enum Status {
-    NONE(LABEL_CONVERT, null, null),
+    NONE(LABEL_CONVERT, Text.empty(), null),
     SUCCESS(LABEL_RE_CONVERT, TOOLTIP_SUCCESS, new Identifier("pending_invite/accept")),
     FAILURE(LABEL_CONVERT, TOOLTIP_FAILURE, new Identifier("pending_invite/reject"));
 

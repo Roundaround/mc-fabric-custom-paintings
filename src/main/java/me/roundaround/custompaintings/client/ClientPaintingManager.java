@@ -6,15 +6,19 @@ import me.roundaround.custompaintings.network.PaintingAssignment;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientEntityEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
+import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class ClientPaintingManager {
   private static ClientPaintingManager instance = null;
 
   private final HashMap<Integer, PaintingData> cachedData = new HashMap<>();
+  private final HashMap<Identifier, Boolean> finishedMigrations = new HashMap<>();
 
   private ClientPaintingManager() {
     ClientEntityEvents.ENTITY_LOAD.register(((entity, world) -> {
@@ -56,8 +60,26 @@ public class ClientPaintingManager {
     });
   }
 
+  public Map<Identifier, Boolean> getFinishedMigrations() {
+    return Map.copyOf(this.finishedMigrations);
+  }
+
+  public void markMigrationFinished(Identifier id, boolean succeeded) {
+    this.finishedMigrations.put(id, succeeded);
+  }
+
+  public void setFinishedMigrations(Map<Identifier, Boolean> finishedMigrations) {
+    this.finishedMigrations.clear();
+    this.finishedMigrations.putAll(finishedMigrations);
+  }
+
+  public void clearUnknownMigrations(Collection<Identifier> knownMigrations) {
+    this.finishedMigrations.keySet().removeIf((id) -> !knownMigrations.contains(id));
+  }
+
   public void close() {
     this.cachedData.clear();
+    this.finishedMigrations.clear();
   }
 
   private void setPaintingData(PaintingEntity painting, PaintingData paintingData) {

@@ -36,6 +36,13 @@ public abstract class CustomPaintingRegistry implements AutoCloseable {
     return this.paintings.get(id);
   }
 
+  public MigrationData getMigration(Identifier id) {
+    if (id == null) {
+      return null;
+    }
+    return this.migrations.get(id);
+  }
+
   public Map<String, PackData> getPacks() {
     return Map.copyOf(this.packsMap);
   }
@@ -75,9 +82,6 @@ public abstract class CustomPaintingRegistry implements AutoCloseable {
     this.onPacksChanged();
   }
 
-  protected void onPacksChanged() {
-  }
-
   public void setImages(HashMap<Identifier, Image> images) {
     this.images.clear();
     this.imageHashes.clear();
@@ -93,6 +97,9 @@ public abstract class CustomPaintingRegistry implements AutoCloseable {
     }
 
     this.onImagesChanged();
+  }
+
+  protected void onPacksChanged() {
   }
 
   protected void onImagesChanged() {

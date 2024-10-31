@@ -33,10 +33,15 @@ public final class Networking {
   public static final Identifier EDIT_PAINTING_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "edit_painting_s2c");
   public static final Identifier SET_PAINTING_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "set_painting_s2c");
   public static final Identifier SYNC_ALL_DATA_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "sync_all_data_s2c");
+  public static final Identifier SYNC_FINISHED_MIGRATIONS_S2C = new Identifier(
+      CustomPaintingsMod.MOD_ID, "sync_finished_migrations_s2c");
+  public static final Identifier MIGRATION_FINISH_S2C = new Identifier(
+      CustomPaintingsMod.MOD_ID, "migration_finish_s2c");
 
   public static final Identifier HASHES_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "hashes_c2s");
   public static final Identifier RELOAD_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "reload_c2s");
   public static final Identifier SET_PAINTING_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "set_painting_c2s");
+  public static final Identifier RUN_MIGRATION_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "run_migration_c2s");
 
   public static void registerS2CPayloads() {
     PayloadTypeRegistry.playS2C().register(SummaryS2C.ID, SummaryS2C.CODEC);
@@ -48,12 +53,15 @@ public final class Networking {
     PayloadTypeRegistry.playS2C().register(EditPaintingS2C.ID, EditPaintingS2C.CODEC);
     PayloadTypeRegistry.playS2C().register(SetPaintingS2C.ID, SetPaintingS2C.CODEC);
     PayloadTypeRegistry.playS2C().register(SyncAllDataS2C.ID, SyncAllDataS2C.CODEC);
+    PayloadTypeRegistry.playS2C().register(SyncFinishedMigrationsS2C.ID, SyncFinishedMigrationsS2C.CODEC);
+    PayloadTypeRegistry.playS2C().register(MigrationFinishS2C.ID, MigrationFinishS2C.CODEC);
   }
 
   public static void registerC2SPayloads() {
     PayloadTypeRegistry.playC2S().register(HashesC2S.ID, HashesC2S.CODEC);
     PayloadTypeRegistry.playC2S().register(ReloadC2S.ID, ReloadC2S.CODEC);
     PayloadTypeRegistry.playC2S().register(SetPaintingC2S.ID, SetPaintingC2S.CODEC);
+    PayloadTypeRegistry.playC2S().register(RunMigrationC2S.ID, RunMigrationC2S.CODEC);
   }
 
   public record SummaryS2C(UUID serverId, List<PackData> packs, String combinedImageHash, boolean skipped) implements
@@ -169,6 +177,32 @@ public final class Networking {
     }
   }
 
+  public record SyncFinishedMigrationsS2C(Map<Identifier, Boolean> migrations) implements CustomPayload {
+    public static final Id<SyncFinishedMigrationsS2C> ID = new Id<>(SYNC_FINISHED_MIGRATIONS_S2C);
+    public static final PacketCodec<RegistryByteBuf, SyncFinishedMigrationsS2C> CODEC = PacketCodec.tuple(
+        CustomCodecs.forMap(Identifier.PACKET_CODEC, PacketCodecs.BOOL), SyncFinishedMigrationsS2C::migrations,
+        SyncFinishedMigrationsS2C::new
+    );
+
+    @Override
+    public Id<SyncFinishedMigrationsS2C> getId() {
+      return ID;
+    }
+  }
+
+  public record MigrationFinishS2C(Identifier id, boolean succeeded) implements CustomPayload {
+    public static final Id<MigrationFinishS2C> ID = new Id<>(MIGRATION_FINISH_S2C);
+    public static final PacketCodec<RegistryByteBuf, MigrationFinishS2C> CODEC = PacketCodec.tuple(
+        Identifier.PACKET_CODEC, MigrationFinishS2C::id, PacketCodecs.BOOL, MigrationFinishS2C::succeeded,
+        MigrationFinishS2C::new
+    );
+
+    @Override
+    public Id<MigrationFinishS2C> getId() {
+      return ID;
+    }
+  }
+
   public record HashesC2S(Map<Identifier, String> hashes) implements CustomPayload {
     public static final Id<HashesC2S> ID = new Id<>(HASHES_C2S);
     public static final PacketCodec<RegistryByteBuf, HashesC2S> CODEC = PacketCodec.tuple(
@@ -216,6 +250,17 @@ public final class Networking {
 
     @Override
     public Id<SetPaintingC2S> getId() {
+      return ID;
+    }
+  }
+
+  public record RunMigrationC2S(Identifier id) implements CustomPayload {
+    public static final Id<RunMigrationC2S> ID = new Id<>(RUN_MIGRATION_C2S);
+    public static final PacketCodec<RegistryByteBuf, RunMigrationC2S> CODEC = PacketCodec.tuple(
+        Identifier.PACKET_CODEC, RunMigrationC2S::id, RunMigrationC2S::new);
+
+    @Override
+    public Id<RunMigrationC2S> getId() {
       return ID;
     }
   }

@@ -1,40 +1,48 @@
 package me.roundaround.custompaintings.client.gui.screen;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.client.ClientPaintingManager;
 import me.roundaround.custompaintings.client.gui.widget.LoadingButtonWidget;
 import me.roundaround.custompaintings.client.gui.widget.SpriteWidget;
+import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.entity.decoration.painting.MigrationData;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
-import me.roundaround.custompaintings.resource.legacy.LegacyPackConverter;
+import me.roundaround.custompaintings.resource.PackIcons;
 import me.roundaround.roundalib.client.gui.GuiUtil;
 import me.roundaround.roundalib.client.gui.layout.FillerWidget;
 import me.roundaround.roundalib.client.gui.layout.linear.LinearLayoutWidget;
 import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import me.roundaround.roundalib.client.gui.util.Alignment;
 import me.roundaround.roundalib.client.gui.widget.FlowListWidget;
+import me.roundaround.roundalib.client.gui.widget.IconButtonWidget;
 import me.roundaround.roundalib.client.gui.widget.ParentElementEntryListWidget;
 import me.roundaround.roundalib.client.gui.widget.drawable.LabelWidget;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.Widget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class MigrationsScreen extends Screen {
   private static final int BUTTON_WIDTH = ButtonWidget.field_49479;
+  private static final Text LABEL_RUN = Text.translatable("custompaintings.migrate.entry.run");
+  private static final Text LABEL_RE_RUN = Text.translatable("custompaintings.migrate.entry.reRun");
+  private static final Text TOOLTIP_SUCCESS = Text.translatable("custompaintings.migrate.entry.success");
+  private static final Text TOOLTIP_FAILURE = Text.translatable("custompaintings.migrate.entry.error");
 
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
   private final Screen parent;
@@ -54,7 +62,7 @@ public class MigrationsScreen extends Screen {
 
     this.list = this.layout.addBody(
         new MigrationList(this.client, this.layout, ClientPaintingRegistry.getInstance().getMigrations().values(),
-            this::runMigration
+            ClientPaintingManager.getInstance().getFinishedMigrations(), this::runMigration
         ));
 
     this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, this::close).width(BUTTON_WIDTH).build());
@@ -84,35 +92,28 @@ public class MigrationsScreen extends Screen {
     Objects.requireNonNull(this.client).setScreen(this.parent);
   }
 
+  public void onMigrationFinished(Identifier id, boolean succeeded) {
+    this.list.markMigrationFinished(id, succeeded);
+  }
+
   private void close(ButtonWidget button) {
     this.close();
   }
 
   private void runMigration(MigrationList.MigrationEntry entry) {
-    // TODO: Send network packet; wait for response
+    ClientNetworking.sendRunMigrationPacket(entry.getMigrationId());
     entry.markLoading();
-    CompletableFuture.delayedExecutor(4, TimeUnit.SECONDS, this.executor).execute(() -> {
-      entry.markDone();
-    });
   }
 
   private static class MigrationList extends ParentElementEntryListWidget<MigrationList.Entry> {
-    private final Consumer<MigrationEntry> runMigration;
-
     public MigrationList(
         MinecraftClient client,
         ThreeSectionLayoutWidget layout,
         Collection<MigrationData> migrations,
+        Map<Identifier, Boolean> finishedMigrations,
         Consumer<MigrationEntry> runMigration
     ) {
       super(client, layout);
-
-      this.runMigration = runMigration;
-      this.setMigrations(migrations);
-    }
-
-    public void setMigrations(Collection<MigrationData> migrations) {
-      this.clearEntries();
 
       if (migrations.isEmpty()) {
         this.addEntry(EmptyEntry.factory(this.client.textRenderer));
@@ -120,10 +121,20 @@ public class MigrationsScreen extends Screen {
       }
 
       for (MigrationData migration : migrations) {
-        this.addEntry(MigrationEntry.factory(this.client.textRenderer, migration, this.runMigration));
+        this.addEntry(MigrationEntry.factory(this.client.textRenderer, migration,
+            Status.of(finishedMigrations.get(migration.id())), runMigration
+        ));
       }
 
       this.refreshPositions();
+    }
+
+    public void markMigrationFinished(Identifier id, boolean succeeded) {
+      for (Entry entry : this.entries) {
+        if ((entry instanceof MigrationEntry migrationEntry) && migrationEntry.getMigrationId().equals(id)) {
+          migrationEntry.markFinished(succeeded);
+        }
+      }
     }
 
     private static abstract class Entry extends ParentElementEntryListWidget.Entry {
@@ -172,13 +183,17 @@ public class MigrationsScreen extends Screen {
       private static final int HEIGHT = 48;
       private static final int PACK_ICON_SIZE = 36;
       private static final int RUN_BUTTON_SIZE = 80;
+      private static final int STATUS_BUTTON_SIZE = 20;
       private static final Text LINE_SOURCE = Text.translatable("custompaintings.migrate.entry.source");
       private static final Text LINE_ID = Text.translatable("custompaintings.migrate.entry.id");
       private static final Text LINE_DESCRIPTION = Text.translatable("custompaintings.migrate.entry.desc");
+      private static final Text LINE_PAIRS = Text.translatable("custompaintings.migrate.entry.pairs");
       private static final Text NONE_PLACEHOLDER = Text.translatable("custompaintings.migrate.entry.emptyField")
           .formatted(Formatting.ITALIC, Formatting.GRAY);
 
+      private final MigrationData migration;
       private final LoadingButtonWidget runButton;
+      private final IconButtonWidget statusButton;
 
       protected MigrationEntry(
           int index,
@@ -187,9 +202,12 @@ public class MigrationsScreen extends Screen {
           int width,
           TextRenderer textRenderer,
           MigrationData migration,
+          Status initialStatus,
           Consumer<MigrationEntry> runMigration
       ) {
         super(index, left, top, width, HEIGHT);
+
+        this.migration = migration;
 
         LinearLayoutWidget layout = this.addLayout(
             LinearLayoutWidget.horizontal().spacing(GuiUtil.PADDING).defaultOffAxisContentAlign(Alignment.CENTER),
@@ -199,7 +217,8 @@ public class MigrationsScreen extends Screen {
             }
         );
 
-        layout.add(SpriteWidget.create(LegacyPackConverter.getInstance().getSprite(migration.id().getNamespace())),
+        layout.add(SpriteWidget.create(
+                ClientPaintingRegistry.getInstance().getSprite(PackIcons.identifier(migration.id().getNamespace()))),
             (parent, self) -> {
               self.setDimensions(PACK_ICON_SIZE, PACK_ICON_SIZE);
             }
@@ -208,7 +227,7 @@ public class MigrationsScreen extends Screen {
         layout.add(FillerWidget.empty());
 
         LinearLayoutWidget textSection = LinearLayoutWidget.vertical().spacing(GuiUtil.PADDING);
-        int headerWidth = Stream.of(LINE_SOURCE, LINE_ID, LINE_DESCRIPTION)
+        int headerWidth = Stream.of(LINE_SOURCE, LINE_ID, LINE_DESCRIPTION, LINE_PAIRS)
             .mapToInt(textRenderer::getWidth)
             .max()
             .orElse(1);
@@ -221,6 +240,9 @@ public class MigrationsScreen extends Screen {
             (parent, self) -> self.setWidth(parent.getWidth())
         );
         textSection.add(this.textLine(textRenderer, headerWidth, LINE_DESCRIPTION, migration.description()),
+            (parent, self) -> self.setWidth(parent.getWidth())
+        );
+        textSection.add(this.textLine(textRenderer, headerWidth, LINE_PAIRS, String.valueOf(migration.pairs().size())),
             (parent, self) -> self.setWidth(parent.getWidth())
         );
         layout.add(textSection, (parent, self) -> {
@@ -236,9 +258,19 @@ public class MigrationsScreen extends Screen {
 
         layout.add(FillerWidget.empty());
 
-        this.runButton = layout.add(new LoadingButtonWidget(0, 0, RUN_BUTTON_SIZE, ButtonWidget.DEFAULT_HEIGHT,
-            Text.translatable("custompaintings.migrate.run"), (button) -> runMigration.accept(this)
-        ));
+        this.runButton = layout.add(
+            new LoadingButtonWidget(0, 0, RUN_BUTTON_SIZE, ButtonWidget.DEFAULT_HEIGHT, initialStatus.getButtonLabel(),
+                (button) -> runMigration.accept(this)
+            ));
+
+        this.statusButton = layout.add(IconButtonWidget.builder(initialStatus.getTexture(), IconButtonWidget.SIZE_L)
+            .dimensions(STATUS_BUTTON_SIZE)
+            .hideBackground()
+            .disableIconDim()
+            .tooltip(initialStatus.getTooltip())
+            .build());
+        this.statusButton.visible = initialStatus != Status.NONE;
+        this.statusButton.active = false;
 
         layout.forEachChild(this::addDrawableChild);
       }
@@ -265,20 +297,68 @@ public class MigrationsScreen extends Screen {
         return line;
       }
 
+      public Identifier getMigrationId() {
+        return this.migration.id();
+      }
+
       public void markLoading() {
         this.runButton.setLoading(true);
       }
 
-      public void markDone() {
+      public void markFinished(boolean succeeded) {
         this.runButton.setLoading(false);
+
+        Status status = Status.of(succeeded);
+        this.statusButton.setTexture(status.getTexture());
+        this.statusButton.setMessage(status.getButtonLabel());
+        this.statusButton.setTooltip(Tooltip.of(status.getTooltip()));
       }
 
       public static FlowListWidget.EntryFactory<MigrationEntry> factory(
-          TextRenderer textRenderer, MigrationData migration, Consumer<MigrationEntry> runMigration
+          TextRenderer textRenderer,
+          MigrationData migration,
+          Status initialStatus,
+          Consumer<MigrationEntry> runMigration
       ) {
         return (index, left, top, width) -> new MigrationEntry(
-            index, left, top, width, textRenderer, migration, runMigration);
+            index, left, top, width, textRenderer, migration, initialStatus, runMigration);
       }
+    }
+  }
+
+  private enum Status {
+    NONE(LABEL_RUN, Text.empty(), null),
+    SUCCESS(LABEL_RE_RUN, TOOLTIP_SUCCESS, new Identifier("pending_invite/accept")),
+    FAILURE(LABEL_RUN, TOOLTIP_FAILURE, new Identifier("pending_invite/reject"));
+
+    private final Text buttonLabel;
+    private final Text tooltip;
+    private final Identifier texture;
+
+    Status(Text buttonLabel, Text tooltip, Identifier texture) {
+      this.buttonLabel = buttonLabel;
+      this.tooltip = tooltip;
+      this.texture = texture;
+    }
+
+    public static Status of(Boolean succeeded) {
+      if (succeeded == null) {
+        return NONE;
+      }
+      return succeeded ? SUCCESS : FAILURE;
+    }
+
+    public Text getButtonLabel() {
+      return this.buttonLabel;
+    }
+
+    // TODO: Tooltip based on actual error?
+    public Text getTooltip() {
+      return this.tooltip;
+    }
+
+    public Identifier getTexture() {
+      return this.texture;
     }
   }
 }

@@ -3,6 +3,7 @@ package me.roundaround.custompaintings.client.registry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.client.ClientPaintingManager;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.client.texture.BasicTextureSprite;
 import me.roundaround.custompaintings.client.texture.LoadingSprite;
@@ -278,6 +279,8 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
 
     this.pendingDataRequests.forEach((id, future) -> future.complete(this.get(id)));
     this.pendingDataRequests.clear();
+
+    ClientPaintingManager.getInstance().clearUnknownMigrations(this.migrations.keySet());
   }
 
   @Override

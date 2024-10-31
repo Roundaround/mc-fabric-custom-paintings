@@ -1,7 +1,7 @@
 package me.roundaround.custompaintings.server.network;
 
-import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
+import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.network.PaintingAssignment;
 import me.roundaround.custompaintings.server.CustomPaintingsServerMod;
@@ -19,6 +19,7 @@ import net.minecraft.util.math.Direction;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public final class ServerNetworking {
@@ -28,10 +29,14 @@ public final class ServerNetworking {
   public static void sendSummaryPacketToAll(
       MinecraftServer server, List<PackData> packs, String combinedImageHash, boolean skipped
   ) {
-    server.getPlayerManager().getPlayerList().forEach((player) -> sendSummaryPacket(player, packs, combinedImageHash, skipped));
+    server.getPlayerManager()
+        .getPlayerList()
+        .forEach((player) -> sendSummaryPacket(player, packs, combinedImageHash, skipped));
   }
 
-  public static void sendSummaryPacket(ServerPlayerEntity player, List<PackData> packs, String combinedImageHash, boolean skipped) {
+  public static void sendSummaryPacket(
+      ServerPlayerEntity player, List<PackData> packs, String combinedImageHash, boolean skipped
+  ) {
     if (!ServerPlayNetworking.canSend(player, Networking.SUMMARY_S2C)) {
       player.sendMessage(CustomPaintingsServerMod.getDownloadPrompt());
       return;
@@ -72,10 +77,34 @@ public final class ServerNetworking {
     }
   }
 
+  public static void sendSyncFinishedMigrationsPacket(
+      ServerPlayerEntity player, Map<Identifier, Boolean> migrations
+  ) {
+    if (ServerPlayNetworking.canSend(player, Networking.SyncFinishedMigrationsS2C.ID)) {
+      ServerPlayNetworking.send(player, new Networking.SyncFinishedMigrationsS2C(migrations));
+    }
+  }
+
+  public static void sendMigrationFinishPacketToAll(
+      MinecraftServer server, Identifier id, boolean succeeded
+  ) {
+    Networking.MigrationFinishS2C payload = new Networking.MigrationFinishS2C(id, succeeded);
+    server.getPlayerManager().getPlayerList().forEach((player) -> {
+      sendMigrationFinishPacket(player, payload);
+    });
+  }
+
+  public static void sendMigrationFinishPacket(ServerPlayerEntity player, Networking.MigrationFinishS2C payload) {
+    if (ServerPlayNetworking.canSend(player, Networking.MigrationFinishS2C.ID)) {
+      ServerPlayNetworking.send(player, payload);
+    }
+  }
+
   public static void registerReceivers() {
     ServerPlayNetworking.registerGlobalReceiver(Networking.HashesC2S.ID, ServerNetworking::handleHashes);
     ServerPlayNetworking.registerGlobalReceiver(Networking.ReloadC2S.ID, ServerNetworking::handleReload);
     ServerPlayNetworking.registerGlobalReceiver(Networking.SetPaintingC2S.ID, ServerNetworking::handleSetPainting);
+    ServerPlayNetworking.registerGlobalReceiver(Networking.RunMigrationC2S.ID, ServerNetworking::handleRunMigration);
   }
 
   private static void handleHashes(Networking.HashesC2S payload, ServerPlayNetworking.Context context) {
@@ -86,7 +115,7 @@ public final class ServerNetworking {
 
   private static void handleReload(Networking.ReloadC2S payload, ServerPlayNetworking.Context context) {
     context.player().server.execute(() -> {
-      if (!context.player().hasPermissionLevel(2)) {
+      if (!context.player().hasPermissionLevel(3)) {
         return;
       }
       ServerPaintingRegistry.getInstance().reloadPaintingPacks(ServerPaintingManager::syncAllDataForAllPlayers);
@@ -126,6 +155,12 @@ public final class ServerNetworking {
 
       ServerPaintingManager.getInstance(world).setPaintingData(painting, paintingData);
       painting.setEditor(null);
+    });
+  }
+
+  private static void handleRunMigration(Networking.RunMigrationC2S payload, ServerPlayNetworking.Context context) {
+    context.player().server.execute(() -> {
+      ServerPaintingManager.runMigration(context.player(), payload.id());
     });
   }
 }

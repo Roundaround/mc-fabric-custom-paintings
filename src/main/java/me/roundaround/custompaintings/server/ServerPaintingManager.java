@@ -26,6 +26,7 @@ public class ServerPaintingManager extends PersistentState {
   private static final String NBT_SERVER_ID = "ServerId";
   private static final String NBT_PAINTINGS = "Paintings";
   private static final String NBT_PAINTING_UUID = "PaintingUuid";
+  private static final HashMap<Identifier, Boolean> finishedMigrations = new HashMap<>();
 
   private final ServerWorld world;
   private final UUID serverId;
@@ -185,15 +186,6 @@ public class ServerPaintingManager extends PersistentState {
     return false;
   }
 
-  private boolean setTrackedData(UUID paintingUuid, PaintingData data) {
-    PaintingData previousData = this.allPaintings.put(paintingUuid, data);
-    if (previousData == null || !previousData.equals(data)) {
-      this.markDirty();
-      return true;
-    }
-    return false;
-  }
-
   private static PaintingData dataOrUnknown(PaintingData data) {
     if (data == null || data.isUnknown()) {
       return data;
@@ -210,8 +202,15 @@ public class ServerPaintingManager extends PersistentState {
         .forEach((player) -> getInstance(player.getServerWorld()).syncAllDataForPlayer(player));
   }
 
-  public static void runMigration(ServerPlayerEntity sourcePlayer, MigrationData migration) {
-    if (sourcePlayer == null || !sourcePlayer.hasPermissionLevel(2)) {
+  public static void syncFinishedMigrationsForPlayer(ServerPlayerEntity player) {
+    ServerNetworking.sendSyncFinishedMigrationsPacket(player, Map.copyOf(finishedMigrations));
+  }
+
+  public static void runMigration(ServerPlayerEntity sourcePlayer, Identifier migrationId) {
+    boolean succeeded = tryRunMigration(sourcePlayer, migrationId);
+    finishedMigrations.put(migrationId, succeeded);
+
+    if (sourcePlayer == null) {
       return;
     }
 
@@ -220,7 +219,25 @@ public class ServerPaintingManager extends PersistentState {
       return;
     }
 
+    ServerNetworking.sendMigrationFinishPacketToAll(server, migrationId, succeeded);
+  }
+
+  private static boolean tryRunMigration(ServerPlayerEntity sourcePlayer, Identifier migrationId) {
+    if (sourcePlayer == null || !sourcePlayer.hasPermissionLevel(3) || migrationId == null) {
+      return false;
+    }
+
+    MinecraftServer server = sourcePlayer.getServer();
+    if (server == null || !server.isRunning()) {
+      return false;
+    }
+
     ServerPaintingRegistry registry = ServerPaintingRegistry.getInstance();
+    MigrationData migration = registry.getMigration(migrationId);
+    if (migration == null) {
+      return false;
+    }
+
     var changed = new Object() {
       boolean value = false;
     };
@@ -260,5 +277,6 @@ public class ServerPaintingManager extends PersistentState {
     if (changed.value) {
       syncAllDataForAllPlayers(server);
     }
+    return true;
   }
 }

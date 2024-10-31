@@ -71,5 +71,14 @@
   "custompaintings.legacy.prompt.ignore": "Ignore",
   "custompaintings.legacy.prompt.openConvertScreen": "Convert",
   "custompaintings.migrate.title": "Auto-migrate old paintings",
-  "custompaintings.migrate.none": "No migrations found!"
+  "custompaintings.migrate.none": "No migrations found!",
+  "custompaintings.migrate.entry.source": "Pack:",
+  "custompaintings.migrate.entry.id": "ID:",
+  "custompaintings.migrate.entry.desc": "Desc:",
+  "custompaintings.migrate.entry.pairs": "Pairs:",
+  "custompaintings.migrate.entry.emptyField": "No migrations found!",
+  "custompaintings.migrate.entry.run": "Run",
+  "custompaintings.migrate.entry.reRun": "Re-Run",
+  "custompaintings.migrate.entry.success": "Complete",
+  "custompaintings.migrate.entry.error": "An error occurred"
 }
