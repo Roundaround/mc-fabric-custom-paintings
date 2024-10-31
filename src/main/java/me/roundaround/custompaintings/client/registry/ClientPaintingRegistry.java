@@ -9,8 +9,8 @@ import me.roundaround.custompaintings.client.texture.LoadingSprite;
 import me.roundaround.custompaintings.client.texture.VanillaIconSprite;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
-import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
+import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
 import me.roundaround.custompaintings.resource.Image;
 import me.roundaround.custompaintings.resource.PackIcons;
@@ -109,10 +109,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
       return this.client.getPaintingManager().getPaintingSprite(Registries.PAINTING_VARIANT.get(data.id()));
     }
     return this.getSprite(data.id());
-  }
-
-  public Map<String, PackData> getPacks() {
-    return Map.copyOf(this.packsMap);
   }
 
   public void processSummary(List<PackData> packsList, UUID serverId, String combinedImageHash) {

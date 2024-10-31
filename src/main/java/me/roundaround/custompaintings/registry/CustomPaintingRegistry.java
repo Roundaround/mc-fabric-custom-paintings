@@ -3,16 +3,13 @@ package me.roundaround.custompaintings.registry;
 import com.google.common.hash.Hashing;
 import com.google.common.io.ByteSource;
 import me.roundaround.custompaintings.entity.decoration.painting.MigrationData;
-import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
+import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.resource.Image;
 import net.minecraft.util.Identifier;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.TreeSet;
+import java.util.*;
 
 public abstract class CustomPaintingRegistry implements AutoCloseable {
   protected final LinkedHashMap<String, PackData> packsMap = new LinkedHashMap<>();
@@ -37,6 +34,14 @@ public abstract class CustomPaintingRegistry implements AutoCloseable {
       return VanillaPaintingRegistry.getInstance().get(id);
     }
     return this.paintings.get(id);
+  }
+
+  public Map<String, PackData> getPacks() {
+    return Map.copyOf(this.packsMap);
+  }
+
+  public Map<Identifier, MigrationData> getMigrations() {
+    return Map.copyOf(this.migrations);
   }
 
   @Override
