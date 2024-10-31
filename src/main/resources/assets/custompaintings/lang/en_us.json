@@ -40,6 +40,7 @@
   "custompaintings.download.start": "§6[CP]§r Downloading %s custom painting image(s) from server (%s)",
   "custompaintings.download.progress": "§6[CP]§r %s/%s downloaded (%s%%)",
   "custompaintings.download.done": "§6[CP]§r %s downloaded in %ss",
+  "custompaintings.reload.message": "Reloading painting packs",
   "custompaintings.main.title": "Custom Paintings Main Menu",
   "custompaintings.main.config": "Configuration",
   "custompaintings.main.legacy": "Convert Legacy Packs",

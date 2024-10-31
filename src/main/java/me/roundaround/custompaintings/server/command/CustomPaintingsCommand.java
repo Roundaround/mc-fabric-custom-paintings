@@ -7,6 +7,7 @@ import me.roundaround.custompaintings.server.ServerPaintingManager;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.text.Text;
 
 public class CustomPaintingsCommand {
   public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
@@ -14,13 +15,10 @@ public class CustomPaintingsCommand {
   }
 
   private static LiteralArgumentBuilder<ServerCommandSource> reloadSub() {
-    return CommandManager.literal("reload").requires(CustomPaintingsCommand::isOpPlayer).executes((context) -> {
+    return CommandManager.literal("reload").requires((source) -> source.hasPermissionLevel(3)).executes((context) -> {
       ServerPaintingRegistry.getInstance().reloadPaintingPacks(ServerPaintingManager::syncAllDataForAllPlayers);
-      return 0;
+      context.getSource().sendFeedback(() -> Text.translatable("custompaintings.reload.message"), true);
+      return 1;
     });
-  }
-
-  private static boolean isOpPlayer(ServerCommandSource source) {
-    return source.isExecutedByPlayer() && (source.hasPermissionLevel(2) || source.getServer().isSingleplayer());
   }
 }
