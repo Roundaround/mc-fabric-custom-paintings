@@ -255,7 +255,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
       pack.paintings().forEach((painting) -> {
         Identifier id = new Identifier(pack.id(), painting.id());
-        ZipEntry zipImage = zip.getEntry(folderPrefix + String.format("images/%s.png", painting.id()));
+        ZipEntry zipImage = getImageZipEntry(zip, folderPrefix, painting.id());
         if (zipImage == null) {
           CustomPaintingsMod.LOGGER.warn(LOG_MISSING_PAINTING, id);
           return;
@@ -309,6 +309,15 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     }
 
     return folderPrefix;
+  }
+
+  private static ZipEntry getImageZipEntry(ZipFile zip, String folderPrefix, String id) {
+    // Try both forward and backward slash
+    ZipEntry zipImage = zip.getEntry(folderPrefix + String.format("images/%s.png", id));
+    if (zipImage == null) {
+      zipImage = zip.getEntry(folderPrefix + String.format("images\\%s.png", id));
+    }
+    return zipImage;
   }
 
   private static PackReadResult readDirectoryAsPack(Path path) {
