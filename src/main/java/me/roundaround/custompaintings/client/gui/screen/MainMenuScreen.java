@@ -60,7 +60,7 @@ public class MainMenuScreen extends Screen {
 
       reloadButton.active = false;
       reloadButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.reload.notInWorld")));
-    } else if (this.client.player != null && !this.client.player.hasPermissionLevel(2)) {
+    } else if (this.client.player != null && !this.client.player.hasPermissionLevel(3)) {
       migrationsButton.active = false;
       migrationsButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.migrate.notOp")));
 
@@ -125,7 +125,7 @@ public class MainMenuScreen extends Screen {
 
   private void reloadPacks(ButtonWidget button) {
     assert this.client != null;
-    if (this.client.player == null || this.client.world == null || !this.client.player.hasPermissionLevel(2)) {
+    if (this.client.player == null || this.client.world == null || !this.client.player.hasPermissionLevel(3)) {
       return;
     }
 
