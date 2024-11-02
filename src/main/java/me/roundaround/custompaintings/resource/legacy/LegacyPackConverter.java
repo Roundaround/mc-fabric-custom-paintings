@@ -262,10 +262,7 @@ public class LegacyPackConverter {
       paintings.keySet().removeIf(paintingId -> !images.containsKey(new Identifier(legacyPack.packId(), paintingId)));
 
       legacyPack.migrations().forEach((legacyMigration) -> {
-        List<MigrationPair<String>> pairs = legacyMigration.pairs()
-            .stream()
-            .map((legacyPair) -> new MigrationPair<>(legacyPair.getLeft(), legacyPair.getRight()))
-            .toList();
+        List<List<String>> pairs = legacyMigration.pairs().stream().map(List::copyOf).toList();
         migrations.put(
             legacyMigration.id(), new MigrationResource(legacyMigration.id(), legacyMigration.description(), pairs));
       });
