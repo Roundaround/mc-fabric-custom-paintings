@@ -15,15 +15,9 @@ import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 
 import java.text.DecimalFormat;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 public final class ClientNetworking {
-  private static final HashMap<Integer, CompletableFuture<Boolean>> migrationFutures = new HashMap<>();
-
-  private static int nextReqId = 0;
-
   private ClientNetworking() {
   }
 
