@@ -84,13 +84,13 @@ public abstract class CustomPaintingRegistry {
   public void setImages(HashMap<Identifier, Image> images) {
     this.images.clear();
     this.imageHashes.clear();
+    this.combinedImageHash = "";
 
     this.images.putAll(images);
-
     try {
       HashResult hashResult = hashImages(this.images);
-      this.combinedImageHash = hashResult.combinedImageHash;
       this.imageHashes.putAll(hashResult.imageHashes);
+      this.combinedImageHash = hashResult.combinedImageHash;
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
