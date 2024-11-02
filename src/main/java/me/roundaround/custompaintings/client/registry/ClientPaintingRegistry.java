@@ -3,7 +3,6 @@ package me.roundaround.custompaintings.client.registry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.custompaintings.client.ClientPaintingManager;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.client.texture.BasicTextureSprite;
 import me.roundaround.custompaintings.client.texture.LoadingSprite;
@@ -38,7 +37,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class ClientPaintingRegistry extends CustomPaintingRegistry implements AutoCloseable {
+public class ClientPaintingRegistry extends CustomPaintingRegistry {
   private static final Identifier PAINTING_BACK_ID = new Identifier(Identifier.DEFAULT_NAMESPACE, "back");
   private static final Identifier BACK_TEXTURE_ID = new Identifier(
       Identifier.DEFAULT_NAMESPACE, "textures/painting/back.png");
@@ -54,6 +53,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   private final HashMap<Identifier, Image> cachedImages = new HashMap<>();
   private final HashMap<Identifier, ImageChunkBuilder> imageBuilders = new HashMap<>();
   private final LinkedHashMap<Identifier, CompletableFuture<PaintingData>> pendingDataRequests = new LinkedHashMap<>();
+  private final HashMap<Identifier, Boolean> finishedMigrations = new HashMap<>();
 
   private boolean packsReceived = false;
   private String pendingCombinedImagesHash = "";
@@ -110,13 +110,33 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     return this.getSprite(data.id());
   }
 
-  public void processSummary(List<PackData> packsList, UUID serverId, String combinedImageHash) {
+  public Map<Identifier, Boolean> getFinishedMigrations() {
+    return Map.copyOf(this.finishedMigrations);
+  }
+
+  public void markMigrationFinished(Identifier id, boolean succeeded) {
+    this.finishedMigrations.put(id, succeeded);
+  }
+
+  public void setFinishedMigrations(Map<Identifier, Boolean> finishedMigrations) {
+    this.finishedMigrations.clear();
+    this.finishedMigrations.putAll(finishedMigrations);
+  }
+
+  public void clearUnknownMigrations() {
+    this.finishedMigrations.keySet().removeIf((id) -> !this.migrations.containsKey(id));
+  }
+
+  public void processSummary(
+      List<PackData> packsList, UUID serverId, String combinedImageHash, Map<Identifier, Boolean> finishedMigrations
+  ) {
     boolean first = this.packsMap.isEmpty();
 
     HashMap<String, PackData> packs = new HashMap<>(packsList.size());
     packsList.forEach((pack) -> packs.put(pack.id(), pack));
     this.setPacks(packs);
 
+    this.setFinishedMigrations(finishedMigrations);
     this.checkAndPromptForLegacyPacks();
 
     if (combinedImageHash.equals(this.combinedImageHash)) {
@@ -274,7 +294,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     this.pendingDataRequests.forEach((id, future) -> future.complete(this.get(id)));
     this.pendingDataRequests.clear();
 
-    ClientPaintingManager.getInstance().clearUnknownMigrations(this.migrations.keySet());
+    this.clearUnknownMigrations();
   }
 
   @Override
@@ -304,8 +324,8 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   }
 
   @Override
-  public void close() {
-    super.close();
+  public void clear() {
+    super.clear();
 
     this.packsReceived = false;
     this.atlas.clear();
@@ -315,6 +335,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     this.imageBuilders.clear();
     this.pendingDataRequests.forEach((id, future) -> future.cancel(true));
     this.pendingDataRequests.clear();
+    this.finishedMigrations.clear();
     this.pendingCombinedImagesHash = "";
     this.imagesExpected = 0;
     this.bytesExpected = 0;
@@ -347,7 +368,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   }
 
   private void close(MinecraftClient client) {
-    this.close();
+    this.clear();
   }
 
   private void setPart(Identifier id, Function<ImageChunkBuilder, Boolean> setter) {

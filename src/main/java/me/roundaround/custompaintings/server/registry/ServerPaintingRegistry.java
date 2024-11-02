@@ -9,6 +9,7 @@ import me.roundaround.custompaintings.resource.PackResource;
 import me.roundaround.custompaintings.server.network.ImagePacketQueue;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
 import me.roundaround.roundalib.util.PathAccessor;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
@@ -44,10 +45,17 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
   private static ServerPaintingRegistry instance = null;
 
+  private final HashMap<Identifier, Boolean> finishedMigrations = new HashMap<>();
+
   private MinecraftServer server;
-  private boolean skipped = false;
+  private boolean safeMode = false;
 
   private ServerPaintingRegistry() {
+    ServerLifecycleEvents.SERVER_STOPPED.register((server) -> {
+      if (server == this.server) {
+        this.clear();
+      }
+    });
   }
 
   public static void init(MinecraftServer server) {
@@ -67,22 +75,25 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
   }
 
   @Override
-  public void close() {
-    super.close();
+  public void clear() {
+    super.clear();
+    this.finishedMigrations.clear();
     this.server = null;
   }
 
   public void setServer(MinecraftServer server) {
+    if (this.server != null && this.server != server) {
+      this.clear();
+    }
     this.server = server;
     this.sendSummaryToAll();
   }
 
-  public void markPackLoadingSkipped() {
-    this.skipped = true;
-  }
-
-  public void firstLoadPaintingPacks() {
-    this.skipped = false;
+  public void firstLoadPaintingPacks(boolean safeMode) {
+    this.safeMode = safeMode;
+    if (this.safeMode) {
+      return;
+    }
     LoadResult loadResult = this.loadPaintingPacks();
     this.setPacks(loadResult.packs());
     this.setImages(loadResult.images());
@@ -93,7 +104,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
       return;
     }
 
-    this.skipped = false;
+    this.safeMode = false;
     CompletableFuture.supplyAsync(this::loadPaintingPacks, Util.getIoWorkerExecutor()).thenAcceptAsync((loadResult) -> {
       this.setPacks(loadResult.packs());
       this.setImages(loadResult.images());
@@ -103,11 +114,13 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
   }
 
   public void sendSummaryToAll() {
-    ServerNetworking.sendSummaryPacketToAll(this.server, this.packsList, this.combinedImageHash, this.skipped);
+    ServerNetworking.sendSummaryPacketToAll(
+        this.server, this.packsList, this.combinedImageHash, this.finishedMigrations, this.safeMode);
   }
 
   public void sendSummaryToPlayer(ServerPlayerEntity player) {
-    ServerNetworking.sendSummaryPacket(player, this.packsList, this.combinedImageHash, this.skipped);
+    ServerNetworking.sendSummaryPacket(
+        player, this.packsList, this.combinedImageHash, this.finishedMigrations, this.safeMode);
   }
 
   public void checkPlayerHashes(ServerPlayerEntity player, Map<Identifier, String> hashes) {
@@ -132,6 +145,10 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     CustomPaintingsMod.LOGGER.info("Sent {} images to {} in {}s", images.size(), player.getName().getString(),
         format.format((Util.getMeasuringTimeMs() - timer) / 1000.0)
     );
+  }
+
+  public void markMigrationFinished(Identifier migrationId, boolean succeeded) {
+    this.finishedMigrations.put(migrationId, succeeded);
   }
 
   private LoadResult loadPaintingPacks() {

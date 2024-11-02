@@ -26,12 +26,16 @@ public class ServerPaintingManager extends PersistentState {
   private static final String NBT_SERVER_ID = "ServerId";
   private static final String NBT_PAINTINGS = "Paintings";
   private static final String NBT_PAINTING_UUID = "PaintingUuid";
-  private static final HashMap<Identifier, Boolean> finishedMigrations = new HashMap<>();
 
   private final ServerWorld world;
   private final UUID serverId;
   private final HashMap<UUID, PaintingData> allPaintings = new HashMap<>();
   private final HashMap<UUID, Integer> networkIds = new HashMap<>();
+
+  private ServerPaintingManager(ServerWorld world) {
+    this(world, CustomPaintingsMod.getOrGenerateServerId());
+    this.markDirty();
+  }
 
   public static void init(ServerWorld world) {
     // Just getting the instance also creates/initializes it
@@ -43,11 +47,6 @@ public class ServerPaintingManager extends PersistentState {
         (nbt, registryLookup) -> fromNbt(world, nbt), null
     );
     return world.getPersistentStateManager().getOrCreate(persistentStateType, CustomPaintingsMod.MOD_ID);
-  }
-
-  private ServerPaintingManager(ServerWorld world) {
-    this(world, CustomPaintingsMod.getOrGenerateServerId());
-    this.markDirty();
   }
 
   private ServerPaintingManager(ServerWorld world, UUID serverId) {
@@ -102,11 +101,15 @@ public class ServerPaintingManager extends PersistentState {
     if (player.getServerWorld() != this.world) {
       return;
     }
-    List<PaintingAssignment> assignments = this.allPaintings.entrySet().stream().map((entry) -> {
-      UUID id = entry.getKey();
-      PaintingData data = entry.getValue();
-      return PaintingAssignment.from(this.networkIds.get(id), dataOrUnknown(data));
-    }).toList();
+    List<PaintingAssignment> assignments = this.allPaintings.entrySet()
+        .stream()
+        .filter((entry) -> this.networkIds.containsKey(entry.getKey()))
+        .map((entry) -> {
+          UUID id = entry.getKey();
+          PaintingData data = entry.getValue();
+          return PaintingAssignment.from(this.networkIds.get(id), dataOrUnknown(data));
+        })
+        .toList();
     ServerNetworking.sendSyncAllDataPacket(player, assignments);
   }
 
@@ -202,13 +205,9 @@ public class ServerPaintingManager extends PersistentState {
         .forEach((player) -> getInstance(player.getServerWorld()).syncAllDataForPlayer(player));
   }
 
-  public static void syncFinishedMigrationsForPlayer(ServerPlayerEntity player) {
-    ServerNetworking.sendSyncFinishedMigrationsPacket(player, Map.copyOf(finishedMigrations));
-  }
-
   public static void runMigration(ServerPlayerEntity sourcePlayer, Identifier migrationId) {
     boolean succeeded = tryRunMigration(sourcePlayer, migrationId);
-    finishedMigrations.put(migrationId, succeeded);
+    ServerPaintingRegistry.getInstance().markMigrationFinished(migrationId, succeeded);
 
     if (sourcePlayer == null) {
       return;

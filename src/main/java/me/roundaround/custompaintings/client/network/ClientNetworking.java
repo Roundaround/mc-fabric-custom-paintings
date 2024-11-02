@@ -48,8 +48,6 @@ public final class ClientNetworking {
     ClientPlayNetworking.registerGlobalReceiver(Networking.SetPaintingS2C.ID, ClientNetworking::handleSetPainting);
     ClientPlayNetworking.registerGlobalReceiver(Networking.SyncAllDataS2C.ID, ClientNetworking::handleSyncAllData);
     ClientPlayNetworking.registerGlobalReceiver(
-        Networking.SyncFinishedMigrationsS2C.ID, ClientNetworking::handleSyncFinishedMigrations);
-    ClientPlayNetworking.registerGlobalReceiver(
         Networking.MigrationFinishS2C.ID, ClientNetworking::handleMigrationFinish);
   }
 
@@ -59,7 +57,9 @@ public final class ClientNetworking {
         context.player().sendMessage(Text.translatable("custompaintings.loadingSkipped"));
       }
       ClientPaintingRegistry.getInstance()
-          .processSummary(payload.packs(), payload.serverId(), payload.combinedImageHash());
+          .processSummary(payload.packs(), payload.serverId(), payload.combinedImageHash(),
+              payload.finishedMigrations()
+          );
     });
   }
 
@@ -121,19 +121,11 @@ public final class ClientNetworking {
     });
   }
 
-  private static void handleSyncFinishedMigrations(
-      Networking.SyncFinishedMigrationsS2C payload, ClientPlayNetworking.Context context
-  ) {
-    context.client().execute(() -> {
-      ClientPaintingManager.getInstance().setFinishedMigrations(payload.migrations());
-    });
-  }
-
   private static void handleMigrationFinish(
       Networking.MigrationFinishS2C payload, ClientPlayNetworking.Context context
   ) {
     context.client().execute(() -> {
-      ClientPaintingManager.getInstance().markMigrationFinished(payload.id(), payload.succeeded());
+      ClientPaintingRegistry.getInstance().markMigrationFinished(payload.id(), payload.succeeded());
       Screen currentScreen = context.client().currentScreen;
       if (!(currentScreen instanceof MigrationsScreen screen)) {
         return;

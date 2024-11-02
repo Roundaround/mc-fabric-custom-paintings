@@ -27,22 +27,31 @@ public final class ServerNetworking {
   }
 
   public static void sendSummaryPacketToAll(
-      MinecraftServer server, List<PackData> packs, String combinedImageHash, boolean skipped
+      MinecraftServer server,
+      List<PackData> packs,
+      String combinedImageHash,
+      Map<Identifier, Boolean> finishedMigrations,
+      boolean skipped
   ) {
     server.getPlayerManager()
         .getPlayerList()
-        .forEach((player) -> sendSummaryPacket(player, packs, combinedImageHash, skipped));
+        .forEach((player) -> sendSummaryPacket(player, packs, combinedImageHash, finishedMigrations, skipped));
   }
 
   public static void sendSummaryPacket(
-      ServerPlayerEntity player, List<PackData> packs, String combinedImageHash, boolean skipped
+      ServerPlayerEntity player,
+      List<PackData> packs,
+      String combinedImageHash,
+      Map<Identifier, Boolean> finishedMigrations,
+      boolean skipped
   ) {
     if (!ServerPlayNetworking.canSend(player, Networking.SUMMARY_S2C)) {
       player.sendMessage(CustomPaintingsServerMod.getDownloadPrompt());
       return;
     }
     UUID serverId = ServerPaintingManager.getInstance(player.getServerWorld()).getServerId();
-    ServerPlayNetworking.send(player, new Networking.SummaryS2C(serverId, packs, combinedImageHash, skipped));
+    ServerPlayNetworking.send(
+        player, new Networking.SummaryS2C(serverId, packs, combinedImageHash, finishedMigrations, skipped));
   }
 
   public static void sendDownloadSummaryPacket(
@@ -73,14 +82,6 @@ public final class ServerNetworking {
   public static void sendSyncAllDataPacket(ServerPlayerEntity player, List<PaintingAssignment> ids) {
     if (ServerPlayNetworking.canSend(player, Networking.SyncAllDataS2C.ID)) {
       ServerPlayNetworking.send(player, new Networking.SyncAllDataS2C(ids));
-    }
-  }
-
-  public static void sendSyncFinishedMigrationsPacket(
-      ServerPlayerEntity player, Map<Identifier, Boolean> migrations
-  ) {
-    if (ServerPlayNetworking.canSend(player, Networking.SyncFinishedMigrationsS2C.ID)) {
-      ServerPlayNetworking.send(player, new Networking.SyncFinishedMigrationsS2C(migrations));
     }
   }
 

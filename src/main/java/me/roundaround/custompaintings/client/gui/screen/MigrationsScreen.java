@@ -1,7 +1,6 @@
 package me.roundaround.custompaintings.client.gui.screen;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.custompaintings.client.ClientPaintingManager;
 import me.roundaround.custompaintings.client.gui.widget.LoadingButtonWidget;
 import me.roundaround.custompaintings.client.gui.widget.SpriteWidget;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
@@ -62,7 +61,7 @@ public class MigrationsScreen extends Screen {
 
     this.list = this.layout.addBody(
         new MigrationList(this.client, this.layout, ClientPaintingRegistry.getInstance().getMigrations().values(),
-            ClientPaintingManager.getInstance().getFinishedMigrations(), this::runMigration
+            ClientPaintingRegistry.getInstance().getFinishedMigrations(), this::runMigration
         ));
 
     this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, this::close).width(BUTTON_WIDTH).build());

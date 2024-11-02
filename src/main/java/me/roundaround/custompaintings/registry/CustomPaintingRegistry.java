@@ -11,7 +11,7 @@ import net.minecraft.util.Identifier;
 import java.io.IOException;
 import java.util.*;
 
-public abstract class CustomPaintingRegistry implements AutoCloseable {
+public abstract class CustomPaintingRegistry {
   protected final LinkedHashMap<String, PackData> packsMap = new LinkedHashMap<>();
   protected final ArrayList<PackData> packsList = new ArrayList<>();
   protected final HashMap<Identifier, PaintingData> paintings = new HashMap<>();
@@ -51,8 +51,7 @@ public abstract class CustomPaintingRegistry implements AutoCloseable {
     return Map.copyOf(this.migrations);
   }
 
-  @Override
-  public void close() {
+  public void clear() {
     this.packsMap.clear();
     this.packsList.clear();
     this.paintings.clear();

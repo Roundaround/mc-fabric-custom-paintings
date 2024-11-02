@@ -11,8 +11,8 @@ public class CustomPaintingsClientMod implements ClientModInitializer {
     ClientNetworking.registerReceivers();
 
     ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
-      ClientPaintingRegistry.getInstance().close();
-      ClientPaintingManager.getInstance().close();
+      ClientPaintingRegistry.getInstance().clear();
+      ClientPaintingManager.getInstance().clear();
     });
   }
 }

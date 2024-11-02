@@ -33,8 +33,6 @@ public final class Networking {
   public static final Identifier EDIT_PAINTING_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "edit_painting_s2c");
   public static final Identifier SET_PAINTING_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "set_painting_s2c");
   public static final Identifier SYNC_ALL_DATA_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "sync_all_data_s2c");
-  public static final Identifier SYNC_FINISHED_MIGRATIONS_S2C = new Identifier(
-      CustomPaintingsMod.MOD_ID, "sync_finished_migrations_s2c");
   public static final Identifier MIGRATION_FINISH_S2C = new Identifier(
       CustomPaintingsMod.MOD_ID, "migration_finish_s2c");
 
@@ -53,7 +51,6 @@ public final class Networking {
     PayloadTypeRegistry.playS2C().register(EditPaintingS2C.ID, EditPaintingS2C.CODEC);
     PayloadTypeRegistry.playS2C().register(SetPaintingS2C.ID, SetPaintingS2C.CODEC);
     PayloadTypeRegistry.playS2C().register(SyncAllDataS2C.ID, SyncAllDataS2C.CODEC);
-    PayloadTypeRegistry.playS2C().register(SyncFinishedMigrationsS2C.ID, SyncFinishedMigrationsS2C.CODEC);
     PayloadTypeRegistry.playS2C().register(MigrationFinishS2C.ID, MigrationFinishS2C.CODEC);
   }
 
@@ -64,12 +61,13 @@ public final class Networking {
     PayloadTypeRegistry.playC2S().register(RunMigrationC2S.ID, RunMigrationC2S.CODEC);
   }
 
-  public record SummaryS2C(UUID serverId, List<PackData> packs, String combinedImageHash, boolean skipped) implements
-      CustomPayload {
+  public record SummaryS2C(UUID serverId, List<PackData> packs, String combinedImageHash,
+                           Map<Identifier, Boolean> finishedMigrations, boolean skipped) implements CustomPayload {
     public static final Id<SummaryS2C> ID = new Id<>(SUMMARY_S2C);
     public static final PacketCodec<RegistryByteBuf, SummaryS2C> CODEC = PacketCodec.tuple(Uuids.PACKET_CODEC,
         SummaryS2C::serverId, CustomCodecs.forList(PackData.PACKET_CODEC), SummaryS2C::packs, PacketCodecs.STRING,
-        SummaryS2C::combinedImageHash, PacketCodecs.BOOL, SummaryS2C::skipped, SummaryS2C::new
+        SummaryS2C::combinedImageHash, CustomCodecs.forMap(Identifier.PACKET_CODEC, PacketCodecs.BOOL),
+        SummaryS2C::finishedMigrations, PacketCodecs.BOOL, SummaryS2C::skipped, SummaryS2C::new
     );
 
     @Override
@@ -171,19 +169,6 @@ public final class Networking {
 
     @Override
     public Id<SyncAllDataS2C> getId() {
-      return ID;
-    }
-  }
-
-  public record SyncFinishedMigrationsS2C(Map<Identifier, Boolean> migrations) implements CustomPayload {
-    public static final Id<SyncFinishedMigrationsS2C> ID = new Id<>(SYNC_FINISHED_MIGRATIONS_S2C);
-    public static final PacketCodec<RegistryByteBuf, SyncFinishedMigrationsS2C> CODEC = PacketCodec.tuple(
-        CustomCodecs.forMap(Identifier.PACKET_CODEC, PacketCodecs.BOOL), SyncFinishedMigrationsS2C::migrations,
-        SyncFinishedMigrationsS2C::new
-    );
-
-    @Override
-    public Id<SyncFinishedMigrationsS2C> getId() {
       return ID;
     }
   }
