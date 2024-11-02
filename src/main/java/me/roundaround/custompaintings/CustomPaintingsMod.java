@@ -1,9 +1,13 @@
 package me.roundaround.custompaintings;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.registry.VanillaPaintingRegistry;
+import me.roundaround.custompaintings.resource.PackResource;
+import me.roundaround.custompaintings.resource.legacy.CustomPaintingsJson;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
 import me.roundaround.custompaintings.server.command.CustomPaintingsCommand;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
@@ -27,6 +31,10 @@ import java.util.UUID;
 public final class CustomPaintingsMod implements ModInitializer {
   public static final String MOD_ID = "custompaintings";
   public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
+  public static final Gson GSON = new GsonBuilder().setPrettyPrinting()
+      .registerTypeAdapter(CustomPaintingsJson.class, new CustomPaintingsJson.TypeAdapter())
+      .registerTypeAdapter(PackResource.class, new PackResource.TypeAdapter())
+      .create();
   public static final String MSG_CMD_IGNORE = CustomPaintingsMod.MOD_ID + ":" + "ignore";
   public static final String MSG_CMD_OPEN_CONVERT_SCREEN = CustomPaintingsMod.MOD_ID + ":" + "openConvertScreen";
 

@@ -1,8 +1,6 @@
 package me.roundaround.custompaintings.resource.legacy;
 
 import com.google.common.collect.ImmutableList;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.texture.LoadingSprite;
 import me.roundaround.custompaintings.resource.*;
@@ -36,10 +34,6 @@ public class LegacyPackConverter {
   private static final String PACK_MCMETA = "pack.mcmeta";
   private static final String PACK_PNG = "pack.png";
   private static final String ICON_PNG = "icon.png";
-  private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
-      .registerTypeAdapter(CustomPaintingsJson.class, new CustomPaintingsJson.TypeAdapter())
-      .registerTypeAdapter(PackResource.class, new PackResource.TypeAdapter())
-      .create();
 
   private static LegacyPackConverter instance = null;
 
@@ -203,7 +197,8 @@ public class LegacyPackConverter {
   private String readLegacyPackIdFromDirectory(Path path) {
     LegacyPackIdWrapper parsed;
     try {
-      parsed = GSON.fromJson(Files.newBufferedReader(path.resolve(CUSTOM_PAINTINGS_JSON)), LegacyPackIdWrapper.class);
+      parsed = CustomPaintingsMod.GSON.fromJson(
+          Files.newBufferedReader(path.resolve(CUSTOM_PAINTINGS_JSON)), LegacyPackIdWrapper.class);
     } catch (Exception e) {
       return null;
     }
@@ -219,7 +214,7 @@ public class LegacyPackConverter {
 
       LegacyPackIdWrapper parsed;
       try (InputStream stream = zip.getInputStream(jsonEntry)) {
-        parsed = GSON.fromJson(new InputStreamReader(stream), LegacyPackIdWrapper.class);
+        parsed = CustomPaintingsMod.GSON.fromJson(new InputStreamReader(stream), LegacyPackIdWrapper.class);
       } catch (Exception ignored) {
         return null;
       }
@@ -548,7 +543,7 @@ public class LegacyPackConverter {
   private static CustomPaintingsJson readCustomPaintingsJson(Path path) {
     CustomPaintingsJson json;
     try {
-      json = GSON.fromJson(Files.newBufferedReader(path), CustomPaintingsJson.class);
+      json = CustomPaintingsMod.GSON.fromJson(Files.newBufferedReader(path), CustomPaintingsJson.class);
     } catch (Exception e) {
       return null;
     }
@@ -568,7 +563,7 @@ public class LegacyPackConverter {
 
     CustomPaintingsJson json;
     try (InputStream stream = zip.getInputStream(entry)) {
-      json = GSON.fromJson(new InputStreamReader(stream), CustomPaintingsJson.class);
+      json = CustomPaintingsMod.GSON.fromJson(new InputStreamReader(stream), CustomPaintingsJson.class);
     } catch (Exception e) {
       return null;
     }
@@ -582,7 +577,7 @@ public class LegacyPackConverter {
 
   private static PackMcmeta readPackMcmeta(Path path) {
     try {
-      return GSON.fromJson(Files.newBufferedReader(path), PackMcmeta.class);
+      return CustomPaintingsMod.GSON.fromJson(Files.newBufferedReader(path), PackMcmeta.class);
     } catch (Exception e) {
       return null;
     }
@@ -595,7 +590,7 @@ public class LegacyPackConverter {
     }
 
     try (InputStream stream = zip.getInputStream(entry)) {
-      return GSON.fromJson(new InputStreamReader(stream), PackMcmeta.class);
+      return CustomPaintingsMod.GSON.fromJson(new InputStreamReader(stream), PackMcmeta.class);
     } catch (Exception e) {
       return null;
     }
@@ -640,7 +635,7 @@ public class LegacyPackConverter {
     ZipEntry entry = new ZipEntry(CUSTOM_PAINTINGS_JSON);
     zos.putNextEntry(entry);
 
-    String content = GSON.toJson(pack);
+    String content = CustomPaintingsMod.GSON.toJson(pack);
     byte[] bytes = content.getBytes();
     zos.write(bytes, 0, bytes.length);
     zos.closeEntry();

@@ -1,7 +1,5 @@
 package me.roundaround.custompaintings.server.registry;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
@@ -42,9 +40,6 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
   private static final String LOG_MISSING_PAINTING = "Missing custom painting image file for {}";
   private static final String LOG_LARGE_IMAGE = "Image file for {} is too large, skipping";
   private static final String LOG_PAINTING_READ_FAIL = "Failed to read custom painting image file for {}";
-  private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
-      .registerTypeAdapter(PackResource.class, new PackResource.TypeAdapter())
-      .create();
   private static final int MAX_SIZE = 1 << 24;
 
   private static ServerPaintingRegistry instance = null;
@@ -222,7 +217,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
       PackResource pack;
       try (InputStream stream = zip.getInputStream(zipMeta)) {
-        pack = GSON.fromJson(new InputStreamReader(stream), PackResource.class);
+        pack = CustomPaintingsMod.GSON.fromJson(new InputStreamReader(stream), PackResource.class);
       } catch (Exception e) {
         CustomPaintingsMod.LOGGER.warn(e);
         CustomPaintingsMod.LOGGER.warn(LOG_META_PARSE_FAIL, META_FILENAME, filename);
@@ -330,7 +325,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
     PackResource pack;
     try {
-      pack = GSON.fromJson(Files.newBufferedReader(path.resolve(META_FILENAME)), PackResource.class);
+      pack = CustomPaintingsMod.GSON.fromJson(Files.newBufferedReader(path.resolve(META_FILENAME)), PackResource.class);
     } catch (Exception e) {
       CustomPaintingsMod.LOGGER.warn(e);
       CustomPaintingsMod.LOGGER.warn(LOG_META_PARSE_FAIL, META_FILENAME, dirname);
