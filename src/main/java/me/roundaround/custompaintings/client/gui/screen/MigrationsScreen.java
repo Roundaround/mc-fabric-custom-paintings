@@ -29,6 +29,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.Util;
 
 import java.util.Collection;
 import java.util.Map;
@@ -100,7 +101,7 @@ public class MigrationsScreen extends Screen {
   }
 
   private void runMigration(MigrationList.MigrationEntry entry) {
-    ClientNetworking.sendRunMigrationPacket(entry.getMigrationId());
+    Util.getIoWorkerExecutor().execute(() -> ClientNetworking.sendRunMigrationPacket(entry.getMigrationId()));
     entry.markLoading();
   }
 
@@ -308,6 +309,7 @@ public class MigrationsScreen extends Screen {
         this.runButton.setLoading(false);
 
         Status status = Status.of(succeeded);
+        this.statusButton.visible = status != Status.NONE;
         this.statusButton.setTexture(status.getTexture());
         this.statusButton.setMessage(status.getButtonLabel());
         this.statusButton.setTooltip(Tooltip.of(status.getTooltip()));
