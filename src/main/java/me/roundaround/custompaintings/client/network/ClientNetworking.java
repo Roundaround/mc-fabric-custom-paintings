@@ -68,7 +68,7 @@ public final class ClientNetworking {
   ) {
     context.client().execute(() -> {
       ClientPaintingRegistry.getInstance()
-          .trackExpectedPackets(payload.ids(), payload.imageCount(), payload.packetCount(), payload.byteCount());
+          .trackExpectedPackets(payload.ids(), payload.imageCount(), payload.byteCount());
     });
   }
 

@@ -39,8 +39,7 @@ public class ImagePacketQueue {
         .map((entry) -> this.add(queue, player, entry.getKey(), entry.getValue()))
         .reduce(Summary.empty(), Summary::merge);
 
-    ServerNetworking.sendDownloadSummaryPacket(
-        player, images.keySet(), summary.imageCount, summary.packetCount, summary.byteCount);
+    ServerNetworking.sendDownloadSummaryPacket(player, images.keySet(), summary.imageCount, summary.byteCount);
 
     while (!queue.isEmpty()) {
       Entry entry = queue.poll();
@@ -138,35 +137,31 @@ public class ImagePacketQueue {
   }
 
   public static class Summary {
-    public int packetCount;
     public int imageCount;
     public int byteCount;
 
-    private Summary(int packetCount, int imageCount, int byteCount) {
-      this.packetCount = packetCount;
+    private Summary(int imageCount, int byteCount) {
       this.imageCount = imageCount;
       this.byteCount = byteCount;
     }
 
     public static Summary empty() {
-      return new Summary(0, 0, 0);
+      return new Summary(0, 0);
     }
 
     public static Summary singlePacketImage(Image image) {
-      return new Summary(1, 1, image.getSize());
+      return new Summary(1, image.getSize());
     }
 
     public static Summary multiPacketImage() {
-      return new Summary(1, 1, 0);
+      return new Summary(1, 0);
     }
 
     public void add(int byteCount) {
-      this.packetCount++;
       this.byteCount += byteCount;
     }
 
     public static Summary merge(Summary a, Summary b) {
-      a.packetCount += b.packetCount;
       a.imageCount += b.imageCount;
       a.byteCount += b.byteCount;
       return a;

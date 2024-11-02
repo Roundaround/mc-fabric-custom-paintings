@@ -46,10 +46,9 @@ public final class ServerNetworking {
   }
 
   public static void sendDownloadSummaryPacket(
-      ServerPlayerEntity player, Collection<Identifier> ids, int imageCount, int packetCount, int byteCount
+      ServerPlayerEntity player, Collection<Identifier> ids, int imageCount, int byteCount
   ) {
-    ServerPlayNetworking.send(
-        player, new Networking.DownloadSummaryS2C(ids.stream().toList(), imageCount, packetCount, byteCount));
+    ServerPlayNetworking.send(player, new Networking.DownloadSummaryS2C(ids.stream().toList(), imageCount, byteCount));
   }
 
   public static void sendEditPaintingPacket(

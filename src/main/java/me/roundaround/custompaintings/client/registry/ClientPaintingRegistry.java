@@ -59,10 +59,8 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
   private String pendingCombinedImagesHash = "";
   private long waitingForImagesTimer;
   private int imagesExpected;
-  private int packetsExpected;
   private int bytesExpected;
   private int imagesReceived;
-  private int packetsReceived;
   private int bytesReceived;
   private long lastDownloadUpdate = 0L;
 
@@ -215,7 +213,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     this.onImagesChanged();
   }
 
-  public void trackExpectedPackets(List<Identifier> ids, int imageCount, int packetCount, int byteCount) {
+  public void trackExpectedPackets(List<Identifier> ids, int imageCount, int byteCount) {
     this.cachedImages.entrySet().removeIf((entry) -> ids.contains(entry.getKey()));
     if (!this.cachedImages.isEmpty()) {
       CustomPaintingsMod.LOGGER.info("{} painting hashes match, using cached data", this.cachedImages.size());
@@ -228,7 +226,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     this.neededImages.clear();
     this.neededImages.addAll(ids);
     this.imagesExpected = imageCount;
-    this.packetsExpected = packetCount;
     this.bytesExpected = byteCount;
 
     if (this.client.player != null && !this.client.isInSingleplayer()) {
@@ -242,18 +239,15 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
 
   public void setPaintingImage(Identifier id, Image image) {
     this.imagesReceived++;
-    this.packetsReceived++;
     this.bytesReceived += image.getSize();
     this.setFull(id, image);
   }
 
   public void setPaintingHeader(Identifier id, int width, int height, int totalChunks) {
-    this.packetsReceived++;
     this.setPart(id, (builder) -> builder.set(width, height, totalChunks));
   }
 
   public void setPaintingChunk(Identifier id, int index, byte[] bytes) {
-    this.packetsReceived++;
     this.bytesReceived += bytes.length;
     this.setPart(id, (builder) -> builder.set(index, bytes));
   }
@@ -323,10 +317,8 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
     this.pendingDataRequests.clear();
     this.pendingCombinedImagesHash = "";
     this.imagesExpected = 0;
-    this.packetsExpected = 0;
     this.bytesExpected = 0;
     this.imagesReceived = 0;
-    this.packetsReceived = 0;
     this.bytesReceived = 0;
   }
 
@@ -337,10 +329,8 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
 
     if (this.imagesExpected == 0 || this.imagesReceived == this.imagesExpected) {
       this.imagesExpected = 0;
-      this.packetsExpected = 0;
       this.bytesExpected = 0;
       this.imagesReceived = 0;
-      this.packetsReceived = 0;
       this.bytesReceived = 0;
       return;
     }
@@ -389,10 +379,8 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry implements Au
       }
 
       this.imagesExpected = 0;
-      this.packetsExpected = 0;
       this.bytesExpected = 0;
       this.imagesReceived = 0;
-      this.packetsReceived = 0;
       this.bytesReceived = 0;
     }
   }
