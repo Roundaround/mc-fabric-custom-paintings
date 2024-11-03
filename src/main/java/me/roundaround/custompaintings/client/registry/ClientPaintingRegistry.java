@@ -3,6 +3,7 @@ package me.roundaround.custompaintings.client.registry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.client.gui.screen.PacksLoadedListener;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.client.texture.BasicTextureSprite;
 import me.roundaround.custompaintings.client.texture.LoadingSprite;
@@ -322,6 +323,10 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.pendingDataRequests.clear();
 
     this.clearUnknownMigrations();
+
+    if (this.client != null && this.client.currentScreen instanceof PacksLoadedListener screen) {
+      screen.onPacksLoaded();
+    }
   }
 
   @Override

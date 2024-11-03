@@ -51,7 +51,6 @@
   "custompaintings.main.reload": "Reload Packs",
   "custompaintings.main.reload.notInWorld": "Requires being connected to a world/server",
   "custompaintings.main.reload.notOp": "Requires OP permissions",
-  "custompaintings.main.reloadingMessage": "§6[CP]§r Reloading painting packs",
   "custompaintings.legacy.title": "Convert Legacy (Pre-3.0.0) Resource Packs",
   "custompaintings.legacy.direct": "Output directly for current world",
   "custompaintings.legacy.output": "Open Output Folder",

@@ -1,6 +1,7 @@
 package me.roundaround.custompaintings.client.gui.screen;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.client.gui.widget.LoadingButtonWidget;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
@@ -14,12 +15,16 @@ import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
+import net.minecraft.util.Util;
 
-public class MainMenuScreen extends Screen {
+public class MainMenuScreen extends Screen implements PacksLoadedListener {
+  private static final int BUTTON_HEIGHT = ButtonWidget.DEFAULT_HEIGHT;
   private static final int BUTTON_WIDTH = ButtonWidget.field_49479;
 
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
   private final Screen parent;
+
+  private LoadingButtonWidget reloadButton;
 
   public MainMenuScreen(Screen parent) {
     super(Text.translatable("custompaintings.main.title"));
@@ -36,6 +41,11 @@ public class MainMenuScreen extends Screen {
         .width(BUTTON_WIDTH)
         .build());
 
+    // TODO: i18n
+    // TODO: Disable when not in world
+    this.layout.addBody(
+        ButtonWidget.builder(Text.of("Current Packs"), this::navigatePacks).width(BUTTON_WIDTH).build());
+
     ButtonWidget legacyButton = this.layout.addBody(
         ButtonWidget.builder(Text.translatable("custompaintings.main.legacy"), this::navigateConvert)
             .width(BUTTON_WIDTH)
@@ -49,26 +59,26 @@ public class MainMenuScreen extends Screen {
         ButtonWidget.builder(Text.translatable("custompaintings.main.migrate"), this::navigateMigrate)
             .width(BUTTON_WIDTH)
             .build());
-    ButtonWidget reloadButton = this.layout.addBody(
-        ButtonWidget.builder(Text.translatable("custompaintings.main.reload"), this::reloadPacks)
-            .width(BUTTON_WIDTH)
-            .build());
+    this.reloadButton = this.layout.addBody(
+        new LoadingButtonWidget(0, 0, BUTTON_WIDTH, BUTTON_HEIGHT, Text.translatable("custompaintings.main.reload"),
+            (b) -> this.reloadPacks()
+        ));
 
     if (this.client.world == null) {
       migrationsButton.active = false;
       migrationsButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.migrate.notInWorld")));
 
-      reloadButton.active = false;
-      reloadButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.reload.notInWorld")));
+      this.reloadButton.active = false;
+      this.reloadButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.reload.notInWorld")));
     } else if (this.client.player != null && !this.client.player.hasPermissionLevel(3)) {
       migrationsButton.active = false;
       migrationsButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.migrate.notOp")));
 
-      reloadButton.active = false;
-      reloadButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.reload.notOp")));
+      this.reloadButton.active = false;
+      this.reloadButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.reload.notOp")));
     }
 
-    this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, this::close).width(BUTTON_WIDTH).build());
+    this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, (b) -> this.close()).width(BUTTON_WIDTH).build());
 
     FabricLoader.getInstance().getModContainer(CustomPaintingsMod.MOD_ID).ifPresent((mod) -> {
       Text version = Text.of("v" + mod.getMetadata().getVersion().getFriendlyString());
@@ -98,8 +108,9 @@ public class MainMenuScreen extends Screen {
     this.client.setScreen(this.parent);
   }
 
-  private void close(ButtonWidget button) {
-    this.close();
+  @Override
+  public void onPacksLoaded() {
+    this.reloadButton.setLoading(false);
   }
 
   private void navigateConfig(ButtonWidget button) {
@@ -107,6 +118,11 @@ public class MainMenuScreen extends Screen {
     this.client.setScreen(new ConfigScreen(this, CustomPaintingsMod.MOD_ID, CustomPaintingsConfig.getInstance(),
         CustomPaintingsPerWorldConfig.getInstance()
     ));
+  }
+
+  private void navigatePacks(ButtonWidget button) {
+    assert this.client != null;
+    this.client.setScreen(new PacksScreen(this));
   }
 
   private void navigateConvert(ButtonWidget button) {
@@ -123,14 +139,13 @@ public class MainMenuScreen extends Screen {
     this.client.setScreen(new MigrationsScreen(this));
   }
 
-  private void reloadPacks(ButtonWidget button) {
+  private void reloadPacks() {
     assert this.client != null;
     if (this.client.player == null || this.client.world == null || !this.client.player.hasPermissionLevel(3)) {
       return;
     }
 
-    this.client.setScreen(null);
-    this.client.player.sendMessage(Text.translatable("custompaintings.main.reloadingMessage"));
-    ClientNetworking.sendReloadPacket();
+    this.reloadButton.setLoading(true);
+    Util.getIoWorkerExecutor().execute(ClientNetworking::sendReloadPacket);
   }
 }
