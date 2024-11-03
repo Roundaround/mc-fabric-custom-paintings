@@ -27,7 +27,7 @@ public abstract class PaintingEntityRendererMixin extends EntityRenderer<Paintin
   )
   private void getTexture(PaintingEntity painting, CallbackInfoReturnable<Identifier> info) {
     PaintingData paintingData = painting.getCustomData();
-    if (paintingData.isVanilla()) {
+    if (paintingData.vanilla()) {
       return;
     }
 
@@ -49,7 +49,7 @@ public abstract class PaintingEntityRendererMixin extends EntityRenderer<Paintin
     PaintingEntity entity = args.get(2);
     PaintingData paintingData = entity.getCustomData();
 
-    if (paintingData.isVanilla()) {
+    if (paintingData.vanilla()) {
       return;
     }
 

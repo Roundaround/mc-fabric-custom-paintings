@@ -16,7 +16,7 @@ public record PackData(String id, String name, String description, String legacy
     buf.writeString(this.description == null ? "" : this.description);
     buf.writeString(this.legacyPackId == null ? "" : this.legacyPackId);
     buf.writeInt(this.paintings.size());
-    this.paintings.forEach((painting) -> painting.writeToPacketByteBuf(buf));
+    this.paintings.forEach((painting) -> painting.write(buf));
     buf.writeInt(this.migrations.size());
     this.migrations.forEach((migration) -> migration.writeToPacketByteBuf(buf));
   }
@@ -29,7 +29,7 @@ public record PackData(String id, String name, String description, String legacy
     int paintingCount = buf.readInt();
     List<PaintingData> paintings = new ArrayList<>(paintingCount);
     for (int i = 0; i < paintingCount; i++) {
-      paintings.add(PaintingData.fromPacketByteBuf(buf));
+      paintings.add(PaintingData.read(buf));
     }
     int migrationCount = buf.readInt();
     List<MigrationData> migrations = new ArrayList<>(migrationCount);

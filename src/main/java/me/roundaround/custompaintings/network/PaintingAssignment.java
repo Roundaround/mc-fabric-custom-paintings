@@ -5,6 +5,8 @@ import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.util.Identifier;
 
+import java.util.function.Function;
+
 public class PaintingAssignment {
   public static final PacketCodec<PacketByteBuf, PaintingAssignment> PACKET_CODEC = PacketCodec.of(
       PaintingAssignment::write, PaintingAssignment::read);
@@ -19,9 +21,11 @@ public class PaintingAssignment {
     this.data = data;
   }
 
-  public static PaintingAssignment from(int paintingId, PaintingData data) {
-    if (data.isUnknown()) {
+  public static PaintingAssignment from(int paintingId, PaintingData data, Function<Identifier, Boolean> lookup) {
+    if (data.unknown()) {
       return new PaintingAssignment(paintingId, null, data);
+    } else if (!lookup.apply(data.id())) {
+      return new PaintingAssignment(paintingId, null, data.markUnknown());
     }
     return new PaintingAssignment(paintingId, data.id(), null);
   }
@@ -49,7 +53,7 @@ public class PaintingAssignment {
     if (buf.readBoolean()) {
       dataId = buf.readIdentifier();
     } else {
-      data = PaintingData.fromPacketByteBuf(buf);
+      data = PaintingData.read(buf);
     }
     return new PaintingAssignment(paintingId, dataId, data);
   }
@@ -61,7 +65,7 @@ public class PaintingAssignment {
       buf.writeIdentifier(this.dataId);
     } else {
       buf.writeBoolean(false);
-      this.data.writeToPacketByteBuf(buf);
+      this.data.write(buf);
     }
   }
 }

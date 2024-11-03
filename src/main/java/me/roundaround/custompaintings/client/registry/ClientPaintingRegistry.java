@@ -105,7 +105,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     if (data.isEmpty()) {
       return this.getBackSprite();
     }
-    if (data.isVanilla()) {
+    if (data.vanilla()) {
       return this.client.getPaintingManager().getPaintingSprite(Registries.PAINTING_VARIANT.get(data.id()));
     }
     return this.getSprite(data.id());

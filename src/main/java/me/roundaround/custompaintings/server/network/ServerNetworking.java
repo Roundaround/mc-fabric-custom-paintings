@@ -79,9 +79,9 @@ public final class ServerNetworking {
     }
   }
 
-  public static void sendSyncAllDataPacket(ServerPlayerEntity player, List<PaintingAssignment> ids) {
+  public static void sendSyncAllDataPacket(ServerPlayerEntity player, List<PaintingAssignment> assignments) {
     if (ServerPlayNetworking.canSend(player, Networking.SyncAllDataS2C.ID)) {
-      ServerPlayNetworking.send(player, new Networking.SyncAllDataS2C(ids));
+      ServerPlayNetworking.send(player, new Networking.SyncAllDataS2C(assignments));
     }
   }
 
@@ -142,7 +142,7 @@ public final class ServerNetworking {
         return;
       }
 
-      if (paintingData.isVanilla()) {
+      if (paintingData.vanilla()) {
         painting.setVariant(paintingData.id());
       }
       painting.setCustomData(paintingData);

@@ -61,7 +61,7 @@ public class ClientPaintingManager {
   }
 
   private void setPaintingData(PaintingEntity painting, PaintingData paintingData) {
-    if (paintingData.isVanilla()) {
+    if (paintingData.vanilla()) {
       painting.setVariant(paintingData.id());
     }
     painting.setCustomData(paintingData);

@@ -85,7 +85,7 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
   @Inject(method = "readCustomDataFromNbt", at = @At(value = "HEAD"))
   private void readCustomDataFromNbt(NbtCompound nbt, CallbackInfo info) {
     if (nbt.contains("PaintingData", NbtElement.COMPOUND_TYPE)) {
-      this.setCustomData(PaintingData.fromNbt(nbt.getCompound("PaintingData")));
+      this.setCustomData(PaintingData.read(nbt.getCompound("PaintingData")));
     }
   }
 

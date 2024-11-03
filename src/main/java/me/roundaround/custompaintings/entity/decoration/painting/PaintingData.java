@@ -15,23 +15,24 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public record PaintingData(Identifier id, int width, int height, String name, String artist, boolean isVanilla) {
+public record PaintingData(Identifier id, int width, int height, String name, String artist, boolean vanilla,
+                           boolean unknown) {
   public static final Identifier UNKNOWN_ID = new Identifier("__unknown", "__unknown");
   public static final PaintingData EMPTY = new PaintingData(null, 0, 0);
   public static final PacketCodec<PacketByteBuf, PaintingData> PACKET_CODEC = PacketCodec.of(
-      PaintingData::writeToPacketByteBuf, PaintingData::fromPacketByteBuf);
+      PaintingData::write, PaintingData::read);
 
   public PaintingData(Identifier id, int width, int height) {
     this(id, width, height, "", "");
   }
 
   public PaintingData(Identifier id, int width, int height, String name, String artist) {
-    this(id, width, height, name, artist, false);
+    this(id, width, height, name, artist, false, false);
   }
 
   public PaintingData(PaintingVariant vanillaVariant) {
     this(Registries.PAINTING_VARIANT.getId(vanillaVariant), vanillaVariant.getWidth() / 16,
-        vanillaVariant.getHeight() / 16, Registries.PAINTING_VARIANT.getId(vanillaVariant).getPath(), "", true
+        vanillaVariant.getHeight() / 16, Registries.PAINTING_VARIANT.getId(vanillaVariant).getPath(), "", true, false
     );
   }
 
@@ -57,16 +58,12 @@ public record PaintingData(Identifier id, int width, int height, String name, St
     return this.id == null;
   }
 
-  public boolean isUnknown() {
-    return Objects.equals(this.id, UNKNOWN_ID);
-  }
-
   public boolean hasName() {
-    return this.isVanilla() || this.name != null && !this.name.isEmpty();
+    return this.vanilla() || this.name != null && !this.name.isEmpty();
   }
 
   public boolean hasArtist() {
-    return this.isVanilla() || this.artist != null && !this.artist.isEmpty();
+    return this.vanilla() || this.artist != null && !this.artist.isEmpty();
   }
 
   public boolean hasLabel() {
@@ -78,7 +75,7 @@ public record PaintingData(Identifier id, int width, int height, String name, St
       return Text.empty();
     }
 
-    if (this.isVanilla()) {
+    if (this.vanilla()) {
       return Text.translatable(this.id().toTranslationKey("painting", "title")).formatted(Formatting.YELLOW);
     }
 
@@ -90,7 +87,7 @@ public record PaintingData(Identifier id, int width, int height, String name, St
       return Text.empty();
     }
 
-    if (this.isVanilla()) {
+    if (this.vanilla()) {
       return Text.translatable(this.id().toTranslationKey("painting", "author")).formatted(Formatting.ITALIC);
     }
 
@@ -152,35 +149,35 @@ public record PaintingData(Identifier id, int width, int height, String name, St
   }
 
   public PaintingData setId(Identifier id) {
-    return new PaintingData(id, this.width, this.height, this.name, this.artist, this.isVanilla);
+    return new PaintingData(id, this.width, this.height, this.name, this.artist, this.vanilla, this.unknown);
   }
 
   public PaintingData setWidth(int width) {
-    return new PaintingData(this.id, width, this.height, this.name, this.artist, this.isVanilla);
+    return new PaintingData(this.id, width, this.height, this.name, this.artist, this.vanilla, this.unknown);
   }
 
   public PaintingData setHeight(int height) {
-    return new PaintingData(this.id, this.width, height, this.name, this.artist, this.isVanilla);
+    return new PaintingData(this.id, this.width, height, this.name, this.artist, this.vanilla, this.unknown);
   }
 
   public PaintingData setDimensions(int width, int height) {
-    return new PaintingData(this.id, width, height, this.name, this.artist, this.isVanilla);
+    return new PaintingData(this.id, width, height, this.name, this.artist, this.vanilla, this.unknown);
   }
 
   public PaintingData setName(String name) {
-    return new PaintingData(this.id, this.width, this.height, name, this.artist, this.isVanilla);
+    return new PaintingData(this.id, this.width, this.height, name, this.artist, this.vanilla, this.unknown);
   }
 
   public PaintingData setArtist(String artist) {
-    return new PaintingData(this.id, this.width, this.height, this.name, artist, this.isVanilla);
+    return new PaintingData(this.id, this.width, this.height, this.name, artist, this.vanilla, this.unknown);
   }
 
   public PaintingData setLabel(String name, String artist) {
-    return new PaintingData(this.id, this.width, this.height, name, artist, this.isVanilla);
+    return new PaintingData(this.id, this.width, this.height, name, artist, this.vanilla, this.unknown);
   }
 
-  public PaintingData toUnknown() {
-    return unknown(this.width, this.height);
+  public PaintingData markUnknown() {
+    return new PaintingData(this.id, this.width, this.height, this.name, this.artist, this.vanilla, true);
   }
 
   public boolean isMismatched(PaintingData knownData) {
@@ -191,7 +188,7 @@ public record PaintingData(Identifier id, int width, int height, String name, St
     return switch (category) {
       case SIZE -> this.width() != knownData.width() || this.height() != knownData.height();
       case INFO -> !this.name().equals(knownData.name()) || !this.artist().equals(knownData.artist()) ||
-                   this.isVanilla() != knownData.isVanilla();
+                   this.vanilla() != knownData.vanilla();
       case EVERYTHING -> this.width() != knownData.width() || this.height() != knownData.height() ||
                          !this.name().equals(knownData.name()) || !this.artist().equals(knownData.artist());
     };
@@ -208,12 +205,12 @@ public record PaintingData(Identifier id, int width, int height, String name, St
     if (!(o instanceof PaintingData that))
       return false;
 
-    return this.width == that.width && this.height == that.height && this.isVanilla == that.isVanilla &&
+    return this.width == that.width && this.height == that.height && this.vanilla == that.vanilla &&
            Objects.equals(this.name, that.name) && Objects.equals(this.id, that.id) &&
            Objects.equals(this.artist, that.artist);
   }
 
-  public NbtCompound writeToNbt() {
+  public NbtCompound write() {
     NbtCompound nbt = new NbtCompound();
     if (this.isEmpty()) {
       return nbt;
@@ -224,11 +221,11 @@ public record PaintingData(Identifier id, int width, int height, String name, St
     nbt.putInt("Height", this.height);
     nbt.putString("Name", this.name == null ? "" : this.name);
     nbt.putString("Artist", this.artist == null ? "" : this.artist);
-    nbt.putBoolean("Vanilla", this.isVanilla);
+    nbt.putBoolean("Vanilla", this.vanilla);
     return nbt;
   }
 
-  public void writeToPacketByteBuf(PacketByteBuf buf) {
+  public void write(PacketByteBuf buf) {
     if (this.isEmpty()) {
       buf.writeBoolean(false);
       return;
@@ -239,10 +236,11 @@ public record PaintingData(Identifier id, int width, int height, String name, St
     buf.writeInt(this.height);
     buf.writeString(this.name == null ? "" : this.name);
     buf.writeString(this.artist == null ? "" : this.artist);
-    buf.writeBoolean(this.isVanilla);
+    buf.writeBoolean(this.vanilla);
+    buf.writeBoolean(this.unknown);
   }
 
-  public static PaintingData fromNbt(NbtCompound nbt) {
+  public static PaintingData read(NbtCompound nbt) {
     if (!nbt.contains("Id")) {
       return EMPTY;
     }
@@ -253,10 +251,10 @@ public record PaintingData(Identifier id, int width, int height, String name, St
     String name = nbt.getString("Name");
     String artist = nbt.getString("Artist");
     boolean isVanilla = nbt.getBoolean("Vanilla");
-    return new PaintingData(id, width, height, name, artist, isVanilla);
+    return new PaintingData(id, width, height, name, artist, isVanilla, false);
   }
 
-  public static PaintingData fromPacketByteBuf(PacketByteBuf buf) {
+  public static PaintingData read(PacketByteBuf buf) {
     if (!buf.readBoolean()) {
       return EMPTY;
     }
@@ -266,11 +264,8 @@ public record PaintingData(Identifier id, int width, int height, String name, St
     String name = buf.readString();
     String artist = buf.readString();
     boolean isVanilla = buf.readBoolean();
-    return new PaintingData(id, width, height, name, artist, isVanilla);
-  }
-
-  public static PaintingData unknown(int width, int height) {
-    return new PaintingData(UNKNOWN_ID, width, height);
+    boolean isUnknown = buf.readBoolean();
+    return new PaintingData(id, width, height, name, artist, isVanilla, isUnknown);
   }
 
   public enum MismatchedCategory {
