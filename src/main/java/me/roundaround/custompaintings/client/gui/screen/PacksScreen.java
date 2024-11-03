@@ -73,7 +73,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
   @Override
   public void onPacksLoaded() {
     this.reloadButton.setLoading(false);
-    this.list.reFetchPacks();
+    this.list.reloadPacks();
   }
 
   private void reloadPacks() {
@@ -93,7 +93,12 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
       this.init();
     }
 
-    public void reFetchPacks() {
+    @Override
+    protected int getPreferredContentWidth() {
+      return VANILLA_LIST_WIDTH_M;
+    }
+
+    public void reloadPacks() {
       this.clearEntries();
       this.init();
     }
@@ -106,6 +111,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
       for (PackData pack : packs) {
         this.addEntry(PackEntry.factory(this.client.textRenderer, pack));
       }
+      this.refreshPositions();
     }
 
     private static abstract class Entry extends ParentElementEntryListWidget.Entry {
@@ -151,8 +157,8 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
     }
 
     private static class PackEntry extends Entry {
-      private static final int HEIGHT = 36;
-      private static final int PACK_ICON_SIZE = 32;
+      private static final int HEIGHT = 48;
+      private static final int PACK_ICON_SIZE = 36;
 
       protected PackEntry(
           int index, int left, int top, int width, TextRenderer textRenderer, PackData pack
@@ -182,6 +188,19 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
             .hideBackground()
             .showShadow()
             .build(), (parent, self) -> self.setWidth(parent.getWidth()));
+        textSection.add(LabelWidget.builder(textRenderer, Text.of(pack.id()))
+            .alignTextLeft()
+            .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
+            .hideBackground()
+            .showShadow()
+            .build(), (parent, self) -> self.setWidth(parent.getWidth()));
+        textSection.add(
+            LabelWidget.builder(textRenderer, Text.of(String.format("%s painting(s)", pack.paintings().size())))
+                .alignTextLeft()
+                .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
+                .hideBackground()
+                .showShadow()
+                .build(), (parent, self) -> self.setWidth(parent.getWidth()));
         layout.add(textSection, (parent, self) -> {
           int textSectionWidth = this.getContentWidth();
           textSectionWidth -= (parent.getChildren().size() - 1) * parent.getSpacing();
