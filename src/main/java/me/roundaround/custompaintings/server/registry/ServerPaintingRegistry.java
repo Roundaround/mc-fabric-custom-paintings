@@ -6,6 +6,7 @@ import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
 import me.roundaround.custompaintings.resource.Image;
 import me.roundaround.custompaintings.resource.PackIcons;
 import me.roundaround.custompaintings.resource.PackResource;
+import me.roundaround.custompaintings.resource.ResourceUtil;
 import me.roundaround.custompaintings.server.network.ImagePacketQueue;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
 import me.roundaround.roundalib.util.PathAccessor;
@@ -23,7 +24,6 @@ import java.io.InputStreamReader;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.text.DecimalFormat;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -33,10 +33,13 @@ import java.util.zip.ZipFile;
 
 public class ServerPaintingRegistry extends CustomPaintingRegistry {
   private static final String META_FILENAME = "custompaintings.json";
+  private static final String PACK_PNG = "pack.png";
+  private static final String ICON_PNG = "icon.png";
   private static final String LOG_NO_META = "Found Custom Paintings pack \"{}\" without a {} file, skipping...";
   private static final String LOG_META_PARSE_FAIL = "Failed to parse {} from \"{}\", skipping...";
   private static final String LOG_NO_PAINTINGS = "No paintings found in \"{}\", skipping...";
   private static final String LOG_NO_ICON = "Missing icon.png file for {}";
+  private static final String LOG_LEGACY_ICON = "Deprecated/legacy pack.png file found for {}. Rename to icon.png";
   private static final String LOG_ICON_READ_FAIL = "Failed to read icon.png file for {}";
   private static final String LOG_MISSING_PAINTING = "Missing custom painting image file for {}";
   private static final String LOG_LARGE_IMAGE = "Image file for {} is too large, skipping";
@@ -221,7 +224,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     }
 
     try (ZipFile zip = new ZipFile(path.toFile())) {
-      String folderPrefix = getFolderPrefix(zip);
+      String folderPrefix = ResourceUtil.getFolderPrefix(zip);
       if (!folderPrefix.isBlank()) {
         CustomPaintingsMod.LOGGER.info("Folder-in-zip detected in \"{}\", adjusting paths", filename);
       }
@@ -248,10 +251,8 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
       HashMap<Identifier, Image> images = new HashMap<>();
 
-      ZipEntry zipIconImage = zip.getEntry(folderPrefix + "icon.png");
-      if (zipIconImage == null) {
-        CustomPaintingsMod.LOGGER.warn(LOG_NO_ICON, pack.id());
-      } else {
+      ZipEntry zipIconImage = getIconZipEntry(zip, folderPrefix, pack.id());
+      if (zipIconImage != null) {
         try (InputStream stream = zip.getInputStream(zipIconImage)) {
           BufferedImage image = ImageIO.read(stream);
           if (image == null) {
@@ -267,7 +268,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
       pack.paintings().forEach((painting) -> {
         Identifier id = new Identifier(pack.id(), painting.id());
-        ZipEntry zipImage = getImageZipEntry(zip, folderPrefix, painting.id());
+        ZipEntry zipImage = ResourceUtil.getImageZipEntry(zip, folderPrefix, "images", painting.id() + ".png");
         if (zipImage == null) {
           CustomPaintingsMod.LOGGER.warn(LOG_MISSING_PAINTING, id);
           return;
@@ -301,35 +302,17 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     return null;
   }
 
-  private static String getFolderPrefix(ZipFile zip) {
-    Enumeration<? extends ZipEntry> entries = zip.entries();
-    if (!entries.hasMoreElements()) {
-      return "";
-    }
-
-    ZipEntry firstEntry = entries.nextElement();
-    if (!firstEntry.isDirectory()) {
-      return "";
-    }
-
-    String folderPrefix = firstEntry.getName();
-    while (entries.hasMoreElements()) {
-      ZipEntry entry = entries.nextElement();
-      if (!entry.getName().startsWith(folderPrefix)) {
-        return "";
+  private static ZipEntry getIconZipEntry(ZipFile zip, String folderPrefix, String packId) {
+    ZipEntry entry = ResourceUtil.getImageZipEntry(zip, folderPrefix, ICON_PNG);
+    if (entry == null) {
+      entry = ResourceUtil.getImageZipEntry(zip, folderPrefix, PACK_PNG);
+      if (entry == null) {
+        CustomPaintingsMod.LOGGER.warn(LOG_NO_ICON, packId);
+      } else {
+        CustomPaintingsMod.LOGGER.warn(LOG_LEGACY_ICON, packId);
       }
     }
-
-    return folderPrefix;
-  }
-
-  private static ZipEntry getImageZipEntry(ZipFile zip, String folderPrefix, String id) {
-    // Try both forward and backward slash
-    ZipEntry zipImage = zip.getEntry(folderPrefix + String.format("images/%s.png", id));
-    if (zipImage == null) {
-      zipImage = zip.getEntry(folderPrefix + String.format("images\\%s.png", id));
-    }
-    return zipImage;
+    return entry;
   }
 
   private static PackReadResult readDirectoryAsPack(Path path) {
@@ -356,10 +339,8 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
     HashMap<Identifier, Image> images = new HashMap<>();
 
-    Path iconImagePath = path.resolve("icon.png");
-    if (!Files.exists(iconImagePath)) {
-      CustomPaintingsMod.LOGGER.warn(LOG_NO_ICON, pack.id());
-    } else {
+    Path iconImagePath = getIconPath(path, pack.id());
+    if (iconImagePath != null) {
       try {
         BufferedImage image = ImageIO.read(Files.newInputStream(iconImagePath, LinkOption.NOFOLLOW_LINKS));
         if (image == null) {
@@ -401,6 +382,20 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     });
 
     return new PackReadResult(pack, images);
+  }
+
+  private static Path getIconPath(Path parent, String packId) {
+    Path path = parent.resolve(ICON_PNG);
+    if (!Files.exists(path)) {
+      path = parent.resolve(PACK_PNG);
+      if (!Files.exists(path)) {
+        CustomPaintingsMod.LOGGER.warn(LOG_NO_ICON, packId);
+        return null;
+      } else {
+        CustomPaintingsMod.LOGGER.warn(LOG_LEGACY_ICON, packId);
+      }
+    }
+    return path;
   }
 
   private record PackReadResult(PackResource pack, HashMap<Identifier, Image> images) {

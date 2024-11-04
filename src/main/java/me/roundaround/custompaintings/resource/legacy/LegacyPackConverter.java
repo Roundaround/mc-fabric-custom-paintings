@@ -370,13 +370,10 @@ public class LegacyPackConverter {
     }
 
     String dirname = path.getFileName().toString();
-    long lastModified = 0;
-    try {
-      lastModified = Files.getLastModifiedTime(path).toMillis();
-    } catch (IOException ignored) {
-    }
+    long lastModified = ResourceUtil.lastModified(path);
+    long fileSize = ResourceUtil.fileSize(path);
+    LegacyPackId instanceId = new LegacyPackId(false, dirname, lastModified, fileSize);
 
-    LegacyPackId instanceId = new LegacyPackId(false, dirname, lastModified);
     PackMcmeta meta = readPackMcmeta(path.resolve(PACK_MCMETA));
 
     String packId = json.id();
@@ -401,21 +398,18 @@ public class LegacyPackConverter {
       return null;
     }
 
-    long lastModified = 0;
-    try {
-      lastModified = Files.getLastModifiedTime(path).toMillis();
-    } catch (IOException ignored) {
-    }
-
     try (ZipFile zip = new ZipFile(path.toFile())) {
-      String folderPrefix = getFolderPrefix(zip);
+      String folderPrefix = ResourceUtil.getFolderPrefix(zip);
 
       CustomPaintingsJson json = readCustomPaintingsJson(zip, folderPrefix + CUSTOM_PAINTINGS_JSON);
       if (json == null) {
         return null;
       }
 
-      LegacyPackId instanceId = new LegacyPackId(true, filename, lastModified);
+      long lastModified = ResourceUtil.lastModified(path);
+      long fileSize = ResourceUtil.fileSize(path);
+      LegacyPackId instanceId = new LegacyPackId(true, filename, lastModified, fileSize);
+
       PackMcmeta meta = readPackMcmeta(zip, folderPrefix + PACK_MCMETA);
 
       String packId = json.id();
@@ -425,7 +419,7 @@ public class LegacyPackConverter {
       String description = meta == null ? "" : meta.pack().description();
 
       LegacyPackResource pack = new LegacyPackResource(path, packId, name, description, paintings, migrations);
-      Image packIcon = readImage(zip, folderPrefix + PACK_PNG);
+      Image packIcon = ResourceUtil.readImageFromZip(zip, folderPrefix, PACK_PNG);
 
       return new PackMetadata(instanceId, pack, packIcon);
     } catch (IOException e) {
@@ -494,17 +488,21 @@ public class LegacyPackConverter {
     }
 
     try (ZipFile zip = new ZipFile(path.toFile())) {
-      String folderPrefix = getFolderPrefix(zip);
+      String folderPrefix = ResourceUtil.getFolderPrefix(zip);
       String packId = pack.packId();
       List<LegacyPaintingResource> paintings = pack.paintings();
 
-      Image packIcon = readImage(zip, folderPrefix + PACK_PNG);
+      Image packIcon = ResourceUtil.readImageFromZip(zip, folderPrefix, PACK_PNG);
       if (packIcon != null) {
         images.put(PackIcons.identifier(packId), packIcon);
       }
 
       for (LegacyPaintingResource painting : paintings) {
-        Image image = readImage(zip, folderPrefix + getPaintingPath(packId, painting.id()));
+        ArrayList<String> segments = getPaintingPathSegments(packId, painting.id());
+        if (!folderPrefix.isBlank()) {
+          segments.addFirst(folderPrefix);
+        }
+        Image image = ResourceUtil.readImageFromZip(zip, segments);
         if (image != null) {
           images.put(new Identifier(packId, painting.id()), image);
         }
@@ -513,28 +511,6 @@ public class LegacyPackConverter {
     }
 
     return images;
-  }
-
-  private static String getFolderPrefix(ZipFile zip) {
-    Enumeration<? extends ZipEntry> entries = zip.entries();
-    if (!entries.hasMoreElements()) {
-      return "";
-    }
-
-    ZipEntry firstEntry = entries.nextElement();
-    if (!firstEntry.isDirectory()) {
-      return "";
-    }
-
-    String folderPrefix = firstEntry.getName();
-    while (entries.hasMoreElements()) {
-      ZipEntry entry = entries.nextElement();
-      if (!entry.getName().startsWith(folderPrefix)) {
-        return "";
-      }
-    }
-
-    return folderPrefix;
   }
 
   private static CustomPaintingsJson readCustomPaintingsJson(Path path) {
@@ -625,7 +601,14 @@ public class LegacyPackConverter {
   }
 
   private static Path getPaintingPath(String packId, String paintingId) {
-    return Paths.get("assets", packId, "textures", "painting", paintingId + ".png");
+    ArrayList<String> segments = getPaintingPathSegments(packId, paintingId);
+    String first = segments.removeFirst();
+    String[] rest = segments.toArray(new String[0]);
+    return Paths.get(first, rest);
+  }
+
+  private static ArrayList<String> getPaintingPathSegments(String packId, String paintingId) {
+    return new ArrayList<>(List.of("assets", packId, "textures", "painting", paintingId + ".png"));
   }
 
   private static void writeCustomPaintingsJson(ZipOutputStream zos, PackResource pack) throws IOException {
