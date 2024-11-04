@@ -8,6 +8,7 @@ import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.resource.PackIcons;
+import me.roundaround.custompaintings.resource.ResourceUtil;
 import me.roundaround.roundalib.client.gui.GuiUtil;
 import me.roundaround.roundalib.client.gui.layout.FillerWidget;
 import me.roundaround.roundalib.client.gui.layout.linear.LinearLayoutWidget;
@@ -19,9 +20,11 @@ import me.roundaround.roundalib.client.gui.widget.drawable.LabelWidget;
 import me.roundaround.roundalib.util.PathAccessor;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.screen.ConfirmScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.Widget;
+import net.minecraft.client.toast.SystemToast;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Util;
@@ -30,8 +33,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class PacksScreen extends Screen implements PacksLoadedListener {
   private static final int BUTTON_HEIGHT = ButtonWidget.DEFAULT_HEIGHT;
@@ -75,6 +80,50 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
   @Override
   protected void initTabNavigation() {
     this.layout.refreshPositions();
+  }
+
+  @Override
+  public void filesDragged(List<Path> paths) {
+    assert this.client != null;
+
+    // TODO: Check single player or OP permission. If multiplayer, upload to server rather than copy files
+
+    Path packsDirectory = PathAccessor.getInstance().getPerWorldModDir(CustomPaintingsMod.MOD_ID);
+    List<Path> packPaths = paths.stream().filter(ResourceUtil::isPaintingPack).toList();
+
+    if (packPaths.isEmpty()) {
+      return;
+    }
+
+    String packList = packPaths.stream().map(Path::getFileName).map(Path::toString).collect(Collectors.joining(", "));
+
+    // TODO: i18n
+    this.client.setScreen(new ConfirmScreen((confirmed) -> {
+      if (confirmed) {
+        boolean allSuccessful = true;
+
+        for (Path src : packPaths) {
+          Path dest = packsDirectory.resolve(src.getFileName());
+          try {
+            Files.copy(src, dest);
+          } catch (IOException e) {
+            CustomPaintingsMod.LOGGER.warn("Failed to copy painting pack from {} to {}", src, dest);
+            SystemToast.addPackCopyFailure(this.client, src.toString());
+            allSuccessful = false;
+            break;
+          }
+        }
+
+        if (allSuccessful) {
+          SystemToast.add(this.client.getToastManager(), SystemToast.Type.PERIODIC_NOTIFICATION,
+              Text.of("Drop success"), Text.of("Successfully added packs")
+          );
+        }
+      }
+
+      this.reloadPacks();
+      this.client.setScreen(this);
+    }, Text.of("CONFIRM"), Text.of(packList)));
   }
 
   @Override

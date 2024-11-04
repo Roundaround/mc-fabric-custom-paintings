@@ -14,6 +14,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 public class ResourceUtil {
+  private static final String CUSTOM_PAINTINGS_JSON = "custompaintings.json";
+
   private ResourceUtil() {
   }
 
@@ -139,5 +141,22 @@ public class ResourceUtil {
     } catch (IOException e) {
       return null;
     }
+  }
+
+  public static boolean isPaintingPack(Path path) {
+    if (!Files.exists(path)) {
+      return false;
+    }
+
+    if (Files.isDirectory(path)) {
+      return Files.exists(path.resolve(CUSTOM_PAINTINGS_JSON));
+    } else if (Files.isRegularFile(path)) {
+      try (ZipFile zip = new ZipFile(path.toFile())) {
+        return zip.getEntry(CUSTOM_PAINTINGS_JSON) != null;
+      } catch (IOException e) {
+        return false;
+      }
+    }
+    return false;
   }
 }
