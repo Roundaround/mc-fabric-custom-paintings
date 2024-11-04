@@ -106,7 +106,7 @@ public class LegacyPackConverter {
           .getGameDir()
           .resolve("data")
           .resolve(CustomPaintingsMod.MOD_ID)
-          .resolve("legacy_converted");
+          .resolve("converted");
       if (Files.notExists(path)) {
         Files.createDirectories(path);
       }
