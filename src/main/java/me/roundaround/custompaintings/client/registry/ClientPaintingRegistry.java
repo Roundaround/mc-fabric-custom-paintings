@@ -57,6 +57,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   private final LinkedHashMap<Identifier, CompletableFuture<PaintingData>> pendingDataRequests = new LinkedHashMap<>();
   private final HashMap<Identifier, Boolean> finishedMigrations = new HashMap<>();
 
+  private boolean atlasInitialized = false;
   private boolean packsReceived = false;
   private boolean cacheDirty = false;
   private long waitingForImagesTimer;
@@ -70,7 +71,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.client = client;
     this.atlas = new SpriteAtlasTexture(new Identifier(CustomPaintingsMod.MOD_ID, "textures/atlas/paintings.png"));
     client.getTextureManager().registerTexture(this.atlas.getId(), this.atlas);
-    this.buildSpriteAtlas();
 
     ClientTickEvents.START_CLIENT_TICK.register(this::tick);
     MinecraftClientEvents.CLOSE.register(this::close);
@@ -88,7 +88,20 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   }
 
   public Sprite getMissingSprite() {
-    return this.atlas.getSprite(MissingSprite.getMissingSpriteId());
+    try {
+      return this.atlas.getSprite(MissingSprite.getMissingSpriteId());
+    } catch (IllegalStateException e) {
+      // In single player we will (usually) initialize the atlas before the first render. In multiplayer and potentially
+      // in single player on slower PCs however, first render could come before we receive the summary packet and
+      // initialize the atlas. In those cases, atlas.getSprite throws an exception. If it does, simply build the sprite
+      // atlas and try again.
+      if (!this.atlasInitialized) {
+        this.buildSpriteAtlas();
+        return this.getMissingSprite();
+      } else {
+        throw new RuntimeException(e);
+      }
+    }
   }
 
   public Sprite getBackSprite() {
@@ -442,6 +455,8 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
 
     this.spriteIds.clear();
     this.spriteIds.addAll(sprites.stream().map(SpriteContents::getId).toList());
+
+    this.atlasInitialized = true;
   }
 
   private void saveBackToCache() {
