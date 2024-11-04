@@ -1,5 +1,6 @@
 package me.roundaround.custompaintings.client.gui.screen;
 
+import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.gui.widget.LoadingButtonWidget;
 import me.roundaround.custompaintings.client.gui.widget.SpriteWidget;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
@@ -14,6 +15,8 @@ import me.roundaround.roundalib.client.gui.util.Alignment;
 import me.roundaround.roundalib.client.gui.widget.FlowListWidget;
 import me.roundaround.roundalib.client.gui.widget.ParentElementEntryListWidget;
 import me.roundaround.roundalib.client.gui.widget.drawable.LabelWidget;
+import me.roundaround.roundalib.util.PathAccessor;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.screen.Screen;
@@ -23,13 +26,16 @@ import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Util;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.function.Supplier;
 
 public class PacksScreen extends Screen implements PacksLoadedListener {
   private static final int BUTTON_HEIGHT = ButtonWidget.DEFAULT_HEIGHT;
-  private static final int BUTTON_WIDTH = ButtonWidget.DEFAULT_WIDTH;
+  private static final int BUTTON_WIDTH = ButtonWidget.DEFAULT_WIDTH_SMALL;
 
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
   private final Screen parent;
@@ -53,8 +59,23 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
 
     // TODO: i18n
     this.reloadButton = this.layout.addFooter(
-        new LoadingButtonWidget(0, 0, BUTTON_WIDTH, BUTTON_HEIGHT, Text.of("Reload packs"), (b) -> this.reloadPacks()));
+        new LoadingButtonWidget(0, 0, BUTTON_WIDTH, BUTTON_HEIGHT, Text.of("Reload Packs"), (b) -> this.reloadPacks()));
+    // TODO: i18n
+    this.layout.addFooter(new LoadingButtonWidget(0, 0, BUTTON_WIDTH, BUTTON_HEIGHT, Text.of("Open Packs Folder"),
+        (b) -> this.openPackDir()
+    ));
     this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, (b) -> this.close()).width(BUTTON_WIDTH).build());
+
+    FabricLoader.getInstance().getModContainer(CustomPaintingsMod.MOD_ID).ifPresent((mod) -> {
+      Text version = Text.of("v" + mod.getMetadata().getVersion().getFriendlyString());
+      this.layout.addNonPositioned(LabelWidget.builder(this.textRenderer, version)
+          .hideBackground()
+          .showShadow()
+          .alignSelfRight()
+          .alignSelfBottom()
+          .alignTextRight()
+          .build(), (parent, self) -> self.setPosition(this.width - GuiUtil.PADDING, this.height - GuiUtil.PADDING));
+    });
 
     this.layout.forEachChild(this::addDrawableChild);
     this.initTabNavigation();
@@ -79,6 +100,19 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
   private void reloadPacks() {
     this.reloadButton.setLoading(true);
     Util.getIoWorkerExecutor().execute(ClientNetworking::sendReloadPacket);
+  }
+
+  private void openPackDir() {
+    Path path = PathAccessor.getInstance().getPerWorldModDir(CustomPaintingsMod.MOD_ID);
+    try {
+      if (Files.notExists(path)) {
+        Files.createDirectories(path);
+      }
+      Util.getOperatingSystem().open(path.toUri());
+    } catch (IOException e) {
+      // TODO: Handle exception
+      CustomPaintingsMod.LOGGER.warn(e);
+    }
   }
 
   private static class PackList extends ParentElementEntryListWidget<PackList.Entry> {
