@@ -3,6 +3,7 @@ package me.roundaround.custompaintings.client.gui.screen;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.gui.widget.LoadingButtonWidget;
 import me.roundaround.custompaintings.client.gui.widget.SpriteWidget;
+import me.roundaround.custompaintings.client.gui.widget.VersionStamp;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
@@ -16,7 +17,6 @@ import me.roundaround.roundalib.client.gui.widget.FlowListWidget;
 import me.roundaround.roundalib.client.gui.widget.ParentElementEntryListWidget;
 import me.roundaround.roundalib.client.gui.widget.drawable.LabelWidget;
 import me.roundaround.roundalib.util.PathAccessor;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.screen.Screen;
@@ -66,16 +66,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
     ));
     this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, (b) -> this.close()).width(BUTTON_WIDTH).build());
 
-    FabricLoader.getInstance().getModContainer(CustomPaintingsMod.MOD_ID).ifPresent((mod) -> {
-      Text version = Text.of("v" + mod.getMetadata().getVersion().getFriendlyString());
-      this.layout.addNonPositioned(LabelWidget.builder(this.textRenderer, version)
-          .hideBackground()
-          .showShadow()
-          .alignSelfRight()
-          .alignSelfBottom()
-          .alignTextRight()
-          .build(), (parent, self) -> self.setPosition(this.width - GuiUtil.PADDING, this.height - GuiUtil.PADDING));
-    });
+    VersionStamp.create(this.textRenderer, this.layout);
 
     this.layout.forEachChild(this::addDrawableChild);
     this.initTabNavigation();

@@ -2,14 +2,12 @@ package me.roundaround.custompaintings.client.gui.screen;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.gui.widget.LoadingButtonWidget;
+import me.roundaround.custompaintings.client.gui.widget.VersionStamp;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
-import me.roundaround.roundalib.client.gui.GuiUtil;
 import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import me.roundaround.roundalib.client.gui.screen.ConfigScreen;
-import me.roundaround.roundalib.client.gui.widget.drawable.LabelWidget;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -80,16 +78,7 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
 
     this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, (b) -> this.close()).width(BUTTON_WIDTH).build());
 
-    FabricLoader.getInstance().getModContainer(CustomPaintingsMod.MOD_ID).ifPresent((mod) -> {
-      Text version = Text.of("v" + mod.getMetadata().getVersion().getFriendlyString());
-      this.layout.addNonPositioned(LabelWidget.builder(this.textRenderer, version)
-          .hideBackground()
-          .showShadow()
-          .alignSelfRight()
-          .alignSelfBottom()
-          .alignTextRight()
-          .build(), (parent, self) -> self.setPosition(this.width - GuiUtil.PADDING, this.height - GuiUtil.PADDING));
-    });
+    VersionStamp.create(this.textRenderer, this.layout);
 
     this.layout.forEachChild(this::addDrawableChild);
     this.initTabNavigation();
