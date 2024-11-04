@@ -1,8 +1,12 @@
-package me.roundaround.custompaintings.resource.legacy;
+package me.roundaround.custompaintings.resource;
 
-public record LegacyPackId(boolean isFile, String filename, long lastModified, long fileSize) {
+public record PackFileUid(boolean isFile, String filename, long lastModified, long fileSize) {
   private static final int DIGITS_TIMESTAMP = 8;
   private static final int DIGITS_FILE_SIZE = 8;
+
+  public static String create(boolean isFile, String filename, long lastModified, long fileSize) {
+    return new PackFileUid(isFile, filename, lastModified, fileSize).asString();
+  }
 
   public String asString() {
     String fileBinary = String.valueOf(this.isFile() ? 1 : 0);
@@ -16,7 +20,7 @@ public record LegacyPackId(boolean isFile, String filename, long lastModified, l
   public boolean equals(Object o) {
     if (this == o)
       return true;
-    if (!(o instanceof LegacyPackId that))
+    if (!(o instanceof PackFileUid that))
       return false;
     return this.asString().equals(that.asString());
   }

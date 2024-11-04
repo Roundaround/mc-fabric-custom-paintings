@@ -173,15 +173,15 @@ public class LegacyPackConverter {
           BasicFileAttributes fileAttributes = Files.readAttributes(
               path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
 
-          String legacyPackId = null;
+          String packFileUid = null;
           if (fileAttributes.isDirectory()) {
-            legacyPackId = this.readLegacyPackIdFromDirectory(path);
+            packFileUid = this.readPackFileUidFromDirectory(path);
           } else if (fileAttributes.isRegularFile()) {
-            legacyPackId = this.readLegacyPackIdFromZip(path);
+            packFileUid = this.readPackFileUidFromZip(path);
           }
 
-          if (legacyPackId != null) {
-            map.put(legacyPackId, path);
+          if (packFileUid != null) {
+            map.put(packFileUid, path);
           }
         } catch (IOException ignored) {
         }
@@ -194,32 +194,32 @@ public class LegacyPackConverter {
     return map;
   }
 
-  private String readLegacyPackIdFromDirectory(Path path) {
-    LegacyPackIdWrapper parsed;
+  private String readPackFileUidFromDirectory(Path path) {
+    SourceLegacyPackWrapper parsed;
     try {
       parsed = CustomPaintingsMod.GSON.fromJson(
-          Files.newBufferedReader(path.resolve(CUSTOM_PAINTINGS_JSON)), LegacyPackIdWrapper.class);
+          Files.newBufferedReader(path.resolve(CUSTOM_PAINTINGS_JSON)), SourceLegacyPackWrapper.class);
     } catch (Exception e) {
       return null;
     }
-    return parsed.legacyPackId();
+    return parsed.sourceLegacyPack();
   }
 
-  private String readLegacyPackIdFromZip(Path path) {
+  private String readPackFileUidFromZip(Path path) {
     try (ZipFile zip = new ZipFile(path.toFile())) {
       ZipEntry jsonEntry = zip.getEntry(CUSTOM_PAINTINGS_JSON);
       if (jsonEntry == null) {
         return null;
       }
 
-      LegacyPackIdWrapper parsed;
+      SourceLegacyPackWrapper parsed;
       try (InputStream stream = zip.getInputStream(jsonEntry)) {
-        parsed = CustomPaintingsMod.GSON.fromJson(new InputStreamReader(stream), LegacyPackIdWrapper.class);
+        parsed = CustomPaintingsMod.GSON.fromJson(new InputStreamReader(stream), SourceLegacyPackWrapper.class);
       } catch (Exception ignored) {
         return null;
       }
 
-      return parsed.legacyPackId();
+      return parsed.sourceLegacyPack();
     } catch (IOException e) {
       return null;
     }
@@ -268,7 +268,7 @@ public class LegacyPackConverter {
       });
 
       PackResource pack = new PackResource(1, legacyPack.packId(), legacyPack.name(), legacyPack.description(),
-          metadata.id().asString(), List.copyOf(paintings.values()), List.copyOf(migrations.values())
+          metadata.packFileUid(), List.copyOf(paintings.values()), List.copyOf(migrations.values())
       );
 
       try {
@@ -372,7 +372,7 @@ public class LegacyPackConverter {
     String dirname = path.getFileName().toString();
     long lastModified = ResourceUtil.lastModified(path);
     long fileSize = ResourceUtil.fileSize(path);
-    LegacyPackId instanceId = new LegacyPackId(false, dirname, lastModified, fileSize);
+    String packFileUid = PackFileUid.create(false, dirname, lastModified, fileSize);
 
     PackMcmeta meta = readPackMcmeta(path.resolve(PACK_MCMETA));
 
@@ -385,7 +385,7 @@ public class LegacyPackConverter {
     LegacyPackResource pack = new LegacyPackResource(path, packId, name, description, paintings, migrations);
     Image packIcon = readImage(path.resolve(PACK_PNG));
 
-    return new PackMetadata(instanceId, pack, packIcon);
+    return new PackMetadata(packFileUid, pack, packIcon);
   }
 
   private static PackMetadata readPackMetadataFromZip(Path path) {
@@ -408,7 +408,7 @@ public class LegacyPackConverter {
 
       long lastModified = ResourceUtil.lastModified(path);
       long fileSize = ResourceUtil.fileSize(path);
-      LegacyPackId instanceId = new LegacyPackId(true, filename, lastModified, fileSize);
+      String packFileUid = PackFileUid.create(true, filename, lastModified, fileSize);
 
       PackMcmeta meta = readPackMcmeta(zip, folderPrefix + PACK_MCMETA);
 
@@ -421,7 +421,7 @@ public class LegacyPackConverter {
       LegacyPackResource pack = new LegacyPackResource(path, packId, name, description, paintings, migrations);
       Image packIcon = ResourceUtil.readImageFromZip(zip, folderPrefix, PACK_PNG);
 
-      return new PackMetadata(instanceId, pack, packIcon);
+      return new PackMetadata(packFileUid, pack, packIcon);
     } catch (IOException e) {
       return null;
     }
@@ -627,6 +627,6 @@ public class LegacyPackConverter {
     ImageIO.write(image.toBufferedImage(), "png", zos);
   }
 
-  private record LegacyPackIdWrapper(String legacyPackId) {
+  private record SourceLegacyPackWrapper(String sourceLegacyPack) {
   }
 }

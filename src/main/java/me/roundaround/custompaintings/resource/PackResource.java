@@ -10,10 +10,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public record PackResource(Integer format, String id, String name, String description, String legacyPackId,
+public record PackResource(Integer format, String id, String name, String description, String sourceLegacyPack,
                            List<PaintingResource> paintings, List<MigrationResource> migrations) {
-  public PackData toData() {
-    return new PackData(this.id(), this.name(), this.description(), this.legacyPackId(),
+  public PackData toData(String packFileUid) {
+    return new PackData(packFileUid, this.id(), this.name(), this.description(), this.sourceLegacyPack(),
         this.paintings().stream().map((painting) -> painting.toData(this.id())).toList(),
         this.migrations().stream().map((migration) -> migration.toData(this.id())).toList()
     );
@@ -21,9 +21,9 @@ public record PackResource(Integer format, String id, String name, String descri
 
   public static class TypeAdapter extends com.google.gson.TypeAdapter<PackResource> {
     private final Gson gson = new Gson();
-    private final com.google.gson.TypeAdapter<PaintingResource> paintingAdapter = gson.getAdapter(
+    private final com.google.gson.TypeAdapter<PaintingResource> paintingAdapter = this.gson.getAdapter(
         PaintingResource.class);
-    private final com.google.gson.TypeAdapter<MigrationResource> migrationAdapter = gson.getAdapter(
+    private final com.google.gson.TypeAdapter<MigrationResource> migrationAdapter = this.gson.getAdapter(
         MigrationResource.class);
 
     @Override
@@ -44,9 +44,9 @@ public record PackResource(Integer format, String id, String name, String descri
         out.value(value.description());
       }
 
-      if (value.legacyPackId() != null && !value.legacyPackId().isBlank()) {
-        out.name("legacyPackId");
-        out.value(value.legacyPackId());
+      if (value.sourceLegacyPack() != null && !value.sourceLegacyPack().isBlank()) {
+        out.name("sourceLegacyPack");
+        out.value(value.sourceLegacyPack());
       }
 
       out.name("paintings");
@@ -103,7 +103,7 @@ public record PackResource(Integer format, String id, String name, String descri
               description = in.nextString();
             }
             break;
-          case "legacyPackId":
+          case "sourceLegacyPack":
             if (in.peek() == JsonToken.NULL) {
               in.nextNull();
             } else {

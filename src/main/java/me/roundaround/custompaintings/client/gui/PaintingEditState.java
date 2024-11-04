@@ -11,6 +11,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.AbstractDecorationEntity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
@@ -212,6 +213,7 @@ public class PaintingEditState {
   }
 
   protected void createVanillaPack() {
+    // TODO: i18n
     String id = Identifier.DEFAULT_NAMESPACE;
     String name = FabricLoader.getInstance()
         .getModContainer(id)
@@ -219,15 +221,16 @@ public class PaintingEditState {
         .orElse("Minecraft");
     List<PaintingData> paintings = VanillaPaintingRegistry.getInstance().getAll(VanillaPaintingRegistry.Placeable.YES);
     this.allPaintings.put(
-        id, new PackData(id, name, "Paintings included in vanilla Minecraft.", null, paintings, List.of()));
+        id, PackData.virtual(id, Text.of(name), Text.of("Paintings included in vanilla Minecraft."), paintings));
   }
 
   protected void createUnplaceableVanillaPack() {
+    // TODO: i18n
     String id = Identifier.DEFAULT_NAMESPACE + "_unplaceable";
     String name = "Minecraft: The Hidden Ones";
     List<PaintingData> paintings = VanillaPaintingRegistry.getInstance().getAll(VanillaPaintingRegistry.Placeable.NO);
     this.allPaintings.put(id,
-        new PackData(id, name, "Vanilla paintings that aren't normally placeable!", null, paintings, List.of())
+        PackData.virtual(id, Text.of(name), Text.of("Vanilla paintings that aren't normally placeable!"), paintings)
     );
   }
 

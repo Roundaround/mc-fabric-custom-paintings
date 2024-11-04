@@ -3,10 +3,7 @@ package me.roundaround.custompaintings.server.registry;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
-import me.roundaround.custompaintings.resource.Image;
-import me.roundaround.custompaintings.resource.PackIcons;
-import me.roundaround.custompaintings.resource.PackResource;
-import me.roundaround.custompaintings.resource.ResourceUtil;
+import me.roundaround.custompaintings.resource.*;
 import me.roundaround.custompaintings.server.network.ImagePacketQueue;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
 import me.roundaround.roundalib.util.PathAccessor;
@@ -173,7 +170,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
         }
 
         PackResource resource = result.pack();
-        packs.put(resource.id(), resource.toData());
+        packs.put(resource.id(), resource.toData(result.packFileUid()));
         images.putAll(result.images);
       });
 
@@ -293,7 +290,11 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
         }
       });
 
-      return new PackReadResult(pack, images);
+      long lastModified = ResourceUtil.lastModified(path);
+      long fileSize = ResourceUtil.fileSize(path);
+      String packFileUid = PackFileUid.create(true, filename, lastModified, fileSize);
+
+      return new PackReadResult(packFileUid, pack, images);
     } catch (IOException e) {
       CustomPaintingsMod.LOGGER.warn(e);
       CustomPaintingsMod.LOGGER.warn("Failed to load Custom Paintings pack \"{}\", skipping...", filename);
@@ -381,7 +382,11 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
       }
     });
 
-    return new PackReadResult(pack, images);
+    long lastModified = ResourceUtil.lastModified(path);
+    long fileSize = ResourceUtil.fileSize(path);
+    String packFileUid = PackFileUid.create(false, dirname, lastModified, fileSize);
+
+    return new PackReadResult(packFileUid, pack, images);
   }
 
   private static Path getIconPath(Path parent, String packId) {
@@ -398,7 +403,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     return path;
   }
 
-  private record PackReadResult(PackResource pack, HashMap<Identifier, Image> images) {
+  private record PackReadResult(String packFileUid, PackResource pack, HashMap<Identifier, Image> images) {
   }
 
   private record LoadResult(HashMap<String, PackData> packs, HashMap<Identifier, Image> images) {

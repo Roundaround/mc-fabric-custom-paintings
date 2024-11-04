@@ -16,6 +16,7 @@ import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
 import me.roundaround.custompaintings.resource.Image;
 import me.roundaround.custompaintings.resource.PackIcons;
 import me.roundaround.custompaintings.resource.legacy.LegacyPackConverter;
+import me.roundaround.custompaintings.resource.legacy.PackMetadata;
 import me.roundaround.roundalib.client.event.MinecraftClientEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
@@ -175,11 +176,11 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
 
           HashSet<String> alreadyLoaded = this.packsMap.values()
               .stream()
-              .map(PackData::legacyPackId)
+              .map(PackData::sourceLegacyPack)
               .filter((id) -> id != null && !id.isBlank())
               .collect(Collectors.toCollection(HashSet::new));
           HashSet<String> legacyPacks = metas.stream()
-              .map((meta) -> meta.id().asString())
+              .map(PackMetadata::packFileUid)
               .collect(Collectors.toCollection(HashSet::new));
           legacyPacks.removeAll(alreadyLoaded);
 
