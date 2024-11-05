@@ -295,7 +295,8 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
       this.packs.addAll(packs);
 
       this.setShouldHighlightSelectionDuringHover(true);
-      this.setContentPadding(Spacing.of(2 + (int) (client.textRenderer.fontHeight * 1.5f), 2, 2, 2));
+      Spacing padding = this.contentPadding.expand(Spacing.of((int) (client.textRenderer.fontHeight * 1.5f), 0, 0, 0));
+      this.setContentPadding(padding);
 
       this.init();
     }
