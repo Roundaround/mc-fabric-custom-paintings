@@ -33,6 +33,10 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
   protected void init() {
     assert this.client != null;
 
+    boolean inWorld = this.client.world != null;
+    boolean inSinglePlayer = this.client.isInSingleplayer();
+    boolean hasOp = this.client.player != null && this.client.player.hasPermissionLevel(3);
+
     this.layout.addHeader(this.textRenderer, this.title);
 
     this.layout.addBody(ButtonWidget.builder(Text.translatable("custompaintings.main.config"), this::navigateConfig)
@@ -40,15 +44,19 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
         .build());
 
     // TODO: i18n
-    // TODO: Disable when not in world
-    this.layout.addBody(
+    ButtonWidget packsButton = this.layout.addBody(
         ButtonWidget.builder(Text.of("Current Packs"), this::navigatePacks).width(BUTTON_WIDTH).build());
+    if (!inWorld) {
+      packsButton.active = false;
+      // TODO: i18n
+      packsButton.setTooltip(Tooltip.of(Text.of("Requires being connected to a world/server")));
+    }
 
     ButtonWidget legacyButton = this.layout.addBody(
         ButtonWidget.builder(Text.translatable("custompaintings.main.legacy"), this::navigateConvert)
             .width(BUTTON_WIDTH)
             .build());
-    if (this.client.world != null && !this.client.isInSingleplayer()) {
+    if (inWorld && !inSinglePlayer) {
       legacyButton.active = false;
       legacyButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.legacy.multiplayer")));
     }
@@ -62,13 +70,13 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
             (b) -> this.reloadPacks()
         ));
 
-    if (this.client.world == null) {
+    if (!inWorld) {
       migrationsButton.active = false;
       migrationsButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.migrate.notInWorld")));
 
       this.reloadButton.active = false;
       this.reloadButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.reload.notInWorld")));
-    } else if (this.client.player != null && !this.client.player.hasPermissionLevel(3)) {
+    } else if (hasOp) {
       migrationsButton.active = false;
       migrationsButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.migrate.notOp")));
 

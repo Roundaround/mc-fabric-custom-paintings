@@ -22,6 +22,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.screen.ConfirmScreen;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.Widget;
 import net.minecraft.client.toast.SystemToast;
@@ -57,6 +58,8 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
   protected void init() {
     assert this.client != null;
 
+    boolean inSinglePlayer = this.client.isInSingleplayer();
+
     this.layout.addHeader(this.textRenderer, this.title);
 
     this.list = this.layout.addBody(
@@ -65,10 +68,16 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
     // TODO: i18n
     this.reloadButton = this.layout.addFooter(
         new LoadingButtonWidget(0, 0, BUTTON_WIDTH, BUTTON_HEIGHT, Text.of("Reload Packs"), (b) -> this.reloadPacks()));
+
     // TODO: i18n
-    this.layout.addFooter(new LoadingButtonWidget(0, 0, BUTTON_WIDTH, BUTTON_HEIGHT, Text.of("Open Packs Folder"),
-        (b) -> this.openPackDir()
-    ));
+    ButtonWidget openDirButton = this.layout.addFooter(
+        ButtonWidget.builder(Text.of("Open Packs Folder"), (b) -> this.openPackDir()).width(BUTTON_WIDTH).build());
+    if (!inSinglePlayer) {
+      openDirButton.active = false;
+      // TODO: i18n
+      openDirButton.setTooltip(Tooltip.of(Text.of("Not available for multiplayer servers")));
+    }
+
     this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, (b) -> this.close()).width(BUTTON_WIDTH).build());
 
     VersionStamp.create(this.textRenderer, this.layout);
@@ -86,7 +95,9 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
   public void filesDragged(List<Path> paths) {
     assert this.client != null;
 
-    // TODO: Check single player or OP permission. If multiplayer, upload to server rather than copy files
+    if (this.client.isInSingleplayer()) {
+      return;
+    }
 
     Path packsDirectory = PathAccessor.getInstance().getPerWorldModDir(CustomPaintingsMod.MOD_ID);
     List<Path> packPaths = paths.stream().filter(ResourceUtil::isPaintingPack).toList();
@@ -97,7 +108,6 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
 
     String packList = packPaths.stream().map(Path::getFileName).map(Path::toString).collect(Collectors.joining(", "));
 
-    // TODO: i18n
     this.client.setScreen(new ConfirmScreen((confirmed) -> {
       if (confirmed) {
         boolean allSuccessful = true;
@@ -115,6 +125,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
         }
 
         if (allSuccessful) {
+          // TODO: i18n
           SystemToast.add(this.client.getToastManager(), SystemToast.Type.PERIODIC_NOTIFICATION,
               Text.of("Drop success"), Text.of("Successfully added packs")
           );
@@ -123,6 +134,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
 
       this.reloadPacks();
       this.client.setScreen(this);
+      // TODO: i18n
     }, Text.of("CONFIRM"), Text.of(packList)));
   }
 
@@ -180,7 +192,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
     private void init() {
       Collection<PackData> packs = this.packsSupplier.get();
       if (packs.isEmpty()) {
-        this.addEntry(EmptyEntry.factory(this.client.textRenderer));
+        this.addEntry(EmptyEntry.factory(this.client.textRenderer, this.client.isInSingleplayer()));
       }
       for (PackData pack : packs) {
         this.addEntry(PackEntry.factory(this.client.textRenderer, pack));
@@ -196,14 +208,20 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
 
     private static class EmptyEntry extends Entry {
       private static final int HEIGHT = 36;
-      private static final Text MESSAGE = Text.translatable("custompaintings.migrate.none");
+      // TODO: i18n
+      private static final Text MESSAGE_SINGLE_1 = Text.of("Drag and drop files into this");
+      // TODO: i18n
+      private static final Text MESSAGE_SINGLE_2 = Text.of("window to add painting packs");
+      // TODO: i18n
+      private static final Text MESSAGE_MULTI = Text.of("No packs found!");
 
       private final LabelWidget label;
 
-      protected EmptyEntry(int index, int left, int top, int width, TextRenderer textRenderer) {
+      protected EmptyEntry(int index, int left, int top, int width, TextRenderer textRenderer, boolean inSinglePlayer) {
         super(index, left, top, width, HEIGHT);
 
-        this.label = LabelWidget.builder(textRenderer, MESSAGE)
+        List<Text> message = inSinglePlayer ? List.of(MESSAGE_SINGLE_1, MESSAGE_SINGLE_2) : List.of(MESSAGE_MULTI);
+        this.label = LabelWidget.builder(textRenderer, message)
             .position(this.getContentCenterX(), this.getContentCenterY())
             .dimensions(this.getContentWidth(), this.getContentHeight())
             .alignSelfCenterX()
@@ -217,8 +235,8 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
         this.addDrawable(this.label);
       }
 
-      public static FlowListWidget.EntryFactory<EmptyEntry> factory(TextRenderer textRenderer) {
-        return (index, left, top, width) -> new EmptyEntry(index, left, top, width, textRenderer);
+      public static FlowListWidget.EntryFactory<EmptyEntry> factory(TextRenderer textRenderer, boolean inSinglePlayer) {
+        return (index, left, top, width) -> new EmptyEntry(index, left, top, width, textRenderer, inSinglePlayer);
       }
 
       @Override
@@ -268,6 +286,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
             .hideBackground()
             .showShadow()
             .build(), (parent, self) -> self.setWidth(parent.getWidth()));
+        // TODO: i18n
         textSection.add(
             LabelWidget.builder(textRenderer, Text.of(String.format("%s painting(s)", pack.paintings().size())))
                 .alignTextLeft()
