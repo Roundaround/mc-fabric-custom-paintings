@@ -197,9 +197,12 @@ public final class Networking {
     }
   }
 
-  public record ReloadC2S() implements CustomPayload {
+  public record ReloadC2S(List<String> toActivate, List<String> toDeactivate) implements CustomPayload {
     public static final Id<ReloadC2S> ID = new Id<>(RELOAD_C2S);
-    public static final PacketCodec<RegistryByteBuf, ReloadC2S> CODEC = CustomCodecs.empty(ReloadC2S::new);
+    public static final PacketCodec<RegistryByteBuf, ReloadC2S> CODEC = PacketCodec.tuple(
+        CustomCodecs.forList(PacketCodecs.STRING), ReloadC2S::toActivate, CustomCodecs.forList(PacketCodecs.STRING),
+        ReloadC2S::toDeactivate, ReloadC2S::new
+    );
 
     @Override
     public Id<ReloadC2S> getId() {

@@ -15,6 +15,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 
 import java.text.DecimalFormat;
+import java.util.List;
 import java.util.Map;
 
 public final class ClientNetworking {
@@ -26,7 +27,11 @@ public final class ClientNetworking {
   }
 
   public static void sendReloadPacket() {
-    ClientPlayNetworking.send(new Networking.ReloadC2S());
+    sendReloadPacket(List.of(), List.of());
+  }
+
+  public static void sendReloadPacket(List<String> toActivate, List<String> toDeactivate) {
+    ClientPlayNetworking.send(new Networking.ReloadC2S(toActivate, toDeactivate));
   }
 
   public static void sendSetPaintingPacket(int paintingId, Identifier dataId) {

@@ -14,12 +14,16 @@ import me.roundaround.roundalib.client.gui.layout.FillerWidget;
 import me.roundaround.roundalib.client.gui.layout.linear.LinearLayoutWidget;
 import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import me.roundaround.roundalib.client.gui.util.Alignment;
+import me.roundaround.roundalib.client.gui.util.Axis;
+import me.roundaround.roundalib.client.gui.util.Spacing;
 import me.roundaround.roundalib.client.gui.widget.FlowListWidget;
-import me.roundaround.roundalib.client.gui.widget.ParentElementEntryListWidget;
+import me.roundaround.roundalib.client.gui.widget.NarratableEntryListWidget;
+import me.roundaround.roundalib.client.gui.widget.drawable.DrawableWidget;
 import me.roundaround.roundalib.client.gui.widget.drawable.LabelWidget;
 import me.roundaround.roundalib.util.PathAccessor;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ConfirmScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
@@ -28,28 +32,44 @@ import net.minecraft.client.gui.widget.Widget;
 import net.minecraft.client.toast.SystemToast;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
+import net.minecraft.util.Colors;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
-import java.util.function.Supplier;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class PacksScreen extends Screen implements PacksLoadedListener {
   private static final int BUTTON_HEIGHT = ButtonWidget.DEFAULT_HEIGHT;
   private static final int BUTTON_WIDTH = ButtonWidget.DEFAULT_WIDTH_SMALL;
+  private static final int LIST_WIDTH = 200;
+  private static final Identifier SELECT_TEXTURE = new Identifier("transferable_list/select");
+  private static final Identifier SELECT_HIGHLIGHTED_TEXTURE = new Identifier("transferable_list/select_highlighted");
+  private static final Identifier UNSELECT_TEXTURE = new Identifier("transferable_list/unselect");
+  private static final Identifier UNSELECT_HIGHLIGHTED_TEXTURE = new Identifier(
+      "transferable_list/unselect_highlighted");
 
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
   private final Screen parent;
+  private final ArrayList<PackData> inactivePacks = new ArrayList<>();
+  private final ArrayList<PackData> activePacks = new ArrayList<>();
+  private final HashSet<String> toActivate = new HashSet<>();
+  private final HashSet<String> toDeactivate = new HashSet<>();
 
-  private PackList list;
+  private PackList inactiveList;
+  private PackList activeList;
   private LoadingButtonWidget reloadButton;
 
   public PacksScreen(Screen parent) {
+    // TODO: i18n
     super(Text.of("Painting Packs"));
     this.parent = parent;
   }
@@ -58,12 +78,33 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
   protected void init() {
     assert this.client != null;
 
+    this.resetPacks();
+
     boolean inSinglePlayer = this.client.isInSingleplayer();
 
     this.layout.addHeader(this.textRenderer, this.title);
+    if (inSinglePlayer) {
+      // TODO: i18n
+      this.layout.addHeader(this.textRenderer,
+          Text.literal("Drag and drop files into this window to add packs").formatted(Formatting.GRAY)
+      );
+    }
 
-    this.list = this.layout.addBody(
-        new PackList(this.client, this.layout, () -> ClientPaintingRegistry.getInstance().getPacks().values()));
+    this.layout.getBody().flowAxis(Axis.HORIZONTAL).spacing(30);
+    // TODO: i18n
+    this.inactiveList = this.layout.addBody(
+        new PackList(this.client, LIST_WIDTH, this.layout.getBodyHeight(), Text.of("Inactive"), SELECT_TEXTURE,
+            SELECT_HIGHLIGHTED_TEXTURE, this::activatePack, this.inactivePacks
+        ), (parent, self) -> {
+          self.setDimensions(LIST_WIDTH, parent.getHeight());
+        });
+    // TODO: i18n
+    this.activeList = this.layout.addBody(
+        new PackList(this.client, LIST_WIDTH, this.layout.getBodyHeight(), Text.of("Active"), UNSELECT_TEXTURE,
+            UNSELECT_HIGHLIGHTED_TEXTURE, this::deactivatePack, this.activePacks
+        ), (parent, self) -> {
+          self.setDimensions(LIST_WIDTH, parent.getHeight());
+        });
 
     // TODO: i18n
     this.reloadButton = this.layout.addFooter(
@@ -140,18 +181,79 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
 
   @Override
   public void close() {
-    Objects.requireNonNull(this.client).setScreen(this.parent);
+    assert this.client != null;
+
+    if (!this.toActivate.isEmpty() || !this.toDeactivate.isEmpty()) {
+      this.reloadPacks();
+    }
+    this.client.setScreen(this.parent);
   }
 
   @Override
   public void onPacksLoaded() {
     this.reloadButton.setLoading(false);
-    this.list.reloadPacks();
+    this.resetPacks();
+  }
+
+  private void resetPacks() {
+    this.inactivePacks.clear();
+    this.activePacks.clear();
+    this.toActivate.clear();
+    this.toDeactivate.clear();
+
+    this.inactivePacks.addAll(this.getInactivePacks());
+    if (this.inactiveList != null) {
+      this.inactiveList.setPacks(this.inactivePacks);
+    }
+
+    this.activePacks.addAll(this.getActivePacks());
+    if (this.activeList != null) {
+      this.activeList.setPacks(this.activePacks);
+    }
+  }
+
+  private Collection<PackData> getInactivePacks() {
+    return List.of();
+  }
+
+  private void activatePack(PackData pack) {
+    if (this.inactivePacks.remove(pack)) {
+      this.activePacks.add(pack);
+
+      String packFileUid = pack.packFileUid();
+      this.toDeactivate.remove(packFileUid);
+      this.toActivate.add(packFileUid);
+
+      this.updateLists();
+    }
+  }
+
+  private Collection<PackData> getActivePacks() {
+    return ClientPaintingRegistry.getInstance().getPacks().values();
+  }
+
+  private void deactivatePack(PackData pack) {
+    if (this.activePacks.remove(pack)) {
+      this.inactivePacks.add(pack);
+
+      String packFileUid = pack.packFileUid();
+      this.toActivate.remove(packFileUid);
+      this.toDeactivate.add(packFileUid);
+
+      this.updateLists();
+    }
+  }
+
+  private void updateLists() {
+    this.inactiveList.setPacks(this.inactivePacks);
+    this.activeList.setPacks(this.activePacks);
   }
 
   private void reloadPacks() {
     this.reloadButton.setLoading(true);
-    Util.getIoWorkerExecutor().execute(ClientNetworking::sendReloadPacket);
+    Util.getIoWorkerExecutor().execute(() -> {
+      ClientNetworking.sendReloadPacket(List.copyOf(this.toActivate), List.copyOf(this.toDeactivate));
+    });
   }
 
   private void openPackDir() {
@@ -167,95 +269,101 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
     }
   }
 
-  private static class PackList extends ParentElementEntryListWidget<PackList.Entry> {
-    private final Supplier<Collection<PackData>> packsSupplier;
+  private static class PackList extends NarratableEntryListWidget<PackList.Entry> {
+    private final Text title;
+    private final Identifier buttonTexture;
+    private final Identifier highlightedButtonTexture;
+    private final Consumer<PackData> transferAction;
+    private final ArrayList<PackData> packs = new ArrayList<>();
 
     public PackList(
-        MinecraftClient client, ThreeSectionLayoutWidget layout, Supplier<Collection<PackData>> packsSupplier
+        MinecraftClient client,
+        int width,
+        int height,
+        Text title,
+        Identifier buttonTexture,
+        Identifier highlightedButtonTexture,
+        Consumer<PackData> transferAction,
+        Collection<PackData> packs
     ) {
-      super(client, layout);
+      super(client, 0, 0, width, height);
 
-      this.packsSupplier = packsSupplier;
+      this.title = title;
+      this.buttonTexture = buttonTexture;
+      this.highlightedButtonTexture = highlightedButtonTexture;
+      this.transferAction = transferAction;
+      this.packs.addAll(packs);
+
+      this.setShouldHighlightSelectionDuringHover(true);
+      this.setContentPadding(Spacing.of(2 + (int) (client.textRenderer.fontHeight * 1.5f), 2, 2, 2));
+
       this.init();
     }
 
     @Override
-    protected int getPreferredContentWidth() {
-      return VANILLA_LIST_WIDTH_M;
+    protected void renderEntries(DrawContext context, int mouseX, int mouseY, float delta) {
+      TextRenderer textRenderer = this.client.textRenderer;
+      Text tile = Text.empty().append(this.title).formatted(Formatting.UNDERLINE, Formatting.BOLD);
+      int centerX = this.getX() + this.getWidth() / 2;
+      int posY = (this.getY() + this.getContentTop() - textRenderer.fontHeight) / 2;
+      GuiUtil.drawText(context, textRenderer, tile, centerX, posY, Colors.WHITE, false, 0, Alignment.CENTER);
+
+      super.renderEntries(context, mouseX, mouseY, delta);
     }
 
-    public void reloadPacks() {
-      this.clearEntries();
+    public void setPacks(Collection<PackData> packs) {
+      this.packs.clear();
+      this.packs.addAll(packs);
       this.init();
     }
 
     private void init() {
-      Collection<PackData> packs = this.packsSupplier.get();
-      if (packs.isEmpty()) {
-        this.addEntry(EmptyEntry.factory(this.client.textRenderer, this.client.isInSingleplayer()));
+      this.clearEntries();
+
+      for (PackData pack : this.packs) {
+        this.addEntry(
+            PackEntry.factory(this.client.textRenderer, pack, this.buttonTexture, this.highlightedButtonTexture,
+                this.transferAction
+            ));
       }
-      for (PackData pack : packs) {
-        this.addEntry(PackEntry.factory(this.client.textRenderer, pack));
-      }
+
       this.refreshPositions();
     }
 
-    private static abstract class Entry extends ParentElementEntryListWidget.Entry {
+    private static abstract class Entry extends NarratableEntryListWidget.Entry {
       protected Entry(int index, int left, int top, int width, int contentHeight) {
         super(index, left, top, width, contentHeight);
       }
     }
 
-    private static class EmptyEntry extends Entry {
-      private static final int HEIGHT = 36;
-      // TODO: i18n
-      private static final Text MESSAGE_SINGLE_1 = Text.of("Drag and drop files into this");
-      // TODO: i18n
-      private static final Text MESSAGE_SINGLE_2 = Text.of("window to add painting packs");
-      // TODO: i18n
-      private static final Text MESSAGE_MULTI = Text.of("No packs found!");
-
-      private final LabelWidget label;
-
-      protected EmptyEntry(int index, int left, int top, int width, TextRenderer textRenderer, boolean inSinglePlayer) {
-        super(index, left, top, width, HEIGHT);
-
-        List<Text> message = inSinglePlayer ? List.of(MESSAGE_SINGLE_1, MESSAGE_SINGLE_2) : List.of(MESSAGE_MULTI);
-        this.label = LabelWidget.builder(textRenderer, message)
-            .position(this.getContentCenterX(), this.getContentCenterY())
-            .dimensions(this.getContentWidth(), this.getContentHeight())
-            .alignSelfCenterX()
-            .alignSelfCenterY()
-            .alignTextCenterX()
-            .alignTextCenterY()
-            .hideBackground()
-            .showShadow()
-            .build();
-
-        this.addDrawable(this.label);
-      }
-
-      public static FlowListWidget.EntryFactory<EmptyEntry> factory(TextRenderer textRenderer, boolean inSinglePlayer) {
-        return (index, left, top, width) -> new EmptyEntry(index, left, top, width, textRenderer, inSinglePlayer);
-      }
-
-      @Override
-      public void refreshPositions() {
-        this.label.batchUpdates(() -> {
-          this.label.setPosition(this.getContentCenterX(), this.getContentCenterY());
-          this.label.setDimensions(this.getContentWidth(), this.getContentHeight());
-        });
-      }
-    }
-
     private static class PackEntry extends Entry {
-      private static final int HEIGHT = 48;
-      private static final int PACK_ICON_SIZE = 36;
+      private static final int HEIGHT = 32;
+      private static final int PACK_ICON_SIZE = 32;
+
+      private final PackData pack;
+      private final Identifier buttonTexture;
+      private final Identifier highlightedButtonTexture;
+      private final Consumer<PackData> transferAction;
+      private final SpriteWidget icon;
+      private final DrawableWidget button;
 
       protected PackEntry(
-          int index, int left, int top, int width, TextRenderer textRenderer, PackData pack
+          int index,
+          int left,
+          int top,
+          int width,
+          TextRenderer textRenderer,
+          PackData pack,
+          Identifier buttonTexture,
+          Identifier highlightedButtonTexture,
+          Consumer<PackData> transferAction
       ) {
         super(index, left, top, width, HEIGHT);
+
+        this.pack = pack;
+        this.buttonTexture = buttonTexture;
+        this.highlightedButtonTexture = highlightedButtonTexture;
+        this.transferAction = transferAction;
 
         LinearLayoutWidget layout = this.addLayout(
             LinearLayoutWidget.horizontal().spacing(GuiUtil.PADDING).defaultOffAxisContentAlign(Alignment.CENTER),
@@ -265,7 +373,8 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
             }
         );
 
-        layout.add(SpriteWidget.create(ClientPaintingRegistry.getInstance().getSprite(PackIcons.identifier(pack.id()))),
+        this.icon = layout.add(
+            SpriteWidget.create(ClientPaintingRegistry.getInstance().getSprite(PackIcons.identifier(pack.id()))),
             (parent, self) -> {
               self.setDimensions(PACK_ICON_SIZE, PACK_ICON_SIZE);
             }
@@ -273,14 +382,14 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
 
         layout.add(FillerWidget.empty());
 
-        LinearLayoutWidget textSection = LinearLayoutWidget.vertical().spacing(GuiUtil.PADDING);
+        LinearLayoutWidget textSection = LinearLayoutWidget.vertical().spacing(GuiUtil.PADDING / 2);
         textSection.add(LabelWidget.builder(textRenderer, Text.of(pack.name()))
             .alignTextLeft()
             .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
             .hideBackground()
             .showShadow()
             .build(), (parent, self) -> self.setWidth(parent.getWidth()));
-        textSection.add(LabelWidget.builder(textRenderer, Text.of(pack.id()))
+        textSection.add(LabelWidget.builder(textRenderer, Text.literal(pack.id()).formatted(Formatting.GRAY))
             .alignTextLeft()
             .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
             .hideBackground()
@@ -305,13 +414,61 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
           self.setWidth(textSectionWidth);
         });
 
-        layout.forEachChild(this::addDrawableChild);
+        layout.forEachChild(this::addDrawable);
+
+        this.button = this.addDrawable(new DrawableWidget() {
+          @Override
+          protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+            PackEntry that = PackEntry.this;
+            if (!that.isMouseOver(mouseX, mouseY) && !that.isFocused()) {
+              return;
+            }
+
+            Identifier buttonTexture = this.isHovered() ? that.highlightedButtonTexture : that.buttonTexture;
+            context.fill(this.getX(), this.getY(), this.getRight(), this.getBottom(), 100, -1601138544);
+            context.drawGuiTexture(buttonTexture, this.getX(), this.getY(), 101, this.getWidth(), this.getHeight());
+          }
+
+          @Override
+          public void onClick(double mouseX, double mouseY) {
+            PackEntry.this.transferAction.accept(PackEntry.this.pack);
+          }
+
+          @Override
+          protected boolean isValidClickButton(int button) {
+            return button == 0;
+          }
+        });
       }
 
       public static FlowListWidget.EntryFactory<PackEntry> factory(
-          TextRenderer textRenderer, PackData pack
+          TextRenderer textRenderer,
+          PackData pack,
+          Identifier buttonTexture,
+          Identifier highlightedButtonTexture,
+          Consumer<PackData> transferAction
       ) {
-        return (index, left, top, width) -> new PackEntry(index, left, top, width, textRenderer, pack);
+        return (index, left, top, width) -> new PackEntry(
+            index, left, top, width, textRenderer, pack, buttonTexture, highlightedButtonTexture, transferAction);
+      }
+
+      @Override
+      public Text getNarration() {
+        return Text.of(this.pack.name());
+      }
+
+      @Override
+      public void refreshPositions() {
+        super.refreshPositions();
+        this.button.setDimensionsAndPosition(this.icon.getWidth(), this.icon.getHeight(), this.icon.getX(),
+            this.icon.getY()
+        );
+      }
+
+      @Override
+      public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        this.button.mouseClicked(mouseX, mouseY, button);
+        return true;
       }
     }
   }
