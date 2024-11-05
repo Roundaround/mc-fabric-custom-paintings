@@ -19,6 +19,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.PersistentState;
+import net.minecraft.world.World;
 
 import java.util.*;
 import java.util.function.Function;
@@ -38,18 +39,6 @@ public class ServerPaintingManager extends PersistentState {
     this.markDirty();
   }
 
-  public static void init(ServerWorld world) {
-    // Just getting the instance also creates/initializes it
-    getInstance(world);
-  }
-
-  public static ServerPaintingManager getInstance(ServerWorld world) {
-    Type<ServerPaintingManager> persistentStateType = new PersistentState.Type<>(() -> new ServerPaintingManager(world),
-        (nbt, registryLookup) -> fromNbt(world, nbt), null
-    );
-    return world.getPersistentStateManager().getOrCreate(persistentStateType, CustomPaintingsMod.MOD_ID);
-  }
-
   private ServerPaintingManager(ServerWorld world, UUID serverId) {
     this.world = world;
     this.serverId = serverId;
@@ -67,6 +56,29 @@ public class ServerPaintingManager extends PersistentState {
           )
       );
     });
+  }
+
+  public static void init(ServerWorld world) {
+    // Just getting the instance also creates/initializes it
+    getInstance(world);
+  }
+
+  public static ServerPaintingManager getInstance(MinecraftServer server) {
+    ServerWorld world = server.getWorld(World.OVERWORLD);
+    if (world == null) {
+      IllegalStateException exception = new IllegalStateException(
+          "Trying to get a ServerPaintingManager instance when server is not running");
+      CustomPaintingsMod.LOGGER.error(exception);
+      throw exception;
+    }
+    return getInstance(world);
+  }
+
+  public static ServerPaintingManager getInstance(ServerWorld world) {
+    Type<ServerPaintingManager> persistentStateType = new PersistentState.Type<>(() -> new ServerPaintingManager(world),
+        (nbt, registryLookup) -> fromNbt(world, nbt), null
+    );
+    return world.getPersistentStateManager().getOrCreate(persistentStateType, CustomPaintingsMod.MOD_ID);
   }
 
   @Override
