@@ -22,6 +22,10 @@ public class LoadingButtonWidget extends ButtonWidget {
     this.active = !loading;
   }
 
+  public boolean isLoading() {
+    return this.loading;
+  }
+
   @Override
   public void drawMessage(DrawContext context, TextRenderer textRenderer, int color) {
     if (!this.loading) {

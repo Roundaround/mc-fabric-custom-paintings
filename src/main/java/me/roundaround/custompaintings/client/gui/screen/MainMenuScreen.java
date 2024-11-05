@@ -76,7 +76,7 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
 
       this.reloadButton.active = false;
       this.reloadButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.reload.notInWorld")));
-    } else if (hasOp) {
+    } else if (!hasOp) {
       migrationsButton.active = false;
       migrationsButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.migrate.notOp")));
 
@@ -107,7 +107,9 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
 
   @Override
   public void onPacksLoaded() {
-    this.reloadButton.setLoading(false);
+    if (this.reloadButton.isLoading()) {
+      this.reloadButton.setLoading(false);
+    }
   }
 
   private void navigateConfig(ButtonWidget button) {
