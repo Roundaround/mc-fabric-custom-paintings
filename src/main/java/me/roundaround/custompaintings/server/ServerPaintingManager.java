@@ -12,6 +12,7 @@ import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
+import net.minecraft.nbt.NbtString;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -26,6 +27,7 @@ import java.util.function.Function;
 
 public class ServerPaintingManager extends PersistentState {
   private static final String NBT_SERVER_ID = "ServerId";
+  private static final String NBT_DISABLED_PACKS = "DisabledPacks";
   private static final String NBT_PAINTINGS = "Paintings";
   private static final String NBT_PAINTING_UUID = "PaintingUuid";
 
@@ -33,6 +35,7 @@ public class ServerPaintingManager extends PersistentState {
   private final UUID serverId;
   private final HashMap<UUID, PaintingData> allPaintings = new HashMap<>();
   private final HashMap<UUID, Integer> networkIds = new HashMap<>();
+  private final HashSet<String> disabledPacks = new HashSet<>();
 
   private ServerPaintingManager(ServerWorld world) {
     this(world, CustomPaintingsMod.getOrGenerateServerId());
@@ -85,6 +88,12 @@ public class ServerPaintingManager extends PersistentState {
   public NbtCompound writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
     nbt.putUuid(NBT_SERVER_ID, this.serverId);
 
+    if (!this.disabledPacks.isEmpty()) {
+      NbtList disabledPacksList = new NbtList();
+      this.disabledPacks.forEach((pack) -> disabledPacksList.add(NbtString.of(pack)));
+      nbt.put(NBT_DISABLED_PACKS, disabledPacksList);
+    }
+
     NbtList nbtList = new NbtList();
     this.allPaintings.forEach((uuid, paintingData) -> {
       NbtCompound nbtCompound = paintingData.write();
@@ -100,6 +109,11 @@ public class ServerPaintingManager extends PersistentState {
     ServerPaintingManager manager = nbt.containsUuid(NBT_SERVER_ID) ?
         new ServerPaintingManager(world, nbt.getUuid(NBT_SERVER_ID)) :
         new ServerPaintingManager(world);
+
+    NbtList disabledPacksList = nbt.getList(NBT_DISABLED_PACKS, NbtElement.STRING_TYPE);
+    for (int i = 0; i < disabledPacksList.size(); i++) {
+      manager.disabledPacks.add(disabledPacksList.getString(i));
+    }
 
     NbtList nbtList = nbt.getList(NBT_PAINTINGS, NbtElement.COMPOUND_TYPE);
     for (int i = 0; i < nbtList.size(); i++) {
@@ -143,6 +157,22 @@ public class ServerPaintingManager extends PersistentState {
           PaintingAssignment.from(painting.getId(), data, ServerPaintingRegistry.getInstance()::contains)
       );
     }
+  }
+
+  public void markPackDisabled(String packFileUid) {
+    if (this.disabledPacks.add(packFileUid)) {
+      this.markDirty();
+    }
+  }
+
+  public void markPackEnabled(String packFileUid) {
+    if (this.disabledPacks.remove(packFileUid)) {
+      this.markDirty();
+    }
+  }
+
+  public Set<String> getDisabledPacks() {
+    return Set.copyOf(this.disabledPacks);
   }
 
   private void loadPainting(PaintingEntity painting) {

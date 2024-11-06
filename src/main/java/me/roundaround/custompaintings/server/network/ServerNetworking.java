@@ -118,6 +118,13 @@ public final class ServerNetworking {
       if (!context.player().hasPermissionLevel(3)) {
         return;
       }
+      ServerPaintingManager manager = ServerPaintingManager.getInstance(context.player().server);
+      for (String packFileUid : payload.toActivate()) {
+        manager.markPackEnabled(packFileUid);
+      }
+      for (String packFileUid : payload.toDeactivate()) {
+        manager.markPackDisabled(packFileUid);
+      }
       ServerPaintingRegistry.getInstance().reloadPaintingPacks(ServerPaintingManager::syncAllDataForAllPlayers);
     });
   }
