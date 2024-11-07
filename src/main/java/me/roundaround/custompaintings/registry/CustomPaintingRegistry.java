@@ -70,6 +70,9 @@ public abstract class CustomPaintingRegistry {
     this.packsMap.putAll(packsMap);
     this.packsMap.forEach((id, pack) -> {
       this.packsList.add(pack);
+      if (pack.disabled()) {
+        return;
+      }
       pack.paintings().forEach((painting) -> {
         this.paintings.put(painting.id(), painting);
       });

@@ -262,6 +262,8 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
       CustomPaintingsMod.LOGGER.info("Requesting images from server");
       this.cachedImages.putAll(cacheRead.images());
       this.cachedImageHashes.putAll(cacheRead.hashes());
+      this.cachedImageHashes.entrySet()
+          .removeIf((entry) -> !this.cachedImages.containsKey(entry.getKey()));
       ClientNetworking.sendHashesPacket(this.cachedImageHashes);
     }
 
