@@ -23,12 +23,13 @@ public class ServerInfo {
   private final UUID serverId;
   private final HashSet<String> disabledPacks = new HashSet<>();
 
-  private boolean dirty = false;
+  private boolean dirty;
 
-  private ServerInfo(Path savePath, UUID serverId, Set<String> disabledPacks) {
+  private ServerInfo(Path savePath, UUID serverId, Set<String> disabledPacks, boolean initiallyDirty) {
     this.savePath = savePath;
     this.serverId = serverId;
     this.disabledPacks.addAll(disabledPacks);
+    this.dirty = initiallyDirty;
 
     ServerLifecycleEvents.BEFORE_SAVE.register((server, flush, force) -> {
       try {
@@ -48,7 +49,6 @@ public class ServerInfo {
     Path savePath = session.getWorldDirectory(World.OVERWORLD)
         .resolve("data")
         .resolve(CustomPaintingsMod.MOD_ID + "_server" + ".dat");
-    boolean dirty = false;
 
     InitialData data;
     try {
@@ -57,13 +57,9 @@ public class ServerInfo {
       CustomPaintingsMod.LOGGER.warn(e);
       CustomPaintingsMod.LOGGER.warn("Failed to load Custom Paintings mod server info; setting defaults");
       data = InitialData.defaultValue();
-      dirty = true;
     }
 
-    instance = new ServerInfo(savePath, data.serverId(), data.disabledPacks());
-    if (dirty) {
-      instance.markDirty();
-    }
+    instance = new ServerInfo(savePath, data.serverId(), data.disabledPacks(), data.dirty());
   }
 
   public static ServerInfo getInstance() {
@@ -130,12 +126,12 @@ public class ServerInfo {
       disabledPacks.add(list.getString(i));
     }
 
-    return new InitialData(serverId, disabledPacks);
+    return new InitialData(serverId, disabledPacks, !nbt.containsUuid(NBT_SERVER_ID));
   }
 
-  private record InitialData(UUID serverId, Set<String> disabledPacks) {
+  private record InitialData(UUID serverId, Set<String> disabledPacks, boolean dirty) {
     public static InitialData defaultValue() {
-      return new InitialData(UUID.randomUUID(), Set.of());
+      return new InitialData(UUID.randomUUID(), Set.of(), true);
     }
   }
 }
