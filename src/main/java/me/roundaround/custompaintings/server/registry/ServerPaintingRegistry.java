@@ -4,10 +4,14 @@ import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
 import me.roundaround.custompaintings.resource.*;
+import me.roundaround.custompaintings.server.ServerPaintingManager;
 import me.roundaround.custompaintings.server.network.ImagePacketQueue;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
 import me.roundaround.roundalib.util.PathAccessor;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.NbtSizeTracker;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
@@ -23,6 +27,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.zip.ZipEntry;
@@ -161,16 +166,18 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     }
 
     try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(packsDir)) {
+      Set<String> disabledPacks = ServerPaintingManager.getInstance(this.server).getDisabledPacks();
       HashMap<String, PackData> packs = new HashMap<>();
       HashMap<Identifier, Image> images = new HashMap<>();
       directoryStream.forEach((path) -> {
-        PackReadResult result = readAsPack(path);
+        PackReadResult result = readAsPack(path, disabledPacks);
         if (result == null) {
           return;
         }
 
         PackResource resource = result.pack();
-        packs.put(resource.id(), resource.toData(result.packFileUid()));
+        String packFileUid = result.packFileUid();
+        packs.put(resource.id(), resource.toData(packFileUid, disabledPacks.contains(packFileUid)));
         images.putAll(result.images);
       });
 
@@ -185,7 +192,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     }
   }
 
-  private static PackReadResult readAsPack(Path path) {
+  private static PackReadResult readAsPack(Path path, Set<String> disabledPacks) {
     try {
       BasicFileAttributes fileAttributes = Files.readAttributes(
           path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);

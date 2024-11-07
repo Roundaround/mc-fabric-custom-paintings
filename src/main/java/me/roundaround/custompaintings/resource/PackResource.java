@@ -12,8 +12,8 @@ import java.util.List;
 
 public record PackResource(Integer format, String id, String name, String description, String sourceLegacyPack,
                            List<PaintingResource> paintings, List<MigrationResource> migrations) {
-  public PackData toData(String packFileUid) {
-    return new PackData(packFileUid, this.id(), this.name(), this.description(), this.sourceLegacyPack(),
+  public PackData toData(String packFileUid, boolean disabled) {
+    return new PackData(packFileUid, disabled, this.id(), this.name(), this.description(), this.sourceLegacyPack(),
         this.paintings().stream().map((painting) -> painting.toData(this.id())).toList(),
         this.migrations().stream().map((migration) -> migration.toData(this.id())).toList()
     );

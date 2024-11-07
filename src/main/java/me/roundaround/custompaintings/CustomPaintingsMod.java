@@ -8,10 +8,12 @@ import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.registry.VanillaPaintingRegistry;
 import me.roundaround.custompaintings.resource.PackResource;
 import me.roundaround.custompaintings.resource.legacy.CustomPaintingsJson;
+import me.roundaround.custompaintings.server.ServerInfo;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
 import me.roundaround.custompaintings.server.command.CustomPaintingsCommand;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
+import me.roundaround.roundalib.client.event.MinecraftServerEvents;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
@@ -57,6 +59,8 @@ public final class CustomPaintingsMod implements ModInitializer {
     ServerLifecycleEvents.SERVER_STOPPED.register((server) -> {
       serverId = null;
     });
+
+    MinecraftServerEvents.RESOURCE_MANAGER_CREATING.register(ServerInfo::init);
 
     ServerWorldEvents.LOAD.register((server, world) -> {
       server.getRegistryManager().getWrapperOrThrow(Registries.PAINTING_VARIANT.getKey());

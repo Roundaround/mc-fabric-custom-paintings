@@ -67,8 +67,8 @@ public class ServerPaintingManager extends PersistentState {
   }
 
   public static ServerPaintingManager getInstance(MinecraftServer server) {
-    ServerWorld world = server.getWorld(World.OVERWORLD);
-    if (world == null) {
+    ServerWorld world;
+    if (server == null || (world = server.getWorld(World.OVERWORLD)) == null) {
       IllegalStateException exception = new IllegalStateException(
           "Trying to get a ServerPaintingManager instance when server is not running");
       CustomPaintingsMod.LOGGER.error(exception);
