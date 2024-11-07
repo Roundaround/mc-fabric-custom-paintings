@@ -45,43 +45,44 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
 
     // TODO: i18n
     ButtonWidget packsButton = this.layout.addBody(
-        ButtonWidget.builder(Text.of("Current Packs"), this::navigatePacks).width(BUTTON_WIDTH).build());
-    if (!inWorld) {
-      packsButton.active = false;
-      // TODO: i18n
-      packsButton.setTooltip(Tooltip.of(Text.of("Requires being connected to a world/server")));
-    }
+        ButtonWidget.builder(Text.of("Manage Painting Packs"), this::navigatePacks).width(BUTTON_WIDTH).build());
 
-    ButtonWidget legacyButton = this.layout.addBody(
-        ButtonWidget.builder(Text.translatable("custompaintings.main.legacy"), this::navigateConvert)
-            .width(BUTTON_WIDTH)
-            .build());
-    if (inWorld && !inSinglePlayer) {
-      legacyButton.active = false;
-      legacyButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.legacy.multiplayer")));
-    }
-
-    ButtonWidget migrationsButton = this.layout.addBody(
-        ButtonWidget.builder(Text.translatable("custompaintings.main.migrate"), this::navigateMigrate)
-            .width(BUTTON_WIDTH)
-            .build());
     this.reloadButton = this.layout.addBody(
         new LoadingButtonWidget(0, 0, BUTTON_WIDTH, BUTTON_HEIGHT, Text.translatable("custompaintings.main.reload"),
             (b) -> this.reloadPacks()
         ));
 
+    ButtonWidget migrationsButton = this.layout.addBody(
+        ButtonWidget.builder(Text.translatable("custompaintings.main.migrate"), this::navigateMigrate)
+            .width(BUTTON_WIDTH)
+            .build());
+
+    ButtonWidget legacyButton = this.layout.addBody(
+        ButtonWidget.builder(Text.translatable("custompaintings.main.legacy"), this::navigateConvert)
+            .width(BUTTON_WIDTH)
+            .build());
+
     if (!inWorld) {
-      migrationsButton.active = false;
-      migrationsButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.migrate.notInWorld")));
+      packsButton.active = false;
+      // TODO: i18n
+      packsButton.setTooltip(Tooltip.of(Text.of("Requires being connected to a world/server")));
 
       this.reloadButton.active = false;
       this.reloadButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.reload.notInWorld")));
+
+      migrationsButton.active = false;
+      migrationsButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.migrate.notInWorld")));
     } else if (!hasOp) {
       migrationsButton.active = false;
       migrationsButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.migrate.notOp")));
 
       this.reloadButton.active = false;
       this.reloadButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.reload.notOp")));
+    }
+
+    if (inWorld && !inSinglePlayer) {
+      legacyButton.active = false;
+      legacyButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.legacy.multiplayer")));
     }
 
     this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, (b) -> this.close()).width(BUTTON_WIDTH).build());
