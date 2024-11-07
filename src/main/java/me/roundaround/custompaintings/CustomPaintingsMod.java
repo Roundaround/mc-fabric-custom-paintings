@@ -17,7 +17,6 @@ import me.roundaround.roundalib.client.event.MinecraftServerEvents;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -28,8 +27,6 @@ import net.minecraft.util.ActionResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.UUID;
-
 public final class CustomPaintingsMod implements ModInitializer {
   public static final String MOD_ID = "custompaintings";
   public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
@@ -39,8 +36,6 @@ public final class CustomPaintingsMod implements ModInitializer {
       .create();
   public static final String MSG_CMD_IGNORE = CustomPaintingsMod.MOD_ID + ":" + "ignore";
   public static final String MSG_CMD_OPEN_CONVERT_SCREEN = CustomPaintingsMod.MOD_ID + ":" + "openConvertScreen";
-
-  private static UUID serverId = null;
 
   @Override
   public void onInitialize() {
@@ -54,10 +49,6 @@ public final class CustomPaintingsMod implements ModInitializer {
 
     CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
       CustomPaintingsCommand.register(dispatcher);
-    });
-
-    ServerLifecycleEvents.SERVER_STOPPED.register((server) -> {
-      serverId = null;
     });
 
     MinecraftServerEvents.RESOURCE_MANAGER_CREATING.register(ServerInfo::init);
@@ -91,12 +82,5 @@ public final class CustomPaintingsMod implements ModInitializer {
       painting.setCustomNameVisible(!painting.isCustomNameVisible());
       return ActionResult.SUCCESS_NO_ITEM_USED;
     });
-  }
-
-  public static UUID getOrGenerateServerId() {
-    if (serverId == null) {
-      serverId = UUID.randomUUID();
-    }
-    return serverId;
   }
 }

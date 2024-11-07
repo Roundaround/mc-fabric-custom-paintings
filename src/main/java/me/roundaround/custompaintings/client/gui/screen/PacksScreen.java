@@ -201,19 +201,16 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
     this.toActivate.clear();
     this.toDeactivate.clear();
 
-    this.inactivePacks.addAll(this.getInactivePacks());
+    ClientPaintingRegistry registry = ClientPaintingRegistry.getInstance();
+    this.inactivePacks.addAll(registry.getInactivePacks());
     if (this.inactiveList != null) {
       this.inactiveList.setPacks(this.inactivePacks);
     }
 
-    this.activePacks.addAll(this.getActivePacks());
+    this.activePacks.addAll(registry.getActivePacks());
     if (this.activeList != null) {
       this.activeList.setPacks(this.activePacks);
     }
-  }
-
-  private Collection<PackData> getInactivePacks() {
-    return List.of();
   }
 
   private void activatePack(PackData pack) {
@@ -226,10 +223,6 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
 
       this.updateLists();
     }
-  }
-
-  private Collection<PackData> getActivePacks() {
-    return ClientPaintingRegistry.getInstance().getPacks().values();
   }
 
   private void deactivatePack(PackData pack) {

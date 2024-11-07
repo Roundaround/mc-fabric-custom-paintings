@@ -5,6 +5,7 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.network.PaintingAssignment;
 import me.roundaround.custompaintings.server.CustomPaintingsServerMod;
+import me.roundaround.custompaintings.server.ServerInfo;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -49,7 +50,7 @@ public final class ServerNetworking {
       player.sendMessage(CustomPaintingsServerMod.getDownloadPrompt());
       return;
     }
-    UUID serverId = ServerPaintingManager.getInstance(player.getServerWorld()).getServerId();
+    UUID serverId = ServerInfo.getInstance().getServerId();
     ServerPlayNetworking.send(
         player, new Networking.SummaryS2C(serverId, packs, combinedImageHash, finishedMigrations, skipped));
   }
@@ -118,12 +119,12 @@ public final class ServerNetworking {
       if (!context.player().hasPermissionLevel(3)) {
         return;
       }
-      ServerPaintingManager manager = ServerPaintingManager.getInstance(context.player().server);
+      ServerInfo serverInfo = ServerInfo.getInstance();
       for (String packFileUid : payload.toActivate()) {
-        manager.markPackEnabled(packFileUid);
+        serverInfo.markPackEnabled(packFileUid);
       }
       for (String packFileUid : payload.toDeactivate()) {
-        manager.markPackDisabled(packFileUid);
+        serverInfo.markPackDisabled(packFileUid);
       }
       ServerPaintingRegistry.getInstance().reloadPaintingPacks(ServerPaintingManager::syncAllDataForAllPlayers);
     });

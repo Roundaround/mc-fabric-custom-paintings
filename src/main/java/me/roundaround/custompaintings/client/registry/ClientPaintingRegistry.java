@@ -126,6 +126,14 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     return this.getSprite(data.id());
   }
 
+  public List<PackData> getActivePacks() {
+    return this.packsList.stream().filter((pack) -> !pack.disabled()).toList();
+  }
+
+  public List<PackData> getInactivePacks() {
+    return this.packsList.stream().filter(PackData::disabled).toList();
+  }
+
   public Map<Identifier, Boolean> getFinishedMigrations() {
     return Map.copyOf(this.finishedMigrations);
   }
@@ -242,7 +250,10 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   }
 
   private void postCacheRead(CacheRead cacheRead, String serverCombinedHash) {
-    if (Objects.equals(this.combinedImageHash, serverCombinedHash) && this.hasAllImages(cacheRead.images())) {
+    if (cacheRead == null) {
+      CustomPaintingsMod.LOGGER.info("Cache was empty; requesting all images from server");
+      ClientNetworking.sendHashesPacket(this.cachedImageHashes);
+    } else if (Objects.equals(this.combinedImageHash, serverCombinedHash) && this.hasAllImages(cacheRead.images())) {
       CustomPaintingsMod.LOGGER.info("All images successfully pulled from cache; skipping server image download");
       this.images.putAll(cacheRead.images());
       this.imageHashes.putAll(cacheRead.hashes());

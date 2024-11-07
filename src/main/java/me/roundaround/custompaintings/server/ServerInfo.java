@@ -2,7 +2,6 @@ package me.roundaround.custompaintings.server;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.minecraft.nbt.*;
 import net.minecraft.world.World;
 import net.minecraft.world.level.storage.LevelStorage;
@@ -20,18 +19,25 @@ public class ServerInfo {
 
   private static ServerInfo instance = null;
 
+  private final Path savePath;
+  private final UUID serverId;
   private final HashSet<String> disabledPacks = new HashSet<>();
 
-  private Path savePath;
-  private UUID serverId;
   private boolean dirty = false;
 
-  private ServerInfo(Path savePath, UUID serverId, HashSet<String> disabledPacks) {
+  private ServerInfo(Path savePath, UUID serverId, Set<String> disabledPacks) {
     this.savePath = savePath;
     this.serverId = serverId;
     this.disabledPacks.addAll(disabledPacks);
 
-    ServerWorldEvents.
+    ServerLifecycleEvents.BEFORE_SAVE.register((server, flush, force) -> {
+      try {
+        this.save();
+      } catch (Exception e) {
+        CustomPaintingsMod.LOGGER.warn(e);
+        CustomPaintingsMod.LOGGER.warn("Failed to save Custom Paintings mod server info");
+      }
+    });
 
     ServerLifecycleEvents.SERVER_STOPPED.register((server) -> {
       this.clear();
@@ -43,28 +49,16 @@ public class ServerInfo {
         .resolve("data")
         .resolve(CustomPaintingsMod.MOD_ID + ".dat");
 
-    NbtCompound nbt;
-    if (Files.notExists(savePath)) {
-      nbt = new NbtCompound();
-    } else {
-      try {
-        nbt = NbtIo.readCompressed(savePath, NbtSizeTracker.ofUnlimitedBytes());
-      } catch (IOException e) {
-        CustomPaintingsMod.LOGGER.warn("Failed to read server info; setting defaults");
-        nbt = new NbtCompound();
-      }
+    InitialData data;
+    try {
+      data = load(savePath);
+    } catch (Exception e) {
+      CustomPaintingsMod.LOGGER.warn(e);
+      CustomPaintingsMod.LOGGER.warn("Failed to load Custom Paintings mod server info; setting defaults");
+      data = InitialData.defaultValue();
     }
 
-    UUID serverId = nbt.containsUuid(NBT_SERVER_ID) ? nbt.getUuid(NBT_SERVER_ID) : UUID.randomUUID();
-
-    HashSet<String> disabledPacks = new HashSet<>();
-    NbtList list = nbt.getList(NBT_DISABLED_PACKS, NbtElement.STRING_TYPE);
-    int size = list.size();
-    for (int i = 0; i < size; i++) {
-      disabledPacks.add(list.getString(i));
-    }
-
-    instance = new ServerInfo(savePath, serverId, disabledPacks);
+    instance = new ServerInfo(savePath, data.serverId(), data.disabledPacks());
   }
 
   public static ServerInfo getInstance() {
@@ -96,7 +90,15 @@ public class ServerInfo {
     this.dirty = true;
   }
 
-  private void save() {
+  private void clear() {
+    instance = null;
+  }
+
+  private void save() throws IOException {
+    if (!this.dirty) {
+      return;
+    }
+
     NbtCompound nbt = new NbtCompound();
     nbt.putUuid(NBT_SERVER_ID, this.serverId);
     NbtList list = new NbtList();
@@ -105,16 +107,30 @@ public class ServerInfo {
     }
     nbt.put(NBT_DISABLED_PACKS, list);
 
-    try {
-      NbtIo.writeCompressed(nbt, this.savePath);
-      this.dirty = false;
-    } catch (IOException e) {
-      CustomPaintingsMod.LOGGER.warn(e);
-      CustomPaintingsMod.LOGGER.warn("Failed to save Custom Paintings mod server info!");
-    }
+    NbtIo.writeCompressed(nbt, this.savePath);
+    this.dirty = false;
   }
 
-  private void clear() {
-    instance = null;
+  private static InitialData load(Path savePath) throws IOException {
+    NbtCompound nbt = Files.exists(savePath) ?
+        NbtIo.readCompressed(savePath, NbtSizeTracker.ofUnlimitedBytes()) :
+        new NbtCompound();
+
+    UUID serverId = nbt.containsUuid(NBT_SERVER_ID) ? nbt.getUuid(NBT_SERVER_ID) : UUID.randomUUID();
+
+    HashSet<String> disabledPacks = new HashSet<>();
+    NbtList list = nbt.getList(NBT_DISABLED_PACKS, NbtElement.STRING_TYPE);
+    int size = list.size();
+    for (int i = 0; i < size; i++) {
+      disabledPacks.add(list.getString(i));
+    }
+
+    return new InitialData(serverId, disabledPacks);
+  }
+
+  private record InitialData(UUID serverId, Set<String> disabledPacks) {
+    public static InitialData defaultValue() {
+      return new InitialData(UUID.randomUUID(), Set.of());
+    }
   }
 }

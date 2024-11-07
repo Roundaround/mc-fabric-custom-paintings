@@ -22,7 +22,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class PaintingEditState {
   private final MinecraftClient client;
@@ -199,7 +201,10 @@ public class PaintingEditState {
     this.createVanillaPack();
     this.createUnplaceableVanillaPack();
 
-    this.allPaintings.putAll(ClientPaintingRegistry.getInstance().getPacks());
+    this.allPaintings.putAll(ClientPaintingRegistry.getInstance()
+        .getActivePacks()
+        .stream()
+        .collect(Collectors.toMap(PackData::id, Function.identity())));
     this.allPaintings.entrySet().removeIf((entry) -> entry.getValue().paintings().isEmpty());
 
     this.allPaintings.values().forEach((pack) -> {
