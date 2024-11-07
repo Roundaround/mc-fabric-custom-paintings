@@ -47,7 +47,8 @@ public class ServerInfo {
   public static void init(LevelStorage.Session session) {
     Path savePath = session.getWorldDirectory(World.OVERWORLD)
         .resolve("data")
-        .resolve(CustomPaintingsMod.MOD_ID + ".dat");
+        .resolve(CustomPaintingsMod.MOD_ID + "_server" + ".dat");
+    boolean dirty = false;
 
     InitialData data;
     try {
@@ -56,9 +57,13 @@ public class ServerInfo {
       CustomPaintingsMod.LOGGER.warn(e);
       CustomPaintingsMod.LOGGER.warn("Failed to load Custom Paintings mod server info; setting defaults");
       data = InitialData.defaultValue();
+      dirty = true;
     }
 
     instance = new ServerInfo(savePath, data.serverId(), data.disabledPacks());
+    if (dirty) {
+      instance.markDirty();
+    }
   }
 
   public static ServerInfo getInstance() {
