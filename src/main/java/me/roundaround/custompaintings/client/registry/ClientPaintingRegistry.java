@@ -8,6 +8,7 @@ import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.client.texture.BasicTextureSprite;
 import me.roundaround.custompaintings.client.texture.LoadingSprite;
 import me.roundaround.custompaintings.client.texture.VanillaIconSprite;
+import me.roundaround.custompaintings.client.toast.DownloadProgressToast;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
@@ -19,7 +20,6 @@ import me.roundaround.custompaintings.resource.ResourceUtil;
 import me.roundaround.custompaintings.resource.legacy.LegacyPackConverter;
 import me.roundaround.custompaintings.resource.legacy.PackMetadata;
 import me.roundaround.roundalib.client.event.MinecraftClientEvents;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.resource.metadata.AnimationFrameResourceMetadata;
 import net.minecraft.client.resource.metadata.AnimationResourceMetadata;
@@ -67,14 +67,13 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   private int bytesExpected;
   private int imagesReceived;
   private int bytesReceived;
-  private long lastDownloadUpdate = 0L;
+  private DownloadProgressToast downloadProgressToast;
 
   private ClientPaintingRegistry(MinecraftClient client) {
     this.client = client;
     this.atlas = new SpriteAtlasTexture(new Identifier(CustomPaintingsMod.MOD_ID, "textures/atlas/paintings.png"));
     client.getTextureManager().registerTexture(this.atlas.getId(), this.atlas);
 
-    ClientTickEvents.START_CLIENT_TICK.register(this::tick);
     MinecraftClientEvents.CLOSE.register(this::close);
   }
 
@@ -309,9 +308,10 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.bytesExpected = byteCount;
 
     if (this.client.player != null && !this.client.isInSingleplayer()) {
-      this.lastDownloadUpdate = System.currentTimeMillis();
-      this.sendMessage(
-          Text.translatable("custompaintings.download.start", this.imagesExpected, formatBytes(this.bytesExpected)));
+      if (this.downloadProgressToast != null) {
+        this.downloadProgressToast.hide();
+      }
+      this.downloadProgressToast = DownloadProgressToast.create(this.client, this.imagesExpected, this.bytesExpected);
     }
 
     this.buildSpriteAtlas();
@@ -320,6 +320,11 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   public void setPaintingImage(Identifier id, Image image) {
     this.imagesReceived++;
     this.bytesReceived += image.getSize();
+
+    if (this.downloadProgressToast != null) {
+      this.downloadProgressToast.setReceived(this.imagesReceived, this.bytesReceived);
+    }
+
     this.setFull(id, image);
   }
 
@@ -329,11 +334,12 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
 
   public void setPaintingChunk(Identifier id, int index, byte[] bytes) {
     this.bytesReceived += bytes.length;
-    this.setPart(id, (builder) -> builder.set(index, bytes));
-  }
 
-  public Progress getByteProgress() {
-    return new Progress(this.bytesReceived, this.bytesExpected);
+    if (this.downloadProgressToast != null) {
+      this.downloadProgressToast.setReceived(this.imagesReceived, this.bytesReceived);
+    }
+
+    this.setPart(id, (builder) -> builder.set(index, bytes));
   }
 
   public CompletableFuture<PaintingData> safeGet(Identifier id) {
@@ -389,30 +395,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.bytesReceived = 0;
   }
 
-  private void tick(MinecraftClient client) {
-    if (client.isInSingleplayer()) {
-      return;
-    }
-
-    if (this.imagesExpected == 0 || this.imagesReceived == this.imagesExpected) {
-      this.imagesExpected = 0;
-      this.bytesExpected = 0;
-      this.imagesReceived = 0;
-      this.bytesReceived = 0;
-      return;
-    }
-
-    long timestamp = System.currentTimeMillis();
-    if (timestamp - this.lastDownloadUpdate > 4000) {
-      this.lastDownloadUpdate = timestamp;
-      this.sendMessage(client,
-          Text.translatable("custompaintings.download.progress", this.imagesReceived, this.imagesExpected,
-              this.getByteProgress().percent()
-          )
-      );
-    }
-  }
-
   private void close(MinecraftClient client) {
     this.clear();
   }
@@ -421,6 +403,11 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     ImageChunkBuilder builder = this.imageBuilders.computeIfAbsent(id, (identifier) -> new ImageChunkBuilder());
     if (setter.apply(builder)) {
       this.imagesReceived++;
+
+      if (this.downloadProgressToast != null) {
+        this.downloadProgressToast.setReceived(this.imagesReceived, this.bytesReceived);
+      }
+
       this.setFull(id, builder.generate());
       this.imageBuilders.remove(id);
     }
@@ -449,10 +436,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.saveBackToCache();
     String time = formatToTwoDecimals((Util.getMeasuringTimeMs() - this.waitingForImagesTimer) / 1000.0);
     CustomPaintingsMod.LOGGER.info("Painting images downloaded and sprite atlas refreshed in {}s", time);
-
-    if (!this.client.isInSingleplayer()) {
-      this.sendMessage(Text.translatable("custompaintings.download.done", this.imagesExpected, time));
-    }
 
     this.imagesExpected = 0;
     this.bytesExpected = 0;
