@@ -442,7 +442,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
       return;
     }
 
-    // TODO: Rereate the combined hash to validate all the images.
+    // TODO: Recreate the combined hash to validate all the images.
 
     CustomPaintingsMod.LOGGER.info("All painting images received from server. Refreshing sprite atlas...");
     this.buildSpriteAtlas();
