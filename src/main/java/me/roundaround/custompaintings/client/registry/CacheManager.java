@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class CacheManager {
   private static final long MS_PER_WEEK = 1000 * 60 * 60 * 24 * 7;
@@ -30,7 +31,7 @@ public class CacheManager {
   }
 
   public CacheRead loadFromFile(
-      UUID serverId, HashSet<String> packIds, HashSet<Identifier> paintingIds
+      UUID serverId, HashSet<Identifier> requestedImageIds
   ) {
     this.serverId = serverId;
     Path cacheDir = this.getCacheDir();
@@ -53,12 +54,14 @@ public class CacheManager {
       return null;
     }
 
+    Set<String> requestedPackIds = requestedImageIds.stream().map(Identifier::getNamespace).collect(Collectors.toSet());
+
     ServerCacheData server = data.byServer.get(this.serverId);
     HashMap<Identifier, String> requestedHashes = new HashMap<>();
     for (PackCacheData pack : server.packs) {
-      if (packIds.contains(pack.packId)) {
+      if (requestedPackIds.contains(pack.packId)) {
         for (ImageCacheData image : pack.images) {
-          if (paintingIds.contains(image.id)) {
+          if (requestedImageIds.contains(image.id)) {
             requestedHashes.put(image.id, image.hash);
           }
         }
@@ -89,7 +92,9 @@ public class CacheManager {
       images.put(id, image);
     });
 
-    return new CacheRead(images, requestedHashes, server.combinedHash);
+    String combinedHash = server.combinedHash();
+
+    return new CacheRead(images, requestedHashes, combinedHash);
   }
 
   public void saveToFile(Map<Identifier, Image> images, String combinedHash) throws IOException {

@@ -15,6 +15,7 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
 import me.roundaround.custompaintings.resource.Image;
 import me.roundaround.custompaintings.resource.PackIcons;
+import me.roundaround.custompaintings.resource.ResourceUtil;
 import me.roundaround.custompaintings.resource.legacy.LegacyPackConverter;
 import me.roundaround.custompaintings.resource.legacy.PackMetadata;
 import me.roundaround.roundalib.client.event.MinecraftClientEvents;
@@ -210,12 +211,20 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   }
 
   private void initCacheAndSpriteAtlas(boolean initialLoad, UUID serverId, String serverCombinedImageHash) {
+    if (this.hasAllImages(serverCombinedImageHash, this.images)) {
+      CustomPaintingsMod.LOGGER.info("All image info still valid, skipping re-fetching images");
+      this.buildSpriteAtlas();
+      return;
+    }
+
     // TODO: Do I need to clear all these here?
     this.images.clear();
     this.imageHashes.clear();
     this.cachedImages.clear();
     this.cachedImageHashes.clear();
     this.cacheDirty = false;
+
+    this.combinedImageHash = serverCombinedImageHash;
 
     if (!this.usingCache()) {
       CustomPaintingsMod.LOGGER.info("Not using cache, requesting all images from server");
@@ -226,12 +235,12 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
 
     if (initialLoad) {
       CacheRead cacheRead = this.readCache(serverId);
-      this.postCacheRead(cacheRead, serverCombinedImageHash);
+      this.postCacheRead(cacheRead);
       return;
     }
 
     CompletableFuture.supplyAsync(() -> this.readCache(serverId), Util.getIoWorkerExecutor())
-        .thenAcceptAsync((cacheRead) -> this.postCacheRead(cacheRead, serverCombinedImageHash), this.client);
+        .thenAcceptAsync(this::postCacheRead, this.client);
   }
 
   private CacheRead readCache(UUID serverId) {
@@ -239,41 +248,37 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
       return null;
     }
 
-    HashSet<String> packIds = new HashSet<>(this.packsMap.keySet());
-    HashSet<Identifier> paintingIds = new HashSet<>(this.paintings.keySet());
-    for (String packId : packIds) {
-      paintingIds.add(PackIcons.identifier(packId));
-    }
-    packIds.add(PackIcons.ICON_NAMESPACE);
-
-    return CacheManager.getInstance().loadFromFile(serverId, packIds, paintingIds);
+    return CacheManager.getInstance()
+        .loadFromFile(serverId, ResourceUtil.getAllImageIds(this.packsMap.keySet(), this.paintings.keySet()));
   }
 
-  private void postCacheRead(CacheRead cacheRead, String serverCombinedHash) {
+  private void postCacheRead(CacheRead cacheRead) {
     if (cacheRead == null) {
       CustomPaintingsMod.LOGGER.info("Cache was empty; requesting all images from server");
-      ClientNetworking.sendHashesPacket(this.cachedImageHashes);
-    } else if (Objects.equals(this.combinedImageHash, serverCombinedHash) && this.hasAllImages(cacheRead.images())) {
+      this.cacheDirty = true;
+      ClientNetworking.sendHashesPacket(Map.of());
+    } else if (this.hasAllImages(cacheRead.combinedHash(), cacheRead.images())) {
       CustomPaintingsMod.LOGGER.info("All images successfully pulled from cache; skipping server image download");
       this.images.putAll(cacheRead.images());
       this.imageHashes.putAll(cacheRead.hashes());
-      this.combinedImageHash = cacheRead.combinedHash();
     } else {
       CustomPaintingsMod.LOGGER.info("Requesting images from server");
+      this.cacheDirty = true;
       this.cachedImages.putAll(cacheRead.images());
       this.cachedImageHashes.putAll(cacheRead.hashes());
-      this.cachedImageHashes.entrySet()
-          .removeIf((entry) -> !this.cachedImages.containsKey(entry.getKey()));
+      this.cachedImageHashes.entrySet().removeIf((entry) -> !this.cachedImages.containsKey(entry.getKey()));
       ClientNetworking.sendHashesPacket(this.cachedImageHashes);
     }
 
     this.buildSpriteAtlas();
   }
 
-  private boolean hasAllImages(Map<Identifier, Image> images) {
-    HashSet<Identifier> neededIds = new HashSet<>();
-    neededIds.addAll(this.packsMap.keySet().stream().map(PackIcons::identifier).toList());
-    neededIds.addAll(this.paintings.keySet());
+  private boolean hasAllImages(String newCombinedHash, Map<Identifier, Image> images) {
+    if (!Objects.equals(newCombinedHash, this.combinedImageHash)) {
+      return false;
+    }
+
+    HashSet<Identifier> neededIds = ResourceUtil.getAllImageIds(this.packsMap.keySet(), this.paintings.keySet());
     return neededIds.stream().allMatch(images::containsKey);
   }
 
@@ -437,6 +442,8 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
       return;
     }
 
+    // TODO: Rereate the combined hash to validate all the images.
+
     CustomPaintingsMod.LOGGER.info("All painting images received from server. Refreshing sprite atlas...");
     this.buildSpriteAtlas();
     this.saveBackToCache();
@@ -479,15 +486,21 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     }
 
     final ImmutableMap<Identifier, Image> images = ImmutableMap.copyOf(this.images);
-    Util.getIoWorkerExecutor().execute(() -> {
+    final String combinedImageHash = this.combinedImageHash;
+    CompletableFuture.supplyAsync(() -> {
       try {
-        CacheManager.getInstance().saveToFile(images, this.combinedImageHash);
-        this.cacheDirty = false;
+        CacheManager.getInstance().saveToFile(images, combinedImageHash);
+        return true;
       } catch (IOException e) {
         CustomPaintingsMod.LOGGER.warn(e);
         CustomPaintingsMod.LOGGER.warn("Failed to write images and metadata to cache.");
+        return false;
       }
-    });
+    }, Util.getIoWorkerExecutor()).thenAcceptAsync((succeeded) -> {
+      if (succeeded) {
+        this.cacheDirty = false;
+      }
+    }, this.client);
   }
 
   @SuppressWarnings("BooleanMethodIsAlwaysInverted")

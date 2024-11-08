@@ -5,7 +5,9 @@ import com.google.common.io.ByteSource;
 import me.roundaround.custompaintings.entity.decoration.painting.MigrationData;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.resource.HashResult;
 import me.roundaround.custompaintings.resource.Image;
+import me.roundaround.custompaintings.resource.ResourceUtil;
 import net.minecraft.util.Identifier;
 
 import java.io.IOException;
@@ -91,9 +93,9 @@ public abstract class CustomPaintingRegistry {
 
     this.images.putAll(images);
     try {
-      HashResult hashResult = hashImages(this.images);
-      this.imageHashes.putAll(hashResult.imageHashes);
-      this.combinedImageHash = hashResult.combinedImageHash;
+      HashResult hashResult = ResourceUtil.hashImages(this.images);
+      this.imageHashes.putAll(hashResult.imageHashes());
+      this.combinedImageHash = hashResult.combinedImageHash();
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -105,27 +107,5 @@ public abstract class CustomPaintingRegistry {
   }
 
   protected void onImagesChanged() {
-  }
-
-  protected static HashResult hashImages(HashMap<Identifier, Image> images) throws IOException {
-    HashMap<Identifier, String> imageHashes = new HashMap<>();
-
-    TreeSet<Identifier> imageIds = new TreeSet<>(images.keySet());
-    LinkedHashMap<Identifier, ByteSource> byteSources = new LinkedHashMap<>();
-    for (Identifier id : imageIds) {
-      byteSources.putIfAbsent(id, images.get(id).getByteSource());
-    }
-
-    for (var entry : byteSources.entrySet()) {
-      imageHashes.put(entry.getKey(), entry.getValue().hash(Hashing.sha256()).toString());
-    }
-
-    ByteSource combinedByteSource = ByteSource.concat(byteSources.values());
-    String combinedImageHash = combinedByteSource.hash(Hashing.sha256()).toString();
-
-    return new HashResult(combinedImageHash, imageHashes);
-  }
-
-  protected record HashResult(String combinedImageHash, HashMap<Identifier, String> imageHashes) {
   }
 }

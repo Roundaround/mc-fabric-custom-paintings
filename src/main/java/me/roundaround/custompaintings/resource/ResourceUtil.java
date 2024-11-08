@@ -1,14 +1,16 @@
 package me.roundaround.custompaintings.resource;
 
+import com.google.common.hash.Hashing;
+import com.google.common.io.ByteSource;
+import net.minecraft.util.Identifier;
+
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -158,5 +160,31 @@ public class ResourceUtil {
       }
     }
     return false;
+  }
+
+  public static HashSet<Identifier> getAllImageIds(Collection<String> packs, Collection<Identifier> paintings) {
+    HashSet<Identifier> neededIds = new HashSet<>();
+    neededIds.addAll(packs.stream().map(PackIcons::identifier).toList());
+    neededIds.addAll(paintings);
+    return neededIds;
+  }
+
+  public static HashResult hashImages(HashMap<Identifier, Image> images) throws IOException {
+    HashMap<Identifier, String> imageHashes = new HashMap<>();
+
+    TreeSet<Identifier> imageIds = new TreeSet<>(images.keySet());
+    LinkedHashMap<Identifier, ByteSource> byteSources = new LinkedHashMap<>();
+    for (Identifier id : imageIds) {
+      byteSources.putIfAbsent(id, images.get(id).getByteSource());
+    }
+
+    for (var entry : byteSources.entrySet()) {
+      imageHashes.put(entry.getKey(), entry.getValue().hash(Hashing.sha256()).toString());
+    }
+
+    ByteSource combinedByteSource = ByteSource.concat(byteSources.values());
+    String combinedImageHash = combinedByteSource.hash(Hashing.sha256()).toString();
+
+    return new HashResult(combinedImageHash, imageHashes);
   }
 }
