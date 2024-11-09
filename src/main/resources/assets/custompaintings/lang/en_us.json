@@ -31,6 +31,7 @@
   "custompaintings.overrideRenderDistance.label": "Override vanilla render distance",
   "custompaintings.renderDistanceScale.label": "Render distance scale",
   "custompaintings.cacheImages.label": "Cache images from the server locally",
+  "custompaintings.cacheTtl.label": "Number of days to retain cached images",
   "custompaintings.silenceAllConvertPrompts.label": "Silence all legacy pack conversion prompts",
   "custompaintings.throttleImageDownloads.label": "Throttle image transfers to clients",
   "custompaintings.maxImagePacketsPerSecond.label": "Maximum number of image packets per second",

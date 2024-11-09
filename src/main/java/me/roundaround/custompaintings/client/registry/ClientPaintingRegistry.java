@@ -472,10 +472,11 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     }
 
     final ImmutableMap<CustomId, Image> images = ImmutableMap.copyOf(this.images);
+    final ImmutableMap<CustomId, String> imageHashes = ImmutableMap.copyOf(this.imageHashes);
     final String combinedImageHash = this.combinedImageHash;
     CompletableFuture.supplyAsync(() -> {
       try {
-        CacheManager.getInstance().saveToFile(images, combinedImageHash);
+        CacheManager.getInstance().saveToFile(images, imageHashes, combinedImageHash);
         return true;
       } catch (IOException e) {
         CustomPaintingsMod.LOGGER.warn(e);

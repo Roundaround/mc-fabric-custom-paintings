@@ -20,6 +20,7 @@ public class CustomPaintingsConfig extends ModConfigImpl implements GameScopedFi
   public BooleanConfigOption overrideRenderDistance;
   public IntConfigOption renderDistanceScale;
   public BooleanConfigOption cacheImages;
+  public IntConfigOption cacheTtl;
   public BooleanConfigOption silenceAllConvertPrompts;
 
   private CustomPaintingsConfig() {
@@ -45,6 +46,14 @@ public class CustomPaintingsConfig extends ModConfigImpl implements GameScopedFi
             BooleanConfigOption.yesNoBuilder(ConfigPath.of("cacheImages")).setDefaultValue(true).build())
         .clientOnly()
         .commit();
+
+    // TODO: i18n (custompaintings.cacheTtl.label)
+    this.cacheTtl = this.buildRegistration(IntConfigOption.builder(ConfigPath.of("cacheTtl"))
+        .setDefaultValue(14)
+        .setMinValue(1)
+        .setMaxValue(10000)
+        .onUpdate((option) -> option.setDisabled(!this.cacheImages.getPendingValue()))
+        .build()).clientOnly().commit();
 
     this.silenceAllConvertPrompts = this.buildRegistration(
             BooleanConfigOption.yesNoBuilder(ConfigPath.of("silenceAllConvertPrompts")).setDefaultValue(false).build())

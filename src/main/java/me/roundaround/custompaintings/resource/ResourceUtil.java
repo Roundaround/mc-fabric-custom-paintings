@@ -169,22 +169,33 @@ public class ResourceUtil {
     return neededIds;
   }
 
-  public static HashResult hashImages(HashMap<CustomId, Image> images) throws IOException {
+  public static HashResult hashImages(Map<CustomId, Image> images) throws IOException {
     HashMap<CustomId, String> imageHashes = new HashMap<>();
-
-    TreeSet<CustomId> imageIds = new TreeSet<>(images.keySet());
-    LinkedHashMap<CustomId, ByteSource> byteSources = new LinkedHashMap<>();
-    for (CustomId id : imageIds) {
-      byteSources.putIfAbsent(id, images.get(id).getByteSource());
-    }
+    LinkedHashMap<CustomId, ByteSource> byteSources = getByteSources(images);
 
     for (var entry : byteSources.entrySet()) {
       imageHashes.put(entry.getKey(), entry.getValue().hash(Hashing.sha256()).toString());
     }
 
-    ByteSource combinedByteSource = ByteSource.concat(byteSources.values());
-    String combinedImageHash = combinedByteSource.hash(Hashing.sha256()).toString();
+    String combinedImageHash = calculateCombinedHash(byteSources);
 
     return new HashResult(combinedImageHash, imageHashes);
+  }
+
+  public static String calculateCombinedHash(Map<CustomId, Image> images) throws IOException {
+    return calculateCombinedHash(getByteSources(images));
+  }
+
+  private static LinkedHashMap<CustomId, ByteSource> getByteSources(Map<CustomId, Image> images) {
+    TreeSet<CustomId> imageIds = new TreeSet<>(images.keySet());
+    LinkedHashMap<CustomId, ByteSource> byteSources = new LinkedHashMap<>();
+    for (CustomId id : imageIds) {
+      byteSources.putIfAbsent(id, images.get(id).getByteSource());
+    }
+    return byteSources;
+  }
+
+  private static String calculateCombinedHash(LinkedHashMap<CustomId, ByteSource> byteSources) throws IOException {
+    return ByteSource.concat(byteSources.values()).hash(Hashing.sha256()).toString();
   }
 }

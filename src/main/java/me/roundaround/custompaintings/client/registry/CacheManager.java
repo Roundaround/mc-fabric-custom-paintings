@@ -1,16 +1,19 @@
 package me.roundaround.custompaintings.client.registry;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.network.CustomId;
 import me.roundaround.custompaintings.resource.Image;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.nbt.*;
+import net.minecraft.util.Util;
 
 import javax.imageio.ImageIO;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 public class CacheManager {
@@ -34,8 +37,8 @@ public class CacheManager {
       UUID serverId, HashSet<CustomId> requestedImageIds
   ) {
     this.serverId = serverId;
-    Path cacheDir = this.getCacheDir();
-    Path dataFile = this.getDataFile(cacheDir);
+    Path cacheDir = getCacheDir();
+    Path dataFile = getDataFile(cacheDir);
 
     if (Files.notExists(dataFile) || !Files.isRegularFile(dataFile)) {
       return null;
@@ -68,24 +71,9 @@ public class CacheManager {
       }
     }
 
-    HashSet<String> usedHashes = new HashSet<>(requestedHashes.values());
-    server.packs.stream()
-        .flatMap((pack) -> pack.images.stream().map(ImageCacheData::hash))
-        .filter((hash) -> !usedHashes.contains(hash))
-        .filter((hash) -> {
-          if (!data.byHash.containsKey(hash)) {
-            return true;
-          }
-          return data.byHash.get(hash)
-              .stream()
-              .anyMatch((datum) -> !datum.serverId.equals(this.serverId) &&
-                                   System.currentTimeMillis() - datum.lastAccess < MS_PER_WEEK);
-        })
-        .forEach((hash) -> this.deleteImage(cacheDir, hash));
-
     HashMap<CustomId, Image> images = new HashMap<>();
     requestedHashes.forEach((id, hash) -> {
-      Image image = this.loadImage(cacheDir, hash);
+      Image image = loadImage(cacheDir, hash);
       if (image == null || image.isEmpty()) {
         return;
       }
@@ -97,29 +85,33 @@ public class CacheManager {
     return new CacheRead(images, requestedHashes, combinedHash);
   }
 
-  public void saveToFile(Map<CustomId, Image> images, String combinedHash) throws IOException {
+  public void saveToFile(Map<CustomId, Image> images, Map<CustomId, String> imageHashes, String combinedHash)
+      throws IOException {
     if (this.serverId == null) {
       return;
     }
 
-    Path cacheDir = this.getCacheDir();
+    Path cacheDir = getCacheDir();
     if (Files.notExists(cacheDir)) {
       Files.createDirectories(cacheDir);
     }
 
-    Path dataFile = this.getDataFile(cacheDir);
+    Path dataFile = getDataFile(cacheDir);
     HashMap<String, PackCacheData> packs = new HashMap<>();
-    HashMap<CustomId, String> hashes = new HashMap<>();
 
     images.forEach((id, image) -> {
       try {
         String packId = id.pack();
         PackCacheData pack = packs.computeIfAbsent(packId, (k) -> PackCacheData.empty(packId));
+        String hash = imageHashes.get(id);
 
-        String hash = image.getHash();
+        if (hash == null) {
+          CustomPaintingsMod.LOGGER.warn("Failed to save image to cache: {}", id);
+          return;
+        }
+
         ImageIO.write(image.toBufferedImage(), "png", cacheDir.resolve(hash + ".png").toFile());
-        pack.images.add(new ImageCacheData(id, hash, System.currentTimeMillis()));
-        hashes.put(id, hash);
+        pack.images.add(new ImageCacheData(id, hash, Util.getEpochTimeMs()));
       } catch (IOException e) {
         CustomPaintingsMod.LOGGER.warn(e);
         CustomPaintingsMod.LOGGER.warn("Failed to save image to cache: {}", id);
@@ -139,42 +131,38 @@ public class CacheManager {
     }
 
     CacheData data = CacheData.fromNbt(nbt);
-    data.byServer.put(this.serverId, new ServerCacheData(this.serverId, combinedHash, new ArrayList<>(packs.values())));
+    final long now = Util.getEpochTimeMs();
+    data.byServer.put(
+        this.serverId, new ServerCacheData(this.serverId, combinedHash, new ArrayList<>(packs.values()), now));
 
-    hashes.forEach((id, hash) -> {
+    imageHashes.forEach((id, hash) -> {
       ArrayList<HashCacheData> hashData = data.byHash.computeIfAbsent(hash, (k) -> new ArrayList<>());
       hashData.removeIf((datum) -> datum.serverId.equals(this.serverId));
-      hashData.add(new HashCacheData(this.serverId, System.currentTimeMillis()));
+      hashData.add(new HashCacheData(this.serverId, now));
     });
 
-    // TODO: Iterate over all other data and delete anything older than 7 days.
-
     NbtIo.writeCompressed(data.toNbt(), dataFile);
+
+    CompletableFuture.runAsync(() -> trimOldData(cacheDir, data));
   }
 
-  private Path getCacheDir() {
+  private static Path getCacheDir() {
     return FabricLoader.getInstance().getGameDir().resolve("data").resolve(CustomPaintingsMod.MOD_ID).resolve("cache");
   }
 
-  private Path getDataFile(Path cacheDir) {
+  private static Path getDataFile(Path cacheDir) {
     return cacheDir.resolve("data.dat");
   }
 
-  private void deleteImage(Path cacheDir, String hash) {
+  private static void deleteImage(Path cacheDir, String hash) throws IOException {
     Path path = cacheDir.resolve(hash + ".png");
     if (Files.notExists(path) || !Files.isRegularFile(path)) {
       return;
     }
-
-    try {
-      Files.delete(path);
-    } catch (IOException e) {
-      CustomPaintingsMod.LOGGER.warn(e);
-      CustomPaintingsMod.LOGGER.warn("Failed to delete stale cached image {}.png", hash);
-    }
+    Files.delete(path);
   }
 
-  private Image loadImage(Path cacheDir, String hash) {
+  private static Image loadImage(Path cacheDir, String hash) {
     Path path = cacheDir.resolve(hash + ".png");
     if (Files.notExists(path) || !Files.isRegularFile(path)) {
       return Image.empty();
@@ -184,6 +172,50 @@ public class CacheManager {
       return Image.read(Files.newInputStream(path));
     } catch (IOException e) {
       return Image.empty();
+    }
+  }
+
+  private static long getTtlMs() {
+    return 1000L * 60 * 60 * 24 * CustomPaintingsConfig.getInstance().cacheTtl.getValue();
+  }
+
+  private static void trimOldData(Path cacheDir, CacheData data) {
+    final long now = Util.getEpochTimeMs();
+    final long ttl = getTtlMs();
+
+    data.byServer.entrySet().removeIf(entry -> now - entry.getValue().lastAccess > ttl);
+
+    Iterator<Map.Entry<String, ArrayList<HashCacheData>>> outerIter = data.byHash.entrySet().iterator();
+    while (outerIter.hasNext()) {
+      Map.Entry<String, ArrayList<HashCacheData>> entry = outerIter.next();
+      String hash = entry.getKey();
+      int removed = 0;
+
+      Iterator<HashCacheData> innerIter = entry.getValue().iterator();
+      while (innerIter.hasNext()) {
+        HashCacheData datum = innerIter.next();
+        if (now - datum.lastAccess > ttl) {
+          innerIter.remove();
+          removed++;
+        }
+      }
+
+      if (removed == entry.getValue().size()) {
+        try {
+          deleteImage(cacheDir, hash);
+          outerIter.remove();
+        } catch (IOException e) {
+          CustomPaintingsMod.LOGGER.warn(e);
+          CustomPaintingsMod.LOGGER.warn("Failed to delete stale cached image {}.png", hash);
+        }
+      }
+    }
+
+    try {
+      NbtIo.writeCompressed(data.toNbt(), getDataFile(cacheDir));
+    } catch (IOException e) {
+      CustomPaintingsMod.LOGGER.warn(e);
+      CustomPaintingsMod.LOGGER.warn("Failed to write trimmed cache data file");
     }
   }
 
@@ -255,10 +287,11 @@ public class CacheManager {
     }
   }
 
-  private record ServerCacheData(UUID serverId, String combinedHash, ArrayList<PackCacheData> packs) {
+  private record ServerCacheData(UUID serverId, String combinedHash, ArrayList<PackCacheData> packs, long lastAccess) {
     private static final String NBT_ID = "Id";
     private static final String NBT_COMBINED_HASH = "CombinedHash";
     private static final String NBT_PACKS = "Packs";
+    private static final String NBT_LAST_ACCESS = "LastAccess";
 
     public static ServerCacheData fromNbt(NbtCompound nbt) {
       UUID serverId = nbt.getUuid(NBT_ID);
@@ -269,7 +302,8 @@ public class CacheManager {
       for (int i = 0; i < size; i++) {
         packs.add(PackCacheData.fromNbt(list.getCompound(i)));
       }
-      return new ServerCacheData(serverId, combinedHash, packs);
+      long lastAccess = nbt.getLong(NBT_LAST_ACCESS);
+      return new ServerCacheData(serverId, combinedHash, packs, lastAccess);
     }
 
     public NbtCompound toNbt() {
@@ -279,6 +313,7 @@ public class CacheManager {
       NbtList list = new NbtList();
       this.packs.forEach((pack) -> list.add(pack.toNbt()));
       nbt.put(NBT_PACKS, list);
+      nbt.putLong(NBT_LAST_ACCESS, this.lastAccess);
       return nbt;
     }
   }
