@@ -62,11 +62,11 @@ public final class Networking {
   }
 
   public record SummaryS2C(UUID serverId, List<PackData> packs, String combinedImageHash,
-                           Map<Identifier, Boolean> finishedMigrations, boolean skipped) implements CustomPayload {
+                           Map<CustomId, Boolean> finishedMigrations, boolean skipped) implements CustomPayload {
     public static final Id<SummaryS2C> ID = new Id<>(SUMMARY_S2C);
     public static final PacketCodec<RegistryByteBuf, SummaryS2C> CODEC = PacketCodec.tuple(Uuids.PACKET_CODEC,
         SummaryS2C::serverId, CustomCodecs.forList(PackData.PACKET_CODEC), SummaryS2C::packs, PacketCodecs.STRING,
-        SummaryS2C::combinedImageHash, CustomCodecs.forMap(Identifier.PACKET_CODEC, PacketCodecs.BOOL),
+        SummaryS2C::combinedImageHash, CustomCodecs.forMap(CustomId.PACKET_CODEC, PacketCodecs.BOOL),
         SummaryS2C::finishedMigrations, PacketCodecs.BOOL, SummaryS2C::skipped, SummaryS2C::new
     );
 
@@ -76,10 +76,10 @@ public final class Networking {
     }
   }
 
-  public record ImageS2C(Identifier id, Image image) implements CustomPayload {
+  public record ImageS2C(CustomId id, Image image) implements CustomPayload {
     public static final Id<ImageS2C> ID = new Id<>(IMAGE_S2C);
     public static final PacketCodec<RegistryByteBuf, ImageS2C> CODEC = PacketCodec.tuple(
-        Identifier.PACKET_CODEC, ImageS2C::id, Image.PACKET_CODEC, ImageS2C::image, ImageS2C::new);
+        CustomId.PACKET_CODEC, ImageS2C::id, Image.PACKET_CODEC, ImageS2C::image, ImageS2C::new);
 
     @Override
     public Id<ImageS2C> getId() {
@@ -87,10 +87,10 @@ public final class Networking {
     }
   }
 
-  public record ImageIdsS2C(List<Identifier> ids) implements CustomPayload {
+  public record ImageIdsS2C(List<CustomId> ids) implements CustomPayload {
     public static final Id<ImageIdsS2C> ID = new Id<>(IMAGE_IDS_S2C);
     public static final PacketCodec<RegistryByteBuf, ImageIdsS2C> CODEC = PacketCodec.tuple(
-        CustomCodecs.forList(Identifier.PACKET_CODEC), ImageIdsS2C::ids, ImageIdsS2C::new);
+        CustomCodecs.forList(CustomId.PACKET_CODEC), ImageIdsS2C::ids, ImageIdsS2C::new);
 
     @Override
     public Id<ImageIdsS2C> getId() {
@@ -98,10 +98,10 @@ public final class Networking {
     }
   }
 
-  public record DownloadSummaryS2C(List<Identifier> ids, int imageCount, int byteCount) implements CustomPayload {
+  public record DownloadSummaryS2C(List<CustomId> ids, int imageCount, int byteCount) implements CustomPayload {
     public static final Id<DownloadSummaryS2C> ID = new Id<>(DOWNLOAD_SUMMARY_S2C);
     public static final PacketCodec<RegistryByteBuf, DownloadSummaryS2C> CODEC = PacketCodec.tuple(
-        CustomCodecs.forList(Identifier.PACKET_CODEC), DownloadSummaryS2C::ids, PacketCodecs.INTEGER,
+        CustomCodecs.forList(CustomId.PACKET_CODEC), DownloadSummaryS2C::ids, PacketCodecs.INTEGER,
         DownloadSummaryS2C::imageCount, PacketCodecs.INTEGER, DownloadSummaryS2C::byteCount, DownloadSummaryS2C::new
     );
 
@@ -111,9 +111,9 @@ public final class Networking {
     }
   }
 
-  public record ImageHeaderS2C(Identifier id, int width, int height, int totalChunks) implements CustomPayload {
+  public record ImageHeaderS2C(CustomId id, int width, int height, int totalChunks) implements CustomPayload {
     public static final Id<ImageHeaderS2C> ID = new Id<>(IMAGE_HEADER_S2C);
-    public static final PacketCodec<RegistryByteBuf, ImageHeaderS2C> CODEC = PacketCodec.tuple(Identifier.PACKET_CODEC,
+    public static final PacketCodec<RegistryByteBuf, ImageHeaderS2C> CODEC = PacketCodec.tuple(CustomId.PACKET_CODEC,
         ImageHeaderS2C::id, PacketCodecs.INTEGER, ImageHeaderS2C::width, PacketCodecs.INTEGER, ImageHeaderS2C::height,
         PacketCodecs.INTEGER, ImageHeaderS2C::totalChunks, ImageHeaderS2C::new
     );
@@ -124,9 +124,9 @@ public final class Networking {
     }
   }
 
-  public record ImageChunkS2C(Identifier id, int index, byte[] bytes) implements CustomPayload {
+  public record ImageChunkS2C(CustomId id, int index, byte[] bytes) implements CustomPayload {
     public static final Id<ImageChunkS2C> ID = new Id<>(IMAGE_CHUNK_S2C);
-    public static final PacketCodec<RegistryByteBuf, ImageChunkS2C> CODEC = PacketCodec.tuple(Identifier.PACKET_CODEC,
+    public static final PacketCodec<RegistryByteBuf, ImageChunkS2C> CODEC = PacketCodec.tuple(CustomId.PACKET_CODEC,
         ImageChunkS2C::id, PacketCodecs.INTEGER, ImageChunkS2C::index, PacketCodecs.BYTE_ARRAY, ImageChunkS2C::bytes,
         ImageChunkS2C::new
     );
@@ -173,10 +173,10 @@ public final class Networking {
     }
   }
 
-  public record MigrationFinishS2C(Identifier id, boolean succeeded) implements CustomPayload {
+  public record MigrationFinishS2C(CustomId id, boolean succeeded) implements CustomPayload {
     public static final Id<MigrationFinishS2C> ID = new Id<>(MIGRATION_FINISH_S2C);
     public static final PacketCodec<RegistryByteBuf, MigrationFinishS2C> CODEC = PacketCodec.tuple(
-        Identifier.PACKET_CODEC, MigrationFinishS2C::id, PacketCodecs.BOOL, MigrationFinishS2C::succeeded,
+        CustomId.PACKET_CODEC, MigrationFinishS2C::id, PacketCodecs.BOOL, MigrationFinishS2C::succeeded,
         MigrationFinishS2C::new
     );
 
@@ -186,10 +186,10 @@ public final class Networking {
     }
   }
 
-  public record HashesC2S(Map<Identifier, String> hashes) implements CustomPayload {
+  public record HashesC2S(Map<CustomId, String> hashes) implements CustomPayload {
     public static final Id<HashesC2S> ID = new Id<>(HASHES_C2S);
     public static final PacketCodec<RegistryByteBuf, HashesC2S> CODEC = PacketCodec.tuple(
-        CustomCodecs.forMap(Identifier.PACKET_CODEC, PacketCodecs.STRING), HashesC2S::hashes, HashesC2S::new);
+        CustomCodecs.forMap(CustomId.PACKET_CODEC, PacketCodecs.STRING), HashesC2S::hashes, HashesC2S::new);
 
     @Override
     public Id<HashesC2S> getId() {
@@ -210,16 +210,16 @@ public final class Networking {
     }
   }
 
-  public record SetPaintingC2S(int paintingId, Identifier dataId) implements CustomPayload {
+  public record SetPaintingC2S(int paintingId, CustomId dataId) implements CustomPayload {
     public static final Id<SetPaintingC2S> ID = new Id<>(SET_PAINTING_C2S);
     public static final PacketCodec<RegistryByteBuf, SetPaintingC2S> CODEC = PacketCodec.of(
         SetPaintingC2S::write, SetPaintingC2S::read);
 
     private static SetPaintingC2S read(PacketByteBuf buf) {
       int paintingId = buf.readInt();
-      Identifier dataId = null;
+      CustomId dataId = null;
       if (buf.readBoolean()) {
-        dataId = buf.readIdentifier();
+        dataId = CustomId.read(buf);
       }
       return new SetPaintingC2S(paintingId, dataId);
     }
@@ -230,7 +230,7 @@ public final class Networking {
         buf.writeBoolean(false);
       } else {
         buf.writeBoolean(true);
-        buf.writeIdentifier(this.dataId);
+        this.dataId.write(buf);
       }
     }
 
@@ -240,10 +240,10 @@ public final class Networking {
     }
   }
 
-  public record RunMigrationC2S(Identifier id) implements CustomPayload {
+  public record RunMigrationC2S(CustomId id) implements CustomPayload {
     public static final Id<RunMigrationC2S> ID = new Id<>(RUN_MIGRATION_C2S);
     public static final PacketCodec<RegistryByteBuf, RunMigrationC2S> CODEC = PacketCodec.tuple(
-        Identifier.PACKET_CODEC, RunMigrationC2S::id, RunMigrationC2S::new);
+        CustomId.PACKET_CODEC, RunMigrationC2S::id, RunMigrationC2S::new);
 
     @Override
     public Id<RunMigrationC2S> getId() {

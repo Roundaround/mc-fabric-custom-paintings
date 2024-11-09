@@ -1,6 +1,7 @@
 package me.roundaround.custompaintings.server.network;
 
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
+import me.roundaround.custompaintings.network.CustomId;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.resource.Image;
 import net.fabricmc.api.EnvType;
@@ -8,7 +9,6 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 
 import java.util.ArrayDeque;
@@ -32,7 +32,7 @@ public class ImagePacketQueue {
   private ImagePacketQueue() {
   }
 
-  public void add(ServerPlayerEntity player, HashMap<Identifier, Image> images) {
+  public void add(ServerPlayerEntity player, HashMap<CustomId, Image> images) {
     ArrayDeque<Entry> queue = new ArrayDeque<>();
     Summary summary = images.entrySet()
         .stream()
@@ -51,7 +51,7 @@ public class ImagePacketQueue {
     }
   }
 
-  private Summary add(ArrayDeque<Entry> queue, ServerPlayerEntity player, Identifier id, Image image) {
+  private Summary add(ArrayDeque<Entry> queue, ServerPlayerEntity player, CustomId id, Image image) {
     int maxBytes = CustomPaintingsPerWorldConfig.getInstance().maxImagePacketSize.getValue() * 1024;
     if (!isThrottled() || maxBytes == 0 || image.getSize() <= maxBytes) {
       queue.add(new Entry(player, new Networking.ImageS2C(id, image)));

@@ -2,6 +2,7 @@ package me.roundaround.custompaintings.client.gui.widget;
 
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.network.CustomId;
 import me.roundaround.roundalib.client.gui.GuiUtil;
 import me.roundaround.roundalib.client.gui.layout.linear.LinearLayoutWidget;
 import me.roundaround.roundalib.client.gui.widget.NarratableEntryListWidget;
@@ -13,7 +14,6 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.navigation.NavigationDirection;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import org.lwjgl.glfw.GLFW;
 
@@ -27,7 +27,7 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
   private final Consumer<PaintingData> onPaintingSelect;
   private final Consumer<PaintingData> onPaintingConfirm;
 
-  private Identifier clickedId = null;
+  private CustomId clickedId = null;
   private long clickedTime = 0L;
 
   public PaintingListWidget(

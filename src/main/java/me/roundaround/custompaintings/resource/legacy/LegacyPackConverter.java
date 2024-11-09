@@ -3,6 +3,7 @@ package me.roundaround.custompaintings.resource.legacy;
 import com.google.common.collect.ImmutableList;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.texture.LoadingSprite;
+import me.roundaround.custompaintings.network.CustomId;
 import me.roundaround.custompaintings.resource.*;
 import me.roundaround.roundalib.util.PathAccessor;
 import net.fabricmc.loader.api.FabricLoader;
@@ -37,7 +38,7 @@ public class LegacyPackConverter {
 
   private static LegacyPackConverter instance = null;
 
-  private final HashSet<Identifier> spriteIds = new HashSet<>();
+  private final HashSet<CustomId> spriteIds = new HashSet<>();
   private final Executor ioExecutor = Util.getIoWorkerExecutor();
 
   private SpriteAtlasTexture atlas = null;
@@ -68,17 +69,17 @@ public class LegacyPackConverter {
   }
 
   public Sprite getSprite(String packId) {
-    return this.getSprite(PackIcons.identifier(packId));
+    return this.getSprite(PackIcons.customId(packId));
   }
 
-  public Sprite getSprite(Identifier id) {
+  public Sprite getSprite(CustomId id) {
     if (this.atlas == null) {
       return null;
     }
     if (!this.spriteIds.contains(id)) {
       return this.getMissingSprite();
     }
-    return this.atlas.getSprite(id);
+    return this.atlas.getSprite(id.toIdentifier());
   }
 
   public Path getWorldOutDir() {
@@ -238,9 +239,9 @@ public class LegacyPackConverter {
       if (meta.icon() == null) {
         return;
       }
-      Identifier id = PackIcons.identifier(meta.pack().packId());
+      CustomId id = PackIcons.customId(meta.pack().packId());
       this.spriteIds.add(id);
-      spriteContents.add(getIconSpriteContents(id, meta.icon()));
+      spriteContents.add(getIconSpriteContents(id.toIdentifier(), meta.icon()));
     });
     this.atlas.upload(SpriteLoader.fromAtlas(this.atlas).stitch(spriteContents, 0, Util.getMainWorkerExecutor()));
   }
@@ -248,7 +249,7 @@ public class LegacyPackConverter {
   public CompletableFuture<Boolean> convertPack(PackMetadata metadata, Path path) {
     return CompletableFuture.supplyAsync(() -> {
       LegacyPackResource legacyPack = metadata.pack();
-      HashMap<Identifier, Image> images = readPaintingImages(legacyPack);
+      HashMap<CustomId, Image> images = readPaintingImages(legacyPack);
       HashMap<String, PaintingResource> paintings = new HashMap<>();
       HashMap<String, MigrationResource> migrations = new HashMap<>();
 
@@ -259,7 +260,7 @@ public class LegacyPackConverter {
             )
         );
       });
-      paintings.keySet().removeIf(paintingId -> !images.containsKey(new Identifier(legacyPack.packId(), paintingId)));
+      paintings.keySet().removeIf(paintingId -> !images.containsKey(new CustomId(legacyPack.packId(), paintingId)));
 
       legacyPack.migrations().forEach((legacyMigration) -> {
         List<List<String>> pairs = legacyMigration.pairs().stream().map(List::copyOf).toList();
@@ -289,13 +290,13 @@ public class LegacyPackConverter {
       ) {
         writeCustomPaintingsJson(zos, pack);
 
-        Identifier iconId = PackIcons.identifier(pack.id());
+        CustomId iconId = PackIcons.customId(pack.id());
         if (images.containsKey(iconId)) {
           writeImage(zos, ICON_PNG, images.get(iconId));
         }
 
         for (PaintingResource painting : pack.paintings()) {
-          Identifier paintingId = new Identifier(pack.id(), painting.id());
+          CustomId paintingId = new CustomId(pack.id(), painting.id());
           if (images.containsKey(paintingId)) {
             writeImage(zos, Paths.get("images", painting.id() + ".png").toString(), images.get(paintingId));
           }
@@ -427,7 +428,7 @@ public class LegacyPackConverter {
     }
   }
 
-  private static HashMap<Identifier, Image> readPaintingImages(LegacyPackResource pack) {
+  private static HashMap<CustomId, Image> readPaintingImages(LegacyPackResource pack) {
     try {
       BasicFileAttributes fileAttributes = Files.readAttributes(
           pack.path(), BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
@@ -448,8 +449,8 @@ public class LegacyPackConverter {
     return new HashMap<>();
   }
 
-  private static HashMap<Identifier, Image> readPaintingImagesFromDirectory(LegacyPackResource pack) {
-    HashMap<Identifier, Image> images = new HashMap<>();
+  private static HashMap<CustomId, Image> readPaintingImagesFromDirectory(LegacyPackResource pack) {
+    HashMap<CustomId, Image> images = new HashMap<>();
 
     Path path = pack.path();
     if (Files.notExists(path)) {
@@ -461,21 +462,21 @@ public class LegacyPackConverter {
 
     Image packIcon = readImage(path.resolve(PACK_PNG));
     if (packIcon != null) {
-      images.put(PackIcons.identifier(packId), packIcon);
+      images.put(PackIcons.customId(packId), packIcon);
     }
 
     for (LegacyPaintingResource painting : paintings) {
       Image image = readImage(path.resolve(getPaintingPath(packId, painting.id())));
       if (image != null) {
-        images.put(new Identifier(packId, painting.id()), image);
+        images.put(new CustomId(packId, painting.id()), image);
       }
     }
 
     return images;
   }
 
-  private static HashMap<Identifier, Image> readPaintingImagesFromZip(LegacyPackResource pack) {
-    HashMap<Identifier, Image> images = new HashMap<>();
+  private static HashMap<CustomId, Image> readPaintingImagesFromZip(LegacyPackResource pack) {
+    HashMap<CustomId, Image> images = new HashMap<>();
 
     Path path = pack.path();
     String filename = path.getFileName().toString();
@@ -494,7 +495,7 @@ public class LegacyPackConverter {
 
       Image packIcon = ResourceUtil.readImageFromZip(zip, folderPrefix, PACK_PNG);
       if (packIcon != null) {
-        images.put(PackIcons.identifier(packId), packIcon);
+        images.put(PackIcons.customId(packId), packIcon);
       }
 
       for (LegacyPaintingResource painting : paintings) {
@@ -504,7 +505,7 @@ public class LegacyPackConverter {
         }
         Image image = ResourceUtil.readImageFromZip(zip, segments);
         if (image != null) {
-          images.put(new Identifier(packId, painting.id()), image);
+          images.put(new CustomId(packId, painting.id()), image);
         }
       }
     } catch (IOException ignored) {

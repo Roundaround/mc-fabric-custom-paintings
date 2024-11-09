@@ -13,6 +13,7 @@ import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.network.CustomId;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
 import me.roundaround.custompaintings.resource.Image;
 import me.roundaround.custompaintings.resource.PackIcons;
@@ -51,13 +52,13 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
 
   private final MinecraftClient client;
   private final SpriteAtlasTexture atlas;
-  private final HashSet<Identifier> spriteIds = new HashSet<>();
-  private final HashMap<Identifier, Image> cachedImages = new HashMap<>();
-  private final HashMap<Identifier, String> cachedImageHashes = new HashMap<>();
-  private final HashSet<Identifier> neededImages = new HashSet<>();
-  private final HashMap<Identifier, ImageChunkBuilder> imageBuilders = new HashMap<>();
-  private final LinkedHashMap<Identifier, CompletableFuture<PaintingData>> pendingDataRequests = new LinkedHashMap<>();
-  private final HashMap<Identifier, Boolean> finishedMigrations = new HashMap<>();
+  private final HashSet<CustomId> spriteIds = new HashSet<>();
+  private final HashMap<CustomId, Image> cachedImages = new HashMap<>();
+  private final HashMap<CustomId, String> cachedImageHashes = new HashMap<>();
+  private final HashSet<CustomId> neededImages = new HashSet<>();
+  private final HashMap<CustomId, ImageChunkBuilder> imageBuilders = new HashMap<>();
+  private final LinkedHashMap<CustomId, CompletableFuture<PaintingData>> pendingDataRequests = new LinkedHashMap<>();
+  private final HashMap<CustomId, Boolean> finishedMigrations = new HashMap<>();
 
   private boolean atlasInitialized = false;
   private boolean packsReceived = false;
@@ -109,11 +110,11 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     return this.atlas.getSprite(PAINTING_BACK_ID);
   }
 
-  public Sprite getSprite(Identifier id) {
+  public Sprite getSprite(CustomId id) {
     if (!this.spriteIds.contains(id)) {
       return this.getMissingSprite();
     }
-    return this.atlas.getSprite(id);
+    return this.atlas.getSprite(id.toIdentifier());
   }
 
   public Sprite getSprite(PaintingData data) {
@@ -121,7 +122,8 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
       return this.getBackSprite();
     }
     if (data.vanilla()) {
-      return this.client.getPaintingManager().getPaintingSprite(Registries.PAINTING_VARIANT.get(data.id()));
+      return this.client.getPaintingManager()
+          .getPaintingSprite(Registries.PAINTING_VARIANT.get(data.id().toIdentifier()));
     }
     return this.getSprite(data.id());
   }
@@ -134,15 +136,15 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     return this.packsList.stream().filter(PackData::disabled).toList();
   }
 
-  public Map<Identifier, Boolean> getFinishedMigrations() {
+  public Map<CustomId, Boolean> getFinishedMigrations() {
     return Map.copyOf(this.finishedMigrations);
   }
 
-  public void markMigrationFinished(Identifier id, boolean succeeded) {
+  public void markMigrationFinished(CustomId id, boolean succeeded) {
     this.finishedMigrations.put(id, succeeded);
   }
 
-  public void setFinishedMigrations(Map<Identifier, Boolean> finishedMigrations) {
+  public void setFinishedMigrations(Map<CustomId, Boolean> finishedMigrations) {
     this.finishedMigrations.clear();
     this.finishedMigrations.putAll(finishedMigrations);
   }
@@ -152,7 +154,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   }
 
   public void processSummary(
-      List<PackData> packs, UUID serverId, String combinedImageHash, Map<Identifier, Boolean> finishedMigrations
+      List<PackData> packs, UUID serverId, String combinedImageHash, Map<CustomId, Boolean> finishedMigrations
   ) {
     boolean initialLoad = this.packsMap.isEmpty();
 
@@ -272,18 +274,18 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.buildSpriteAtlas();
   }
 
-  private boolean hasAllImages(String newCombinedHash, Map<Identifier, Image> images) {
+  private boolean hasAllImages(String newCombinedHash, Map<CustomId, Image> images) {
     if (!Objects.equals(newCombinedHash, this.combinedImageHash)) {
       return false;
     }
 
-    HashSet<Identifier> neededIds = ResourceUtil.getAllImageIds(this.packsMap.keySet(), this.paintings.keySet());
+    HashSet<CustomId> neededIds = ResourceUtil.getAllImageIds(this.packsMap.keySet(), this.paintings.keySet());
     return neededIds.stream().allMatch(images::containsKey);
   }
 
-  public void trackExpectedPackets(List<Identifier> ids, int imageCount, int byteCount) {
-    HashSet<Identifier> neededIds = new HashSet<>();
-    neededIds.addAll(this.packsMap.keySet().stream().map(PackIcons::identifier).toList());
+  public void trackExpectedPackets(List<CustomId> ids, int imageCount, int byteCount) {
+    HashSet<CustomId> neededIds = new HashSet<>();
+    neededIds.addAll(this.packsMap.keySet().stream().map(PackIcons::customId).toList());
     neededIds.addAll(this.paintings.keySet());
     neededIds.forEach((id) -> {
       if (ids.contains(id)) {
@@ -317,7 +319,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.buildSpriteAtlas();
   }
 
-  public void setPaintingImage(Identifier id, Image image) {
+  public void setPaintingImage(CustomId id, Image image) {
     this.imagesReceived++;
     this.bytesReceived += image.getSize();
 
@@ -328,11 +330,11 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.setFull(id, image);
   }
 
-  public void setPaintingHeader(Identifier id, int width, int height, int totalChunks) {
+  public void setPaintingHeader(CustomId id, int width, int height, int totalChunks) {
     this.setPart(id, (builder) -> builder.set(width, height, totalChunks));
   }
 
-  public void setPaintingChunk(Identifier id, int index, byte[] bytes) {
+  public void setPaintingChunk(CustomId id, int index, byte[] bytes) {
     this.bytesReceived += bytes.length;
 
     if (this.downloadProgressToast != null) {
@@ -342,7 +344,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.setPart(id, (builder) -> builder.set(index, bytes));
   }
 
-  public CompletableFuture<PaintingData> safeGet(Identifier id) {
+  public CompletableFuture<PaintingData> safeGet(CustomId id) {
     if (this.packsReceived) {
       return CompletableFuture.completedFuture(this.get(id));
     }
@@ -368,7 +370,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   }
 
   @Override
-  public void setImages(HashMap<Identifier, Image> images) {
+  public void setImages(HashMap<CustomId, Image> images) {
     // TODO: Should I decouple the two registries?
     CustomPaintingsMod.LOGGER.warn("Unexpected client-side setImages call. Was this intentional?");
     super.setImages(images);
@@ -399,7 +401,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.clear();
   }
 
-  private void setPart(Identifier id, Function<ImageChunkBuilder, Boolean> setter) {
+  private void setPart(CustomId id, Function<ImageChunkBuilder, Boolean> setter) {
     ImageChunkBuilder builder = this.imageBuilders.computeIfAbsent(id, (identifier) -> new ImageChunkBuilder());
     if (setter.apply(builder)) {
       this.imagesReceived++;
@@ -413,7 +415,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     }
   }
 
-  private void setFull(Identifier id, Image image) {
+  private void setFull(CustomId id, Image image) {
     try {
       this.images.put(id, image);
       this.imageHashes.put(id, image.getHash());
@@ -450,15 +452,16 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     List<SpriteContents> sprites = new ArrayList<>();
     sprites.add(MissingSprite.createSpriteContents());
     sprites.add(BasicTextureSprite.fetch(this.client, PAINTING_BACK_ID, BACK_TEXTURE_ID));
-    sprites.add(VanillaIconSprite.create(this.client, PackIcons.MINECRAFT_ICON_ID, "vanilla"));
-    sprites.add(BasicTextureSprite.fetch(this.client, PackIcons.MINECRAFT_HIDDEN_ICON_ID, EARTH_TEXTURE_ID));
+    sprites.add(VanillaIconSprite.create(this.client, PackIcons.MINECRAFT_ICON_ID.toIdentifier(), "vanilla"));
+    sprites.add(
+        BasicTextureSprite.fetch(this.client, PackIcons.MINECRAFT_HIDDEN_ICON_ID.toIdentifier(), EARTH_TEXTURE_ID));
     this.paintings.values().forEach((painting) -> this.getSpriteContents(painting).ifPresent(sprites::add));
     this.packsMap.keySet().forEach((packId) -> this.getSpriteContents(packId).ifPresent(sprites::add));
 
     this.atlas.upload(SpriteLoader.fromAtlas(this.atlas).stitch(sprites, 0, Util.getMainWorkerExecutor()));
 
     this.spriteIds.clear();
-    this.spriteIds.addAll(sprites.stream().map(SpriteContents::getId).toList());
+    this.spriteIds.addAll(sprites.stream().map(SpriteContents::getId).map(CustomId::from).toList());
 
     this.atlasInitialized = true;
   }
@@ -468,7 +471,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
       return;
     }
 
-    final ImmutableMap<Identifier, Image> images = ImmutableMap.copyOf(this.images);
+    final ImmutableMap<CustomId, Image> images = ImmutableMap.copyOf(this.images);
     final String combinedImageHash = this.combinedImageHash;
     CompletableFuture.supplyAsync(() -> {
       try {
@@ -487,9 +490,9 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   }
 
   @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-  private boolean isValidImageId(Identifier id) {
+  private boolean isValidImageId(CustomId id) {
     return this.paintings.containsKey(id) ||
-           (id.getNamespace().equals(PackIcons.ICON_NAMESPACE) && this.packsMap.containsKey(id.getPath()));
+           (id.pack().equals(PackIcons.ICON_NAMESPACE) && this.packsMap.containsKey(id.resource()));
   }
 
   private Optional<SpriteContents> getSpriteContents(PaintingData painting) {
@@ -498,21 +501,22 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   }
 
   private Optional<SpriteContents> getSpriteContents(String packId) {
-    Identifier id = PackIcons.identifier(packId);
+    CustomId id = PackIcons.customId(packId);
     return this.getSpriteContents(id, this.images.get(id), 16, 16);
   }
 
-  private Optional<SpriteContents> getSpriteContents(Identifier id, Image image, int width, int height) {
+  private Optional<SpriteContents> getSpriteContents(CustomId id, Image image, int width, int height) {
     if (image == null || image.isEmpty()) {
       if (this.neededImages.contains(id)) {
-        return Optional.of(LoadingSprite.generate(id, width, height));
+        return Optional.of(LoadingSprite.generate(id.toIdentifier(), width, height));
       }
       return Optional.empty();
     }
     NativeImage nativeImage = getNativeImage(image);
-    return Optional.of(new SpriteContents(id, new SpriteDimensions(image.width(), image.height()), nativeImage,
-        getResourceMetadata(image)
-    ));
+    return Optional.of(
+        new SpriteContents(id.toIdentifier(), new SpriteDimensions(image.width(), image.height()), nativeImage,
+            getResourceMetadata(image)
+        ));
   }
 
   private void sendMessage(Text text) {

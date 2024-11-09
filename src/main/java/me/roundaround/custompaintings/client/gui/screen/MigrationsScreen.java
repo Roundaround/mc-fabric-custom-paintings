@@ -7,6 +7,7 @@ import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.entity.decoration.painting.MigrationData;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
+import me.roundaround.custompaintings.network.CustomId;
 import me.roundaround.custompaintings.resource.PackIcons;
 import me.roundaround.roundalib.client.gui.GuiUtil;
 import me.roundaround.roundalib.client.gui.layout.FillerWidget;
@@ -82,7 +83,7 @@ public class MigrationsScreen extends Screen {
     Objects.requireNonNull(this.client).setScreen(this.parent);
   }
 
-  public void onMigrationFinished(Identifier id, boolean succeeded) {
+  public void onMigrationFinished(CustomId id, boolean succeeded) {
     this.list.markMigrationFinished(id, succeeded);
   }
 
@@ -100,7 +101,7 @@ public class MigrationsScreen extends Screen {
         MinecraftClient client,
         ThreeSectionLayoutWidget layout,
         Collection<MigrationData> migrations,
-        Map<Identifier, Boolean> finishedMigrations,
+        Map<CustomId, Boolean> finishedMigrations,
         Consumer<MigrationEntry> runMigration
     ) {
       super(client, layout);
@@ -119,7 +120,7 @@ public class MigrationsScreen extends Screen {
       this.refreshPositions();
     }
 
-    public void markMigrationFinished(Identifier id, boolean succeeded) {
+    public void markMigrationFinished(CustomId id, boolean succeeded) {
       for (Entry entry : this.entries) {
         if ((entry instanceof MigrationEntry migrationEntry) && migrationEntry.getMigrationId().equals(id)) {
           migrationEntry.markFinished(succeeded);
@@ -208,7 +209,7 @@ public class MigrationsScreen extends Screen {
         );
 
         layout.add(SpriteWidget.create(
-                ClientPaintingRegistry.getInstance().getSprite(PackIcons.identifier(migration.id().getNamespace()))),
+                ClientPaintingRegistry.getInstance().getSprite(PackIcons.customId(migration.id().pack()))),
             (parent, self) -> {
               self.setDimensions(PACK_ICON_SIZE, PACK_ICON_SIZE);
             }
@@ -221,12 +222,12 @@ public class MigrationsScreen extends Screen {
             .mapToInt(textRenderer::getWidth)
             .max()
             .orElse(1);
-        PackData sourcePack = ClientPaintingRegistry.getInstance().getPacks().get(migration.id().getNamespace());
+        PackData sourcePack = ClientPaintingRegistry.getInstance().getPacks().get(migration.id().pack());
         textSection.add(
             this.textLine(textRenderer, headerWidth, LINE_SOURCE, sourcePack == null ? null : sourcePack.name()),
             (parent, self) -> self.setWidth(parent.getWidth())
         );
-        textSection.add(this.textLine(textRenderer, headerWidth, LINE_ID, migration.id().getPath()),
+        textSection.add(this.textLine(textRenderer, headerWidth, LINE_ID, migration.id().resource()),
             (parent, self) -> self.setWidth(parent.getWidth())
         );
         textSection.add(this.textLine(textRenderer, headerWidth, LINE_DESCRIPTION, migration.description()),
@@ -287,7 +288,7 @@ public class MigrationsScreen extends Screen {
         return line;
       }
 
-      public Identifier getMigrationId() {
+      public CustomId getMigrationId() {
         return this.migration.id();
       }
 

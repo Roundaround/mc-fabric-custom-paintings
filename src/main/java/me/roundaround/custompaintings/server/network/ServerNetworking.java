@@ -2,6 +2,7 @@ package me.roundaround.custompaintings.server.network;
 
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.network.CustomId;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.network.PaintingAssignment;
 import me.roundaround.custompaintings.server.CustomPaintingsServerMod;
@@ -14,7 +15,6 @@ import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 
@@ -31,7 +31,7 @@ public final class ServerNetworking {
       MinecraftServer server,
       List<PackData> packs,
       String combinedImageHash,
-      Map<Identifier, Boolean> finishedMigrations,
+      Map<CustomId, Boolean> finishedMigrations,
       boolean skipped
   ) {
     server.getPlayerManager()
@@ -43,7 +43,7 @@ public final class ServerNetworking {
       ServerPlayerEntity player,
       List<PackData> packs,
       String combinedImageHash,
-      Map<Identifier, Boolean> finishedMigrations,
+      Map<CustomId, Boolean> finishedMigrations,
       boolean skipped
   ) {
     if (!ServerPlayNetworking.canSend(player, Networking.SUMMARY_S2C)) {
@@ -56,7 +56,7 @@ public final class ServerNetworking {
   }
 
   public static void sendDownloadSummaryPacket(
-      ServerPlayerEntity player, Collection<Identifier> ids, int imageCount, int byteCount
+      ServerPlayerEntity player, Collection<CustomId> ids, int imageCount, int byteCount
   ) {
     ServerPlayNetworking.send(player, new Networking.DownloadSummaryS2C(ids.stream().toList(), imageCount, byteCount));
   }
@@ -87,7 +87,7 @@ public final class ServerNetworking {
   }
 
   public static void sendMigrationFinishPacketToAll(
-      MinecraftServer server, Identifier id, boolean succeeded
+      MinecraftServer server, CustomId id, boolean succeeded
   ) {
     Networking.MigrationFinishS2C payload = new Networking.MigrationFinishS2C(id, succeeded);
     server.getPlayerManager().getPlayerList().forEach((player) -> {

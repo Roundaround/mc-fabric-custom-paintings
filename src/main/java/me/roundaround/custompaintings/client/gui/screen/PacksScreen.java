@@ -414,7 +414,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
         );
 
         this.icon = layout.add(
-            SpriteWidget.create(ClientPaintingRegistry.getInstance().getSprite(PackIcons.identifier(pack.id()))),
+            SpriteWidget.create(ClientPaintingRegistry.getInstance().getSprite(PackIcons.customId(pack.id()))),
             (parent, self) -> {
               self.setDimensions(PACK_ICON_SIZE, PACK_ICON_SIZE);
             }

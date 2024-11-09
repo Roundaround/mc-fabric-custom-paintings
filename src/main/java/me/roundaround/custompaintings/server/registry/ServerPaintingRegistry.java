@@ -2,6 +2,7 @@ package me.roundaround.custompaintings.server.registry;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
+import me.roundaround.custompaintings.network.CustomId;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
 import me.roundaround.custompaintings.resource.*;
 import me.roundaround.custompaintings.server.ServerInfo;
@@ -11,7 +12,6 @@ import me.roundaround.roundalib.util.PathAccessor;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 
 import javax.imageio.ImageIO;
@@ -47,7 +47,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
   private static ServerPaintingRegistry instance = null;
 
-  private final HashMap<Identifier, Boolean> finishedMigrations = new HashMap<>();
+  private final HashMap<CustomId, Boolean> finishedMigrations = new HashMap<>();
 
   private MinecraftServer server;
   private boolean safeMode = false;
@@ -125,8 +125,8 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
         player, this.packsList, this.combinedImageHash, this.finishedMigrations, this.safeMode);
   }
 
-  public void checkPlayerHashes(ServerPlayerEntity player, Map<Identifier, String> hashes) {
-    HashMap<Identifier, Image> images = new HashMap<>();
+  public void checkPlayerHashes(ServerPlayerEntity player, Map<CustomId, String> hashes) {
+    HashMap<CustomId, Image> images = new HashMap<>();
     this.imageHashes.forEach((id, hash) -> {
       if (hash.equals(hashes.get(id))) {
         return;
@@ -149,7 +149,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     );
   }
 
-  public void markMigrationFinished(Identifier migrationId, boolean succeeded) {
+  public void markMigrationFinished(CustomId migrationId, boolean succeeded) {
     this.finishedMigrations.put(migrationId, succeeded);
   }
 
@@ -165,7 +165,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(packsDir)) {
       Set<String> disabledPacks = ServerInfo.getInstance().getDisabledPacks();
       HashMap<String, PackData> packs = new HashMap<>();
-      HashMap<Identifier, Image> images = new HashMap<>();
+      HashMap<CustomId, Image> images = new HashMap<>();
       directoryStream.forEach((path) -> {
         PackReadResult result = readAsPack(path, disabledPacks);
         if (result == null) {
@@ -236,7 +236,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     long fileSize = ResourceUtil.fileSize(path);
     String packFileUid = PackFileUid.create(false, dirname, lastModified, fileSize);
 
-    HashMap<Identifier, Image> images = new HashMap<>();
+    HashMap<CustomId, Image> images = new HashMap<>();
 
     if (disabledPacks.contains(packFileUid)) {
       return new PackReadResult(packFileUid, pack, images);
@@ -250,7 +250,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
           throw new IOException("BufferedImage is null");
         }
 
-        images.put(PackIcons.identifier(pack.id()), Image.read(image));
+        images.put(PackIcons.customId(pack.id()), Image.read(image));
       } catch (IOException e) {
         CustomPaintingsMod.LOGGER.warn(e);
         CustomPaintingsMod.LOGGER.warn(LOG_ICON_READ_FAIL, pack.id());
@@ -258,7 +258,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     }
 
     pack.paintings().forEach((painting) -> {
-      Identifier id = new Identifier(pack.id(), painting.id());
+      CustomId id = new CustomId(pack.id(), painting.id());
       Path imagePath = path.resolve("images").resolve(painting.id() + ".png");
       if (!Files.exists(imagePath)) {
         CustomPaintingsMod.LOGGER.warn(LOG_MISSING_PAINTING, id);
@@ -345,7 +345,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
       long fileSize = ResourceUtil.fileSize(path);
       String packFileUid = PackFileUid.create(true, filename, lastModified, fileSize);
 
-      HashMap<Identifier, Image> images = new HashMap<>();
+      HashMap<CustomId, Image> images = new HashMap<>();
 
       if (disabledPacks.contains(packFileUid)) {
         return new PackReadResult(packFileUid, pack, images);
@@ -359,7 +359,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
             throw new IOException("BufferedImage is null");
           }
 
-          images.put(PackIcons.identifier(pack.id()), Image.read(image));
+          images.put(PackIcons.customId(pack.id()), Image.read(image));
         } catch (IOException e) {
           CustomPaintingsMod.LOGGER.warn(e);
           CustomPaintingsMod.LOGGER.warn(LOG_ICON_READ_FAIL, pack.id());
@@ -367,7 +367,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
       }
 
       pack.paintings().forEach((painting) -> {
-        Identifier id = new Identifier(pack.id(), painting.id());
+        CustomId id = new CustomId(pack.id(), painting.id());
         ZipEntry zipImage = ResourceUtil.getImageZipEntry(zip, folderPrefix, "images", painting.id() + ".png");
         if (zipImage == null) {
           CustomPaintingsMod.LOGGER.warn(LOG_MISSING_PAINTING, id);
@@ -415,10 +415,10 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     return entry;
   }
 
-  private record PackReadResult(String packFileUid, PackResource pack, HashMap<Identifier, Image> images) {
+  private record PackReadResult(String packFileUid, PackResource pack, HashMap<CustomId, Image> images) {
   }
 
-  private record LoadResult(HashMap<String, PackData> packs, HashMap<Identifier, Image> images) {
+  private record LoadResult(HashMap<String, PackData> packs, HashMap<CustomId, Image> images) {
     public static LoadResult empty() {
       return new LoadResult(new HashMap<>(0), new HashMap<>(0));
     }

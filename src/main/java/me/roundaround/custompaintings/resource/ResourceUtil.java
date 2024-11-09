@@ -2,7 +2,7 @@ package me.roundaround.custompaintings.resource;
 
 import com.google.common.hash.Hashing;
 import com.google.common.io.ByteSource;
-import net.minecraft.util.Identifier;
+import me.roundaround.custompaintings.network.CustomId;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -162,19 +162,19 @@ public class ResourceUtil {
     return false;
   }
 
-  public static HashSet<Identifier> getAllImageIds(Collection<String> packs, Collection<Identifier> paintings) {
-    HashSet<Identifier> neededIds = new HashSet<>();
-    neededIds.addAll(packs.stream().map(PackIcons::identifier).toList());
+  public static HashSet<CustomId> getAllImageIds(Collection<String> packs, Collection<CustomId> paintings) {
+    HashSet<CustomId> neededIds = new HashSet<>();
+    neededIds.addAll(packs.stream().map(PackIcons::customId).toList());
     neededIds.addAll(paintings);
     return neededIds;
   }
 
-  public static HashResult hashImages(HashMap<Identifier, Image> images) throws IOException {
-    HashMap<Identifier, String> imageHashes = new HashMap<>();
+  public static HashResult hashImages(HashMap<CustomId, Image> images) throws IOException {
+    HashMap<CustomId, String> imageHashes = new HashMap<>();
 
-    TreeSet<Identifier> imageIds = new TreeSet<>(images.keySet());
-    LinkedHashMap<Identifier, ByteSource> byteSources = new LinkedHashMap<>();
-    for (Identifier id : imageIds) {
+    TreeSet<CustomId> imageIds = new TreeSet<>(images.keySet());
+    LinkedHashMap<CustomId, ByteSource> byteSources = new LinkedHashMap<>();
+    for (CustomId id : imageIds) {
       byteSources.putIfAbsent(id, images.get(id).getByteSource());
     }
 

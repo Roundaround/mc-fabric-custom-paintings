@@ -1,5 +1,6 @@
 package me.roundaround.custompaintings.entity.decoration.painting;
 
+import me.roundaround.custompaintings.network.CustomId;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
@@ -9,29 +10,27 @@ import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public record PaintingData(Identifier id, int width, int height, String name, String artist, boolean vanilla,
+public record PaintingData(CustomId id, int width, int height, String name, String artist, boolean vanilla,
                            boolean unknown) {
-  public static final Identifier UNKNOWN_ID = new Identifier("__unknown", "__unknown");
   public static final PaintingData EMPTY = new PaintingData(null, 0, 0);
   public static final PacketCodec<PacketByteBuf, PaintingData> PACKET_CODEC = PacketCodec.of(
       PaintingData::write, PaintingData::read);
 
-  public PaintingData(Identifier id, int width, int height) {
+  public PaintingData(CustomId id, int width, int height) {
     this(id, width, height, "", "");
   }
 
-  public PaintingData(Identifier id, int width, int height, String name, String artist) {
+  public PaintingData(CustomId id, int width, int height, String name, String artist) {
     this(id, width, height, name, artist, false, false);
   }
 
   public PaintingData(PaintingVariant vanillaVariant) {
-    this(Registries.PAINTING_VARIANT.getId(vanillaVariant), vanillaVariant.getWidth() / 16,
+    this(CustomId.from(Registries.PAINTING_VARIANT.getId(vanillaVariant)), vanillaVariant.getWidth() / 16,
         vanillaVariant.getHeight() / 16, Registries.PAINTING_VARIANT.getId(vanillaVariant).getPath(), "", true, false
     );
   }
@@ -148,7 +147,7 @@ public record PaintingData(Identifier id, int width, int height, String name, St
     return lines;
   }
 
-  public PaintingData setId(Identifier id) {
+  public PaintingData setId(CustomId id) {
     return new PaintingData(id, this.width, this.height, this.name, this.artist, this.vanilla, this.unknown);
   }
 
@@ -216,7 +215,7 @@ public record PaintingData(Identifier id, int width, int height, String name, St
       return nbt;
     }
 
-    nbt.putString("Id", this.id.toString());
+    nbt.putString("Id", this.id.getString());
     nbt.putInt("Width", this.width);
     nbt.putInt("Height", this.height);
     nbt.putString("Name", this.name == null ? "" : this.name);
@@ -231,7 +230,7 @@ public record PaintingData(Identifier id, int width, int height, String name, St
       return;
     }
     buf.writeBoolean(true);
-    buf.writeIdentifier(this.id);
+    this.id.write(buf);
     buf.writeInt(this.width);
     buf.writeInt(this.height);
     buf.writeString(this.name == null ? "" : this.name);
@@ -245,7 +244,7 @@ public record PaintingData(Identifier id, int width, int height, String name, St
       return EMPTY;
     }
 
-    Identifier id = Identifier.tryParse(nbt.getString("Id"));
+    CustomId id = CustomId.parse(nbt.getString("Id"));
     int width = nbt.getInt("Width");
     int height = nbt.getInt("Height");
     String name = nbt.getString("Name");
@@ -258,7 +257,7 @@ public record PaintingData(Identifier id, int width, int height, String name, St
     if (!buf.readBoolean()) {
       return EMPTY;
     }
-    Identifier id = buf.readIdentifier();
+    CustomId id = CustomId.read(buf);
     int width = buf.readInt();
     int height = buf.readInt();
     String name = buf.readString();

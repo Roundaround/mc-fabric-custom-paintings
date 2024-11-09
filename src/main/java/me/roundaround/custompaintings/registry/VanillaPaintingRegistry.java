@@ -1,6 +1,7 @@
 package me.roundaround.custompaintings.registry;
 
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.network.CustomId;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
@@ -14,9 +15,9 @@ import java.util.function.Consumer;
 public class VanillaPaintingRegistry {
   private static VanillaPaintingRegistry instance = null;
 
-  private final LinkedHashMap<Identifier, PaintingData> placeable = new LinkedHashMap<>();
-  private final LinkedHashMap<Identifier, PaintingData> nonPlaceable = new LinkedHashMap<>();
-  private final LinkedHashMap<Identifier, PaintingData> all = new LinkedHashMap<>();
+  private final LinkedHashMap<CustomId, PaintingData> placeable = new LinkedHashMap<>();
+  private final LinkedHashMap<CustomId, PaintingData> nonPlaceable = new LinkedHashMap<>();
+  private final LinkedHashMap<CustomId, PaintingData> all = new LinkedHashMap<>();
 
   private VanillaPaintingRegistry() {
     Registries.PAINTING_VARIANT.stream().forEach((vanillaVariant) -> {
@@ -29,7 +30,7 @@ public class VanillaPaintingRegistry {
           .orElse(false);
 
       var destination = isPlaceable ? this.placeable : this.nonPlaceable;
-      destination.put(id, paintingData);
+      destination.put(CustomId.from(id), paintingData);
     });
 
     this.all.putAll(this.placeable);
@@ -48,12 +49,12 @@ public class VanillaPaintingRegistry {
     return instance;
   }
 
-  public PaintingData get(Identifier identifier) {
+  public PaintingData get(CustomId identifier) {
     return this.all.get(identifier);
   }
 
   public PaintingData get(PaintingVariant variant) {
-    return this.all.get(Registries.PAINTING_VARIANT.getId(variant));
+    return this.all.get(CustomId.from(Registries.PAINTING_VARIANT.getId(variant)));
   }
 
   public List<PaintingData> getAll() {
@@ -80,7 +81,7 @@ public class VanillaPaintingRegistry {
     return this.mapFor(placeable).size();
   }
 
-  private LinkedHashMap<Identifier, PaintingData> mapFor(Placeable placeable) {
+  private LinkedHashMap<CustomId, PaintingData> mapFor(Placeable placeable) {
     return switch (placeable) {
       case YES -> this.placeable;
       case NO -> this.nonPlaceable;

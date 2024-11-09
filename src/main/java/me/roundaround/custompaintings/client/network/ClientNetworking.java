@@ -6,12 +6,12 @@ import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.screen.MigrationsScreen;
 import me.roundaround.custompaintings.client.gui.screen.edit.PackSelectScreen;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
+import me.roundaround.custompaintings.network.CustomId;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.network.PaintingAssignment;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 
 import java.text.DecimalFormat;
@@ -22,7 +22,7 @@ public final class ClientNetworking {
   private ClientNetworking() {
   }
 
-  public static void sendHashesPacket(Map<Identifier, String> hashes) {
+  public static void sendHashesPacket(Map<CustomId, String> hashes) {
     ClientPlayNetworking.send(new Networking.HashesC2S(hashes));
   }
 
@@ -34,11 +34,11 @@ public final class ClientNetworking {
     ClientPlayNetworking.send(new Networking.ReloadC2S(toActivate, toDeactivate));
   }
 
-  public static void sendSetPaintingPacket(int paintingId, Identifier dataId) {
+  public static void sendSetPaintingPacket(int paintingId, CustomId dataId) {
     ClientPlayNetworking.send(new Networking.SetPaintingC2S(paintingId, dataId));
   }
 
-  public static void sendRunMigrationPacket(Identifier id) {
+  public static void sendRunMigrationPacket(CustomId id) {
     ClientPlayNetworking.send(new Networking.RunMigrationC2S(id));
   }
 

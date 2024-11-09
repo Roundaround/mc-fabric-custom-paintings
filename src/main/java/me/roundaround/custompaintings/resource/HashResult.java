@@ -1,8 +1,8 @@
 package me.roundaround.custompaintings.resource;
 
-import net.minecraft.util.Identifier;
+import me.roundaround.custompaintings.network.CustomId;
 
 import java.util.HashMap;
 
-public record HashResult(String combinedImageHash, HashMap<Identifier, String> imageHashes) {
+public record HashResult(String combinedImageHash, HashMap<CustomId, String> imageHashes) {
 }

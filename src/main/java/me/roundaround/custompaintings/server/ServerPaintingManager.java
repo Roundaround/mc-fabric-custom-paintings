@@ -3,6 +3,7 @@ package me.roundaround.custompaintings.server;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.MigrationData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.network.CustomId;
 import me.roundaround.custompaintings.network.PaintingAssignment;
 import me.roundaround.custompaintings.registry.VanillaPaintingRegistry;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
@@ -17,7 +18,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import net.minecraft.world.PersistentState;
 import net.minecraft.world.World;
 
@@ -102,7 +102,7 @@ public class ServerPaintingManager extends PersistentState {
     if (player.getServerWorld() != this.world) {
       return;
     }
-    Function<Identifier, Boolean> lookup = ServerPaintingRegistry.getInstance()::contains;
+    Function<CustomId, Boolean> lookup = ServerPaintingRegistry.getInstance()::contains;
     List<PaintingAssignment> assignments = this.allPaintings.entrySet()
         .stream()
         .filter((entry) -> this.networkIds.containsKey(entry.getKey()))
@@ -170,7 +170,7 @@ public class ServerPaintingManager extends PersistentState {
       return;
     }
 
-    List<String> potentialOldLabels = List.of(paintingData.name(), paintingData.artist(), paintingData.id().getPath());
+    List<String> potentialOldLabels = List.of(paintingData.name(), paintingData.artist(), paintingData.id().resource());
     String customNameContent = customName.getString();
     if (potentialOldLabels.stream().anyMatch(customNameContent::startsWith)) {
       painting.setCustomName(null);
@@ -208,7 +208,7 @@ public class ServerPaintingManager extends PersistentState {
         .forEach((player) -> getInstance(player.getServerWorld()).syncAllDataForPlayer(player));
   }
 
-  public static void runMigration(ServerPlayerEntity sourcePlayer, Identifier migrationId) {
+  public static void runMigration(ServerPlayerEntity sourcePlayer, CustomId migrationId) {
     boolean succeeded = tryRunMigration(sourcePlayer, migrationId);
     ServerPaintingRegistry.getInstance().markMigrationFinished(migrationId, succeeded);
 
@@ -224,7 +224,7 @@ public class ServerPaintingManager extends PersistentState {
     ServerNetworking.sendMigrationFinishPacketToAll(server, migrationId, succeeded);
   }
 
-  private static boolean tryRunMigration(ServerPlayerEntity sourcePlayer, Identifier migrationId) {
+  private static boolean tryRunMigration(ServerPlayerEntity sourcePlayer, CustomId migrationId) {
     if (sourcePlayer == null || !sourcePlayer.hasPermissionLevel(3) || migrationId == null) {
       return false;
     }
@@ -247,20 +247,20 @@ public class ServerPaintingManager extends PersistentState {
     server.getWorlds().forEach((world) -> {
       ServerPaintingManager manager = ServerPaintingManager.getInstance(world);
       manager.allPaintings.forEach((paintingUuid, currentData) -> {
-        Identifier id = currentData.id();
-        ArrayDeque<Identifier> ids = new ArrayDeque<>(List.of(id));
+        CustomId id = currentData.id();
+        ArrayDeque<CustomId> ids = new ArrayDeque<>(List.of(id));
         migration.pairs().forEach((from, to) -> {
           if (Objects.equals(ids.peek(), from)) {
             ids.push(to);
           }
         });
 
-        Iterator<Identifier> itr = ids.iterator();
+        Iterator<CustomId> itr = ids.iterator();
         while (itr.hasNext() && !registry.contains(itr.next())) {
           itr.remove();
         }
 
-        Identifier targetId = ids.peek();
+        CustomId targetId = ids.peek();
         if (id.equals(targetId)) {
           return;
         }

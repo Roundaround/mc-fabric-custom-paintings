@@ -1,10 +1,10 @@
 package me.roundaround.custompaintings.client.registry;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.network.CustomId;
 import me.roundaround.custompaintings.resource.Image;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.nbt.*;
-import net.minecraft.util.Identifier;
 
 import javax.imageio.ImageIO;
 import java.io.IOException;
@@ -31,7 +31,7 @@ public class CacheManager {
   }
 
   public CacheRead loadFromFile(
-      UUID serverId, HashSet<Identifier> requestedImageIds
+      UUID serverId, HashSet<CustomId> requestedImageIds
   ) {
     this.serverId = serverId;
     Path cacheDir = this.getCacheDir();
@@ -54,10 +54,10 @@ public class CacheManager {
       return null;
     }
 
-    Set<String> requestedPackIds = requestedImageIds.stream().map(Identifier::getNamespace).collect(Collectors.toSet());
+    Set<String> requestedPackIds = requestedImageIds.stream().map(CustomId::pack).collect(Collectors.toSet());
 
     ServerCacheData server = data.byServer.get(this.serverId);
-    HashMap<Identifier, String> requestedHashes = new HashMap<>();
+    HashMap<CustomId, String> requestedHashes = new HashMap<>();
     for (PackCacheData pack : server.packs) {
       if (requestedPackIds.contains(pack.packId)) {
         for (ImageCacheData image : pack.images) {
@@ -83,7 +83,7 @@ public class CacheManager {
         })
         .forEach((hash) -> this.deleteImage(cacheDir, hash));
 
-    HashMap<Identifier, Image> images = new HashMap<>();
+    HashMap<CustomId, Image> images = new HashMap<>();
     requestedHashes.forEach((id, hash) -> {
       Image image = this.loadImage(cacheDir, hash);
       if (image == null || image.isEmpty()) {
@@ -97,7 +97,7 @@ public class CacheManager {
     return new CacheRead(images, requestedHashes, combinedHash);
   }
 
-  public void saveToFile(Map<Identifier, Image> images, String combinedHash) throws IOException {
+  public void saveToFile(Map<CustomId, Image> images, String combinedHash) throws IOException {
     if (this.serverId == null) {
       return;
     }
@@ -109,11 +109,11 @@ public class CacheManager {
 
     Path dataFile = this.getDataFile(cacheDir);
     HashMap<String, PackCacheData> packs = new HashMap<>();
-    HashMap<Identifier, String> hashes = new HashMap<>();
+    HashMap<CustomId, String> hashes = new HashMap<>();
 
     images.forEach((id, image) -> {
       try {
-        String packId = id.getNamespace();
+        String packId = id.pack();
         PackCacheData pack = packs.computeIfAbsent(packId, (k) -> PackCacheData.empty(packId));
 
         String hash = image.getHash();
@@ -312,19 +312,19 @@ public class CacheManager {
     }
   }
 
-  private record ImageCacheData(Identifier id, String hash, long lastAccess) {
+  private record ImageCacheData(CustomId id, String hash, long lastAccess) {
     private static final String NBT_ID = "Id";
     private static final String NBT_HASH = "Hash";
     private static final String NBT_LAST_ACCESS = "LastAccess";
 
     public static ImageCacheData fromNbt(NbtCompound nbt, String packId) {
       return new ImageCacheData(
-          new Identifier(packId, nbt.getString(NBT_ID)), nbt.getString(NBT_HASH), nbt.getLong(NBT_LAST_ACCESS));
+          new CustomId(packId, nbt.getString(NBT_ID)), nbt.getString(NBT_HASH), nbt.getLong(NBT_LAST_ACCESS));
     }
 
     public NbtCompound toNbt() {
       NbtCompound nbt = new NbtCompound();
-      nbt.putString(NBT_ID, this.id.getPath());
+      nbt.putString(NBT_ID, this.id.resource());
       nbt.putString(NBT_HASH, this.hash);
       nbt.putLong(NBT_LAST_ACCESS, this.lastAccess);
       return nbt;

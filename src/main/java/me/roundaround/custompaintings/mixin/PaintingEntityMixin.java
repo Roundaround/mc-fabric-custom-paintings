@@ -2,6 +2,7 @@ package me.roundaround.custompaintings.mixin;
 
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.network.CustomId;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -12,7 +13,6 @@ import net.minecraft.nbt.NbtElement;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -61,9 +61,9 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
   }
 
   @Override
-  public void setVariant(Identifier id) {
+  public void setVariant(CustomId id) {
     Registries.PAINTING_VARIANT.streamEntries()
-        .filter((ref) -> ref.matchesId(id))
+        .filter((ref) -> ref.matchesId(id.toIdentifier()))
         .map(RegistryEntry.Reference::getKey)
         .filter(Optional::isPresent)
         .map(Optional::get)

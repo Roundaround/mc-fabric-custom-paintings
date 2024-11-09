@@ -78,7 +78,7 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
           });
 
       layout.add(
-          SpriteWidget.create(ClientPaintingRegistry.getInstance().getSprite(PackIcons.identifier(this.pack.id()))),
+          SpriteWidget.create(ClientPaintingRegistry.getInstance().getSprite(PackIcons.customId(this.pack.id()))),
           (parent, self) -> self.setDimensions(this.getIconWidth(), this.getIconHeight())
       );
 
