@@ -46,18 +46,6 @@ public record CustomId(String pack, String resource) implements Comparable<Custo
     return new Identifier(pack(), resource());
   }
 
-  public String toTranslationKey() {
-    return this.pack + "." + this.resource;
-  }
-
-  public String toTranslationKey(String prefix) {
-    return prefix + "." + this.toTranslationKey();
-  }
-
-  public String toTranslationKey(String prefix, String suffix) {
-    return prefix + "." + this.toTranslationKey() + "." + suffix;
-  }
-
   public void write(PacketByteBuf buf) {
     PACKET_CODEC.encode(buf, this);
   }
