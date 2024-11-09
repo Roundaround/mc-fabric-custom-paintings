@@ -38,7 +38,8 @@ public record CustomId(String pack, String resource) implements Comparable<Custo
     return i;
   }
 
-  public String getString() {
+  @Override
+  public String toString() {
     return String.format("%s:%s", encode(this.pack()), encode(this.resource()));
   }
 

@@ -215,7 +215,7 @@ public record PaintingData(CustomId id, int width, int height, String name, Stri
       return nbt;
     }
 
-    nbt.putString("Id", this.id.getString());
+    nbt.putString("Id", this.id.toString());
     nbt.putInt("Width", this.width);
     nbt.putInt("Height", this.height);
     nbt.putString("Name", this.name == null ? "" : this.name);
