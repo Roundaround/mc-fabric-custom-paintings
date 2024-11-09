@@ -75,7 +75,8 @@ public record PaintingData(CustomId id, int width, int height, String name, Stri
     }
 
     if (this.vanilla()) {
-      return Text.translatable(this.id().toIdentifier().toTranslationKey("painting", "title")).formatted(Formatting.YELLOW);
+      return Text.translatable(this.id().toIdentifier().toTranslationKey("painting", "title"))
+          .formatted(Formatting.YELLOW);
     }
 
     return Text.literal(this.name).formatted(Formatting.LIGHT_PURPLE);
@@ -87,7 +88,8 @@ public record PaintingData(CustomId id, int width, int height, String name, Stri
     }
 
     if (this.vanilla()) {
-      return Text.translatable(this.id().toIdentifier().toTranslationKey("painting", "author")).formatted(Formatting.ITALIC);
+      return Text.translatable(this.id().toIdentifier().toTranslationKey("painting", "author"))
+          .formatted(Formatting.ITALIC);
     }
 
     return Text.literal(this.artist).formatted(Formatting.ITALIC);
@@ -126,7 +128,7 @@ public record PaintingData(CustomId id, int width, int height, String name, Stri
   }
 
   public Text getIdText() {
-    MutableText idText = Text.literal("(" + this.id + ")");
+    MutableText idText = Text.literal("(" + this.id().resource() + ")");
     if (this.hasLabel()) {
       idText = idText.setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
     }

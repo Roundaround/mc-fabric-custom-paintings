@@ -249,7 +249,7 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
     @Override
     public Text getNarration() {
       return !this.paintingData.hasLabel() ?
-          Text.literal(this.paintingData.id().toString()) :
+          Text.literal(this.paintingData.id().resource()) :
           this.paintingData.getLabel();
     }
 
