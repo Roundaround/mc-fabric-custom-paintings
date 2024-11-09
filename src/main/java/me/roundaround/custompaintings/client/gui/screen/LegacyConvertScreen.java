@@ -4,8 +4,9 @@ import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.gui.widget.LoadingButtonWidget;
 import me.roundaround.custompaintings.client.gui.widget.SpriteWidget;
 import me.roundaround.custompaintings.client.gui.widget.VersionStamp;
+import me.roundaround.custompaintings.resource.PackMetadata;
 import me.roundaround.custompaintings.resource.legacy.LegacyPackConverter;
-import me.roundaround.custompaintings.resource.legacy.PackMetadata;
+import me.roundaround.custompaintings.resource.legacy.LegacyPackResource;
 import me.roundaround.roundalib.client.gui.GuiUtil;
 import me.roundaround.roundalib.client.gui.layout.FillerWidget;
 import me.roundaround.roundalib.client.gui.layout.linear.LinearLayoutWidget;
@@ -75,7 +76,7 @@ public class LegacyConvertScreen extends Screen {
             return;
           }
 
-          for (PackMetadata meta : result.metas()) {
+          for (PackMetadata<LegacyPackResource> meta : result.metas()) {
             String packFileUid = meta.packFileUid();
 
             Path globalOutPath = result.globalConvertedIds().get(packFileUid);
@@ -142,7 +143,7 @@ public class LegacyConvertScreen extends Screen {
   }
 
   private void convertPack(LegacyPackList.PackEntry entry) {
-    PackMetadata meta = entry.getMeta();
+    PackMetadata<LegacyPackResource> meta = entry.getMeta();
     Path path = this.outDir.resolve(cleanFilename(meta.pack().path()) + ".zip");
 
     entry.markLoading();
@@ -201,7 +202,9 @@ public class LegacyConvertScreen extends Screen {
       this.refreshPositions();
     }
 
-    public void setPacks(HashMap<String, ConvertState> currentStates, Collection<PackMetadata> metas) {
+    public void setPacks(
+        HashMap<String, ConvertState> currentStates, Collection<PackMetadata<LegacyPackResource>> metas
+    ) {
       this.clearEntries();
 
       if (metas.isEmpty()) {
@@ -209,7 +212,7 @@ public class LegacyConvertScreen extends Screen {
         return;
       }
 
-      for (PackMetadata meta : metas) {
+      for (PackMetadata<LegacyPackResource> meta : metas) {
         ConvertState state = currentStates.getOrDefault(meta.packFileUid(), ConvertState.none());
         this.addEntry(PackEntry.factory(this.client.textRenderer, state, meta, this.convert));
       }
@@ -344,7 +347,7 @@ public class LegacyConvertScreen extends Screen {
       private static final Text NONE_PLACEHOLDER = Text.translatable("custompaintings.legacy.entry.emptyField")
           .formatted(Formatting.ITALIC, Formatting.GRAY);
 
-      private final PackMetadata meta;
+      private final PackMetadata<LegacyPackResource> meta;
       private final LoadingButtonWidget convertButton;
       private final IconButtonWidget statusButton;
 
@@ -357,7 +360,7 @@ public class LegacyConvertScreen extends Screen {
           int width,
           TextRenderer textRenderer,
           ConvertState initialState,
-          PackMetadata meta,
+          PackMetadata<LegacyPackResource> meta,
           Consumer<PackEntry> convert
       ) {
         super(index, left, top, width, HEIGHT);
@@ -455,13 +458,16 @@ public class LegacyConvertScreen extends Screen {
       }
 
       public static FlowListWidget.EntryFactory<PackEntry> factory(
-          TextRenderer textRenderer, ConvertState initialState, PackMetadata meta, Consumer<PackEntry> convert
+          TextRenderer textRenderer,
+          ConvertState initialState,
+          PackMetadata<LegacyPackResource> meta,
+          Consumer<PackEntry> convert
       ) {
         return (index, left, top, width) -> new PackEntry(
             index, left, top, width, textRenderer, initialState, meta, convert);
       }
 
-      public PackMetadata getMeta() {
+      public PackMetadata<LegacyPackResource> getMeta() {
         return this.meta;
       }
 

@@ -120,7 +120,7 @@ public class LegacyPackConverter {
     return this.globalOutDir;
   }
 
-  public CompletableFuture<Collection<PackMetadata>> checkForLegacyPacks(MinecraftClient client) {
+  public CompletableFuture<Collection<PackMetadata<LegacyPackResource>>> checkForLegacyPacks(MinecraftClient client) {
     Path resourcePackDir = client.getResourcePackDir();
     return CompletableFuture.supplyAsync(() -> this.checkForLegacyPackMetadata(resourcePackDir), this.ioExecutor);
   }
@@ -137,7 +137,7 @@ public class LegacyPackConverter {
   }
 
   private LegacyPackCheckResult loadAllDataFromFiles(Path resourcePackDir, boolean isSinglePlayer) {
-    Collection<PackMetadata> metas = this.checkForLegacyPackMetadata(resourcePackDir);
+    Collection<PackMetadata<LegacyPackResource>> metas = this.checkForLegacyPackMetadata(resourcePackDir);
     HashMap<String, Path> globalConvertedIds = this.lookUpConvertedPacks(this.getGlobalOutDir());
     HashMap<String, Path> worldConvertedIds = isSinglePlayer ?
         this.lookUpConvertedPacks(this.getWorldOutDir()) :
@@ -145,12 +145,12 @@ public class LegacyPackConverter {
     return new LegacyPackCheckResult(metas, globalConvertedIds, worldConvertedIds);
   }
 
-  private ArrayList<PackMetadata> checkForLegacyPackMetadata(Path resourcePackDir) {
-    ArrayList<PackMetadata> metas = new ArrayList<>();
+  private ArrayList<PackMetadata<LegacyPackResource>> checkForLegacyPackMetadata(Path resourcePackDir) {
+    ArrayList<PackMetadata<LegacyPackResource>> metas = new ArrayList<>();
 
     try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(resourcePackDir)) {
       directoryStream.forEach((path) -> {
-        PackMetadata metadata = readPackMetadata(path);
+        PackMetadata<LegacyPackResource> metadata = readPackMetadata(path);
         if (metadata == null) {
           return;
         }
@@ -227,7 +227,7 @@ public class LegacyPackConverter {
   }
 
   private void uploadIconsSpriteAtlas(
-      MinecraftClient client, Collection<PackMetadata> metas
+      MinecraftClient client, Collection<PackMetadata<LegacyPackResource>> metas
   ) {
     this.atlas = new SpriteAtlasTexture(
         new Identifier(CustomPaintingsMod.MOD_ID, "textures/atlas/legacy_pack_icons.png"));
@@ -246,7 +246,7 @@ public class LegacyPackConverter {
     this.atlas.upload(SpriteLoader.fromAtlas(this.atlas).stitch(spriteContents, 0, Util.getMainWorkerExecutor()));
   }
 
-  public CompletableFuture<Boolean> convertPack(PackMetadata metadata, Path path) {
+  public CompletableFuture<Boolean> convertPack(PackMetadata<LegacyPackResource> metadata, Path path) {
     return CompletableFuture.supplyAsync(() -> {
       LegacyPackResource legacyPack = metadata.pack();
       HashMap<CustomId, Image> images = readPaintingImages(legacyPack);
@@ -340,7 +340,7 @@ public class LegacyPackConverter {
         .build();
   }
 
-  private static PackMetadata readPackMetadata(Path path) {
+  private static PackMetadata<LegacyPackResource> readPackMetadata(Path path) {
     try {
       BasicFileAttributes fileAttributes = Files.readAttributes(
           path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
@@ -360,7 +360,7 @@ public class LegacyPackConverter {
     return null;
   }
 
-  private static PackMetadata readPackMetadataFromDirectory(Path path) {
+  private static PackMetadata<LegacyPackResource> readPackMetadataFromDirectory(Path path) {
     if (!Files.isRegularFile(path.resolve(CUSTOM_PAINTINGS_JSON), LinkOption.NOFOLLOW_LINKS)) {
       return null;
     }
@@ -386,10 +386,10 @@ public class LegacyPackConverter {
     LegacyPackResource pack = new LegacyPackResource(path, packId, name, description, paintings, migrations);
     Image packIcon = readImage(path.resolve(PACK_PNG));
 
-    return new PackMetadata(packFileUid, pack, packIcon);
+    return new PackMetadata<>(packFileUid, pack, packIcon);
   }
 
-  private static PackMetadata readPackMetadataFromZip(Path path) {
+  private static PackMetadata<LegacyPackResource> readPackMetadataFromZip(Path path) {
     String filename = path.getFileName().toString();
     if (!filename.endsWith(".zip")) {
       return null;
@@ -422,7 +422,7 @@ public class LegacyPackConverter {
       LegacyPackResource pack = new LegacyPackResource(path, packId, name, description, paintings, migrations);
       Image packIcon = ResourceUtil.readImageFromZip(zip, folderPrefix, PACK_PNG);
 
-      return new PackMetadata(packFileUid, pack, packIcon);
+      return new PackMetadata<>(packFileUid, pack, packIcon);
     } catch (IOException e) {
       return null;
     }
@@ -573,24 +573,6 @@ public class LegacyPackConverter {
   private static Image readImage(Path path) {
     try {
       BufferedImage image = ImageIO.read(Files.newInputStream(path, LinkOption.NOFOLLOW_LINKS));
-      if (image == null) {
-        return null;
-      }
-
-      return Image.read(image);
-    } catch (IOException e) {
-      return null;
-    }
-  }
-
-  private static Image readImage(ZipFile zip, String path) {
-    ZipEntry entry = zip.getEntry(path);
-    if (entry == null) {
-      return null;
-    }
-
-    try (InputStream stream = zip.getInputStream(entry)) {
-      BufferedImage image = ImageIO.read(stream);
       if (image == null) {
         return null;
       }
