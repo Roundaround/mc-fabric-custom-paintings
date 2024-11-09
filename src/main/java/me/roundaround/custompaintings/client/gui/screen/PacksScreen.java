@@ -64,6 +64,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
   private final HashSet<String> toActivate = new HashSet<>();
   private final HashSet<String> toDeactivate = new HashSet<>();
 
+  private boolean canEdit;
   private PackList inactiveList;
   private PackList activeList;
   private LoadingButtonWidget reloadButton;
@@ -81,6 +82,8 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
     this.resetPacks();
 
     boolean inSinglePlayer = this.client.isInSingleplayer();
+    boolean hasOps = this.client.player != null && this.client.player.hasPermissionLevel(3);
+    this.canEdit = inSinglePlayer || hasOps;
 
     this.layout.addHeader(this.textRenderer, this.title);
     if (inSinglePlayer) {
@@ -90,33 +93,41 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
       );
     }
 
-    this.layout.getBody().flowAxis(Axis.HORIZONTAL).spacing(30);
-    // TODO: i18n
-    this.inactiveList = this.layout.addBody(
-        new PackList(this.client, LIST_WIDTH, this.layout.getBodyHeight(), Text.of("Inactive"), SELECT_TEXTURE,
-            SELECT_HIGHLIGHTED_TEXTURE, this::activatePack, this.inactivePacks
-        ), (parent, self) -> {
-          self.setDimensions(LIST_WIDTH, parent.getHeight());
-        });
-    // TODO: i18n
-    this.activeList = this.layout.addBody(
-        new PackList(this.client, LIST_WIDTH, this.layout.getBodyHeight(), Text.of("Active"), UNSELECT_TEXTURE,
-            UNSELECT_HIGHLIGHTED_TEXTURE, this::deactivatePack, this.activePacks
-        ), (parent, self) -> {
-          self.setDimensions(LIST_WIDTH, parent.getHeight());
-        });
-
-    // TODO: i18n
-    this.reloadButton = this.layout.addFooter(
-        new LoadingButtonWidget(0, 0, BUTTON_WIDTH, BUTTON_HEIGHT, Text.of("Reload Packs"), (b) -> this.reloadPacks()));
-
-    // TODO: i18n
-    ButtonWidget openDirButton = this.layout.addFooter(
-        ButtonWidget.builder(Text.of("Open Packs Folder"), (b) -> this.openPackDir()).width(BUTTON_WIDTH).build());
-    if (!inSinglePlayer) {
-      openDirButton.active = false;
+    if (this.canEdit) {
+      this.layout.getBody().flowAxis(Axis.HORIZONTAL).spacing(30);
       // TODO: i18n
-      openDirButton.setTooltip(Tooltip.of(Text.of("Not available for multiplayer servers")));
+      this.inactiveList = this.layout.addBody(
+          new PackList(this.client, LIST_WIDTH, this.layout.getBodyHeight(), Text.of("Inactive"), SELECT_TEXTURE,
+              SELECT_HIGHLIGHTED_TEXTURE, this::activatePack, this.inactivePacks
+          ), (parent, self) -> {
+            self.setDimensions(LIST_WIDTH, parent.getHeight());
+          });
+      // TODO: i18n
+      this.activeList = this.layout.addBody(
+          new PackList(this.client, LIST_WIDTH, this.layout.getBodyHeight(), Text.of("Active"), UNSELECT_TEXTURE,
+              UNSELECT_HIGHLIGHTED_TEXTURE, this::deactivatePack, this.activePacks
+          ), (parent, self) -> {
+            self.setDimensions(LIST_WIDTH, parent.getHeight());
+          });
+
+      // TODO: i18n
+      this.reloadButton = this.layout.addFooter(
+          new LoadingButtonWidget(0, 0, BUTTON_WIDTH, BUTTON_HEIGHT, Text.of("Reload Packs"),
+              (b) -> this.reloadPacks()
+          ));
+
+      // TODO: i18n
+      ButtonWidget openDirButton = this.layout.addFooter(
+          ButtonWidget.builder(Text.of("Open Packs Folder"), (b) -> this.openPackDir()).width(BUTTON_WIDTH).build());
+      if (!inSinglePlayer) {
+        openDirButton.active = false;
+        // TODO: i18n
+        openDirButton.setTooltip(Tooltip.of(Text.of("Not available for multiplayer servers")));
+      }
+    } else {
+      // TODO: i18n
+      this.activeList = this.layout.addBody(
+          new PackList(this.client, this.layout, Text.of("Active"), this.activePacks));
     }
 
     this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, (b) -> this.close()).width(BUTTON_WIDTH).build());
@@ -136,7 +147,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
   public void filesDragged(List<Path> paths) {
     assert this.client != null;
 
-    if (this.client.isInSingleplayer()) {
+    if (!this.client.isInSingleplayer()) {
       return;
     }
 
@@ -191,7 +202,9 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
 
   @Override
   public void onPacksLoaded() {
-    this.reloadButton.setLoading(false);
+    if (this.reloadButton != null) {
+      this.reloadButton.setLoading(false);
+    }
     this.resetPacks();
   }
 
@@ -203,17 +216,24 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
 
     ClientPaintingRegistry registry = ClientPaintingRegistry.getInstance();
     this.inactivePacks.addAll(registry.getInactivePacks());
+    this.activePacks.addAll(registry.getActivePacks());
+    this.resetLists();
+  }
+
+  private void resetLists() {
     if (this.inactiveList != null) {
       this.inactiveList.setPacks(this.inactivePacks);
     }
-
-    this.activePacks.addAll(registry.getActivePacks());
     if (this.activeList != null) {
       this.activeList.setPacks(this.activePacks);
     }
   }
 
   private void activatePack(PackData pack) {
+    if (!this.canEdit) {
+      return;
+    }
+
     if (this.inactivePacks.remove(pack)) {
       this.activePacks.add(pack);
 
@@ -221,11 +241,15 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
       this.toDeactivate.remove(packFileUid);
       this.toActivate.add(packFileUid);
 
-      this.updateLists();
+      this.resetLists();
     }
   }
 
   private void deactivatePack(PackData pack) {
+    if (!this.canEdit) {
+      return;
+    }
+
     if (this.activePacks.remove(pack)) {
       this.inactivePacks.add(pack);
 
@@ -233,23 +257,25 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
       this.toActivate.remove(packFileUid);
       this.toDeactivate.add(packFileUid);
 
-      this.updateLists();
+      this.resetLists();
     }
   }
 
-  private void updateLists() {
-    this.inactiveList.setPacks(this.inactivePacks);
-    this.activeList.setPacks(this.activePacks);
-  }
-
   private void reloadPacks() {
-    this.reloadButton.setLoading(true);
+    if (this.reloadButton != null) {
+      this.reloadButton.setLoading(true);
+    }
     Util.getIoWorkerExecutor().execute(() -> {
       ClientNetworking.sendReloadPacket(List.copyOf(this.toActivate), List.copyOf(this.toDeactivate));
     });
   }
 
   private void openPackDir() {
+    assert this.client != null;
+    if (!this.client.isInSingleplayer()) {
+      return;
+    }
+
     Path path = PathAccessor.getInstance().getPerWorldModDir(CustomPaintingsMod.MOD_ID);
     try {
       if (Files.notExists(path)) {
@@ -288,6 +314,26 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
       this.packs.addAll(packs);
 
       this.setShouldHighlightSelectionDuringHover(true);
+      Spacing padding = this.contentPadding.expand(Spacing.of((int) (client.textRenderer.fontHeight * 1.5f), 0, 0, 0));
+      this.setContentPadding(padding);
+
+      this.init();
+    }
+
+    public PackList(
+        MinecraftClient client, ThreeSectionLayoutWidget layout, Text title, Collection<PackData> packs
+    ) {
+      super(client, layout);
+
+      this.title = title;
+      this.buttonTexture = null;
+      this.highlightedButtonTexture = null;
+      this.transferAction = null;
+      this.packs.addAll(packs);
+
+      this.setShouldHighlightHover(false);
+      this.setShouldHighlightSelection(false);
+      this.setAlternatingRowShading(true);
       Spacing padding = this.contentPadding.expand(Spacing.of((int) (client.textRenderer.fontHeight * 1.5f), 0, 0, 0));
       this.setContentPadding(padding);
 
@@ -410,6 +456,11 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
 
         layout.forEachChild(this::addDrawable);
 
+        if (this.transferAction == null) {
+          this.button = null;
+          return;
+        }
+
         this.button = this.addDrawable(new DrawableWidget() {
           @Override
           protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
@@ -454,14 +505,18 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
       @Override
       public void refreshPositions() {
         super.refreshPositions();
-        this.button.setDimensionsAndPosition(this.icon.getWidth(), this.icon.getHeight(), this.icon.getX(),
-            this.icon.getY()
-        );
+        if (this.button != null) {
+          this.button.setDimensionsAndPosition(this.icon.getWidth(), this.icon.getHeight(), this.icon.getX(),
+              this.icon.getY()
+          );
+        }
       }
 
       @Override
       public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        this.button.mouseClicked(mouseX, mouseY, button);
+        if (this.button != null) {
+          this.button.mouseClicked(mouseX, mouseY, button);
+        }
         return true;
       }
     }

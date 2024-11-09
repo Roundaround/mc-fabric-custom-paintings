@@ -36,6 +36,7 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
     boolean inWorld = this.client.world != null;
     boolean inSinglePlayer = this.client.isInSingleplayer();
     boolean hasOp = this.client.player != null && this.client.player.hasPermissionLevel(3);
+    boolean canEdit = inSinglePlayer || hasOp;
 
     this.layout.addHeader(this.textRenderer, this.title);
 
@@ -44,8 +45,9 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
         .build());
 
     // TODO: i18n
+    Text packsLabel = canEdit ? Text.of("Manage Painting Packs") : Text.of("View Painting Packs");
     ButtonWidget packsButton = this.layout.addBody(
-        ButtonWidget.builder(Text.of("Manage Painting Packs"), this::navigatePacks).width(BUTTON_WIDTH).build());
+        ButtonWidget.builder(packsLabel, this::navigatePacks).width(BUTTON_WIDTH).build());
 
     this.reloadButton = this.layout.addBody(
         new LoadingButtonWidget(0, 0, BUTTON_WIDTH, BUTTON_HEIGHT, Text.translatable("custompaintings.main.reload"),
@@ -72,7 +74,7 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
 
       migrationsButton.active = false;
       migrationsButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.migrate.notInWorld")));
-    } else if (!hasOp) {
+    } else if (!canEdit) {
       migrationsButton.active = false;
       migrationsButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.migrate.notOp")));
 
