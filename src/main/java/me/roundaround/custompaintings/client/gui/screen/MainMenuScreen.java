@@ -45,6 +45,10 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
         .build());
 
     // TODO: i18n
+    this.layout.addBody(
+        ButtonWidget.builder(Text.of("Manage Image Cache"), this::navigateCache).width(BUTTON_WIDTH).build());
+
+    // TODO: i18n
     Text packsLabel = canEdit ? Text.of("Manage Painting Packs") : Text.of("View Painting Packs");
     ButtonWidget packsButton = this.layout.addBody(
         ButtonWidget.builder(packsLabel, this::navigatePacks).width(BUTTON_WIDTH).build());
@@ -120,6 +124,11 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
     this.client.setScreen(new ConfigScreen(this, CustomPaintingsMod.MOD_ID, CustomPaintingsConfig.getInstance(),
         CustomPaintingsPerWorldConfig.getInstance()
     ));
+  }
+
+  private void navigateCache(ButtonWidget button) {
+    assert this.client != null;
+    this.client.setScreen(new CacheScreen(this));
   }
 
   private void navigatePacks(ButtonWidget button) {
