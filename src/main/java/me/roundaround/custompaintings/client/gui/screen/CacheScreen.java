@@ -26,6 +26,7 @@ import net.minecraft.util.Util;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
@@ -52,7 +53,15 @@ public class CacheScreen extends Screen {
     this.layout.addHeader(this.textRenderer, this.title);
 
     StatsList list = this.layout.addBody(new StatsList(this.client, this.layout));
-    this.fetchStats(list);
+    CompletableFuture.supplyAsync(CacheManager.getInstance()::getStats)
+        .orTimeout(30, TimeUnit.SECONDS)
+        .whenCompleteAsync((result, exception) -> {
+          if (exception != null || result == null) {
+            list.setError();
+          } else {
+            list.setStats(result.servers(), result.images(), result.bytes());
+          }
+        }, this.client);
 
     // TODO: i18n
     this.layout.addFooter(
@@ -79,25 +88,21 @@ public class CacheScreen extends Screen {
     this.client.setScreen(this.parent);
   }
 
-  private void fetchStats(StatsList list) {
-    CacheManager.getInstance().getStats().orTimeout(30, TimeUnit.SECONDS).whenCompleteAsync((result, exception) -> {
+  private void clearCache(StatsList list) {
+    CompletableFuture.supplyAsync(() -> {
+      try {
+        CacheManager.getInstance().clear();
+        return CacheManager.getInstance().getStats();
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }, Util.getIoWorkerExecutor()).orTimeout(30, TimeUnit.SECONDS).whenCompleteAsync((result, exception) -> {
       if (exception != null || result == null) {
         list.setError();
       } else {
         list.setStats(result.servers(), result.images(), result.bytes());
       }
     }, this.client);
-  }
-
-  private void clearCache(StatsList list) {
-    try {
-      // TODO: Run clear in IO thread
-      CacheManager.getInstance().clear();
-      this.fetchStats(list);
-    } catch (IOException e) {
-      // TODO: Handle exception
-      throw new RuntimeException(e);
-    }
   }
 
   private void navigateConfig() {

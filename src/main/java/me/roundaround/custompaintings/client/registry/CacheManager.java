@@ -169,48 +169,46 @@ public class CacheManager {
     });
   }
 
-  public CompletableFuture<CacheStats> getStats() {
-    return CompletableFuture.supplyAsync(() -> {
-      Path cacheDir = getCacheDir();
-      Path dataFile = getDataFile(cacheDir);
+  public CacheStats getStats() {
+    Path cacheDir = getCacheDir();
+    Path dataFile = getDataFile(cacheDir);
 
-      NbtCompound nbt;
-      if (Files.notExists(dataFile)) {
-        nbt = new NbtCompound();
-      } else {
-        try {
-          nbt = NbtIo.readCompressed(dataFile, NbtSizeTracker.ofUnlimitedBytes());
-        } catch (IOException e) {
-          // TODO: Handle exception
-          throw new RuntimeException(e);
-        }
-      }
-      CacheData data = CacheData.fromNbt(nbt);
-
-      final var bytes = new Object() {
-        long value = 0;
-      };
+    NbtCompound nbt;
+    if (Files.notExists(dataFile)) {
+      nbt = new NbtCompound();
+    } else {
       try {
-        Files.walkFileTree(cacheDir, new SimpleFileVisitor<Path>() {
-          @Override
-          public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-            bytes.value += attrs.size();
-            return FileVisitResult.CONTINUE;
-          }
-
-          @Override
-          public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
-            // Handle the error if a file cannot be accessed (optional)
-            return FileVisitResult.CONTINUE;
-          }
-        });
+        nbt = NbtIo.readCompressed(dataFile, NbtSizeTracker.ofUnlimitedBytes());
       } catch (IOException e) {
         // TODO: Handle exception
         throw new RuntimeException(e);
       }
+    }
+    CacheData data = CacheData.fromNbt(nbt);
 
-      return new CacheStats(data.byServer.size(), data.byHash.size(), bytes.value);
-    }, Util.getIoWorkerExecutor());
+    final var bytes = new Object() {
+      long value = 0;
+    };
+    try {
+      Files.walkFileTree(cacheDir, new SimpleFileVisitor<Path>() {
+        @Override
+        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+          bytes.value += attrs.size();
+          return FileVisitResult.CONTINUE;
+        }
+
+        @Override
+        public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+          // Handle the error if a file cannot be accessed (optional)
+          return FileVisitResult.CONTINUE;
+        }
+      });
+    } catch (IOException e) {
+      // TODO: Handle exception
+      throw new RuntimeException(e);
+    }
+
+    return new CacheStats(data.byServer.size(), data.byHash.size(), bytes.value);
   }
 
   private static Path getCacheDir() {
