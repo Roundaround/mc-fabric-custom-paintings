@@ -9,12 +9,12 @@ import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.network.CustomId;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.network.PaintingAssignment;
+import me.roundaround.custompaintings.util.StringUtil;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 import net.minecraft.world.World;
 
-import java.text.DecimalFormat;
 import java.util.List;
 import java.util.Map;
 
@@ -80,7 +80,7 @@ public final class ClientNetworking {
   private static void handleImage(Networking.ImageS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
       CustomPaintingsMod.LOGGER.info(
-          "Received full image for {} ({}KB).", payload.id(), formatBytes(payload.image().getSize()));
+          "Received full image for {} ({}KB).", payload.id(), StringUtil.formatBytes(payload.image().getSize()));
       ClientPaintingRegistry.getInstance().setPaintingImage(payload.id(), payload.image());
     });
   }
@@ -96,7 +96,7 @@ public final class ClientNetworking {
   private static void handleImageChunk(Networking.ImageChunkS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
       CustomPaintingsMod.LOGGER.info("Received image chunk #{} for {} ({}KB).", payload.index(), payload.id(),
-          formatBytes(payload.bytes().length)
+          StringUtil.formatBytes(payload.bytes().length)
       );
       ClientPaintingRegistry.getInstance().setPaintingChunk(payload.id(), payload.index(), payload.bytes());
     });
@@ -137,9 +137,5 @@ public final class ClientNetworking {
       }
       screen.onMigrationFinished(payload.id(), payload.succeeded());
     });
-  }
-
-  private static String formatBytes(int bytes) {
-    return new DecimalFormat("0.##").format(bytes / 1024f);
   }
 }

@@ -20,6 +20,7 @@ import me.roundaround.custompaintings.resource.PackIcons;
 import me.roundaround.custompaintings.resource.PackMetadata;
 import me.roundaround.custompaintings.resource.ResourceUtil;
 import me.roundaround.custompaintings.resource.legacy.LegacyPackConverter;
+import me.roundaround.custompaintings.util.StringUtil;
 import me.roundaround.roundalib.client.event.MinecraftClientEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.resource.metadata.AnimationFrameResourceMetadata;
@@ -34,7 +35,6 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 
 import java.io.IOException;
-import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -436,7 +436,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     CustomPaintingsMod.LOGGER.info("All painting images received from server. Refreshing sprite atlas...");
     this.buildSpriteAtlas();
     this.saveBackToCache();
-    String time = formatToTwoDecimals((Util.getMeasuringTimeMs() - this.waitingForImagesTimer) / 1000.0);
+    String time = StringUtil.formatToTwoDecimals((Util.getMeasuringTimeMs() - this.waitingForImagesTimer) / 1000.0);
     CustomPaintingsMod.LOGGER.info("Painting images downloaded and sprite atlas refreshed in {}s", time);
 
     this.imagesExpected = 0;
@@ -553,24 +553,5 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
             )
         )
         .build();
-  }
-
-  private static String formatBytes(int bytes) {
-    if (bytes >= 512000) {
-      return String.format("%s MB", formatToTwoDecimals(bytes / 1024.0 / 1024.0));
-    } else if (bytes >= 512) {
-      return String.format("%s KB", formatToTwoDecimals(bytes / 1024.0));
-    }
-    return formatToTwoDecimals(bytes / 1024.0 / 1024.0) + " B";
-  }
-
-  private static String formatToTwoDecimals(double value) {
-    return new DecimalFormat("0.##").format(value);
-  }
-
-  public record Progress(int received, int expected, int percent) {
-    public Progress(int received, int expected) {
-      this(received, expected, Math.clamp(Math.round(100f * (float) received / expected), 0, 100));
-    }
   }
 }
