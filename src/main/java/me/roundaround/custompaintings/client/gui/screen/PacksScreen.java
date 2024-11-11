@@ -9,6 +9,7 @@ import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.resource.PackIcons;
 import me.roundaround.custompaintings.resource.ResourceUtil;
+import me.roundaround.custompaintings.util.StringUtil;
 import me.roundaround.roundalib.client.gui.GuiUtil;
 import me.roundaround.roundalib.client.gui.layout.FillerWidget;
 import me.roundaround.roundalib.client.gui.layout.linear.LinearLayoutWidget;
@@ -377,7 +378,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
     }
 
     private static class PackEntry extends Entry {
-      private static final int HEIGHT = 32;
+      private static final int HEIGHT = 40;
       private static final int PACK_ICON_SIZE = 32;
 
       private final PackData pack;
@@ -443,6 +444,12 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
                 .hideBackground()
                 .showShadow()
                 .build(), (parent, self) -> self.setWidth(parent.getWidth()));
+        textSection.add(LabelWidget.builder(textRenderer, Text.of(StringUtil.formatBytes(pack.fileSize())))
+            .alignTextLeft()
+            .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
+            .hideBackground()
+            .showShadow()
+            .build(), (parent, self) -> self.setWidth(parent.getWidth()));
         layout.add(textSection, (parent, self) -> {
           int textSectionWidth = this.getContentWidth();
           textSectionWidth -= (parent.getChildren().size() - 1) * parent.getSpacing();

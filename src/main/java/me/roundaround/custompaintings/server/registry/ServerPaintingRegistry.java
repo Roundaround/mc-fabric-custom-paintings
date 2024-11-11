@@ -185,8 +185,8 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
         packFilenames.put(packId, filename);
 
-        String packFileUid = meta.packFileUid();
-        boolean disabled = disabledPacks.contains(packFileUid);
+        PackFileUid packFileUid = meta.packFileUid();
+        boolean disabled = disabledPacks.contains(packFileUid.stringValue());
         packs.put(packId, resource.toData(packFileUid, disabled));
 
         if (meta.icon() != null) {
@@ -252,7 +252,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
     long lastModified = ResourceUtil.lastModified(path);
     long fileSize = ResourceUtil.fileSize(path);
-    String packFileUid = PackFileUid.create(false, dirname, lastModified, fileSize);
+    PackFileUid packFileUid = new PackFileUid(false, dirname, lastModified, fileSize);
 
     Path iconImagePath = getIconPath(path, pack.id());
     Image packIcon = null;
@@ -315,7 +315,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
       long lastModified = ResourceUtil.lastModified(path);
       long fileSize = ResourceUtil.fileSize(path);
-      String packFileUid = PackFileUid.create(true, filename, lastModified, fileSize);
+      PackFileUid packFileUid = new PackFileUid(true, filename, lastModified, fileSize);
 
       Image packIcon = null;
       ZipEntry zipIconImage = getIconZipEntry(zip, folderPrefix, pack.id());

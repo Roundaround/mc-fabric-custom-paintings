@@ -1,4 +1,4 @@
 package me.roundaround.custompaintings.resource;
 
-public record PackMetadata<T>(String packFileUid, T pack, Image icon) {
+public record PackMetadata<T>(PackFileUid packFileUid, T pack, Image icon) {
 }
