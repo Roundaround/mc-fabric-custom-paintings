@@ -93,10 +93,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
   public void firstLoadPaintingPacks(boolean safeMode) {
     this.safeMode = safeMode;
-    if (this.safeMode) {
-      return;
-    }
-    LoadResult loadResult = this.loadPaintingPacks();
+    LoadResult loadResult = this.safeMode ? LoadResult.empty() : this.loadPaintingPacks();
     this.setPacks(loadResult.packs());
     this.setImages(loadResult.images());
   }

@@ -15,6 +15,8 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.toast.SystemToast;
+import net.minecraft.client.toast.Toast;
 import net.minecraft.text.Text;
 import net.minecraft.world.World;
 
@@ -62,8 +64,13 @@ public final class ClientNetworking {
 
   private static void handleSummary(Networking.SummaryS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
-      if (context.client().isInSingleplayer() && payload.skipped()) {
-        context.player().sendMessage(Text.translatable("custompaintings.loadingSkipped"));
+      MinecraftClient client = context.client();
+      if (client.isInSingleplayer() && payload.skipped()) {
+        Toast toast = SystemToast.create(client, SystemToast.Type.PACK_LOAD_FAILURE,
+            Text.of("Custom Paintings Skipped"),
+            Text.of("Skipped loading Custom Paintings packs because the world was loaded in safe mode")
+        );
+        client.getToastManager().add(toast);
       }
       ClientPaintingRegistry.getInstance()
           .processSummary(payload.packs(), payload.serverId(), payload.combinedImageHash(),
