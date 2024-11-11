@@ -26,11 +26,11 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.resource.metadata.AnimationFrameResourceMetadata;
 import net.minecraft.client.resource.metadata.AnimationResourceMetadata;
 import net.minecraft.client.texture.*;
+import net.minecraft.client.toast.SystemToast;
+import net.minecraft.client.toast.Toast;
 import net.minecraft.registry.Registries;
 import net.minecraft.resource.metadata.ResourceMetadata;
-import net.minecraft.text.ClickEvent;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 
@@ -187,18 +187,15 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
           legacyPacks.removeAll(alreadyLoaded);
 
           if (!legacyPacks.isEmpty()) {
-            Text ignoreLink = Text.translatable("custompaintings.legacy.prompt.ignore")
-                .styled((style) -> style.withColor(Formatting.BLUE)
-                    .withUnderline(true)
-                    .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, CustomPaintingsMod.MSG_CMD_IGNORE)));
-            Text openScreenLink = Text.translatable("custompaintings.legacy.prompt.openConvertScreen")
-                .styled((style) -> style.withColor(Formatting.BLUE)
-                    .withUnderline(true)
-                    .withClickEvent(
-                        new ClickEvent(ClickEvent.Action.RUN_COMMAND, CustomPaintingsMod.MSG_CMD_OPEN_CONVERT_SCREEN)));
-
-            this.client.player.sendMessage(
-                Text.translatable("custompaintings.legacy.prompt", legacyPacks.size(), ignoreLink, openScreenLink));
+            // TODO: i18n
+            Toast toast = SystemToast.create(this.client, SystemToast.Type.PERIODIC_NOTIFICATION,
+                Text.of("Legacy Packs Found"), Text.of(String.format(
+                    "Detected %s Custom Paintings pack(s) in the old resource pack format (pre-v3.0.0). Convert the " +
+                    "packs automatically from the Custom Paintings Main Menu or ignore them in the mod config.",
+                    legacyPacks.size()
+                ))
+            );
+            this.client.getToastManager().add(toast);
           }
         }, this.client);
   }
