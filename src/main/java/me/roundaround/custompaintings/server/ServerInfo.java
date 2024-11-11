@@ -75,16 +75,20 @@ public class ServerInfo {
     return Set.copyOf(this.disabledPacks);
   }
 
-  public void markPackDisabled(String packFileUid) {
+  public boolean markPackDisabled(String packFileUid) {
     if (this.disabledPacks.add(packFileUid)) {
       this.markDirty();
+      return true;
     }
+    return false;
   }
 
-  public void markPackEnabled(String packFileUid) {
+  public boolean markPackEnabled(String packFileUid) {
     if (this.disabledPacks.remove(packFileUid)) {
       this.markDirty();
+      return true;
     }
+    return false;
   }
 
   private void markDirty() {

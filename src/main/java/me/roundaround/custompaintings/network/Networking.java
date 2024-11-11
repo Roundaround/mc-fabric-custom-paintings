@@ -35,6 +35,7 @@ public final class Networking {
   public static final Identifier SYNC_ALL_DATA_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "sync_all_data_s2c");
   public static final Identifier MIGRATION_FINISH_S2C = new Identifier(
       CustomPaintingsMod.MOD_ID, "migration_finish_s2c");
+  public static final Identifier OPEN_MENU_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "open_menu_s2c");
 
   public static final Identifier HASHES_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "hashes_c2s");
   public static final Identifier RELOAD_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "reload_c2s");
@@ -52,6 +53,7 @@ public final class Networking {
     PayloadTypeRegistry.playS2C().register(SetPaintingS2C.ID, SetPaintingS2C.CODEC);
     PayloadTypeRegistry.playS2C().register(SyncAllDataS2C.ID, SyncAllDataS2C.CODEC);
     PayloadTypeRegistry.playS2C().register(MigrationFinishS2C.ID, MigrationFinishS2C.CODEC);
+    PayloadTypeRegistry.playS2C().register(OpenMenuS2C.ID, OpenMenuS2C.CODEC);
   }
 
   public static void registerC2SPayloads() {
@@ -182,6 +184,16 @@ public final class Networking {
 
     @Override
     public Id<MigrationFinishS2C> getId() {
+      return ID;
+    }
+  }
+
+  public record OpenMenuS2C() implements CustomPayload {
+    public static final Id<OpenMenuS2C> ID = new Id<>(OPEN_MENU_S2C);
+    public static final PacketCodec<RegistryByteBuf, OpenMenuS2C> CODEC = CustomCodecs.empty(OpenMenuS2C::new);
+
+    @Override
+    public Id<OpenMenuS2C> getId() {
       return ID;
     }
   }

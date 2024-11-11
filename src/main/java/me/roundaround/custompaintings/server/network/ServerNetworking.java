@@ -101,6 +101,12 @@ public final class ServerNetworking {
     }
   }
 
+  public static void sendOpenMenuPacket(ServerPlayerEntity player) {
+    if (ServerPlayNetworking.canSend(player, Networking.OpenMenuS2C.ID)) {
+      ServerPlayNetworking.send(player, new Networking.OpenMenuS2C());
+    }
+  }
+
   public static void registerReceivers() {
     ServerPlayNetworking.registerGlobalReceiver(Networking.HashesC2S.ID, ServerNetworking::handleHashes);
     ServerPlayNetworking.registerGlobalReceiver(Networking.ReloadC2S.ID, ServerNetworking::handleReload);

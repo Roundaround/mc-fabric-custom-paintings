@@ -10,10 +10,7 @@ import me.roundaround.custompaintings.resource.ResourceUtil;
 import net.minecraft.util.Identifier;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 public abstract class CustomPaintingRegistry {
   protected final LinkedHashMap<String, PackData> packsMap = new LinkedHashMap<>();
@@ -49,6 +46,14 @@ public abstract class CustomPaintingRegistry {
 
   public Map<String, PackData> getPacks() {
     return Map.copyOf(this.packsMap);
+  }
+
+  public List<PackData> getActivePacks() {
+    return this.packsList.stream().filter((pack) -> !pack.disabled()).toList();
+  }
+
+  public List<PackData> getInactivePacks() {
+    return this.packsList.stream().filter(PackData::disabled).toList();
   }
 
   public Map<CustomId, MigrationData> getMigrations() {

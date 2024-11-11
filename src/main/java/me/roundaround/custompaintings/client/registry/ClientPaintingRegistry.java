@@ -128,14 +128,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     return this.getSprite(data.id());
   }
 
-  public List<PackData> getActivePacks() {
-    return this.packsList.stream().filter((pack) -> !pack.disabled()).toList();
-  }
-
-  public List<PackData> getInactivePacks() {
-    return this.packsList.stream().filter(PackData::disabled).toList();
-  }
-
   public Map<CustomId, Boolean> getFinishedMigrations() {
     return Map.copyOf(this.finishedMigrations);
   }

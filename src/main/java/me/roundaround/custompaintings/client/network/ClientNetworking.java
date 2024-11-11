@@ -3,6 +3,7 @@ package me.roundaround.custompaintings.client.network;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.ClientPaintingManager;
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
+import me.roundaround.custompaintings.client.gui.screen.MainMenuScreen;
 import me.roundaround.custompaintings.client.gui.screen.MigrationsScreen;
 import me.roundaround.custompaintings.client.gui.screen.edit.PackSelectScreen;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
@@ -11,6 +12,8 @@ import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.network.PaintingAssignment;
 import me.roundaround.custompaintings.util.StringUtil;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 import net.minecraft.world.World;
@@ -54,6 +57,7 @@ public final class ClientNetworking {
     ClientPlayNetworking.registerGlobalReceiver(Networking.SyncAllDataS2C.ID, ClientNetworking::handleSyncAllData);
     ClientPlayNetworking.registerGlobalReceiver(
         Networking.MigrationFinishS2C.ID, ClientNetworking::handleMigrationFinish);
+    ClientPlayNetworking.registerGlobalReceiver(Networking.OpenMenuS2C.ID, ClientNetworking::handleOpenMenu);
   }
 
   private static void handleSummary(Networking.SummaryS2C payload, ClientPlayNetworking.Context context) {
@@ -136,6 +140,18 @@ public final class ClientNetworking {
         return;
       }
       screen.onMigrationFinished(payload.id(), payload.succeeded());
+    });
+  }
+
+  private static void handleOpenMenu(
+      Networking.OpenMenuS2C payload, ClientPlayNetworking.Context context
+  ) {
+    context.client().execute(() -> {
+      MinecraftClient client = context.client();
+      Screen screen = client.currentScreen;
+      if (screen == null || screen instanceof ChatScreen) {
+        client.setScreen(new MainMenuScreen(null));
+      }
     });
   }
 }
