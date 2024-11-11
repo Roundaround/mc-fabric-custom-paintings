@@ -185,6 +185,9 @@ public class CacheManager {
       }
     }
     CacheData data = CacheData.fromNbt(nbt);
+    int servers = data.byServer.size();
+    int images = data.byHash.size();
+    int shared = (int) data.byHash.entrySet().stream().filter((entry) -> entry.getValue().size() > 1).count();
 
     final var bytes = new Object() {
       long value = 0;
@@ -208,7 +211,7 @@ public class CacheManager {
       throw new RuntimeException(e);
     }
 
-    return new CacheStats(data.byServer.size(), data.byHash.size(), bytes.value);
+    return new CacheStats(servers, images, shared, bytes.value);
   }
 
   private static Path getCacheDir() {
@@ -431,6 +434,6 @@ public class CacheManager {
     }
   }
 
-  public record CacheStats(int servers, int images, long bytes) {
+  public record CacheStats(int servers, int images, int shared, long bytes) {
   }
 }

@@ -34,7 +34,11 @@ public class CacheScreen extends Screen {
   private static final int BUTTON_WIDTH = ButtonWidget.DEFAULT_WIDTH_SMALL;
   // TODO: i18n
   private static final Text LABEL_SERVERS = Text.of("Worlds/servers tracked");
+  // TODO: i18n
   private static final Text LABEL_IMAGES = Text.of("Painting and icon images cached");
+  // TODO: i18n
+  private static final Text LABEL_SHARED = Text.of("Number of shared images");
+  // TODO: i18n
   private static final Text LABEL_BYTES = Text.of("Used storage space");
 
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
@@ -59,7 +63,7 @@ public class CacheScreen extends Screen {
           if (exception != null || result == null) {
             list.setError();
           } else {
-            list.setStats(result.servers(), result.images(), result.bytes());
+            list.setStats(result.servers(), result.images(), result.shared(), result.bytes());
           }
         }, this.client);
 
@@ -100,7 +104,7 @@ public class CacheScreen extends Screen {
       if (exception != null || result == null) {
         list.setError();
       } else {
-        list.setStats(result.servers(), result.images(), result.bytes());
+        list.setStats(result.servers(), result.images(), result.shared(), result.bytes());
       }
     }, this.client);
   }
@@ -118,6 +122,7 @@ public class CacheScreen extends Screen {
 
       this.setShouldHighlightHover(false);
       this.setShouldHighlightSelection(false);
+      this.setAlternatingRowShading(true);
 
       this.addEntry(LoadingEntry.factory(client.textRenderer));
     }
@@ -128,11 +133,12 @@ public class CacheScreen extends Screen {
       this.refreshPositions();
     }
 
-    public void setStats(int servers, int images, long bytes) {
+    public void setStats(int servers, int images, int shared, long bytes) {
       this.clearEntries();
 
       Text valueServers = Text.of(String.valueOf(servers));
       Text valueImages = Text.of(String.valueOf(images));
+      Text valueShared = Text.of(String.valueOf(shared));
       Text valueBytes = Text.of(StringUtil.formatBytes(bytes));
       int maxValueWidth = Stream.of(valueServers, valueImages, valueBytes)
           .mapToInt(this.client.textRenderer::getWidth)
@@ -141,6 +147,7 @@ public class CacheScreen extends Screen {
 
       this.addEntry(StatEntry.factory(this.client.textRenderer, LABEL_SERVERS, valueServers, maxValueWidth));
       this.addEntry(StatEntry.factory(this.client.textRenderer, LABEL_IMAGES, valueImages, maxValueWidth));
+      this.addEntry(StatEntry.factory(this.client.textRenderer, LABEL_SHARED, valueShared, maxValueWidth));
       this.addEntry(StatEntry.factory(this.client.textRenderer, LABEL_BYTES, valueBytes, maxValueWidth));
       this.refreshPositions();
     }
@@ -187,6 +194,7 @@ public class CacheScreen extends Screen {
     private static class ErrorEntry extends Entry {
       // TODO: i18n
       private static final Text MESSAGE_LINE_1 = Text.translatable("custompaintings.cache.error1");
+      // TODO: i18n
       private static final Text MESSAGE_LINE_2 = Text.translatable("custompaintings.cache.error2");
 
       private final LabelWidget label;
