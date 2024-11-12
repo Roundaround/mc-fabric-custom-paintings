@@ -1,4 +1,4 @@
-package me.roundaround.custompaintings.server.command;
+package me.roundaround.custompaintings.command;
 
 import com.mojang.brigadier.CommandDispatcher;
 import me.roundaround.custompaintings.CustomPaintingsMod;
@@ -14,6 +14,8 @@ public class CustomPaintingsCommand {
         .then(OpenSub.build())
         .then(ReloadSub.build())
         .then(EnableSub.build())
-        .then(DisableSub.build()));
+        .then(DisableSub.build())
+        .then(InfoSub.build())
+        .then(ListSub.build()));
   }
 }

@@ -1,8 +1,13 @@
 package me.roundaround.custompaintings.entity.decoration.painting;
 
+import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.codec.PacketCodec;
+import net.minecraft.text.HoverEvent;
+import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
+import net.minecraft.text.Texts;
+import net.minecraft.util.Formatting;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,6 +19,25 @@ public record PackData(String packFileUid, boolean disabled, long fileSize, Stri
 
   public static PackData virtual(String id, Text name, Text description, List<PaintingData> paintings) {
     return new PackData("", false, 0, id, name.getString(), description.getString(), null, paintings, List.of());
+  }
+
+  public Text getInformationText() {
+    MutableText idText = Text.empty().append(this.id);
+    if (this.packFileUid.isBlank()) {
+      idText.formatted(Formatting.GRAY);
+    }
+
+    MutableText tooltip = Text.empty().append(this.name);
+    if (this.description != null && !this.description.isBlank()) {
+      tooltip.append("\n").append(this.description);
+    }
+    // TODO: i18n
+    tooltip.append("\n").append(Text.of(String.format("%s painting(s)", this.paintings.size())));
+
+    return Texts.bracketed(idText)
+        .styled(style -> style.withColor(this.disabled ? Formatting.RED : Formatting.GREEN)
+            .withInsertion(StringArgumentType.escapeIfRequired(this.id))
+            .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, tooltip)));
   }
 
   public void writeToPacketByteBuf(PacketByteBuf buf) {

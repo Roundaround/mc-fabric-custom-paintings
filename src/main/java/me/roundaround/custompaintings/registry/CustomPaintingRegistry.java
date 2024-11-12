@@ -48,6 +48,10 @@ public abstract class CustomPaintingRegistry {
     return Map.copyOf(this.packsMap);
   }
 
+  public List<PackData> getAllPacks() {
+    return List.copyOf(this.packsList);
+  }
+
   public List<PackData> getActivePacks() {
     return this.packsList.stream().filter((pack) -> !pack.disabled()).toList();
   }

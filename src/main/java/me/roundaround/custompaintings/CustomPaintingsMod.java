@@ -2,6 +2,7 @@ package me.roundaround.custompaintings;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import me.roundaround.custompaintings.command.CustomPaintingsCommand;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
 import me.roundaround.custompaintings.network.Networking;
@@ -10,7 +11,6 @@ import me.roundaround.custompaintings.resource.PackResource;
 import me.roundaround.custompaintings.resource.legacy.CustomPaintingsJson;
 import me.roundaround.custompaintings.server.ServerInfo;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
-import me.roundaround.custompaintings.server.command.CustomPaintingsCommand;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
 import me.roundaround.roundalib.client.event.MinecraftServerEvents;

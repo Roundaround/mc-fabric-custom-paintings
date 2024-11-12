@@ -1,11 +1,10 @@
-package me.roundaround.custompaintings.server.command;
+package me.roundaround.custompaintings.command;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.suggestion.SuggestionProvider;
-import com.mojang.brigadier.suggestion.Suggestions;
-import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import me.roundaround.custompaintings.command.argument.PackType;
+import me.roundaround.custompaintings.command.suggestion.PackIdSuggestionProvider;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.server.ServerInfo;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
@@ -14,18 +13,16 @@ import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 
-import java.util.concurrent.CompletableFuture;
-
-public class DisableSub {
-  private DisableSub() {
+public class EnableSub {
+  private EnableSub() {
   }
 
   public static LiteralArgumentBuilder<ServerCommandSource> build() {
-    return CommandManager.literal("disable")
+    return CommandManager.literal("enable")
         .requires((source) -> source.hasPermissionLevel(3))
         .then(CommandManager.argument("id", StringArgumentType.word())
-            .suggests(new PackIdSuggestionProvider())
-            .executes(DisableSub::execute));
+            .suggests(new PackIdSuggestionProvider(PackType.DISABLED))
+            .executes(EnableSub::execute));
   }
 
   private static int execute(CommandContext<ServerCommandSource> context) {
@@ -37,9 +34,9 @@ public class DisableSub {
       return 0;
     }
 
-    if (ServerInfo.getInstance().markPackDisabled(pack.packFileUid())) {
+    if (ServerInfo.getInstance().markPackEnabled(pack.packFileUid())) {
       // TODO: i18n
-      context.getSource().sendFeedback(() -> Text.of(String.format("Pack \"%s\" disabled. Reloading packs", id)), true);
+      context.getSource().sendFeedback(() -> Text.of(String.format("Pack \"%s\" enabled. Reloading packs", id)), true);
       ServerPaintingRegistry.getInstance().reloadPaintingPacks((server) -> {
         ServerPaintingManager.syncAllDataForAllPlayers(server);
         // TODO: i18n
@@ -49,19 +46,7 @@ public class DisableSub {
     }
 
     // TODO: i18n
-    context.getSource().sendFeedback(() -> Text.of(String.format("Pack \"%s\" already disabled", id)), false);
+    context.getSource().sendFeedback(() -> Text.of(String.format("Pack \"%s\" already enabled", id)), false);
     return 0;
-  }
-
-  private static class PackIdSuggestionProvider implements SuggestionProvider<ServerCommandSource> {
-    @Override
-    public CompletableFuture<Suggestions> getSuggestions(
-        CommandContext<ServerCommandSource> context, SuggestionsBuilder builder
-    ) {
-      for (PackData pack : ServerPaintingRegistry.getInstance().getActivePacks()) {
-        builder.suggest(pack.id());
-      }
-      return builder.buildFuture();
-    }
   }
 }

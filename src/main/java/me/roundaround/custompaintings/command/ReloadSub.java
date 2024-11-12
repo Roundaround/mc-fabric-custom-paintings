@@ -1,4 +1,4 @@
-package me.roundaround.custompaintings.server.command;
+package me.roundaround.custompaintings.command;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
