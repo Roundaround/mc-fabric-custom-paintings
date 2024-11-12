@@ -77,7 +77,7 @@ public class LegacyConvertScreen extends Screen {
           }
 
           for (PackMetadata<LegacyPackResource> meta : result.metas()) {
-            String packFileUid = meta.packFileUid();
+            String packFileUid = meta.packFileUid().stringValue();
 
             Path globalOutPath = result.globalConvertedIds().get(packFileUid);
             if (globalOutPath != null) {
@@ -161,7 +161,7 @@ public class LegacyConvertScreen extends Screen {
           } else {
             state = ConvertState.success(path);
           }
-          this.currentStates.put(meta.packFileUid(), state);
+          this.currentStates.put(meta.packFileUid().stringValue(), state);
           entry.setState(state);
         }, this.executor);
   }
@@ -213,7 +213,7 @@ public class LegacyConvertScreen extends Screen {
       }
 
       for (PackMetadata<LegacyPackResource> meta : metas) {
-        ConvertState state = currentStates.getOrDefault(meta.packFileUid(), ConvertState.none());
+        ConvertState state = currentStates.getOrDefault(meta.packFileUid().stringValue(), ConvertState.none());
         this.addEntry(PackEntry.factory(this.client.textRenderer, state, meta, this.convert));
       }
 
@@ -223,7 +223,7 @@ public class LegacyConvertScreen extends Screen {
     public void updateAllStates(HashMap<String, ConvertState> states) {
       this.entries.forEach((entry) -> {
         if (entry instanceof PackEntry packEntry) {
-          packEntry.setState(states.getOrDefault(packEntry.getMeta().packFileUid(), ConvertState.none()));
+          packEntry.setState(states.getOrDefault(packEntry.getMeta().packFileUid().stringValue(), ConvertState.none()));
         }
       });
     }

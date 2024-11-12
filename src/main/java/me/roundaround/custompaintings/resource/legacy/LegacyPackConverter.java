@@ -269,7 +269,7 @@ public class LegacyPackConverter {
       });
 
       PackResource pack = new PackResource(1, legacyPack.packId(), legacyPack.name(), legacyPack.description(),
-          metadata.packFileUid(), List.copyOf(paintings.values()), List.copyOf(migrations.values())
+          metadata.packFileUid().stringValue(), List.copyOf(paintings.values()), List.copyOf(migrations.values())
       );
 
       try {
@@ -373,7 +373,7 @@ public class LegacyPackConverter {
     String dirname = path.getFileName().toString();
     long lastModified = ResourceUtil.lastModified(path);
     long fileSize = ResourceUtil.fileSize(path);
-    String packFileUid = PackFileUid.create(false, dirname, lastModified, fileSize);
+    PackFileUid packFileUid = new PackFileUid(false, dirname, lastModified, fileSize);
 
     PackMcmeta meta = readPackMcmeta(path.resolve(PACK_MCMETA));
 
@@ -409,7 +409,7 @@ public class LegacyPackConverter {
 
       long lastModified = ResourceUtil.lastModified(path);
       long fileSize = ResourceUtil.fileSize(path);
-      String packFileUid = PackFileUid.create(true, filename, lastModified, fileSize);
+      PackFileUid packFileUid = new PackFileUid(true, filename, lastModified, fileSize);
 
       PackMcmeta meta = readPackMcmeta(zip, folderPrefix + PACK_MCMETA);
 

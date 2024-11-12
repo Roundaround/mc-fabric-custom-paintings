@@ -9,10 +9,6 @@ public record PackFileUid(boolean isFile, String filename, long lastModified, lo
     this(isFile, filename, lastModified, fileSize, getStringValue(isFile, filename, lastModified, fileSize));
   }
 
-  public static String create(boolean isFile, String filename, long lastModified, long fileSize) {
-    return new PackFileUid(isFile, filename, lastModified, fileSize).stringValue();
-  }
-
   @Override
   public boolean equals(Object o) {
     if (this == o)
