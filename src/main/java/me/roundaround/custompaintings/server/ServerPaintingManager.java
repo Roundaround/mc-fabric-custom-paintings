@@ -31,7 +31,6 @@ public class ServerPaintingManager extends PersistentState {
   private final ServerWorld world;
   private final HashMap<UUID, PaintingData> allPaintings = new HashMap<>();
   private final HashMap<UUID, Integer> networkIds = new HashMap<>();
-  private final HashSet<String> disabledPacks = new HashSet<>();
 
   private ServerPaintingManager(ServerWorld world) {
     this.world = world;
