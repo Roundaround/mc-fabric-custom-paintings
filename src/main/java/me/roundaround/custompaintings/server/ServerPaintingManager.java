@@ -1,5 +1,6 @@
 package me.roundaround.custompaintings.server;
 
+import com.google.common.collect.Streams;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.MigrationData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
@@ -23,6 +24,7 @@ import net.minecraft.world.World;
 
 import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class ServerPaintingManager extends PersistentState {
   private static final String NBT_PAINTINGS = "Paintings";
@@ -279,5 +281,132 @@ public class ServerPaintingManager extends PersistentState {
       syncAllDataForAllPlayers(server);
     }
     return true;
+  }
+
+  public Set<UUID> getMissingPaintings() {
+    return this.getMissingPaintings(null);
+  }
+
+  public Set<UUID> getMissingPaintings(CustomId dataId) {
+    ServerPaintingRegistry registry = ServerPaintingRegistry.getInstance();
+    return this.allPaintings.entrySet().stream().filter((entry) -> {
+      CustomId id = entry.getValue().id();
+      return !registry.contains(id) && (dataId == null || dataId.equals(id));
+    }).map(Map.Entry::getKey).collect(Collectors.toSet());
+  }
+
+  public int fixMissingPaintings(CustomId dataId, CustomId targetId) {
+    PaintingData targetData = ServerPaintingRegistry.getInstance().get(targetId);
+
+    if (targetData == null || targetData.isEmpty()) {
+      // TODO: Throw illegal argument exception?
+      return 0;
+    }
+
+    Set<UUID> needsFixed = this.getMissingPaintings(dataId);
+    var changed = new Object() {
+      int count = 0;
+    };
+
+    needsFixed.forEach((uuid) -> {
+      Integer paintingId = null;
+
+      if (this.world.getEntity(uuid) instanceof PaintingEntity painting) {
+        paintingId = painting.getId();
+        painting.setCustomData(targetData);
+      }
+
+      if (this.setTrackedData(uuid, paintingId, targetData)) {
+        changed.count++;
+      }
+    });
+
+    return changed.count;
+  }
+
+  public Set<MismatchedReference> getMismatchedPaintings() {
+    return this.getMismatchedPaintings(PaintingData.MismatchedCategory.EVERYTHING);
+  }
+
+  public Set<MismatchedReference> getMismatchedPaintings(PaintingData.MismatchedCategory category) {
+    ServerPaintingRegistry registry = ServerPaintingRegistry.getInstance();
+    return this.allPaintings.entrySet().stream().map((entry) -> {
+      PaintingData currentData = entry.getValue();
+      PaintingData knownData = registry.get(currentData.id());
+      if (knownData == null || knownData.isEmpty() || !currentData.isMismatched(knownData, category)) {
+        return null;
+      }
+      return new MismatchedReference(entry.getKey(), knownData);
+    }).filter(Objects::nonNull).collect(Collectors.toSet());
+  }
+
+  public int fixMismatchedPaintings(PaintingData.MismatchedCategory category) {
+    Set<MismatchedReference> needsFixed = getMismatchedPaintings(category);
+    var changed = new Object() {
+      int count = 0;
+    };
+
+    needsFixed.forEach((ref) -> {
+      UUID uuid = ref.uuid();
+      PaintingData knownData = ref.knownData();
+      Integer paintingId = null;
+
+      if (this.world.getEntity(uuid) instanceof PaintingEntity painting) {
+        paintingId = painting.getId();
+        painting.setCustomData(knownData);
+      }
+
+      if (this.setTrackedData(uuid, paintingId, knownData)) {
+        changed.count++;
+      }
+    });
+
+    return changed.count;
+  }
+
+  public static Set<UUID> getMissingPaintings(MinecraftServer server, CustomId dataId) {
+    return Streams.stream(server.getWorlds())
+        .flatMap((world) -> getInstance(world).getMissingPaintings(dataId).stream())
+        .collect(Collectors.toSet());
+  }
+
+  public static int fixMissingPaintings(MinecraftServer server, CustomId dataId, CustomId targetId) {
+    return Streams.stream(server.getWorlds())
+        .mapToInt((world) -> getInstance(world).fixMissingPaintings(dataId, targetId))
+        .sum();
+  }
+
+  public static Set<MismatchedReference> getMismatchedPaintings(MinecraftServer server) {
+    return getMismatchedPaintings(server, PaintingData.MismatchedCategory.EVERYTHING);
+  }
+
+  public static Set<MismatchedReference> getMismatchedPaintings(
+      MinecraftServer server, PaintingData.MismatchedCategory category
+  ) {
+    return Streams.stream(server.getWorlds())
+        .flatMap((world) -> getInstance(world).getMismatchedPaintings(category).stream())
+        .collect(Collectors.toSet());
+  }
+
+  public static int fixMismatchedPaintings(MinecraftServer server, PaintingData.MismatchedCategory category) {
+    return Streams.stream(server.getWorlds())
+        .mapToInt((world) -> getInstance(world).fixMismatchedPaintings(category))
+        .sum();
+  }
+
+  public record MismatchedReference(UUID uuid, PaintingData knownData) {
+    @Override
+    public boolean equals(Object o) {
+      if (this == o)
+        return true;
+      if (!(o instanceof MismatchedReference that))
+        return false;
+      return Objects.equals(uuid, that.uuid);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hashCode(uuid);
+    }
   }
 }
