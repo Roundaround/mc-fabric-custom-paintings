@@ -112,6 +112,7 @@ public final class ServerNetworking {
     ServerPlayNetworking.registerGlobalReceiver(Networking.ReloadC2S.ID, ServerNetworking::handleReload);
     ServerPlayNetworking.registerGlobalReceiver(Networking.SetPaintingC2S.ID, ServerNetworking::handleSetPainting);
     ServerPlayNetworking.registerGlobalReceiver(Networking.RunMigrationC2S.ID, ServerNetworking::handleRunMigration);
+    ServerPlayNetworking.registerGlobalReceiver(Networking.ListUnknownC2S.ID, ServerNetworking::handleListUnknown);
   }
 
   private static void handleHashes(Networking.HashesC2S payload, ServerPlayNetworking.Context context) {
@@ -175,6 +176,14 @@ public final class ServerNetworking {
   private static void handleRunMigration(Networking.RunMigrationC2S payload, ServerPlayNetworking.Context context) {
     context.player().server.execute(() -> {
       ServerPaintingManager.runMigration(context.player(), payload.id());
+    });
+  }
+
+  private static void handleListUnknown(Networking.ListUnknownC2S payload, ServerPlayNetworking.Context context) {
+    context.player().server.execute(() -> {
+      ServerPlayNetworking.send(context.player(),
+          new Networking.ListUnknownS2C(ServerPaintingManager.getUnknownPaintingCounts(context.player().server))
+      );
     });
   }
 }

@@ -6,6 +6,7 @@ import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.screen.MainMenuScreen;
 import me.roundaround.custompaintings.client.gui.screen.MigrationsScreen;
 import me.roundaround.custompaintings.client.gui.screen.edit.PackSelectScreen;
+import me.roundaround.custompaintings.client.gui.screen.fix.ListUnknownListener;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.network.CustomId;
 import me.roundaround.custompaintings.network.Networking;
@@ -47,6 +48,10 @@ public final class ClientNetworking {
     ClientPlayNetworking.send(new Networking.RunMigrationC2S(id));
   }
 
+  public static void sendListUnknownPacket() {
+    ClientPlayNetworking.send(new Networking.ListUnknownC2S());
+  }
+
   public static void registerReceivers() {
     ClientPlayNetworking.registerGlobalReceiver(Networking.SummaryS2C.ID, ClientNetworking::handleSummary);
     ClientPlayNetworking.registerGlobalReceiver(
@@ -60,12 +65,14 @@ public final class ClientNetworking {
     ClientPlayNetworking.registerGlobalReceiver(
         Networking.MigrationFinishS2C.ID, ClientNetworking::handleMigrationFinish);
     ClientPlayNetworking.registerGlobalReceiver(Networking.OpenMenuS2C.ID, ClientNetworking::handleOpenMenu);
+    ClientPlayNetworking.registerGlobalReceiver(Networking.ListUnknownS2C.ID, ClientNetworking::handleListUnknown);
   }
 
   private static void handleSummary(Networking.SummaryS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
       MinecraftClient client = context.client();
       if (client.isInSingleplayer() && payload.skipped()) {
+        // TODO: i18n
         Toast toast = SystemToast.create(client, SystemToast.Type.PACK_LOAD_FAILURE,
             Text.of("Custom Paintings Skipped"),
             Text.of("Skipped loading Custom Paintings packs because the world was loaded in safe mode")
@@ -158,6 +165,14 @@ public final class ClientNetworking {
       Screen screen = client.currentScreen;
       if (screen == null || screen instanceof ChatScreen) {
         client.setScreen(new MainMenuScreen(null));
+      }
+    });
+  }
+
+  private static void handleListUnknown(Networking.ListUnknownS2C payload, ClientPlayNetworking.Context context) {
+    context.client().execute(() -> {
+      if (context.client().currentScreen instanceof ListUnknownListener screen) {
+        screen.onListUnknownResponse(payload.counts());
       }
     });
   }

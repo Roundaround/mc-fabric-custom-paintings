@@ -283,11 +283,11 @@ public class ServerPaintingManager extends PersistentState {
     return true;
   }
 
-  public Set<UUID> getMissingPaintings() {
-    return this.getMissingPaintings(null);
+  public Set<UUID> getUnknownPaintings() {
+    return this.getUnknownPaintings(null);
   }
 
-  public Set<UUID> getMissingPaintings(CustomId dataId) {
+  public Set<UUID> getUnknownPaintings(CustomId dataId) {
     ServerPaintingRegistry registry = ServerPaintingRegistry.getInstance();
     return this.allPaintings.entrySet().stream().filter((entry) -> {
       CustomId id = entry.getValue().id();
@@ -295,7 +295,22 @@ public class ServerPaintingManager extends PersistentState {
     }).map(Map.Entry::getKey).collect(Collectors.toSet());
   }
 
-  public int fixMissingPaintings(CustomId dataId, CustomId targetId) {
+  public Map<CustomId, Integer> getUnknownPaintingCounts() {
+    HashMap<CustomId, Integer> counts = new HashMap<>();
+    ServerPaintingRegistry registry = ServerPaintingRegistry.getInstance();
+
+    this.allPaintings.forEach((uuid, data) -> {
+      CustomId id = data.id();
+      if (registry.contains(id)) {
+        return;
+      }
+      counts.put(id, counts.getOrDefault(id, 0) + 1);
+    });
+
+    return counts;
+  }
+
+  public int fixUnknownPaintings(CustomId dataId, CustomId targetId) {
     PaintingData targetData = ServerPaintingRegistry.getInstance().get(targetId);
 
     if (targetData == null || targetData.isEmpty()) {
@@ -303,7 +318,7 @@ public class ServerPaintingManager extends PersistentState {
       return 0;
     }
 
-    Set<UUID> needsFixed = this.getMissingPaintings(dataId);
+    Set<UUID> needsFixed = this.getUnknownPaintings(dataId);
     var changed = new Object() {
       int count = 0;
     };
@@ -364,15 +379,21 @@ public class ServerPaintingManager extends PersistentState {
     return changed.count;
   }
 
-  public static Set<UUID> getMissingPaintings(MinecraftServer server, CustomId dataId) {
+  public static Set<UUID> getUnknownPaintings(MinecraftServer server, CustomId dataId) {
     return Streams.stream(server.getWorlds())
-        .flatMap((world) -> getInstance(world).getMissingPaintings(dataId).stream())
+        .flatMap((world) -> getInstance(world).getUnknownPaintings(dataId).stream())
         .collect(Collectors.toSet());
   }
 
-  public static int fixMissingPaintings(MinecraftServer server, CustomId dataId, CustomId targetId) {
+  public static Map<CustomId, Integer> getUnknownPaintingCounts(MinecraftServer server) {
     return Streams.stream(server.getWorlds())
-        .mapToInt((world) -> getInstance(world).fixMissingPaintings(dataId, targetId))
+        .flatMap((world) -> getInstance(world).getUnknownPaintingCounts().entrySet().stream())
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+  }
+
+  public static int fixUnknownPaintings(MinecraftServer server, CustomId dataId, CustomId targetId) {
+    return Streams.stream(server.getWorlds())
+        .mapToInt((world) -> getInstance(world).fixUnknownPaintings(dataId, targetId))
         .sum();
   }
 
