@@ -356,7 +356,7 @@ public class ServerPaintingManager extends PersistentState {
   }
 
   public int fixMismatchedPaintings(PaintingData.MismatchedCategory category) {
-    Set<MismatchedReference> needsFixed = getMismatchedPaintings(category);
+    Set<MismatchedReference> needsFixed = this.getMismatchedPaintings(category);
     var changed = new Object() {
       int count = 0;
     };
@@ -422,12 +422,12 @@ public class ServerPaintingManager extends PersistentState {
         return true;
       if (!(o instanceof MismatchedReference that))
         return false;
-      return Objects.equals(uuid, that.uuid);
+      return Objects.equals(this.uuid, that.uuid);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hashCode(uuid);
+      return Objects.hashCode(this.uuid);
     }
   }
 }
