@@ -2,7 +2,7 @@ package me.roundaround.custompaintings.resource;
 
 import com.google.common.hash.Hashing;
 import com.google.common.io.ByteSource;
-import me.roundaround.custompaintings.network.CustomId;
+import me.roundaround.custompaintings.util.CustomId;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;

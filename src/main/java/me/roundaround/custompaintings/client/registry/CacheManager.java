@@ -2,7 +2,7 @@ package me.roundaround.custompaintings.client.registry;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
-import me.roundaround.custompaintings.network.CustomId;
+import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.custompaintings.resource.Image;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.nbt.*;

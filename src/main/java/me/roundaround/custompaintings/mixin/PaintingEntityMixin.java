@@ -2,7 +2,7 @@ package me.roundaround.custompaintings.mixin;
 
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.custompaintings.network.CustomId;
+import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;

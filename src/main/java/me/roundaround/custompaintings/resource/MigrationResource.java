@@ -1,7 +1,7 @@
 package me.roundaround.custompaintings.resource;
 
 import me.roundaround.custompaintings.entity.decoration.painting.MigrationData;
-import me.roundaround.custompaintings.network.CustomId;
+import me.roundaround.custompaintings.util.CustomId;
 
 import java.util.HashMap;
 import java.util.List;

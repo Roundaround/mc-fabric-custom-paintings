@@ -8,7 +8,7 @@ import me.roundaround.custompaintings.client.gui.screen.MigrationsScreen;
 import me.roundaround.custompaintings.client.gui.screen.edit.PackSelectScreen;
 import me.roundaround.custompaintings.client.gui.screen.fix.ListUnknownListener;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
-import me.roundaround.custompaintings.network.CustomId;
+import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.network.PaintingAssignment;
 import me.roundaround.custompaintings.util.StringUtil;

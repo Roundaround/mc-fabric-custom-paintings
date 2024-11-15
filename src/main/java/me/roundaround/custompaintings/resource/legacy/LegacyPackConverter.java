@@ -3,7 +3,7 @@ package me.roundaround.custompaintings.resource.legacy;
 import com.google.common.collect.ImmutableList;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.texture.LoadingSprite;
-import me.roundaround.custompaintings.network.CustomId;
+import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.custompaintings.resource.*;
 import me.roundaround.roundalib.util.PathAccessor;
 import net.fabricmc.loader.api.FabricLoader;

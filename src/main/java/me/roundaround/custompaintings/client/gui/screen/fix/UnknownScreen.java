@@ -2,8 +2,7 @@ package me.roundaround.custompaintings.client.gui.screen.fix;
 
 import me.roundaround.custompaintings.client.gui.widget.VersionStamp;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
-import me.roundaround.custompaintings.network.CustomId;
-import me.roundaround.custompaintings.network.PaintingAssignment;
+import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import me.roundaround.roundalib.client.gui.widget.NarratableEntryListWidget;
 import net.minecraft.client.MinecraftClient;
@@ -12,7 +11,6 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 

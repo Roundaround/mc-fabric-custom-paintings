@@ -1,6 +1,7 @@
 package me.roundaround.custompaintings.network;
 
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.util.CustomId;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 

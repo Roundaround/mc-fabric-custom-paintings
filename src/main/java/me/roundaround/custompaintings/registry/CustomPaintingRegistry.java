@@ -3,7 +3,7 @@ package me.roundaround.custompaintings.registry;
 import me.roundaround.custompaintings.entity.decoration.painting.MigrationData;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.custompaintings.network.CustomId;
+import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.custompaintings.resource.HashResult;
 import me.roundaround.custompaintings.resource.Image;
 import me.roundaround.custompaintings.resource.ResourceUtil;

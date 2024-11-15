@@ -1,4 +1,4 @@
-package me.roundaround.custompaintings.network;
+package me.roundaround.custompaintings.util;
 
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.codec.PacketCodec;
@@ -7,12 +7,15 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 public record CustomId(String pack, String resource) implements Comparable<CustomId> {
   public static final PacketCodec<PacketByteBuf, CustomId> PACKET_CODEC = PacketCodec.tuple(
       PacketCodecs.STRING, CustomId::pack, PacketCodecs.STRING, CustomId::resource, CustomId::new);
 
-  private static final String ENC_COLON = ":colon:";
+  private static final Predicate<String> IS_VALID_PART = Pattern.compile("^[\\s:'\"]+$").asMatchPredicate();
+  private static final Predicate<String> IS_VALID_ID = Pattern.compile("^(?:[\\s:'\"]+:)?[\\s:'\"]+$").asMatchPredicate();
 
   @Override
   public boolean equals(Object o) {
@@ -20,12 +23,12 @@ public record CustomId(String pack, String resource) implements Comparable<Custo
       return true;
     if (!(o instanceof CustomId that))
       return false;
-    return Objects.equals(pack, that.pack) && Objects.equals(resource, that.resource);
+    return Objects.equals(this.pack, that.pack) && Objects.equals(this.resource, that.resource);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(pack, resource);
+    return Objects.hash(this.pack, this.resource);
   }
 
   @Override
@@ -40,11 +43,23 @@ public record CustomId(String pack, String resource) implements Comparable<Custo
 
   @Override
   public String toString() {
-    return String.format("%s:%s", encode(this.pack()), encode(this.resource()));
+    return String.format("%s:%s", this.pack(), this.resource());
   }
 
   public Identifier toIdentifier() {
-    return new Identifier(pack(), resource());
+    return new Identifier(this.pack(), this.resource());
+  }
+
+  public String toTranslationKey() {
+    return String.format("%s.%s", this.pack(), this.resource());
+  }
+
+  public String toTranslationKey(String prefix) {
+    return prefix + "." + this.toTranslationKey();
+  }
+
+  public String toTranslationKey(String prefix, String suffix) {
+    return prefix + "." + this.toTranslationKey() + "." + suffix;
   }
 
   public void write(PacketByteBuf buf) {
@@ -60,33 +75,18 @@ public record CustomId(String pack, String resource) implements Comparable<Custo
   }
 
   public static CustomId parse(String value) {
-    int separatorIndex = getSeparatorIndex(value);
+    int separatorIndex = value.indexOf(":");
     if (separatorIndex == -1) {
-      return new CustomId(Identifier.DEFAULT_NAMESPACE, decode(value));
+      return new CustomId(Identifier.DEFAULT_NAMESPACE, value);
     }
-    String encPack = value.substring(0, separatorIndex);
-    String encMigration = value.substring(separatorIndex + 1);
-    return new CustomId(decode(encPack), decode(encMigration));
+    return new CustomId(value.substring(0, separatorIndex), value.substring(separatorIndex + 1));
   }
 
-  private static String encode(String value) {
-    return value.replaceAll(":", ENC_COLON);
+  public static boolean isPartValid(String part) {
+    return IS_VALID_PART.test(part);
   }
 
-  private static String decode(String value) {
-    return value.replaceAll(ENC_COLON, ":");
-  }
-
-  private static int getSeparatorIndex(String value) {
-    for (int i = 0; i < value.length(); i++) {
-      if (i + ENC_COLON.length() <= value.length() && value.startsWith(ENC_COLON, i)) {
-        // Skip over the ":colon:" placeholder
-        i += ENC_COLON.length() - 1;
-      } else if (value.charAt(i) == ':') {
-        // Found the first colon that is not part of the placeholder
-        return i;
-      }
-    }
-    return -1;
+  public static boolean isValid(String value) {
+    return IS_VALID_ID.test(value);
   }
 }

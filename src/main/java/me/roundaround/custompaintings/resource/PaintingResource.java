@@ -1,7 +1,7 @@
 package me.roundaround.custompaintings.resource;
 
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.custompaintings.network.CustomId;
+import me.roundaround.custompaintings.util.CustomId;
 
 public record PaintingResource(String id, String name, String artist, Integer height, Integer width) {
   public PaintingData toData(String packId) {

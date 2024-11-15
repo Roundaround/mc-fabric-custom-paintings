@@ -1,7 +1,7 @@
 package me.roundaround.custompaintings.server.network;
 
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
-import me.roundaround.custompaintings.network.CustomId;
+import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.resource.Image;
 import net.fabricmc.api.EnvType;
