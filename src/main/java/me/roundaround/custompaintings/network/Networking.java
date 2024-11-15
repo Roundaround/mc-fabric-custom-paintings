@@ -69,12 +69,14 @@ public final class Networking {
   }
 
   public record SummaryS2C(UUID serverId, List<PackData> packs, String combinedImageHash,
-                           Map<CustomId, Boolean> finishedMigrations, boolean skipped) implements CustomPayload {
+                           Map<CustomId, Boolean> finishedMigrations, boolean skipped,
+                           int loadErrorOrSkipCount) implements CustomPayload {
     public static final Id<SummaryS2C> ID = new Id<>(SUMMARY_S2C);
     public static final PacketCodec<RegistryByteBuf, SummaryS2C> CODEC = PacketCodec.tuple(Uuids.PACKET_CODEC,
         SummaryS2C::serverId, CustomCodecs.forList(PackData.PACKET_CODEC), SummaryS2C::packs, PacketCodecs.STRING,
         SummaryS2C::combinedImageHash, CustomCodecs.forMap(CustomId.PACKET_CODEC, PacketCodecs.BOOL),
-        SummaryS2C::finishedMigrations, PacketCodecs.BOOL, SummaryS2C::skipped, SummaryS2C::new
+        SummaryS2C::finishedMigrations, PacketCodecs.BOOL, SummaryS2C::skipped, PacketCodecs.INTEGER,
+        SummaryS2C::loadErrorOrSkipCount, SummaryS2C::new
     );
 
     @Override

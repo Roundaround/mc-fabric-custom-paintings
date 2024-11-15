@@ -57,6 +57,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
   private MinecraftServer server;
   private boolean safeMode = false;
+  private int loadErrorOrSkipCount = 0;
 
   private ServerPaintingRegistry() {
     ServerLifecycleEvents.SERVER_STOPPED.register((server) -> {
@@ -99,7 +100,8 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
   public void firstLoadPaintingPacks(boolean safeMode) {
     this.safeMode = safeMode;
-    LoadResult loadResult = this.safeMode ? LoadResult.empty() : this.loadPaintingPacks();
+    LoadResult loadResult = this.safeMode ? LoadResult.empty(0) : this.loadPaintingPacks();
+    this.loadErrorOrSkipCount = loadResult.erroredOrSkipped();
     this.setPacks(loadResult.packs());
     this.setImages(loadResult.images());
   }
@@ -111,6 +113,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
     this.safeMode = false;
     CompletableFuture.supplyAsync(this::loadPaintingPacks, Util.getIoWorkerExecutor()).thenAcceptAsync((loadResult) -> {
+      this.loadErrorOrSkipCount = loadResult.erroredOrSkipped();
       this.setPacks(loadResult.packs());
       this.setImages(loadResult.images());
       this.sendSummaryToAll();
@@ -119,13 +122,15 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
   }
 
   public void sendSummaryToAll() {
-    ServerNetworking.sendSummaryPacketToAll(
-        this.server, this.packsList, this.combinedImageHash, this.finishedMigrations, this.safeMode);
+    ServerNetworking.sendSummaryPacketToAll(this.server, this.packsList, this.combinedImageHash,
+        this.finishedMigrations, this.safeMode, this.loadErrorOrSkipCount
+    );
   }
 
   public void sendSummaryToPlayer(ServerPlayerEntity player) {
-    ServerNetworking.sendSummaryPacket(
-        player, this.packsList, this.combinedImageHash, this.finishedMigrations, this.safeMode);
+    ServerNetworking.sendSummaryPacket(player, this.packsList, this.combinedImageHash, this.finishedMigrations,
+        this.safeMode, this.loadErrorOrSkipCount
+    );
   }
 
   public void checkPlayerHashes(ServerPlayerEntity player, Map<CustomId, String> hashes) {
@@ -162,7 +167,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
     if (packsDir == null || Files.notExists(packsDir)) {
       CustomPaintingsMod.LOGGER.info("Unable to locate packs directory, skipping");
-      return LoadResult.empty();
+      return LoadResult.empty(1);
     }
 
     try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(packsDir)) {
@@ -170,10 +175,13 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
       HashMap<String, PackData> packs = new HashMap<>();
       HashMap<String, String> packFilenames = new HashMap<>();
       HashMap<CustomId, Image> images = new HashMap<>();
+      var erroredOrSkipped = new Object() {
+        int value = 0;
+      };
       directoryStream.forEach((path) -> {
         PackMetadata<PackResource> meta = readPackMetadata(path);
         if (meta == null) {
-          // TODO: Track which ones errored and report it to the player in a Toast
+          erroredOrSkipped.value++;
           return;
         }
 
@@ -186,6 +194,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
           CustomPaintingsMod.LOGGER.warn(
               "Multiple packs with id \"{}\" detected. Only the first will be kept. Please make sure packs have " +
               "unique IDs!\nKeeping \"{}\" and discarding \"{}\"", packId, existingFilename, filename);
+          erroredOrSkipped.value++;
           return;
         }
 
@@ -206,10 +215,10 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
       CustomPaintingsMod.LOGGER.info("Loaded {} pack(s) with {} painting(s)", packs.size(),
           packs.values().stream().mapToInt((pack) -> pack.paintings().size()).sum()
       );
-      return new LoadResult(packs, images);
+      return new LoadResult(packs, images, erroredOrSkipped.value);
     } catch (IOException e) {
       CustomPaintingsMod.LOGGER.warn(LOG_FAIL_ALL, e);
-      return LoadResult.empty();
+      return LoadResult.empty(1);
     }
   }
 
@@ -483,9 +492,9 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     return path;
   }
 
-  private record LoadResult(HashMap<String, PackData> packs, HashMap<CustomId, Image> images) {
-    public static LoadResult empty() {
-      return new LoadResult(new HashMap<>(0), new HashMap<>(0));
+  private record LoadResult(HashMap<String, PackData> packs, HashMap<CustomId, Image> images, int erroredOrSkipped) {
+    public static LoadResult empty(int erroredOrSkipped) {
+      return new LoadResult(new HashMap<>(0), new HashMap<>(0), erroredOrSkipped);
     }
   }
 }

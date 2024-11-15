@@ -8,9 +8,9 @@ import me.roundaround.custompaintings.client.gui.screen.MigrationsScreen;
 import me.roundaround.custompaintings.client.gui.screen.edit.PackSelectScreen;
 import me.roundaround.custompaintings.client.gui.screen.fix.ListUnknownListener;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
-import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.network.PaintingAssignment;
+import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.custompaintings.util.StringUtil;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
@@ -76,6 +76,15 @@ public final class ClientNetworking {
         Toast toast = SystemToast.create(client, SystemToast.Type.PACK_LOAD_FAILURE,
             Text.of("Custom Paintings Skipped"),
             Text.of("Skipped loading Custom Paintings packs because the world was loaded in safe mode")
+        );
+        client.getToastManager().add(toast);
+      }
+      if (client.player != null && (client.isInSingleplayer() || client.player.hasPermissionLevel(3)) &&
+          payload.loadErrorOrSkipCount() > 0) {
+        // TODO: i18n
+        Toast toast = SystemToast.create(client, SystemToast.Type.PACK_LOAD_FAILURE,
+            Text.of("Errors in Custom Painting pack loading"),
+            Text.of("Some Custom Paintings packs failed to load. Check logs for details")
         );
         client.getToastManager().add(toast);
       }

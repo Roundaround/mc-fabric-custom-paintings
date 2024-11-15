@@ -2,13 +2,13 @@ package me.roundaround.custompaintings.server.network;
 
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.network.PaintingAssignment;
 import me.roundaround.custompaintings.server.CustomPaintingsServerMod;
 import me.roundaround.custompaintings.server.ServerInfo;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
+import me.roundaround.custompaintings.util.CustomId;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
@@ -32,11 +32,14 @@ public final class ServerNetworking {
       List<PackData> packs,
       String combinedImageHash,
       Map<CustomId, Boolean> finishedMigrations,
-      boolean skipped
+      boolean skipped,
+      int loadErrorOrSkipCount
   ) {
     server.getPlayerManager()
         .getPlayerList()
-        .forEach((player) -> sendSummaryPacket(player, packs, combinedImageHash, finishedMigrations, skipped));
+        .forEach((player) -> sendSummaryPacket(player, packs, combinedImageHash, finishedMigrations, skipped,
+            loadErrorOrSkipCount
+        ));
   }
 
   public static void sendSummaryPacket(
@@ -44,15 +47,17 @@ public final class ServerNetworking {
       List<PackData> packs,
       String combinedImageHash,
       Map<CustomId, Boolean> finishedMigrations,
-      boolean skipped
+      boolean skipped,
+      int loadErrorOrSkipCount
   ) {
     if (!ServerPlayNetworking.canSend(player, Networking.SUMMARY_S2C)) {
       player.sendMessage(CustomPaintingsServerMod.getDownloadPrompt());
       return;
     }
     UUID serverId = ServerInfo.getInstance().getServerId();
-    ServerPlayNetworking.send(
-        player, new Networking.SummaryS2C(serverId, packs, combinedImageHash, finishedMigrations, skipped));
+    ServerPlayNetworking.send(player,
+        new Networking.SummaryS2C(serverId, packs, combinedImageHash, finishedMigrations, skipped, loadErrorOrSkipCount)
+    );
   }
 
   public static void sendDownloadSummaryPacket(
