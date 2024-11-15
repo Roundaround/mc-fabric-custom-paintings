@@ -14,8 +14,10 @@ public record CustomId(String pack, String resource) implements Comparable<Custo
   public static final PacketCodec<PacketByteBuf, CustomId> PACKET_CODEC = PacketCodec.tuple(
       PacketCodecs.STRING, CustomId::pack, PacketCodecs.STRING, CustomId::resource, CustomId::new);
 
-  private static final Predicate<String> IS_VALID_PART = Pattern.compile("^[\\s:'\"]+$").asMatchPredicate();
-  private static final Predicate<String> IS_VALID_ID = Pattern.compile("^(?:[\\s:'\"]+:)?[\\s:'\"]+$").asMatchPredicate();
+  private static final Predicate<String> IS_VALID_PART = Pattern.compile("^[^\\s:'\"]+$").asMatchPredicate();
+  private static final Predicate<String> IS_VALID_ID = Pattern.compile("^(?:[^\\s:'\"]+:)?[^\\s:'\"]+$")
+      .asMatchPredicate();
+  private static final Predicate<String> IS_VALID_SHAPE = Pattern.compile("^(?:[^:]+:)?[^:]+$").asMatchPredicate();
 
   @Override
   public boolean equals(Object o) {
@@ -88,5 +90,63 @@ public record CustomId(String pack, String resource) implements Comparable<Custo
 
   public static boolean isValid(String value) {
     return IS_VALID_ID.test(value);
+  }
+
+  private static void validatePartOrThrow(String part) throws IllegalArgumentException {
+    if (part == null) {
+      throw new IllegalArgumentException("Cannot be null");
+    }
+    if (part.isEmpty()) {
+      throw new IllegalArgumentException("Must be at least 1 character");
+    }
+    if (!IS_VALID_PART.test(part)) {
+      throw new IllegalArgumentException("Cannot contain any of [:'\"]");
+    }
+  }
+
+  public static void validatePart(String part) throws InvalidIdException {
+    try {
+      validatePartOrThrow(part);
+    } catch (IllegalArgumentException e) {
+      throw new InvalidIdException(part, e);
+    }
+  }
+
+  public static void validatePart(String part, String resource) throws InvalidIdException {
+    try {
+      validatePartOrThrow(part);
+    } catch (IllegalArgumentException e) {
+      throw new InvalidIdException(part, resource, e);
+    }
+  }
+
+  private static void validateOrThrow(String value) throws IllegalArgumentException {
+    if (value == null) {
+      throw new IllegalArgumentException("Cannot be null");
+    }
+
+    if (!IS_VALID_SHAPE.test(value)) {
+      throw new IllegalArgumentException("Must either be a single ID (no ':') or a full ID in \"first:second\" format");
+    }
+
+    if ((!value.contains(":") && !IS_VALID_PART.test(value)) || !IS_VALID_ID.test(value)) {
+      throw new IllegalArgumentException("Cannot contain single or double quotes ('\")");
+    }
+  }
+
+  public static void validate(String part) throws InvalidIdException {
+    try {
+      validateOrThrow(part);
+    } catch (IllegalArgumentException e) {
+      throw new InvalidIdException(part, e);
+    }
+  }
+
+  public static void validate(String part, String resource) throws InvalidIdException {
+    try {
+      validateOrThrow(part);
+    } catch (IllegalArgumentException e) {
+      throw new InvalidIdException(part, resource, e);
+    }
   }
 }

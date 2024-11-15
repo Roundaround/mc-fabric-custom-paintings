@@ -5,6 +5,8 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
+import me.roundaround.custompaintings.util.CustomId;
+import me.roundaround.custompaintings.util.InvalidIdException;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -13,11 +15,27 @@ import java.util.List;
 public record PackResource(Integer format, String id, String name, String description, String sourceLegacyPack,
                            List<PaintingResource> paintings, List<MigrationResource> migrations) {
   public PackData toData(PackFileUid packFileUid, boolean disabled) {
-    return new PackData(packFileUid.stringValue(), disabled, packFileUid.fileSize(), this.id(), this.name(),
-        this.description(), this.sourceLegacyPack(),
-        this.paintings().stream().map((painting) -> painting.toData(this.id())).toList(),
-        this.migrations().stream().map((migration) -> migration.toData(this.id())).toList()
+    return new PackData(packFileUid.stringValue(), disabled, packFileUid.fileSize(), this.id, this.name,
+        this.description, this.sourceLegacyPack,
+        this.paintings.stream().map((painting) -> painting.toData(this.id)).toList(),
+        this.migrations.stream().map((migration) -> migration.toData(this.id)).toList()
     );
+  }
+
+  public void validateIds() throws InvalidIdException {
+    CustomId.validatePart(this.id, "pack");
+
+    int i = 0;
+    for (PaintingResource painting : this.paintings) {
+      painting.validateId(i);
+      i++;
+    }
+
+    i = 0;
+    for (MigrationResource migration : this.migrations) {
+      migration.validateIds(i);
+      i++;
+    }
   }
 
   public static class TypeAdapter extends com.google.gson.TypeAdapter<PackResource> {

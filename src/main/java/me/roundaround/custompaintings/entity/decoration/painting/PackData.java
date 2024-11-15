@@ -51,7 +51,7 @@ public record PackData(String packFileUid, boolean disabled, long fileSize, Stri
     buf.writeInt(this.paintings.size());
     this.paintings.forEach((painting) -> painting.write(buf));
     buf.writeInt(this.migrations.size());
-    this.migrations.forEach((migration) -> migration.writeToPacketByteBuf(buf));
+    this.migrations.forEach((migration) -> migration.write(buf));
   }
 
   public static PackData fromPacketByteBuf(PacketByteBuf buf) {
@@ -70,7 +70,7 @@ public record PackData(String packFileUid, boolean disabled, long fileSize, Stri
     int migrationCount = buf.readInt();
     List<MigrationData> migrations = new ArrayList<>(migrationCount);
     for (int i = 0; i < migrationCount; i++) {
-      migrations.add(MigrationData.fromPacketByteBuf(buf));
+      migrations.add(MigrationData.read(buf));
     }
     return new PackData(packFileUid, disabled, fileSize, id, name, description, legacyPackId, paintings, migrations);
   }

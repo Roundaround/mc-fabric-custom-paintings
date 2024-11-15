@@ -2,12 +2,13 @@ package me.roundaround.custompaintings.server.registry;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
-import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
 import me.roundaround.custompaintings.resource.*;
 import me.roundaround.custompaintings.server.ServerInfo;
 import me.roundaround.custompaintings.server.network.ImagePacketQueue;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
+import me.roundaround.custompaintings.util.CustomId;
+import me.roundaround.custompaintings.util.InvalidIdException;
 import me.roundaround.roundalib.util.PathAccessor;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.server.MinecraftServer;
@@ -34,15 +35,20 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
   private static final String META_FILENAME = "custompaintings.json";
   private static final String PACK_PNG = "pack.png";
   private static final String ICON_PNG = "icon.png";
-  private static final String LOG_NO_META = "Found Custom Paintings pack \"{}\" without a {} file, skipping...";
-  private static final String LOG_META_PARSE_FAIL = "Failed to parse {} from \"{}\", skipping...";
-  private static final String LOG_NO_PAINTINGS = "No paintings found in \"{}\", skipping...";
-  private static final String LOG_NO_ICON = "Missing icon.png file for {}";
-  private static final String LOG_LEGACY_ICON = "Deprecated/legacy pack.png file found for {}. Rename to icon.png";
-  private static final String LOG_ICON_READ_FAIL = "Failed to read icon.png file for {}";
+  private static final String LOG_FAIL_ALL = "Skipping loading packs due to an error";
+  private static final String LOG_FAIL_GENERIC = "Skipping potential pack \"%s\" to to an error while loading";
+  private static final String LOG_FAIL_IMAGES = "Skipping loading images for pack \"%s\" to to an error while loading";
+  private static final String LOG_NO_META = "Skipping potential pack \"{}\" with no {} file";
+  private static final String LOG_META_PARSE_FAIL = "Skipping potential pack \"%s\" after failing to parse %s";
+  private static final String LOG_ID_VALIDATION_FAIL = "Skipping potential pack \"%s\" due to a validation error in %s";
+  private static final String LOG_NO_PAINTINGS = "Skipping potential pack \"{}\" because it contained no paintings";
+  private static final String LOG_NO_ICON = "Missing icon.png file for pack \"{}\"";
+  private static final String LOG_LEGACY_ICON =
+      "Deprecated/legacy pack.png file found for pack \"{}\". Rename to " + "icon.png";
+  private static final String LOG_ICON_READ_FAIL = "Failed to read icon.png file for %s";
   private static final String LOG_MISSING_PAINTING = "Missing custom painting image file for {}";
   private static final String LOG_LARGE_IMAGE = "Image file for {} is too large, skipping";
-  private static final String LOG_PAINTING_READ_FAIL = "Failed to read custom painting image file for {}";
+  private static final String LOG_PAINTING_READ_FAIL = "Failed to read image file for %s";
   private static final int MAX_SIZE = 1 << 24;
 
   private static ServerPaintingRegistry instance = null;
@@ -167,6 +173,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
       directoryStream.forEach((path) -> {
         PackMetadata<PackResource> meta = readPackMetadata(path);
         if (meta == null) {
+          // TODO: Track which ones errored and report it to the player in a Toast
           return;
         }
 
@@ -178,8 +185,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
         if (existingFilename != null) {
           CustomPaintingsMod.LOGGER.warn(
               "Multiple packs with id \"{}\" detected. Only the first will be kept. Please make sure packs have " +
-              "unique IDs!", packId);
-          CustomPaintingsMod.LOGGER.warn("Keeping \"{}\" and discarding \"{}\"", existingFilename, filename);
+              "unique IDs!\nKeeping \"{}\" and discarding \"{}\"", packId, existingFilename, filename);
           return;
         }
 
@@ -202,8 +208,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
       );
       return new LoadResult(packs, images);
     } catch (IOException e) {
-      CustomPaintingsMod.LOGGER.warn(e);
-      CustomPaintingsMod.LOGGER.warn("An error occurred trying to load painting packs. Skipping...");
+      CustomPaintingsMod.LOGGER.warn(LOG_FAIL_ALL, e);
       return LoadResult.empty();
     }
   }
@@ -221,8 +226,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
         return readPackMetadataFromZip(path);
       }
     } catch (Exception e) {
-      CustomPaintingsMod.LOGGER.warn(e);
-      CustomPaintingsMod.LOGGER.warn("Error reading Custom Paintings pack \"{}\", skipping...", path.getFileName());
+      CustomPaintingsMod.LOGGER.warn(String.format(LOG_FAIL_GENERIC, path.getFileName()), e);
     }
 
     return null;
@@ -240,8 +244,14 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     try {
       pack = CustomPaintingsMod.GSON.fromJson(Files.newBufferedReader(path.resolve(META_FILENAME)), PackResource.class);
     } catch (Exception e) {
-      CustomPaintingsMod.LOGGER.warn(e);
-      CustomPaintingsMod.LOGGER.warn(LOG_META_PARSE_FAIL, META_FILENAME, dirname);
+      CustomPaintingsMod.LOGGER.warn(String.format(LOG_META_PARSE_FAIL, dirname, META_FILENAME), e);
+      return null;
+    }
+
+    try {
+      pack.validateIds();
+    } catch (InvalidIdException e) {
+      CustomPaintingsMod.LOGGER.warn(String.format(LOG_ID_VALIDATION_FAIL, dirname, META_FILENAME), e);
       return null;
     }
 
@@ -254,7 +264,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     long fileSize = ResourceUtil.fileSize(path);
     PackFileUid packFileUid = new PackFileUid(false, dirname, lastModified, fileSize);
 
-    Path iconImagePath = getIconPath(path, pack.id());
+    Path iconImagePath = getIconPath(path, dirname);
     Image packIcon = null;
     if (iconImagePath != null) {
       try {
@@ -265,8 +275,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
         packIcon = Image.read(image);
       } catch (IOException e) {
-        CustomPaintingsMod.LOGGER.warn(e);
-        CustomPaintingsMod.LOGGER.warn(LOG_ICON_READ_FAIL, pack.id());
+        CustomPaintingsMod.LOGGER.warn(String.format(LOG_ICON_READ_FAIL, pack.id()), e);
       }
     }
 
@@ -303,8 +312,14 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
       try (InputStream stream = zip.getInputStream(zipMeta)) {
         pack = CustomPaintingsMod.GSON.fromJson(new InputStreamReader(stream), PackResource.class);
       } catch (Exception e) {
-        CustomPaintingsMod.LOGGER.warn(e);
-        CustomPaintingsMod.LOGGER.warn(LOG_META_PARSE_FAIL, META_FILENAME, filename);
+        CustomPaintingsMod.LOGGER.warn(String.format(LOG_META_PARSE_FAIL, filename, META_FILENAME), e);
+        return null;
+      }
+
+      try {
+        pack.validateIds();
+      } catch (InvalidIdException e) {
+        CustomPaintingsMod.LOGGER.warn(String.format(LOG_ID_VALIDATION_FAIL, filename, META_FILENAME), e);
         return null;
       }
 
@@ -318,7 +333,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
       PackFileUid packFileUid = new PackFileUid(true, filename, lastModified, fileSize);
 
       Image packIcon = null;
-      ZipEntry zipIconImage = getIconZipEntry(zip, folderPrefix, pack.id());
+      ZipEntry zipIconImage = getIconZipEntry(zip, folderPrefix, filename);
       if (zipIconImage != null) {
         try (InputStream stream = zip.getInputStream(zipIconImage)) {
           BufferedImage image = ImageIO.read(stream);
@@ -328,28 +343,26 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
           packIcon = Image.read(image);
         } catch (IOException e) {
-          CustomPaintingsMod.LOGGER.warn(e);
-          CustomPaintingsMod.LOGGER.warn(LOG_ICON_READ_FAIL, pack.id());
+          CustomPaintingsMod.LOGGER.warn(String.format(LOG_ICON_READ_FAIL, pack.id()), e);
         }
       }
 
       return new PackMetadata<>(packFileUid, pack, packIcon);
     } catch (IOException e) {
-      CustomPaintingsMod.LOGGER.warn(e);
-      CustomPaintingsMod.LOGGER.warn("Failed to load Custom Paintings pack \"{}\", skipping...", filename);
+      CustomPaintingsMod.LOGGER.warn(String.format(LOG_FAIL_GENERIC, filename), e);
     }
 
     return null;
   }
 
-  private static ZipEntry getIconZipEntry(ZipFile zip, String folderPrefix, String packId) {
+  private static ZipEntry getIconZipEntry(ZipFile zip, String folderPrefix, String filename) {
     ZipEntry entry = ResourceUtil.getImageZipEntry(zip, folderPrefix, ICON_PNG);
     if (entry == null) {
       entry = ResourceUtil.getImageZipEntry(zip, folderPrefix, PACK_PNG);
       if (entry == null) {
-        CustomPaintingsMod.LOGGER.warn(LOG_NO_ICON, packId);
+        CustomPaintingsMod.LOGGER.warn(LOG_NO_ICON, filename);
       } else {
-        CustomPaintingsMod.LOGGER.warn(LOG_LEGACY_ICON, packId);
+        CustomPaintingsMod.LOGGER.warn(LOG_LEGACY_ICON, filename);
       }
     }
     return entry;
@@ -368,8 +381,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
         return readPaintingImagesFromZip(path, pack);
       }
     } catch (Exception e) {
-      CustomPaintingsMod.LOGGER.warn(e);
-      CustomPaintingsMod.LOGGER.warn("Error reading Custom Paintings pack \"{}\", skipping...", path.getFileName());
+      CustomPaintingsMod.LOGGER.warn(String.format(LOG_FAIL_IMAGES, path.getFileName()), e);
     }
 
     return new HashMap<>();
@@ -404,8 +416,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
         images.put(id, Image.read(image));
       } catch (IOException e) {
-        CustomPaintingsMod.LOGGER.warn(e);
-        CustomPaintingsMod.LOGGER.warn(LOG_PAINTING_READ_FAIL, id);
+        CustomPaintingsMod.LOGGER.warn(String.format(LOG_PAINTING_READ_FAIL, id), e);
       }
     });
 
@@ -449,8 +460,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
           images.put(id, Image.read(image));
         } catch (IOException e) {
-          CustomPaintingsMod.LOGGER.warn(e);
-          CustomPaintingsMod.LOGGER.warn(LOG_PAINTING_READ_FAIL, id);
+          CustomPaintingsMod.LOGGER.warn(String.format(LOG_PAINTING_READ_FAIL, id), e);
         }
       });
     } catch (IOException ignored) {
@@ -459,15 +469,15 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     return images;
   }
 
-  private static Path getIconPath(Path parent, String packId) {
+  private static Path getIconPath(Path parent, String dirname) {
     Path path = parent.resolve(ICON_PNG);
     if (!Files.exists(path)) {
       path = parent.resolve(PACK_PNG);
       if (!Files.exists(path)) {
-        CustomPaintingsMod.LOGGER.warn(LOG_NO_ICON, packId);
+        CustomPaintingsMod.LOGGER.warn(LOG_NO_ICON, dirname);
         return null;
       } else {
-        CustomPaintingsMod.LOGGER.warn(LOG_LEGACY_ICON, packId);
+        CustomPaintingsMod.LOGGER.warn(LOG_LEGACY_ICON, dirname);
       }
     }
     return path;

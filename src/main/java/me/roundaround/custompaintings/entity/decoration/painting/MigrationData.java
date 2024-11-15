@@ -8,11 +8,11 @@ import java.util.HashMap;
 
 public record MigrationData(CustomId id, String description, HashMap<CustomId, CustomId> pairs) {
   public static final PacketCodec<PacketByteBuf, MigrationData> PACKET_CODEC = PacketCodec.of(
-      MigrationData::writeToPacketByteBuf, MigrationData::fromPacketByteBuf);
+      MigrationData::write, MigrationData::read);
 
-  public void writeToPacketByteBuf(PacketByteBuf buf) {
+  public void write(PacketByteBuf buf) {
     this.id.write(buf);
-    buf.writeString(this.description);
+    buf.writeString(this.description == null ? "" : this.description);
     buf.writeInt(this.pairs.size());
     this.pairs.forEach((from, to) -> {
       from.write(buf);
@@ -20,7 +20,7 @@ public record MigrationData(CustomId id, String description, HashMap<CustomId, C
     });
   }
 
-  public static MigrationData fromPacketByteBuf(PacketByteBuf buf) {
+  public static MigrationData read(PacketByteBuf buf) {
     CustomId id = CustomId.read(buf);
     String description = buf.readString();
     int count = buf.readInt();
