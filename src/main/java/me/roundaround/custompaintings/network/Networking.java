@@ -43,7 +43,6 @@ public final class Networking {
   public static final Identifier RELOAD_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "reload_c2s");
   public static final Identifier SET_PAINTING_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "set_painting_c2s");
   public static final Identifier RUN_MIGRATION_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "run_migration_c2s");
-  public static final Identifier LIST_UNKNOWN_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "list_unknown_c2s");
 
   public static void registerS2CPayloads() {
     PayloadTypeRegistry.playS2C().register(SummaryS2C.ID, SummaryS2C.CODEC);
@@ -65,7 +64,6 @@ public final class Networking {
     PayloadTypeRegistry.playC2S().register(ReloadC2S.ID, ReloadC2S.CODEC);
     PayloadTypeRegistry.playC2S().register(SetPaintingC2S.ID, SetPaintingC2S.CODEC);
     PayloadTypeRegistry.playC2S().register(RunMigrationC2S.ID, RunMigrationC2S.CODEC);
-    PayloadTypeRegistry.playC2S().register(ListUnknownC2S.ID, ListUnknownC2S.CODEC);
   }
 
   public record SummaryS2C(UUID serverId, List<PackData> packs, String combinedImageHash,
@@ -277,16 +275,6 @@ public final class Networking {
 
     @Override
     public Id<RunMigrationC2S> getId() {
-      return ID;
-    }
-  }
-
-  public record ListUnknownC2S() implements CustomPayload {
-    public static final Id<ListUnknownC2S> ID = new Id<>(LIST_UNKNOWN_C2S);
-    public static final PacketCodec<RegistryByteBuf, ListUnknownC2S> CODEC = CustomCodecs.empty(ListUnknownC2S::new);
-
-    @Override
-    public Id<ListUnknownC2S> getId() {
       return ID;
     }
   }
