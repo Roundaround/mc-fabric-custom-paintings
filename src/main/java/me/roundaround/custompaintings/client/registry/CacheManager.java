@@ -2,8 +2,9 @@ package me.roundaround.custompaintings.client.registry;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
-import me.roundaround.custompaintings.util.CustomId;
+import me.roundaround.custompaintings.registry.ImageStore;
 import me.roundaround.custompaintings.resource.Image;
+import me.roundaround.custompaintings.util.CustomId;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.nbt.*;
 import net.minecraft.util.Util;
@@ -88,8 +89,7 @@ public class CacheManager {
     return new CacheRead(images, requestedHashes, combinedHash);
   }
 
-  public void saveToFile(Map<CustomId, Image> images, Map<CustomId, String> imageHashes, String combinedHash)
-      throws IOException {
+  public void saveToFile(ImageStore images, String combinedHash) throws IOException {
     if (this.serverId == null) {
       return;
     }
@@ -102,11 +102,10 @@ public class CacheManager {
     Path dataFile = getDataFile(cacheDir);
     HashMap<String, PackCacheData> packs = new HashMap<>();
 
-    images.forEach((id, image) -> {
+    images.forEach((id, image, hash) -> {
       try {
         String packId = id.pack();
         PackCacheData pack = packs.computeIfAbsent(packId, (k) -> PackCacheData.empty(packId));
-        String hash = imageHashes.get(id);
 
         if (hash == null) {
           CustomPaintingsMod.LOGGER.warn("Failed to save image to cache: {}", id);
@@ -138,7 +137,7 @@ public class CacheManager {
     data.byServer.put(
         this.serverId, new ServerCacheData(this.serverId, combinedHash, new ArrayList<>(packs.values()), now));
 
-    imageHashes.forEach((id, hash) -> {
+    images.getHashes().forEach((id, hash) -> {
       ArrayList<HashCacheData> hashData = data.byHash.computeIfAbsent(hash, (k) -> new ArrayList<>());
       hashData.removeIf((datum) -> datum.serverId.equals(this.serverId));
       hashData.add(new HashCacheData(this.serverId, now));

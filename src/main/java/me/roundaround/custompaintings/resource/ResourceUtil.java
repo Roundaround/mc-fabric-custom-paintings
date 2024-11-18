@@ -2,6 +2,7 @@ package me.roundaround.custompaintings.resource;
 
 import com.google.common.hash.Hashing;
 import com.google.common.io.ByteSource;
+import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.util.CustomId;
 
 import javax.imageio.ImageIO;
@@ -169,21 +170,26 @@ public class ResourceUtil {
     return neededIds;
   }
 
-  public static HashResult hashImages(Map<CustomId, Image> images) throws IOException {
+  public static String hashOrEmpty(ByteSource byteSource) {
+    try {
+      return byteSource.hash(Hashing.sha256()).toString();
+    } catch (IOException e) {
+      CustomPaintingsMod.LOGGER.warn("Exception raised while generating hash.", e);
+      return "";
+    }
+  }
+
+  public static HashResult hashImages(Map<CustomId, Image> images) {
     HashMap<CustomId, String> imageHashes = new HashMap<>();
     LinkedHashMap<CustomId, ByteSource> byteSources = getByteSources(images);
 
     for (var entry : byteSources.entrySet()) {
-      imageHashes.put(entry.getKey(), entry.getValue().hash(Hashing.sha256()).toString());
+      imageHashes.put(entry.getKey(), hashOrEmpty(entry.getValue()));
     }
 
     String combinedImageHash = calculateCombinedHash(byteSources);
 
     return new HashResult(combinedImageHash, imageHashes);
-  }
-
-  public static String calculateCombinedHash(Map<CustomId, Image> images) throws IOException {
-    return calculateCombinedHash(getByteSources(images));
   }
 
   private static LinkedHashMap<CustomId, ByteSource> getByteSources(Map<CustomId, Image> images) {
@@ -195,7 +201,7 @@ public class ResourceUtil {
     return byteSources;
   }
 
-  private static String calculateCombinedHash(LinkedHashMap<CustomId, ByteSource> byteSources) throws IOException {
-    return ByteSource.concat(byteSources.values()).hash(Hashing.sha256()).toString();
+  private static String calculateCombinedHash(LinkedHashMap<CustomId, ByteSource> byteSources) {
+    return hashOrEmpty(ByteSource.concat(byteSources.values()));
   }
 }

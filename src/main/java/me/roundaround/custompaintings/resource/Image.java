@@ -3,6 +3,7 @@ package me.roundaround.custompaintings.resource;
 import com.google.common.hash.Hashing;
 import com.google.common.io.ByteSource;
 import io.netty.buffer.ByteBuf;
+import me.roundaround.custompaintings.CustomPaintingsMod;
 import net.minecraft.network.codec.PacketCodec;
 
 import javax.imageio.ImageIO;
@@ -92,8 +93,13 @@ public record Image(Color[] pixels, int width, int height) {
     return ByteSource.wrap(this.getBytes());
   }
 
-  public String getHash() throws IOException {
-    return this.getByteSource().hash(Hashing.sha256()).toString();
+  public String getHash() {
+    try {
+      return this.getByteSource().hash(Hashing.sha256()).toString();
+    } catch (IOException e) {
+      CustomPaintingsMod.LOGGER.warn("Exception raised while generating hash.", e);
+      return "";
+    }
   }
 
   public boolean isEmpty() {

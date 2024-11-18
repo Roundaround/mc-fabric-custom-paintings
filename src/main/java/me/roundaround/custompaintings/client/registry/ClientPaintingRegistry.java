@@ -1,7 +1,6 @@
 package me.roundaround.custompaintings.client.registry;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.gui.screen.PacksLoadedListener;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
@@ -14,6 +13,7 @@ import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
+import me.roundaround.custompaintings.registry.ImageStore;
 import me.roundaround.custompaintings.resource.*;
 import me.roundaround.custompaintings.resource.legacy.LegacyPackConverter;
 import me.roundaround.custompaintings.util.CustomId;
@@ -36,6 +36,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class ClientPaintingRegistry extends CustomPaintingRegistry {
@@ -50,8 +51,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   private final MinecraftClient client;
   private final SpriteAtlasTexture atlas;
   private final HashSet<CustomId> spriteIds = new HashSet<>();
-  private final HashMap<CustomId, Image> cachedImages = new HashMap<>();
-  private final HashMap<CustomId, String> cachedImageHashes = new HashMap<>();
+  private final ImageStore cachedImages = new ImageStore();
   private final HashSet<CustomId> neededImages = new HashSet<>();
   private final HashMap<CustomId, ImageChunkBuilder> imageBuilders = new HashMap<>();
   private final LinkedHashMap<CustomId, CompletableFuture<PaintingData>> pendingDataRequests = new LinkedHashMap<>();
@@ -199,7 +199,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   }
 
   private void initCacheAndSpriteAtlas(boolean initialLoad, UUID serverId, String serverCombinedImageHash) {
-    if (this.hasAllImages(serverCombinedImageHash, this.images)) {
+    if (this.hasAllImages(serverCombinedImageHash, this.images::contains)) {
       CustomPaintingsMod.LOGGER.info("All image info still valid, skipping re-fetching images");
       this.buildSpriteAtlas();
       return;
@@ -207,16 +207,14 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
 
     // TODO: Do I need to clear all these here?
     this.images.clear();
-    this.imageHashes.clear();
     this.cachedImages.clear();
-    this.cachedImageHashes.clear();
     this.cacheDirty = false;
 
     this.combinedImageHash = serverCombinedImageHash;
 
     if (!this.usingCache()) {
       CustomPaintingsMod.LOGGER.info("Not using cache, requesting all images from server");
-      ClientNetworking.sendHashesPacket(this.imageHashes);
+      ClientNetworking.sendHashesPacket(new HashMap<>(0));
       this.buildSpriteAtlas();
       return;
     }
@@ -245,29 +243,26 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
       CustomPaintingsMod.LOGGER.info("Cache was empty; requesting all images from server");
       this.cacheDirty = true;
       ClientNetworking.sendHashesPacket(Map.of());
-    } else if (this.hasAllImages(cacheRead.combinedHash(), cacheRead.images())) {
+    } else if (this.hasAllImages(cacheRead.combinedHash(), cacheRead.images()::containsKey)) {
       CustomPaintingsMod.LOGGER.info("All images successfully pulled from cache; skipping server image download");
-      this.images.putAll(cacheRead.images());
-      this.imageHashes.putAll(cacheRead.hashes());
+      this.images.setAll(cacheRead.images(), cacheRead.hashes());
     } else {
       CustomPaintingsMod.LOGGER.info("Requesting images from server");
       this.cacheDirty = true;
-      this.cachedImages.putAll(cacheRead.images());
-      this.cachedImageHashes.putAll(cacheRead.hashes());
-      this.cachedImageHashes.entrySet().removeIf((entry) -> !this.cachedImages.containsKey(entry.getKey()));
-      ClientNetworking.sendHashesPacket(this.cachedImageHashes);
+      this.cachedImages.putAll(cacheRead.images(), cacheRead.hashes());
+      ClientNetworking.sendHashesPacket(this.cachedImages.getHashes());
     }
 
     this.buildSpriteAtlas();
   }
 
-  private boolean hasAllImages(String newCombinedHash, Map<CustomId, Image> images) {
+  private boolean hasAllImages(String newCombinedHash, Predicate<CustomId> imageCheck) {
     if (!Objects.equals(newCombinedHash, this.combinedImageHash)) {
       return false;
     }
 
     HashSet<CustomId> neededIds = ResourceUtil.getAllImageIds(this.packsMap.keySet(), this.paintings.keySet());
-    return neededIds.stream().allMatch(images::containsKey);
+    return neededIds.stream().allMatch(imageCheck);
   }
 
   public void trackExpectedPackets(List<CustomId> ids, int imageCount, int byteCount) {
@@ -277,15 +272,13 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     neededIds.forEach((id) -> {
       if (ids.contains(id)) {
         this.cachedImages.remove(id);
-        this.cachedImageHashes.remove(id);
         return;
       }
-      Image cachedImage = this.cachedImages.get(id);
+      ImageStore.StoredImage cachedImage = this.cachedImages.get(id);
       if (cachedImage == null) {
         return;
       }
-      this.images.put(id, cachedImage);
-      this.imageHashes.put(id, this.cachedImageHashes.get(id));
+      this.images.put(id, cachedImage.image(), cachedImage.hash());
     });
 
     CustomPaintingsMod.LOGGER.info("Expecting {} painting image(s) from server", ids.size());
@@ -342,7 +335,9 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   }
 
   @Override
-  protected void onPacksChanged() {
+  public void setPacks(HashMap<String, PackData> packsMap) {
+    super.setPacks(packsMap);
+
     CustomPaintingsMod.LOGGER.info("{} painting metadata entries loaded", this.paintings.size());
     this.packsReceived = true;
 
@@ -357,13 +352,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   }
 
   @Override
-  public void setImages(HashMap<CustomId, Image> images) {
-    // TODO: Should I decouple the two registries?
-    CustomPaintingsMod.LOGGER.warn("Unexpected client-side setImages call. Was this intentional?");
-    super.setImages(images);
-  }
-
-  @Override
   public void clear() {
     super.clear();
 
@@ -373,7 +361,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.spriteIds.clear();
     this.neededImages.clear();
     this.cachedImages.clear();
-    this.cachedImageHashes.clear();
     this.imageBuilders.clear();
     this.pendingDataRequests.forEach((id, future) -> future.cancel(true));
     this.pendingDataRequests.clear();
@@ -403,13 +390,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   }
 
   private void setFull(CustomId id, Image image) {
-    try {
-      this.images.put(id, image);
-      this.imageHashes.put(id, image.getHash());
-    } catch (IOException e) {
-      // TODO: Handle exception
-      throw new RuntimeException(e);
-    }
+    this.images.put(id, image);
 
     this.cacheDirty = true;
     this.neededImages.remove(id);
@@ -433,8 +414,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   }
 
   private void buildSpriteAtlas() {
-    this.images.entrySet().removeIf((entry) -> !this.isValidImageId(entry.getKey()));
-    this.imageHashes.entrySet().removeIf((entry) -> !this.isValidImageId(entry.getKey()));
+    this.images.removeIf((id) -> !this.isValidImageId(id));
 
     List<SpriteContents> sprites = new ArrayList<>();
     sprites.add(MissingSprite.createSpriteContents());
@@ -458,12 +438,11 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
       return;
     }
 
-    final ImmutableMap<CustomId, Image> images = ImmutableMap.copyOf(this.images);
-    final ImmutableMap<CustomId, String> imageHashes = ImmutableMap.copyOf(this.imageHashes);
+    final ImageStore images = this.images.copy();
     final String combinedImageHash = this.combinedImageHash;
     CompletableFuture.supplyAsync(() -> {
       try {
-        CacheManager.getInstance().saveToFile(images, imageHashes, combinedImageHash);
+        CacheManager.getInstance().saveToFile(images, combinedImageHash);
         return true;
       } catch (IOException e) {
         CustomPaintingsMod.LOGGER.warn(e);
@@ -485,12 +464,12 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
 
   private Optional<SpriteContents> getSpriteContents(PaintingData painting) {
     return this.getSpriteContents(
-        painting.id(), this.images.get(painting.id()), painting.getScaledWidth(), painting.getScaledHeight());
+        painting.id(), this.images.getImage(painting.id()), painting.getScaledWidth(), painting.getScaledHeight());
   }
 
   private Optional<SpriteContents> getSpriteContents(String packId) {
     CustomId id = PackIcons.customId(packId);
-    return this.getSpriteContents(id, this.images.get(id), 16, 16);
+    return this.getSpriteContents(id, this.images.getImage(id), 16, 16);
   }
 
   private Optional<SpriteContents> getSpriteContents(CustomId id, Image image, int width, int height) {

@@ -4,12 +4,8 @@ import me.roundaround.custompaintings.entity.decoration.painting.MigrationData;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.util.CustomId;
-import me.roundaround.custompaintings.resource.HashResult;
-import me.roundaround.custompaintings.resource.Image;
-import me.roundaround.custompaintings.resource.ResourceUtil;
 import net.minecraft.util.Identifier;
 
-import java.io.IOException;
 import java.util.*;
 
 public abstract class CustomPaintingRegistry {
@@ -17,8 +13,7 @@ public abstract class CustomPaintingRegistry {
   protected final ArrayList<PackData> packsList = new ArrayList<>();
   protected final HashMap<CustomId, PaintingData> paintings = new HashMap<>();
   protected final HashMap<CustomId, MigrationData> migrations = new HashMap<>();
-  protected final HashMap<CustomId, Image> images = new HashMap<>();
-  protected final HashMap<CustomId, String> imageHashes = new HashMap<>();
+  protected final ImageStore images = new ImageStore();
 
   protected String combinedImageHash = "";
 
@@ -70,7 +65,6 @@ public abstract class CustomPaintingRegistry {
     this.paintings.clear();
     this.migrations.clear();
     this.images.clear();
-    this.imageHashes.clear();
     this.combinedImageHash = "";
   }
 
@@ -93,30 +87,5 @@ public abstract class CustomPaintingRegistry {
         this.migrations.put(migration.id(), migration);
       });
     });
-
-    this.onPacksChanged();
-  }
-
-  public void setImages(HashMap<CustomId, Image> images) {
-    this.images.clear();
-    this.imageHashes.clear();
-    this.combinedImageHash = "";
-
-    this.images.putAll(images);
-    try {
-      HashResult hashResult = ResourceUtil.hashImages(this.images);
-      this.imageHashes.putAll(hashResult.imageHashes());
-      this.combinedImageHash = hashResult.combinedImageHash();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-
-    this.onImagesChanged();
-  }
-
-  protected void onPacksChanged() {
-  }
-
-  protected void onImagesChanged() {
   }
 }

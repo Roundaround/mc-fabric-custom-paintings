@@ -121,6 +121,12 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     }, this.server);
   }
 
+  public void setImages(HashMap<CustomId, Image> images) {
+    HashResult hashResult = ResourceUtil.hashImages(images);
+    this.images.setAll(images, hashResult.imageHashes());
+    this.combinedImageHash = hashResult.combinedImageHash();
+  }
+
   public void sendSummaryToAll() {
     ServerNetworking.sendSummaryPacketToAll(this.server, this.packsList, this.combinedImageHash,
         this.finishedMigrations, this.safeMode, this.loadErrorOrSkipCount
@@ -135,12 +141,8 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
   public void checkPlayerHashes(ServerPlayerEntity player, Map<CustomId, String> hashes) {
     HashMap<CustomId, Image> images = new HashMap<>();
-    this.imageHashes.forEach((id, hash) -> {
+    this.images.forEach((id, image, hash) -> {
       if (hash.equals(hashes.get(id))) {
-        return;
-      }
-      Image image = this.images.get(id);
-      if (image == null) {
         return;
       }
       images.put(id, image);
