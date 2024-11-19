@@ -193,16 +193,6 @@ public class ServerPaintingManager extends PersistentState {
     return false;
   }
 
-  private static PaintingData dataOrUnknown(PaintingData data) {
-    if (data == null || data.unknown()) {
-      return data;
-    }
-    if (!ServerPaintingRegistry.getInstance().contains(data.id())) {
-      return data.markUnknown();
-    }
-    return data;
-  }
-
   public static void syncAllDataForAllPlayers(MinecraftServer server) {
     server.getPlayerManager()
         .getPlayerList()
