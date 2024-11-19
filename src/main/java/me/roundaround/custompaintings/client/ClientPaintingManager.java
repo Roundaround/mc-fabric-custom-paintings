@@ -11,9 +11,8 @@ import net.minecraft.util.Util;
 import net.minecraft.world.World;
 
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public class ClientPaintingManager {
@@ -30,12 +29,13 @@ public class ClientPaintingManager {
         return;
       }
 
-      this.expiryTimes.remove(painting.getId());
-
-      PaintingData paintingData = this.cachedData.get(painting.getId());
-      if (paintingData != null && !paintingData.isEmpty()) {
-        this.setPaintingData(painting, paintingData);
+      int id = painting.getId();
+      PaintingData data = this.cachedData.get(id);
+      if (data != null && !data.isEmpty()) {
+        this.setPaintingData(painting, data);
       }
+
+      this.remove(id);
     });
     ClientEntityEvents.ENTITY_UNLOAD.register((entity, world) -> {
       if (!(entity instanceof PaintingEntity painting)) {
@@ -44,24 +44,20 @@ public class ClientPaintingManager {
 
       Entity.RemovalReason removalReason = painting.getRemovalReason();
       if (removalReason != null && removalReason.shouldDestroy()) {
-        this.remove(painting);
+        this.remove(painting.getId());
         return;
       }
 
-      this.scheduleRemoval(painting);
+      this.cacheData(painting);
     });
     ClientTickEvents.START_CLIENT_TICK.register((client) -> {
       long now = Util.getMeasuringTimeMs();
-      var iter = this.expiryTimes.entrySet().iterator();
-      while (iter.hasNext()) {
-        Map.Entry<Integer, Long> entry = iter.next();
-        if (now < entry.getValue()) {
-          continue;
-        }
-
-        this.cachedData.remove(entry.getKey());
-        iter.remove();
-      }
+      List<Integer> expiredIds = this.expiryTimes.entrySet()
+          .stream()
+          .filter((entry) -> now >= entry.getValue())
+          .map(Map.Entry::getKey)
+          .toList();
+      expiredIds.forEach(this::remove);
     });
   }
 
@@ -79,7 +75,7 @@ public class ClientPaintingManager {
   }
 
   public void trySetPaintingData(World world, PaintingAssignment assignment) {
-    int paintingId = assignment.getPaintingId();
+    int id = assignment.getPaintingId();
     CompletableFuture<PaintingData> future = assignment.isKnown() ?
         ClientPaintingRegistry.getInstance().safeGet(assignment.getDataId()) :
         CompletableFuture.completedFuture(assignment.getData());
@@ -88,9 +84,9 @@ public class ClientPaintingManager {
         return;
       }
 
-      Entity entity = world.getEntityById(paintingId);
+      Entity entity = world.getEntityById(id);
       if (!(entity instanceof PaintingEntity painting)) {
-        this.cachedData.put(paintingId, paintingData);
+        this.cachedData.put(id, paintingData);
         return;
       }
 
@@ -110,13 +106,17 @@ public class ClientPaintingManager {
     painting.setCustomData(paintingData);
   }
 
-  private void remove(PaintingEntity painting) {
-    int id = painting.getId();
+  private void remove(int id) {
     this.cachedData.remove(id);
     this.expiryTimes.remove(id);
   }
 
-  private void scheduleRemoval(PaintingEntity painting) {
-    this.expiryTimes.put(painting.getId(), Util.getMeasuringTimeMs() + TTL);
+  private void cacheData(PaintingEntity painting) {
+    int id = painting.getId();
+    PaintingData data = painting.getCustomData();
+    if (data != null && !data.isEmpty()) {
+      this.cachedData.put(id, data);
+      this.expiryTimes.put(id, Util.getMeasuringTimeMs() + TTL);
+    }
   }
 }
