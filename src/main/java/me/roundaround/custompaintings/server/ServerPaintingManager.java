@@ -110,13 +110,6 @@ public class ServerPaintingManager extends PersistentState {
     ServerNetworking.sendSyncAllDataPacket(player, assignments);
   }
 
-  public void remove(UUID uuid) {
-    this.networkIds.remove(uuid);
-    if (this.allPaintings.remove(uuid) != null) {
-      this.markDirty();
-    }
-  }
-
   public void setPaintingData(PaintingEntity painting, PaintingData data) {
     painting.setCustomData(data);
     if (this.setTrackedData(painting.getUuid(), painting.getId(), data)) {
@@ -171,6 +164,13 @@ public class ServerPaintingManager extends PersistentState {
     if (potentialOldLabels.stream().anyMatch(customNameContent::startsWith)) {
       painting.setCustomName(null);
       painting.setCustomNameVisible(false);
+    }
+  }
+
+  private void remove(UUID uuid) {
+    this.networkIds.remove(uuid);
+    if (this.allPaintings.remove(uuid) != null) {
+      this.markDirty();
     }
   }
 
