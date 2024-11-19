@@ -3,8 +3,6 @@ package me.roundaround.custompaintings.mixin;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.util.CustomId;
-import me.roundaround.custompaintings.server.ServerPaintingManager;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.decoration.AbstractDecorationEntity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
@@ -12,7 +10,6 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -72,14 +69,6 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
         .ifPresent((entry) -> {
           ((PaintingEntityAccessor) this).invokeSetVariant(entry);
         });
-  }
-
-  @Inject(method = "onBreak", at = @At(value = "HEAD"))
-  private void onBreak(Entity entity, CallbackInfo info) {
-    if (this.getWorld().isClient) {
-      return;
-    }
-    ServerPaintingManager.getInstance((ServerWorld) this.getWorld()).remove(this.getUuid());
   }
 
   @Inject(method = "readCustomDataFromNbt", at = @At(value = "HEAD"))

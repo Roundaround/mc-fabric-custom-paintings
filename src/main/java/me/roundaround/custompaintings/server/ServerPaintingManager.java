@@ -4,12 +4,12 @@ import com.google.common.collect.Streams;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.MigrationData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.custompaintings.network.PaintingAssignment;
 import me.roundaround.custompaintings.registry.VanillaPaintingRegistry;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
+import me.roundaround.custompaintings.util.CustomId;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
@@ -36,20 +36,6 @@ public class ServerPaintingManager extends PersistentState {
 
   private ServerPaintingManager(ServerWorld world) {
     this.world = world;
-
-    ServerEntityEvents.ENTITY_LOAD.register((entity, loadedWorld) -> {
-      if (loadedWorld != this.world || !(entity instanceof PaintingEntity painting)) {
-        return;
-      }
-      this.loadPainting(painting);
-      this.fixCustomName(painting);
-
-      ServerNetworking.sendSetPaintingPacketToAll(loadedWorld.getServer(),
-          PaintingAssignment.from(painting.getId(), painting.getCustomData(),
-              ServerPaintingRegistry.getInstance()::contains
-          )
-      );
-    });
   }
 
   public static void init(ServerWorld world) {
@@ -88,15 +74,23 @@ public class ServerPaintingManager extends PersistentState {
     return nbt;
   }
 
-  private static ServerPaintingManager fromNbt(ServerWorld world, NbtCompound nbt) {
-    ServerPaintingManager manager = new ServerPaintingManager(world);
+  public void onEntityLoad(PaintingEntity painting) {
+    this.loadPainting(painting);
+    this.fixCustomName(painting);
 
-    NbtList nbtList = nbt.getList(NBT_PAINTINGS, NbtElement.COMPOUND_TYPE);
-    for (int i = 0; i < nbtList.size(); i++) {
-      NbtCompound nbtCompound = nbtList.getCompound(i);
-      manager.allPaintings.put(nbtCompound.getUuid(NBT_PAINTING_UUID), PaintingData.read(nbtCompound));
+    ServerNetworking.sendSetPaintingPacketToAll(this.world,
+        PaintingAssignment.from(painting.getId(), painting.getCustomData(),
+            ServerPaintingRegistry.getInstance()::contains
+        )
+    );
+  }
+
+  public void onEntityUnload(PaintingEntity painting) {
+    Entity.RemovalReason removalReason = painting.getRemovalReason();
+    if (removalReason == null || !removalReason.shouldDestroy()) {
+      return;
     }
-    return manager;
+    this.remove(painting.getUuid());
   }
 
   public void syncAllDataForPlayer(ServerPlayerEntity player) {
@@ -117,15 +111,16 @@ public class ServerPaintingManager extends PersistentState {
   }
 
   public void remove(UUID uuid) {
-    this.allPaintings.remove(uuid);
     this.networkIds.remove(uuid);
-    this.markDirty();
+    if (this.allPaintings.remove(uuid) != null) {
+      this.markDirty();
+    }
   }
 
   public void setPaintingData(PaintingEntity painting, PaintingData data) {
     painting.setCustomData(data);
     if (this.setTrackedData(painting.getUuid(), painting.getId(), data)) {
-      ServerNetworking.sendSetPaintingPacketToAll(this.world.getServer(),
+      ServerNetworking.sendSetPaintingPacketToAll(this.world,
           PaintingAssignment.from(painting.getId(), data, ServerPaintingRegistry.getInstance()::contains)
       );
     }
@@ -191,6 +186,17 @@ public class ServerPaintingManager extends PersistentState {
     }
 
     return false;
+  }
+
+  private static ServerPaintingManager fromNbt(ServerWorld world, NbtCompound nbt) {
+    ServerPaintingManager manager = new ServerPaintingManager(world);
+
+    NbtList nbtList = nbt.getList(NBT_PAINTINGS, NbtElement.COMPOUND_TYPE);
+    for (int i = 0; i < nbtList.size(); i++) {
+      NbtCompound nbtCompound = nbtList.getCompound(i);
+      manager.allPaintings.put(nbtCompound.getUuid(NBT_PAINTING_UUID), PaintingData.read(nbtCompound));
+    }
+    return manager;
   }
 
   public static void syncAllDataForAllPlayers(MinecraftServer server) {

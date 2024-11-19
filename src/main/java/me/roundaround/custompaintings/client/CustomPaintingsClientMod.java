@@ -13,6 +13,10 @@ public class CustomPaintingsClientMod implements ClientModInitializer {
 
     KeyBindings.register();
 
+    ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+      ClientPaintingManager.init();
+    });
+
     ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
       ClientPaintingRegistry.getInstance().clear();
       ClientPaintingManager.getInstance().clear();

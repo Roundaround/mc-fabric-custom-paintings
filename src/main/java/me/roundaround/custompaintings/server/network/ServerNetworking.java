@@ -72,9 +72,9 @@ public final class ServerNetworking {
     ServerPlayNetworking.send(player, new Networking.EditPaintingS2C(paintingUuid, paintingId, pos, facing));
   }
 
-  public static void sendSetPaintingPacketToAll(MinecraftServer server, PaintingAssignment assignment) {
+  public static void sendSetPaintingPacketToAll(ServerWorld world, PaintingAssignment assignment) {
     Networking.SetPaintingS2C payload = new Networking.SetPaintingS2C(assignment);
-    server.getPlayerManager().getPlayerList().forEach((player) -> {
+    world.getPlayers().forEach((player) -> {
       sendSetPaintingPacket(player, payload);
     });
   }

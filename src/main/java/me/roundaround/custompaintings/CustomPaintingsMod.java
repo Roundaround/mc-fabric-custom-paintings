@@ -17,6 +17,7 @@ import me.roundaround.roundalib.client.event.MinecraftServerEvents;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -58,6 +59,20 @@ public final class CustomPaintingsMod implements ModInitializer {
       VanillaPaintingRegistry.init();
       ServerPaintingRegistry.init(server);
       ServerPaintingManager.init(world);
+    });
+
+    ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
+      if (!(entity instanceof PaintingEntity painting)) {
+        return;
+      }
+      ServerPaintingManager.getInstance(world).onEntityLoad(painting);
+    });
+
+    ServerEntityEvents.ENTITY_UNLOAD.register((entity, world) -> {
+      if (!(entity instanceof PaintingEntity painting)) {
+        return;
+      }
+      ServerPaintingManager.getInstance(world).onEntityUnload(painting);
     });
 
     ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
