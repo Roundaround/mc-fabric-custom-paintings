@@ -111,5 +111,7 @@
   "custompaintings.toasts.load.skipped.title": "Custom Paintings not loaded",
   "custompaintings.toasts.load.skipped.body": "Skipped loading Custom Paintings packs because the world was loaded in safe mode",
   "custompaintings.toasts.load.failure.title": "Errors loading Custom Painting packs",
-  "custompaintings.toasts.load.failure.body": "Some Custom Paintings packs failed to load. Check logs for details"
+  "custompaintings.toasts.load.failure.body": "Some Custom Paintings packs failed to load. Check logs for details",
+  "custompaintings.toasts.legacy.title": "Legacy packs found",
+  "custompaintings.toasts.legacy.body": "Detected %s Custom Paintings pack(s) in the old resource pack format. Convert them from the mod's main menu or ignore them in the mod config."
 }

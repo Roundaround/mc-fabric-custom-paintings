@@ -7,6 +7,7 @@ import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.client.texture.BasicTextureSprite;
 import me.roundaround.custompaintings.client.texture.LoadingSprite;
 import me.roundaround.custompaintings.client.texture.VanillaIconSprite;
+import me.roundaround.custompaintings.client.toast.CustomSystemToasts;
 import me.roundaround.custompaintings.client.toast.DownloadProgressToast;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
@@ -23,8 +24,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.resource.metadata.AnimationFrameResourceMetadata;
 import net.minecraft.client.resource.metadata.AnimationResourceMetadata;
 import net.minecraft.client.texture.*;
-import net.minecraft.client.toast.SystemToast;
-import net.minecraft.client.toast.Toast;
 import net.minecraft.registry.Registries;
 import net.minecraft.resource.metadata.ResourceMetadata;
 import net.minecraft.text.Text;
@@ -184,15 +183,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
           legacyPacks.removeAll(alreadyLoaded);
 
           if (!legacyPacks.isEmpty()) {
-            // TODO: i18n
-            Toast toast = SystemToast.create(this.client, SystemToast.Type.PERIODIC_NOTIFICATION,
-                Text.of("Legacy Packs Found"), Text.of(String.format(
-                    "Detected %s Custom Paintings pack(s) in the old resource pack format (pre-v3.0.0). Convert the " +
-                    "packs automatically from the Custom Paintings Main Menu or ignore them in the mod config.",
-                    legacyPacks.size()
-                ))
-            );
-            this.client.getToastManager().add(toast);
+            CustomSystemToasts.addLegacyPacksFound(this.client, legacyPacks.size());
           }
         }, this.client);
   }

@@ -9,6 +9,7 @@ public class CustomSystemToasts {
   public static final SystemToast.Type PACK_DROP_FAILURE = new SystemToast.Type();
   public static final SystemToast.Type PACK_LOAD_SKIPPED = new SystemToast.Type();
   public static final SystemToast.Type PACK_LOAD_FAILURE = new SystemToast.Type();
+  public static final SystemToast.Type LEGACY_PACKS_FOUND = new SystemToast.Type();
 
   public static void addPackCopyFailure(MinecraftClient client, String directory) {
     addPackCopyFailure(client.getToastManager(), directory);
@@ -36,6 +37,16 @@ public class CustomSystemToasts {
   public static void addPackLoadFailure(ToastManager manager) {
     SystemToast.add(manager, PACK_LOAD_FAILURE, Text.translatable("custompaintings.toasts.load.failure.title"),
         Text.translatable("custompaintings.toasts.load.failure.body")
+    );
+  }
+
+  public static void addLegacyPacksFound(MinecraftClient client, int count) {
+    addLegacyPacksFound(client.getToastManager(), count);
+  }
+
+  public static void addLegacyPacksFound(ToastManager manager, int count) {
+    SystemToast.add(manager, LEGACY_PACKS_FOUND, Text.translatable("custompaintings.toasts.legacy.title"),
+        Text.translatable("custompaintings.toasts.legacy.body", count)
     );
   }
 }
