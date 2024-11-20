@@ -4,7 +4,6 @@ import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.registry.VanillaPaintingRegistry;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.AbstractRedstoneGateBlock;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
@@ -218,25 +217,19 @@ public class PaintingEditState {
   }
 
   protected void createVanillaPack() {
-    // TODO: i18n
     String id = Identifier.DEFAULT_NAMESPACE;
-    String name = FabricLoader.getInstance()
-        .getModContainer(id)
-        .map((mod) -> mod.getMetadata().getName())
-        .orElse("Minecraft");
     List<PaintingData> paintings = VanillaPaintingRegistry.getInstance().getAll(VanillaPaintingRegistry.Placeable.YES);
-    this.allPaintings.put(
-        id, PackData.virtual(id, Text.of(name), Text.of("Paintings included in vanilla Minecraft."), paintings));
+    this.allPaintings.put(id, PackData.virtual(id, Text.translatable("custompaintings.pack.minecraft.name"),
+        Text.translatable("custompaintings.pack.minecraft.name"), paintings
+    ));
   }
 
   protected void createUnplaceableVanillaPack() {
-    // TODO: i18n
     String id = Identifier.DEFAULT_NAMESPACE + "_unplaceable";
-    String name = "Minecraft: The Hidden Ones";
     List<PaintingData> paintings = VanillaPaintingRegistry.getInstance().getAll(VanillaPaintingRegistry.Placeable.NO);
-    this.allPaintings.put(id,
-        PackData.virtual(id, Text.of(name), Text.of("Vanilla paintings that aren't normally placeable!"), paintings)
-    );
+    this.allPaintings.put(id, PackData.virtual(id, Text.translatable("custompaintings.pack.unplaceable.name"),
+        Text.translatable("custompaintings.pack.unplaceable.name"), paintings
+    ));
   }
 
   public boolean canStay() {

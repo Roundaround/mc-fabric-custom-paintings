@@ -44,12 +44,10 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
         .width(BUTTON_WIDTH)
         .build());
 
-    // TODO: i18n
     this.layout.addBody(
-        ButtonWidget.builder(Text.of("Manage Image Cache"), this::navigateCache).width(BUTTON_WIDTH).build());
+        ButtonWidget.builder(Text.translatable("custompaintings.main.cache"), this::navigateCache).width(BUTTON_WIDTH).build());
 
-    // TODO: i18n
-    Text packsLabel = canEdit ? Text.of("Manage Painting Packs") : Text.of("View Painting Packs");
+    Text packsLabel = canEdit ? Text.translatable("custompaintings.main.packs.manage") : Text.translatable("custompaintings.main.packs.view");
     ButtonWidget packsButton = this.layout.addBody(
         ButtonWidget.builder(packsLabel, this::navigatePacks).width(BUTTON_WIDTH).build());
 
@@ -70,8 +68,7 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
 
     if (!inWorld) {
       packsButton.active = false;
-      // TODO: i18n
-      packsButton.setTooltip(Tooltip.of(Text.of("Requires being connected to a world/server")));
+      packsButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.packs.notInWorld")));
 
       this.reloadButton.active = false;
       this.reloadButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.reload.notInWorld")));

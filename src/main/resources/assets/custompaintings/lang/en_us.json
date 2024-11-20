@@ -1,5 +1,9 @@
 {
   "custompaintings.pack.title": "Choose a pack",
+  "custompaintings.pack.minecraft.name": "Minecraft",
+  "custompaintings.pack.minecraft.description": "Paintings included in vanilla Minecraft.",
+  "custompaintings.pack.unplaceable.name": "Minecraft: The Hidden Ones",
+  "custompaintings.pack.unplaceable.description": "Vanilla paintings that aren't normally placeable!",
   "custompaintings.painting.title": "Choose a painting",
   "custompaintings.painting.search": "Search for a painting",
   "custompaintings.painting.number": "%s of %s",
@@ -53,6 +57,10 @@
   "custompaintings.main.reload": "Reload Packs",
   "custompaintings.main.reload.notInWorld": "Requires being connected to a world/server",
   "custompaintings.main.reload.notOp": "Requires OP permissions",
+  "custompaintings.main.cache": "Manage Image Cache",
+  "custompaintings.main.packs.manage": "Manage Painting Packs",
+  "custompaintings.main.packs.view": "View Painting Packs",
+  "custompaintings.main.packs.notInWorld": "Requires being connected to a world/server",
   "custompaintings.legacy.title": "Convert Legacy (Pre-3.0.0) Resource Packs",
   "custompaintings.legacy.direct": "Output directly for current world",
   "custompaintings.legacy.output": "Open Output Folder",
@@ -78,5 +86,13 @@
   "custompaintings.migrate.entry.run": "Run",
   "custompaintings.migrate.entry.reRun": "Re-Run",
   "custompaintings.migrate.entry.success": "Complete",
-  "custompaintings.migrate.entry.error": "An error occurred"
+  "custompaintings.migrate.entry.error": "An error occurred",
+  "custompaintings.cache.title": "Custom Paintings Mod Cache",
+  "custompaintings.cache.servers": "Worlds/servers tracked",
+  "custompaintings.cache.images": "Painting and icon images cached",
+  "custompaintings.cache.shared": "Number of shared images",
+  "custompaintings.cache.bytes": "Used storage space",
+  "custompaintings.cache.loading": "Loading Cache Statistics",
+  "custompaintings.cache.error1": "Failed to load cache statistics.",
+  "custompaintings.cache.error2": "Check the logs for details."
 }

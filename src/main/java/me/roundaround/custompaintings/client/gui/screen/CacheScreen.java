@@ -32,21 +32,16 @@ import java.util.stream.Stream;
 
 public class CacheScreen extends Screen {
   private static final int BUTTON_WIDTH = ButtonWidget.DEFAULT_WIDTH_SMALL;
-  // TODO: i18n
-  private static final Text LABEL_SERVERS = Text.of("Worlds/servers tracked");
-  // TODO: i18n
-  private static final Text LABEL_IMAGES = Text.of("Painting and icon images cached");
-  // TODO: i18n
-  private static final Text LABEL_SHARED = Text.of("Number of shared images");
-  // TODO: i18n
-  private static final Text LABEL_BYTES = Text.of("Used storage space");
+  private static final Text LABEL_SERVERS = Text.of("custompaintings.cache.servers");
+  private static final Text LABEL_IMAGES = Text.of("custompaintings.cache.images");
+  private static final Text LABEL_SHARED = Text.of("custompaintings.cache.shared");
+  private static final Text LABEL_BYTES = Text.of("custompaintings.cache.bytes");
 
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
   private final Screen parent;
 
   public CacheScreen(Screen parent) {
-    // TODO: i18n
-    super(Text.of("Custom Paintings Mod Cache"));
+    super(Text.translatable("custompaintings.cache.title"));
     this.parent = parent;
   }
 
@@ -159,7 +154,6 @@ public class CacheScreen extends Screen {
     }
 
     private static class LoadingEntry extends Entry {
-      // TODO: i18n
       private static final Text LOADING_TEXT = Text.translatable("custompaintings.cache.loading");
 
       private final TextRenderer textRenderer;
@@ -192,9 +186,7 @@ public class CacheScreen extends Screen {
     }
 
     private static class ErrorEntry extends Entry {
-      // TODO: i18n
       private static final Text MESSAGE_LINE_1 = Text.translatable("custompaintings.cache.error1");
-      // TODO: i18n
       private static final Text MESSAGE_LINE_2 = Text.translatable("custompaintings.cache.error2");
 
       private final LabelWidget label;
