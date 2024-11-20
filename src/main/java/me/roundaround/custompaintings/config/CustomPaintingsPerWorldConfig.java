@@ -22,7 +22,6 @@ public class CustomPaintingsPerWorldConfig extends ModConfigImpl implements Worl
   public IntConfigOption maxPerClientImagePacketsPerSecond;
   public IntConfigOption maxImagePacketSize;
   public BooleanConfigOption silenceConvertPrompt;
-  public IntConfigOption largeImageWarningResolution;
 
   private CustomPaintingsPerWorldConfig() {
     super(CustomPaintingsMod.MOD_ID, "world");
@@ -62,14 +61,5 @@ public class CustomPaintingsPerWorldConfig extends ModConfigImpl implements Worl
             .setComment("Silence legacy pack conversion prompts for this world")
             .setDefaultValue(false)
             .build()).singlePlayerOnly().commit();
-
-    this.largeImageWarningResolution = this.buildRegistration(
-        IntConfigOption.builder(ConfigPath.of("largeImageWarningResolution"))
-            .setComment(
-                "Threshold resolution for images to be considered overly large and show a warning, in pixels per block")
-            .setDefaultValue(32)
-            .setStep(16)
-            .setMinValue(16)
-            .build()).serverOnly().commit();
   }
 }
