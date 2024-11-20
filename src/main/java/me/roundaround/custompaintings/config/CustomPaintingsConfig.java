@@ -30,24 +30,27 @@ public class CustomPaintingsConfig extends ModConfigImpl implements GameScopedFi
   @Override
   protected void registerOptions() {
     this.overrideRenderDistance = this.buildRegistration(
-            BooleanConfigOption.yesNoBuilder(ConfigPath.of("overrideRenderDistance")).setDefaultValue(false).build())
-        .clientOnly()
-        .commit();
+        BooleanConfigOption.yesNoBuilder(ConfigPath.of("overrideRenderDistance"))
+            .setComment("Override vanilla render distance")
+            .setDefaultValue(false)
+            .build()).clientOnly().commit();
 
     this.renderDistanceScale = this.buildRegistration(
         IntConfigOption.sliderBuilder(ConfigPath.of("renderDistanceScale"))
+            .setComment("Render distance scale")
             .setDefaultValue(16)
             .setMinValue(1)
             .setMaxValue(64)
             .setStep(4)
             .build()).clientOnly().commit();
 
-    this.cacheImages = this.buildRegistration(
-            BooleanConfigOption.yesNoBuilder(ConfigPath.of("cacheImages")).setDefaultValue(true).build())
-        .clientOnly()
-        .commit();
+    this.cacheImages = this.buildRegistration(BooleanConfigOption.yesNoBuilder(ConfigPath.of("cacheImages"))
+        .setComment("Cache images from the server locally")
+        .setDefaultValue(true)
+        .build()).clientOnly().commit();
 
     this.cacheTtl = this.buildRegistration(IntConfigOption.builder(ConfigPath.of("cacheTtl"))
+        .setComment("Number of days to retain cached images")
         .setDefaultValue(14)
         .setMinValue(1)
         .setMaxValue(10000)
@@ -55,8 +58,9 @@ public class CustomPaintingsConfig extends ModConfigImpl implements GameScopedFi
         .build()).clientOnly().commit();
 
     this.silenceAllConvertPrompts = this.buildRegistration(
-            BooleanConfigOption.yesNoBuilder(ConfigPath.of("silenceAllConvertPrompts")).setDefaultValue(false).build())
-        .clientOnly()
-        .commit();
+        BooleanConfigOption.yesNoBuilder(ConfigPath.of("silenceAllConvertPrompts"))
+            .setComment("Silence all legacy pack conversion prompts")
+            .setDefaultValue(false)
+            .build()).clientOnly().commit();
   }
 }

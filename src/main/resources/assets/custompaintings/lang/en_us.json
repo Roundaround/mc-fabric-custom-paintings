@@ -39,6 +39,7 @@
   "custompaintings.silenceAllConvertPrompts.label": "Silence all legacy pack conversion prompts",
   "custompaintings.throttleImageDownloads.label": "Throttle image transfers to clients",
   "custompaintings.maxImagePacketsPerSecond.label": "Maximum number of image packets per second",
+  "custompaintings.maxPerClientImagePacketsPerSecond.label": "Maximum number of image packets per second per client",
   "custompaintings.maxImagePacketSize.label": "Maximum size for each image packet in KB",
   "custompaintings.silenceConvertPrompt.label": "Silence legacy pack conversion prompts for this world",
   "custompaintings.main.title": "Custom Paintings Main Menu",
