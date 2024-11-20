@@ -42,6 +42,7 @@
   "custompaintings.maxPerClientImagePacketsPerSecond.label": "Maximum number of image packets per second per client",
   "custompaintings.maxImagePacketSize.label": "Maximum size for each image packet in KB",
   "custompaintings.silenceConvertPrompt.label": "Silence legacy pack conversion prompts for this world",
+  "custompaintings.largeImageWarningResolution.label": "Resolution at which images are considered overly large, in pixels per block",
   "custompaintings.main.title": "Custom Paintings Main Menu",
   "custompaintings.main.config": "Configuration",
   "custompaintings.main.legacy": "Convert Legacy Packs",
