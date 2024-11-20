@@ -99,15 +99,17 @@
   "custompaintings.cache.configure": "Configure",
   "custompaintings.packs.manage": "Manage Painting Packs",
   "custompaintings.packs.view": "View Painting Packs",
-  "custompaintings.packs.drag": "Drag and drop files into this window to add packs",
+  "custompaintings.packs.drop": "Drag and drop files into this window to add packs",
   "custompaintings.packs.inactive": "Inactive",
   "custompaintings.packs.active": "Active",
   "custompaintings.packs.reload": "Reload Packs",
   "custompaintings.packs.open": "Open Packs Folder",
   "custompaintings.packs.open.notInWorld": "Not available for multiplayer servers",
-  "custompaintings.packs.drop.confirm": "Do you want to copy the following files/folders into the painting packs directory?",
-  "custompaintings.packs.drop.success1": "Drop Success",
-  "custompaintings.packs.drop.success2": "Successfully copied files/folders",
-  "custompaintings.packs.drop.failure": "Failed to copy files/folders",
-  "custompaintings.packs.paintings": "%s painting(s)"
+  "custompaintings.packs.copyConfirm": "Do you want to copy the following files/folders into the painting packs directory?",
+  "custompaintings.packs.paintings": "%s painting(s)",
+  "custompaintings.toasts.copy.failure.title": "Failed to copy files/folders",
+  "custompaintings.toasts.load.skipped.title": "Custom Paintings not loaded",
+  "custompaintings.toasts.load.skipped.body": "Skipped loading Custom Paintings packs because the world was loaded in safe mode",
+  "custompaintings.toasts.load.failure.title": "Errors loading Custom Painting packs",
+  "custompaintings.toasts.load.failure.body": "Some Custom Paintings packs failed to load. Check logs for details"
 }

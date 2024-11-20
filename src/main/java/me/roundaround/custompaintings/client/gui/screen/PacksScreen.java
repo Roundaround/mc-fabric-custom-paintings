@@ -6,6 +6,7 @@ import me.roundaround.custompaintings.client.gui.widget.SpriteWidget;
 import me.roundaround.custompaintings.client.gui.widget.VersionStamp;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
+import me.roundaround.custompaintings.client.toast.CustomSystemToasts;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.resource.PackIcons;
 import me.roundaround.custompaintings.resource.ResourceUtil;
@@ -30,7 +31,6 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.Widget;
-import net.minecraft.client.toast.SystemToast;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
@@ -173,21 +173,15 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
           }
         }
 
-        if (allSuccessful) {
-          SystemToast.add(this.client.getToastManager(), SystemToast.Type.PERIODIC_NOTIFICATION,
-              Text.translatable("custompaintings.packs.drop.success1"),
-              Text.translatable("custompaintings.packs.drop.success2")
-          );
-        } else {
-          SystemToast.add(this.client.getToastManager(), SystemToast.Type.PERIODIC_NOTIFICATION,
-              Text.translatable("custompaintings.packs.drop.failure"), Text.of(packsDirectory.toString())
-          );
+        if (!allSuccessful) {
+          CustomSystemToasts.addPackCopyFailure(this.client, packsDirectory.toString());
         }
+
+        this.reloadPacks();
       }
 
-      this.reloadPacks();
       this.client.setScreen(this);
-    }, Text.translatable("custompaintings.packs.drop.confirm"), Text.of(packList)));
+    }, Text.translatable("custompaintings.packs.copyConfirm"), Text.of(packList)));
   }
 
   @Override
