@@ -15,8 +15,7 @@ public class DownloadProgressToast implements Toast {
 
   private static final long DURATION = 2000L;
   private static final Identifier TEXTURE = new Identifier(Identifier.DEFAULT_NAMESPACE, "toast/system");
-  // TODO: i18n
-  private static final Text TITLE = Text.of("Downloading images");
+  private static final Text TITLE = Text.translatable("custompaintings.toasts.download.title");
   private static final int TEXT_LEFT = 18;
   private static final int TITLE_Y = 7;
   private static final int DESCRIPTION_Y = 18;
@@ -112,10 +111,9 @@ public class DownloadProgressToast implements Toast {
   }
 
   private Text getDescription() {
-    // TODO: i18n
-    return Text.of(String.format("%s/%s images (%s%%)", this.imagesReceived, this.imagesExpected,
+    return Text.translatable("custompaintings.toasts.download.body", this.imagesReceived, this.imagesExpected,
         Math.clamp(Math.round(100f * this.progress), 0, 100)
-    ));
+    );
   }
 
   public record Type() {

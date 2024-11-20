@@ -107,11 +107,15 @@
   "custompaintings.packs.open.notInWorld": "Not available for multiplayer servers",
   "custompaintings.packs.copyConfirm": "Do you want to copy the following files/folders into the painting packs directory?",
   "custompaintings.packs.paintings": "%s painting(s)",
+  "custompaintings.toasts.download.title": "Downloading images",
+  "custompaintings.toasts.download.body": "%s/%s images (%s%%)",
   "custompaintings.toasts.copy.failure.title": "Failed to copy files/folders",
   "custompaintings.toasts.load.skipped.title": "Custom Paintings not loaded",
   "custompaintings.toasts.load.skipped.body": "Skipped loading Custom Paintings packs because the world was loaded in safe mode",
   "custompaintings.toasts.load.failure.title": "Errors loading Custom Painting packs",
   "custompaintings.toasts.load.failure.body": "Some Custom Paintings packs failed to load. Check logs for details",
   "custompaintings.toasts.legacy.title": "Legacy packs found",
-  "custompaintings.toasts.legacy.body": "Detected %s Custom Paintings pack(s) in the old resource pack format. Convert them from the mod's main menu or ignore them in the mod config."
+  "custompaintings.toasts.legacy.body": "Detected %s Custom Paintings pack(s) in the old resource pack format. Convert them from the mod's main menu or ignore them in the mod config.",
+  "custompaintings.keyCategory": "Custom Paintings",
+  "custompaintings.key.openMainMenu": "Open mod's main menu"
 }

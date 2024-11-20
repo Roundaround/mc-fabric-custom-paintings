@@ -17,7 +17,6 @@ public class KeyBindings {
   }
 
   public static void register() {
-    // TODO: i18n
     openMenu = KeyBindingHelper.registerKeyBinding(
         new KeyBinding("custompaintings.key.openMainMenu", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_U,
             "custompaintings.keyCategory"

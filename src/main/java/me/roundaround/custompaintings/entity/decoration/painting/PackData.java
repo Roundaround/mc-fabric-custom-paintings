@@ -31,8 +31,7 @@ public record PackData(String packFileUid, boolean disabled, long fileSize, Stri
     if (this.description != null && !this.description.isBlank()) {
       tooltip.append("\n").append(this.description);
     }
-    // TODO: i18n
-    tooltip.append("\n").append(Text.of(String.format("%s painting(s)", this.paintings.size())));
+    tooltip.append("\n").append(Text.translatable("custompaintings.packs.paintings", this.paintings.size()));
 
     return Texts.bracketed(idText)
         .styled(style -> style.withColor(this.disabled ? Formatting.RED : Formatting.GREEN)

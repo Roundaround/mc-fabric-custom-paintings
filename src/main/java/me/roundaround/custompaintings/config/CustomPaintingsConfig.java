@@ -47,7 +47,6 @@ public class CustomPaintingsConfig extends ModConfigImpl implements GameScopedFi
         .clientOnly()
         .commit();
 
-    // TODO: i18n (custompaintings.cacheTtl.label)
     this.cacheTtl = this.buildRegistration(IntConfigOption.builder(ConfigPath.of("cacheTtl"))
         .setDefaultValue(14)
         .setMinValue(1)
