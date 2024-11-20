@@ -65,7 +65,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   private int bytesExpected;
   private int imagesReceived;
   private int bytesReceived;
-  private DownloadProgressToast downloadProgressToast;
 
   private ClientPaintingRegistry(MinecraftClient client) {
     this.client = client;
@@ -290,10 +289,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.bytesExpected = byteCount;
 
     if (this.client.player != null && !this.client.isInSingleplayer()) {
-      if (this.downloadProgressToast != null) {
-        this.downloadProgressToast.hide();
-      }
-      this.downloadProgressToast = DownloadProgressToast.create(this.client, this.imagesExpected, this.bytesExpected);
+      DownloadProgressToast.add(this.client.getToastManager(), this.imagesExpected, this.bytesExpected);
     }
 
     this.buildSpriteAtlas();
@@ -303,8 +299,9 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.imagesReceived++;
     this.bytesReceived += image.getSize();
 
-    if (this.downloadProgressToast != null) {
-      this.downloadProgressToast.setReceived(this.imagesReceived, this.bytesReceived);
+    DownloadProgressToast toast = DownloadProgressToast.get(this.client.getToastManager());
+    if (toast != null) {
+      toast.setReceived(this.imagesReceived, this.bytesReceived);
     }
 
     this.setFull(id, image);
@@ -317,8 +314,9 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   public void setPaintingChunk(CustomId id, int index, byte[] bytes) {
     this.bytesReceived += bytes.length;
 
-    if (this.downloadProgressToast != null) {
-      this.downloadProgressToast.setReceived(this.imagesReceived, this.bytesReceived);
+    DownloadProgressToast toast = DownloadProgressToast.get(this.client.getToastManager());
+    if (toast != null) {
+      toast.setReceived(this.imagesReceived, this.bytesReceived);
     }
 
     this.setPart(id, (builder) -> builder.set(index, bytes));
@@ -380,8 +378,9 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     if (setter.apply(builder)) {
       this.imagesReceived++;
 
-      if (this.downloadProgressToast != null) {
-        this.downloadProgressToast.setReceived(this.imagesReceived, this.bytesReceived);
+      DownloadProgressToast toast = DownloadProgressToast.get(this.client.getToastManager());
+      if (toast != null) {
+        toast.setReceived(this.imagesReceived, this.bytesReceived);
       }
 
       this.setFull(id, builder.generate());

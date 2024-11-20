@@ -1,7 +1,6 @@
 package me.roundaround.custompaintings.client.toast;
 
 import me.roundaround.roundalib.client.gui.GuiUtil;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.toast.Toast;
@@ -12,6 +11,8 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 
 public class DownloadProgressToast implements Toast {
+  public static final Type TYPE = new Type();
+
   private static final long DURATION = 2000L;
   private static final Identifier TEXTURE = new Identifier(Identifier.DEFAULT_NAMESPACE, "toast/system");
   // TODO: i18n
@@ -45,10 +46,25 @@ public class DownloadProgressToast implements Toast {
     this.description = this.getDescription();
   }
 
-  public static DownloadProgressToast create(MinecraftClient client, int imagesExpected, int bytesExpected) {
-    DownloadProgressToast toast = new DownloadProgressToast(imagesExpected, bytesExpected);
-    client.getToastManager().add(toast);
-    return toast;
+  public static void add(ToastManager manager, int imagesExpected, int bytesExpected) {
+    hide(manager);
+    manager.add(new DownloadProgressToast(imagesExpected, bytesExpected));
+  }
+
+  public static DownloadProgressToast get(ToastManager manager) {
+    return manager.getToast(DownloadProgressToast.class, TYPE);
+  }
+
+  public static void hide(ToastManager manager) {
+    DownloadProgressToast toast = get(manager);
+    if (toast != null) {
+      toast.hide();
+    }
+  }
+
+  @Override
+  public Object getType() {
+    return TYPE;
   }
 
   @Override
@@ -100,5 +116,8 @@ public class DownloadProgressToast implements Toast {
     return Text.of(String.format("%s/%s images (%s%%)", this.imagesReceived, this.imagesExpected,
         Math.clamp(Math.round(100f * this.progress), 0, 100)
     ));
+  }
+
+  public record Type() {
   }
 }
