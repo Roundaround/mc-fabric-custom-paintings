@@ -18,10 +18,10 @@ public class ReloadSub {
   }
 
   public static int execute(ServerCommandSource source) {
-    source.sendFeedback(() -> Text.translatable("custompaintings.command.reload.begin"), true);
+    source.sendFeedback(() -> Text.translatable("custompaintings.commands.reload.begin"), true);
     ServerPaintingRegistry.getInstance().reloadPaintingPacks((server) -> {
       ServerPaintingManager.syncAllDataForAllPlayers(server);
-      source.sendFeedback(() -> Text.translatable("custompaintings.command.reload.end"), true);
+      source.sendFeedback(() -> Text.translatable("custompaintings.commands.reload.end"), true);
     });
     return 1;
   }

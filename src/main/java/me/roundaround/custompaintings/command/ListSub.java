@@ -38,11 +38,12 @@ public class ListSub {
   private static int execute(ServerCommandSource source, PackType packType) {
     Collection<PackData> packs = packType.getPacks(ServerPaintingRegistry.getInstance());
     if (packs.isEmpty()) {
-      source.sendFeedback(() -> Text.translatable("custompaintings.command.list." + packType + ".none"), false);
+      source.sendFeedback(() -> Text.translatable("custompaintings.commands.list." + packType + ".none"), false);
     } else {
-      source.sendFeedback(() -> Text.translatable("custompaintings.command.list." + packType + ".success", packs.size(),
-          Texts.join(packs, PackData::getInformationText)
-      ), false);
+      source.sendFeedback(
+          () -> Text.translatable("custompaintings.commands.list." + packType + ".success", packs.size(),
+              Texts.join(packs, PackData::getInformationText)
+          ), false);
     }
     return packs.size();
   }

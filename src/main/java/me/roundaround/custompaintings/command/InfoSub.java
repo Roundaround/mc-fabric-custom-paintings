@@ -30,30 +30,23 @@ public class InfoSub {
     String id = StringArgumentType.getString(context, "id");
     PackData pack = ServerPaintingRegistry.getInstance().getPacks().get(id);
     if (pack == null) {
-      // TODO: i18n
-      context.getSource().sendFeedback(() -> Text.of(String.format("Pack \"%s\" not found", id)), false);
+      context.getSource().sendError(Text.translatable("custompaintings.commands.info.notFound", id));
       return 0;
     }
 
-    ArrayList<String> lines = new ArrayList<>();
-    // TODO: i18n
-    lines.add(String.format("Name: %s", pack.name()));
-    // TODO: i18n
-    lines.add(String.format("ID: %s", pack.id()));
+    ArrayList<Text> lines = new ArrayList<>();
+    lines.add(Text.translatable("custompaintings.commands.info.name", pack.name()));
+    lines.add(Text.translatable("custompaintings.commands.info.id", pack.id()));
     if (pack.description() != null && !pack.description().isBlank()) {
-      // TODO: i18n
-      lines.add(String.format("Description: %s", pack.description()));
+      lines.add(Text.translatable("custompaintings.commands.info.description", pack.description()));
     }
     if (!pack.paintings().isEmpty()) {
-      // TODO: i18n
-      lines.add(String.format("Paintings: %s", pack.paintings().size()));
+      lines.add(Text.translatable("custompaintings.commands.info.paintings", pack.paintings().size()));
     }
     if (!pack.migrations().isEmpty()) {
-      // TODO: i18n
-      lines.add(String.format("Migrations: %s", pack.migrations().size()));
+      lines.add(Text.translatable("custompaintings.commands.info.migrations", pack.migrations().size()));
     }
-    // TODO: i18n
-    lines.add(String.format("File Size: %s", StringUtil.formatBytes(pack.fileSize())));
+    lines.add(Text.translatable("custompaintings.commands.info.fileSize", StringUtil.formatBytes(pack.fileSize())));
 
     context.getSource().sendFeedback(() -> {
       MutableText message = Text.empty();

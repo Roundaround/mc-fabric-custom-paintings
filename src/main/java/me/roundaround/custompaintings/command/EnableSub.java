@@ -29,24 +29,21 @@ public class EnableSub {
     String id = StringArgumentType.getString(context, "id");
     PackData pack = ServerPaintingRegistry.getInstance().getPacks().get(id);
     if (pack == null) {
-      // TODO: i18n
-      context.getSource().sendFeedback(() -> Text.of(String.format("Pack \"%s\" not found", id)), false);
+      context.getSource().sendError(Text.translatable("custompaintings.commands.enable.notFound", id));
       return 0;
     }
 
     if (ServerInfo.getInstance().markPackEnabled(pack.packFileUid())) {
-      // TODO: i18n
-      context.getSource().sendFeedback(() -> Text.of(String.format("Pack \"%s\" enabled. Reloading packs", id)), true);
+      context.getSource().sendFeedback(() -> Text.translatable("custompaintings.commands.enable.enabled", id), true);
       ServerPaintingRegistry.getInstance().reloadPaintingPacks((server) -> {
         ServerPaintingManager.syncAllDataForAllPlayers(server);
-        // TODO: i18n
-        context.getSource().sendFeedback(() -> Text.of("Packs reloaded"), true);
+        context.getSource().sendFeedback(() -> Text.translatable("custompaintings.commands.enable.reloaded"), true);
       });
       return 1;
     }
 
-    // TODO: i18n
-    context.getSource().sendFeedback(() -> Text.of(String.format("Pack \"%s\" already enabled", id)), false);
+    context.getSource()
+        .sendFeedback(() -> Text.translatable("custompaintings.commands.enable.alreadyEnabled", id), false);
     return 0;
   }
 }
