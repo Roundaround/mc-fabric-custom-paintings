@@ -49,6 +49,10 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class PacksScreen extends Screen implements PacksLoadedListener {
+  private static final Text TITLE_MANAGE = Text.translatable("custompaintings.packs.manage");
+  private static final Text TITLE_VIEW = Text.translatable("custompaintings.packs.view");
+  private static final Text LIST_INACTIVE = Text.translatable("custompaintings.packs.inactive");
+  private static final Text LIST_ACTIVE = Text.translatable("custompaintings.packs.active");
   private static final int BUTTON_HEIGHT = ButtonWidget.DEFAULT_HEIGHT;
   private static final int BUTTON_WIDTH = ButtonWidget.DEFAULT_WIDTH_SMALL;
   private static final int LIST_WIDTH = 200;
@@ -60,20 +64,20 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
 
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
   private final Screen parent;
+  private final boolean editMode;
   private final ArrayList<PackData> inactivePacks = new ArrayList<>();
   private final ArrayList<PackData> activePacks = new ArrayList<>();
   private final HashSet<String> toActivate = new HashSet<>();
   private final HashSet<String> toDeactivate = new HashSet<>();
 
-  private boolean canEdit;
   private PackList inactiveList;
   private PackList activeList;
   private LoadingButtonWidget reloadButton;
 
-  public PacksScreen(Screen parent) {
-    // TODO: i18n
-    super(Text.of("Painting Packs"));
+  public PacksScreen(Screen parent, boolean editMode) {
+    super(editMode ? TITLE_MANAGE : TITLE_VIEW);
     this.parent = parent;
+    this.editMode = editMode;
   }
 
   @Override
@@ -83,52 +87,44 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
     this.resetPacks();
 
     boolean inSinglePlayer = this.client.isInSingleplayer();
-    boolean hasOps = this.client.player != null && this.client.player.hasPermissionLevel(3);
-    this.canEdit = inSinglePlayer || hasOps;
 
     this.layout.addHeader(this.textRenderer, this.title);
     if (inSinglePlayer) {
-      // TODO: i18n
       this.layout.addHeader(this.textRenderer,
-          Text.literal("Drag and drop files into this window to add packs").formatted(Formatting.GRAY)
+          Text.translatable("custompaintings.packs.drag").formatted(Formatting.GRAY)
       );
     }
 
-    if (this.canEdit) {
+    if (this.editMode) {
       this.layout.getBody().flowAxis(Axis.HORIZONTAL).spacing(30);
-      // TODO: i18n
       this.inactiveList = this.layout.addBody(
-          new PackList(this.client, LIST_WIDTH, this.layout.getBodyHeight(), Text.of("Inactive"), SELECT_TEXTURE,
+          new PackList(this.client, LIST_WIDTH, this.layout.getBodyHeight(), LIST_INACTIVE, SELECT_TEXTURE,
               SELECT_HIGHLIGHTED_TEXTURE, this::activatePack, this.inactivePacks
           ), (parent, self) -> {
             self.setDimensions(LIST_WIDTH, parent.getHeight());
           });
-      // TODO: i18n
       this.activeList = this.layout.addBody(
-          new PackList(this.client, LIST_WIDTH, this.layout.getBodyHeight(), Text.of("Active"), UNSELECT_TEXTURE,
+          new PackList(this.client, LIST_WIDTH, this.layout.getBodyHeight(), LIST_ACTIVE, UNSELECT_TEXTURE,
               UNSELECT_HIGHLIGHTED_TEXTURE, this::deactivatePack, this.activePacks
           ), (parent, self) -> {
             self.setDimensions(LIST_WIDTH, parent.getHeight());
           });
 
-      // TODO: i18n
       this.reloadButton = this.layout.addFooter(
           new LoadingButtonWidget(0, 0, BUTTON_WIDTH, BUTTON_HEIGHT, Text.of("Reload Packs"),
               (b) -> this.reloadPacks()
           ));
 
-      // TODO: i18n
       ButtonWidget openDirButton = this.layout.addFooter(
-          ButtonWidget.builder(Text.of("Open Packs Folder"), (b) -> this.openPackDir()).width(BUTTON_WIDTH).build());
+          ButtonWidget.builder(Text.translatable("custompaintings.packs.open"), (b) -> this.openPackDir())
+              .width(BUTTON_WIDTH)
+              .build());
       if (!inSinglePlayer) {
         openDirButton.active = false;
-        // TODO: i18n
-        openDirButton.setTooltip(Tooltip.of(Text.of("Not available for multiplayer servers")));
+        openDirButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.packs.open.notInWorld")));
       }
     } else {
-      // TODO: i18n
-      this.activeList = this.layout.addBody(
-          new PackList(this.client, this.layout, Text.of("Active"), this.activePacks));
+      this.activeList = this.layout.addBody(new PackList(this.client, this.layout, LIST_ACTIVE, this.activePacks));
     }
 
     this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, (b) -> this.close()).width(BUTTON_WIDTH).build());
@@ -167,28 +163,31 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
 
         for (Path src : packPaths) {
           Path dest = packsDirectory.resolve(src.getFileName());
+          // TODO: Validate packs before copy
           try {
             Files.copy(src, dest);
           } catch (IOException e) {
             CustomPaintingsMod.LOGGER.warn("Failed to copy painting pack from {} to {}", src, dest);
-            SystemToast.addPackCopyFailure(this.client, src.toString());
             allSuccessful = false;
             break;
           }
         }
 
         if (allSuccessful) {
-          // TODO: i18n
           SystemToast.add(this.client.getToastManager(), SystemToast.Type.PERIODIC_NOTIFICATION,
-              Text.of("Drop success"), Text.of("Successfully added packs")
+              Text.translatable("custompaintings.packs.drop.success1"),
+              Text.translatable("custompaintings.packs.drop.success2")
+          );
+        } else {
+          SystemToast.add(this.client.getToastManager(), SystemToast.Type.PERIODIC_NOTIFICATION,
+              Text.translatable("custompaintings.packs.drop.failure"), Text.of(packsDirectory.toString())
           );
         }
       }
 
       this.reloadPacks();
       this.client.setScreen(this);
-      // TODO: i18n
-    }, Text.of("CONFIRM"), Text.of(packList)));
+    }, Text.translatable("custompaintings.packs.drop.confirm"), Text.of(packList)));
   }
 
   @Override
@@ -231,7 +230,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
   }
 
   private void activatePack(PackData pack) {
-    if (!this.canEdit) {
+    if (!this.editMode) {
       return;
     }
 
@@ -247,7 +246,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
   }
 
   private void deactivatePack(PackData pack) {
-    if (!this.canEdit) {
+    if (!this.editMode) {
       return;
     }
 
@@ -436,14 +435,14 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
             .hideBackground()
             .showShadow()
             .build(), (parent, self) -> self.setWidth(parent.getWidth()));
-        // TODO: i18n
-        textSection.add(
-            LabelWidget.builder(textRenderer, Text.of(String.format("%s painting(s)", pack.paintings().size())))
-                .alignTextLeft()
-                .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
-                .hideBackground()
-                .showShadow()
-                .build(), (parent, self) -> self.setWidth(parent.getWidth()));
+        textSection.add(LabelWidget.builder(textRenderer,
+                Text.translatable("custompaintings.packs.paintings", pack.paintings().size())
+            )
+            .alignTextLeft()
+            .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
+            .hideBackground()
+            .showShadow()
+            .build(), (parent, self) -> self.setWidth(parent.getWidth()));
         textSection.add(LabelWidget.builder(textRenderer, Text.of(StringUtil.formatBytes(pack.fileSize())))
             .alignTextLeft()
             .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)

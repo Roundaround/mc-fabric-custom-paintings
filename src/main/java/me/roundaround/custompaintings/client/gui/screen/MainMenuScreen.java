@@ -44,10 +44,13 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
         .width(BUTTON_WIDTH)
         .build());
 
-    this.layout.addBody(
-        ButtonWidget.builder(Text.translatable("custompaintings.main.cache"), this::navigateCache).width(BUTTON_WIDTH).build());
+    this.layout.addBody(ButtonWidget.builder(Text.translatable("custompaintings.main.cache"), this::navigateCache)
+        .width(BUTTON_WIDTH)
+        .build());
 
-    Text packsLabel = canEdit ? Text.translatable("custompaintings.main.packs.manage") : Text.translatable("custompaintings.main.packs.view");
+    Text packsLabel = canEdit ?
+        Text.translatable("custompaintings.main.packs.manage") :
+        Text.translatable("custompaintings.main.packs.view");
     ButtonWidget packsButton = this.layout.addBody(
         ButtonWidget.builder(packsLabel, this::navigatePacks).width(BUTTON_WIDTH).build());
 
@@ -130,7 +133,9 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
 
   private void navigatePacks(ButtonWidget button) {
     assert this.client != null;
-    this.client.setScreen(new PacksScreen(this));
+    boolean inSinglePlayer = this.client.isInSingleplayer();
+    boolean hasOps = this.client.player != null && this.client.player.hasPermissionLevel(3);
+    this.client.setScreen(new PacksScreen(this, inSinglePlayer || hasOps));
   }
 
   private void navigateConvert(ButtonWidget button) {

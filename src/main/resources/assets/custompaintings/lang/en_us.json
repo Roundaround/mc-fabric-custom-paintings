@@ -94,5 +94,20 @@
   "custompaintings.cache.bytes": "Used storage space",
   "custompaintings.cache.loading": "Loading Cache Statistics",
   "custompaintings.cache.error1": "Failed to load cache statistics.",
-  "custompaintings.cache.error2": "Check the logs for details."
+  "custompaintings.cache.error2": "Check the logs for details.",
+  "custompaintings.cache.clear": "Clear",
+  "custompaintings.cache.configure": "Configure",
+  "custompaintings.packs.manage": "Manage Painting Packs",
+  "custompaintings.packs.view": "View Painting Packs",
+  "custompaintings.packs.drag": "Drag and drop files into this window to add packs",
+  "custompaintings.packs.inactive": "Inactive",
+  "custompaintings.packs.active": "Active",
+  "custompaintings.packs.reload": "Reload Packs",
+  "custompaintings.packs.open": "Open Packs Folder",
+  "custompaintings.packs.open.notInWorld": "Not available for multiplayer servers",
+  "custompaintings.packs.drop.confirm": "Do you want to copy the following files/folders into the painting packs directory?",
+  "custompaintings.packs.drop.success1": "Drop Success",
+  "custompaintings.packs.drop.success2": "Successfully copied files/folders",
+  "custompaintings.packs.drop.failure": "Failed to copy files/folders",
+  "custompaintings.packs.paintings": "%s painting(s)"
 }

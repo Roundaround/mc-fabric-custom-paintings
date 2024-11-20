@@ -62,12 +62,14 @@ public class CacheScreen extends Screen {
           }
         }, this.client);
 
-    // TODO: i18n
     this.layout.addFooter(
-        ButtonWidget.builder(Text.of("Clear Cache"), (b) -> this.clearCache(list)).width(BUTTON_WIDTH).build());
-    // TODO: i18n
+        ButtonWidget.builder(Text.translatable("custompaintings.cache.clear"), (b) -> this.clearCache(list))
+            .width(BUTTON_WIDTH)
+            .build());
     this.layout.addFooter(
-        ButtonWidget.builder(Text.of("Configure"), (b) -> this.navigateConfig()).width(BUTTON_WIDTH).build());
+        ButtonWidget.builder(Text.translatable("custompaintings.cache.configure"), (b) -> this.navigateConfig())
+            .width(BUTTON_WIDTH)
+            .build());
     this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, (b) -> this.close()).width(BUTTON_WIDTH).build());
 
     VersionStamp.create(this.textRenderer, this.layout);
