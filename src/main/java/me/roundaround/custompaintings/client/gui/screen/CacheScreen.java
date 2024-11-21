@@ -32,10 +32,10 @@ import java.util.stream.Stream;
 
 public class CacheScreen extends Screen {
   private static final int BUTTON_WIDTH = ButtonWidget.DEFAULT_WIDTH_SMALL;
-  private static final Text LABEL_SERVERS = Text.of("custompaintings.cache.servers");
-  private static final Text LABEL_IMAGES = Text.of("custompaintings.cache.images");
-  private static final Text LABEL_SHARED = Text.of("custompaintings.cache.shared");
-  private static final Text LABEL_BYTES = Text.of("custompaintings.cache.bytes");
+  private static final Text LABEL_SERVERS = Text.translatable("custompaintings.cache.servers");
+  private static final Text LABEL_IMAGES = Text.translatable("custompaintings.cache.images");
+  private static final Text LABEL_SHARED = Text.translatable("custompaintings.cache.shared");
+  private static final Text LABEL_BYTES = Text.translatable("custompaintings.cache.bytes");
 
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
   private final Screen parent;
