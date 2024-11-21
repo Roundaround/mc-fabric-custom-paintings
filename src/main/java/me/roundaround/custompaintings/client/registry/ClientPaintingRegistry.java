@@ -476,17 +476,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
         ));
   }
 
-  private void sendMessage(Text text) {
-    this.sendMessage(this.client, text);
-  }
-
-  private void sendMessage(MinecraftClient client, Text text) {
-    if (client.player == null) {
-      return;
-    }
-    client.player.sendMessage(text);
-  }
-
   @SuppressWarnings("BooleanMethodIsAlwaysInverted")
   private boolean usingCache() {
     return CustomPaintingsConfig.getInstance().cacheImages.getValue();
