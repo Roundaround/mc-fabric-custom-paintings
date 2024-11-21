@@ -89,7 +89,7 @@ public final class ClientNetworking {
   private static void handleImage(Networking.ImageS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
       CustomPaintingsMod.LOGGER.info(
-          "Received full image for {} ({}KB).", payload.id(), StringUtil.formatBytes(payload.image().getSize()));
+          "Received full image for {} ({}).", payload.id(), StringUtil.formatBytes(payload.image().getSize()));
       ClientPaintingRegistry.getInstance().setPaintingImage(payload.id(), payload.image());
     });
   }
@@ -104,7 +104,7 @@ public final class ClientNetworking {
 
   private static void handleImageChunk(Networking.ImageChunkS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
-      CustomPaintingsMod.LOGGER.info("Received image chunk #{} for {} ({}KB).", payload.index(), payload.id(),
+      CustomPaintingsMod.LOGGER.info("Received image chunk #{} for {} ({}).", payload.index(), payload.id(),
           StringUtil.formatBytes(payload.bytes().length)
       );
       ClientPaintingRegistry.getInstance().setPaintingChunk(payload.id(), payload.index(), payload.bytes());
