@@ -21,8 +21,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 public class CacheManager {
-  private static final long MS_PER_WEEK = 1000 * 60 * 60 * 24 * 7;
-
   private static CacheManager instance = null;
 
   private UUID serverId = null;
