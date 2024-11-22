@@ -26,7 +26,6 @@ import net.minecraft.client.resource.metadata.AnimationResourceMetadata;
 import net.minecraft.client.texture.*;
 import net.minecraft.registry.Registries;
 import net.minecraft.resource.metadata.ResourceMetadata;
-import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 
@@ -393,7 +392,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
 
     CustomPaintingsMod.LOGGER.info("All painting images received from server. Refreshing sprite atlas...");
     this.buildSpriteAtlas();
-    this.saveBackToCache();
+    this.cacheNewImages();
     CustomPaintingsMod.LOGGER.info("Painting images downloaded and sprite atlas refreshed in {}s",
         StringUtil.formatDuration(Util.getMeasuringTimeMs() - this.waitingForImagesTimer)
     );
@@ -424,7 +423,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.atlasInitialized = true;
   }
 
-  private void saveBackToCache() {
+  private void cacheNewImages() {
     if (!this.usingCache() || !this.neededImages.isEmpty() || !this.cacheDirty) {
       return;
     }

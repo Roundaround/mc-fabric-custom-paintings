@@ -116,6 +116,8 @@ public class CacheManager {
       return;
     }
 
+    final long now = Util.getEpochTimeMs();
+
     Path cacheDir = getCacheDir();
     if (Files.notExists(cacheDir)) {
       Files.createDirectories(cacheDir);
@@ -135,7 +137,7 @@ public class CacheManager {
         }
 
         ImageIO.write(image.toBufferedImage(), "png", cacheDir.resolve(hash + ".png").toFile());
-        pack.images.add(new ImageCacheData(id, hash, Util.getEpochTimeMs()));
+        pack.images.add(new ImageCacheData(id, hash, now));
       } catch (IOException e) {
         CustomPaintingsMod.LOGGER.warn(e);
         CustomPaintingsMod.LOGGER.warn("Failed to save image to cache: {}", id);
@@ -155,7 +157,6 @@ public class CacheManager {
     }
 
     CacheData data = CacheData.fromNbt(nbt);
-    final long now = Util.getEpochTimeMs();
     data.byServer.put(
         this.serverId, new ServerCacheData(this.serverId, combinedHash, new ArrayList<>(packs.values()), now));
 
@@ -167,7 +168,7 @@ public class CacheManager {
 
     NbtIo.writeCompressed(data.toNbt(), dataFile);
 
-    CompletableFuture.runAsync(() -> trimOldData(cacheDir, data));
+    CompletableFuture.runAsync(() -> trimOldData(cacheDir, data), Util.getIoWorkerExecutor());
   }
 
   public void clear() throws IOException {
