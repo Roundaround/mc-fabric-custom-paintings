@@ -15,6 +15,9 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class CacheManager {
@@ -35,8 +38,7 @@ public class CacheManager {
   public static void runBackgroundClean() {
     CompletableFuture.runAsync(() -> {
       try {
-        Path cacheDir = getCacheDir();
-        Path dataFile = getDataFile(cacheDir);
+        Path dataFile = getDataFile(getCacheDir());
 
         if (Files.notExists(dataFile) || !Files.isRegularFile(dataFile)) {
           return;
@@ -45,7 +47,7 @@ public class CacheManager {
         NbtCompound nbt = NbtIo.readCompressed(dataFile, NbtSizeTracker.ofUnlimitedBytes());
         CacheData data = CacheData.fromNbt(nbt);
 
-        trimOldData(cacheDir, data);
+        trimExpired(data);
       } catch (Exception ignored) {
         // TODO: Handle exception
       }
@@ -72,12 +74,12 @@ public class CacheManager {
     }
 
     CacheData data = CacheData.fromNbt(nbt);
-    if (!data.byServer.containsKey(this.serverId)) {
+    if (!data.byServer().containsKey(this.serverId)) {
       return null;
     }
 
     final long expired = Util.getEpochTimeMs() - getTtlMs();
-    ServerCacheData server = data.byServer.get(this.serverId);
+    ServerCacheData server = data.byServer().get(this.serverId);
 
     if (server.lastAccess() <= expired) {
       return null;
@@ -86,11 +88,11 @@ public class CacheManager {
     Set<String> requestedPackIds = requestedImageIds.stream().map(CustomId::pack).collect(Collectors.toSet());
     HashMap<CustomId, String> requestedHashes = new HashMap<>();
 
-    for (PackCacheData pack : server.packs) {
-      if (requestedPackIds.contains(pack.packId)) {
-        for (ImageCacheData image : pack.images) {
-          if (image.lastAccess() > expired && requestedImageIds.contains(image.id)) {
-            requestedHashes.put(image.id, image.hash);
+    for (PackCacheData pack : server.packs()) {
+      if (requestedPackIds.contains(pack.packId())) {
+        for (ImageCacheData image : pack.images()) {
+          if (image.lastAccess() > expired && requestedImageIds.contains(image.id())) {
+            requestedHashes.put(image.id(), image.hash());
           }
         }
       }
@@ -107,6 +109,10 @@ public class CacheManager {
     });
 
     String combinedHash = server.combinedHash();
+
+    // Note to self: run in this thread and block to avoid any potential of multiple threads accessing the file at the
+    // same time (i.e. saveToFile or trimExpired).
+    touchCache(data, serverId, combinedHash, Map.copyOf(requestedHashes));
 
     return new CacheRead(images, requestedHashes, combinedHash);
   }
@@ -137,7 +143,7 @@ public class CacheManager {
         }
 
         ImageIO.write(image.toBufferedImage(), "png", cacheDir.resolve(hash + ".png").toFile());
-        pack.images.add(new ImageCacheData(id, hash, now));
+        pack.images().add(new ImageCacheData(id, hash, now));
       } catch (IOException e) {
         CustomPaintingsMod.LOGGER.warn(e);
         CustomPaintingsMod.LOGGER.warn("Failed to save image to cache: {}", id);
@@ -157,18 +163,18 @@ public class CacheManager {
     }
 
     CacheData data = CacheData.fromNbt(nbt);
-    data.byServer.put(
-        this.serverId, new ServerCacheData(this.serverId, combinedHash, new ArrayList<>(packs.values()), now));
+    data.byServer()
+        .put(this.serverId, new ServerCacheData(this.serverId, combinedHash, new ArrayList<>(packs.values()), now));
 
     images.getHashes().forEach((id, hash) -> {
-      ArrayList<HashCacheData> hashData = data.byHash.computeIfAbsent(hash, (k) -> new ArrayList<>());
-      hashData.removeIf((datum) -> datum.serverId.equals(this.serverId));
+      ArrayList<HashCacheData> hashData = data.byHash().computeIfAbsent(hash, (k) -> new ArrayList<>());
+      hashData.removeIf((datum) -> datum.serverId().equals(this.serverId));
       hashData.add(new HashCacheData(this.serverId, now));
     });
 
     NbtIo.writeCompressed(data.toNbt(), dataFile);
 
-    CompletableFuture.runAsync(() -> trimOldData(cacheDir, data), Util.getIoWorkerExecutor());
+    CompletableFuture.runAsync(() -> trimExpired(data), Util.getIoWorkerExecutor());
   }
 
   public void clear() throws IOException {
@@ -207,9 +213,9 @@ public class CacheManager {
       }
     }
     CacheData data = CacheData.fromNbt(nbt);
-    int servers = data.byServer.size();
-    int images = data.byHash.size();
-    int shared = (int) data.byHash.entrySet().stream().filter((entry) -> entry.getValue().size() > 1).count();
+    int servers = data.byServer().size();
+    int images = data.byHash().size();
+    int shared = (int) data.byHash().entrySet().stream().filter((entry) -> entry.getValue().size() > 1).count();
 
     final var bytes = new Object() {
       long value = 0;
@@ -269,7 +275,51 @@ public class CacheManager {
     return 1000L * 60 * 60 * 24 * CustomPaintingsConfig.getInstance().cacheTtl.getValue();
   }
 
-  private static void trimOldData(Path cacheDir, CacheData data) {
+  private static void touchCache(
+      CacheData data, UUID serverId, String combinedHash, Map<CustomId, String> touchedImages
+  ) {
+    final long now = Util.getEpochTimeMs();
+
+    ServerCacheData server = getAndIfPresentOrCompute(data.byServer(), serverId,
+        (existing) -> existing.setLastAccess(now),
+        () -> new ServerCacheData(serverId, combinedHash, new ArrayList<>(), now)
+    );
+
+    HashMap<String, HashMap<CustomId, String>> imagesByPack = new HashMap<>();
+    touchedImages.forEach((id, hash) -> {
+      HashMap<CustomId, String> packImages = imagesByPack.computeIfAbsent(id.pack(), (unused) -> new HashMap<>());
+      packImages.put(id, hash);
+    });
+
+    imagesByPack.forEach((packId, packImages) -> {
+      PackCacheData pack = findOrCompute(server.packs(), (p) -> Objects.equals(p.packId(), packId),
+          () -> new PackCacheData(packId, new ArrayList<>())
+      );
+
+      packImages.forEach((id, hash) -> {
+        ifPresentOrCompute(pack.images(), (i) -> i.id().equals(id), (image) -> image.setLastAccess(now),
+            () -> new ImageCacheData(id, hash, now)
+        );
+      });
+    });
+
+    touchedImages.forEach((id, hash) -> {
+      Optional.ofNullable(data.byHash().get(hash)).ifPresent((usages) -> {
+        ifPresentOrCompute(usages, (usage) -> usage.serverId().equals(serverId), (usage) -> usage.setLastAccess(now),
+            () -> new HashCacheData(serverId, now)
+        );
+      });
+    });
+
+    try {
+      NbtIo.writeCompressed(data.toNbt(), getDataFile(getCacheDir()));
+    } catch (IOException e) {
+      CustomPaintingsMod.LOGGER.warn(String.format("Failed to update access time in cache for server %s", serverId), e);
+    }
+  }
+
+  private static void trimExpired(CacheData data) {
+    Path cacheDir = getCacheDir();
     final long now = Util.getEpochTimeMs();
     final long ttl = getTtlMs();
     final long expired = now - ttl;
@@ -350,6 +400,31 @@ public class CacheManager {
     }
   }
 
+  private static <T, U> U getAndIfPresentOrCompute(
+      Map<T, U> map, T key, Consumer<U> ifPresent, Supplier<U> compute
+  ) {
+    U value = map.get(key);
+    if (value != null) {
+      ifPresent.accept(value);
+      return value;
+    }
+    return compute.get();
+  }
+
+  private static <T> T findOrCompute(Collection<T> collection, Predicate<T> predicate, Supplier<T> compute) {
+    return collection.stream().filter(predicate).findAny().orElseGet(() -> {
+      T computed = compute.get();
+      collection.add(computed);
+      return computed;
+    });
+  }
+
+  private static <T> void ifPresentOrCompute(
+      Collection<T> collection, Predicate<T> predicate, Consumer<T> ifPresent, Supplier<T> compute
+  ) {
+    collection.stream().filter(predicate).findAny().ifPresentOrElse(ifPresent, () -> collection.add(compute.get()));
+  }
+
   private record CacheData(int version, HashMap<UUID, ServerCacheData> byServer,
                            HashMap<String, ArrayList<HashCacheData>> byHash) {
     private static final String NBT_VERSION = "Version";
@@ -400,9 +475,16 @@ public class CacheManager {
     }
   }
 
-  private record HashCacheData(UUID serverId, long lastAccess) {
+  private static final class HashCacheData {
     private static final String NBT_ID = "Id";
     private static final String NBT_LAST_ACCESS = "LastAccess";
+    private final UUID serverId;
+    private long lastAccess;
+
+    private HashCacheData(UUID serverId, long lastAccess) {
+      this.serverId = serverId;
+      this.lastAccess = lastAccess;
+    }
 
     public static HashCacheData fromNbt(NbtCompound nbt) {
       UUID serverId = nbt.getUuid(NBT_ID);
@@ -416,13 +498,53 @@ public class CacheManager {
       nbt.putLong(NBT_LAST_ACCESS, this.lastAccess);
       return nbt;
     }
+
+    public UUID serverId() {
+      return this.serverId;
+    }
+
+    public long lastAccess() {
+      return this.lastAccess;
+    }
+
+    public void setLastAccess(long lastAccess) {
+      this.lastAccess = lastAccess;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (obj == this)
+        return true;
+      if (obj == null || obj.getClass() != this.getClass())
+        return false;
+      var that = (HashCacheData) obj;
+      return Objects.equals(this.serverId, that.serverId) && this.lastAccess == that.lastAccess;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(this.serverId, this.lastAccess);
+    }
   }
 
-  private record ServerCacheData(UUID serverId, String combinedHash, ArrayList<PackCacheData> packs, long lastAccess) {
+  private static final class ServerCacheData {
     private static final String NBT_ID = "Id";
     private static final String NBT_COMBINED_HASH = "CombinedHash";
     private static final String NBT_PACKS = "Packs";
     private static final String NBT_LAST_ACCESS = "LastAccess";
+
+    private final UUID serverId;
+    private final String combinedHash;
+    private final ArrayList<PackCacheData> packs;
+
+    private long lastAccess;
+
+    private ServerCacheData(UUID serverId, String combinedHash, ArrayList<PackCacheData> packs, long lastAccess) {
+      this.serverId = serverId;
+      this.combinedHash = combinedHash;
+      this.packs = packs;
+      this.lastAccess = lastAccess;
+    }
 
     public static ServerCacheData fromNbt(NbtCompound nbt) {
       UUID serverId = nbt.getUuid(NBT_ID);
@@ -447,6 +569,43 @@ public class CacheManager {
       nbt.putLong(NBT_LAST_ACCESS, this.lastAccess);
       return nbt;
     }
+
+    public UUID serverId() {
+      return this.serverId;
+    }
+
+    public String combinedHash() {
+      return this.combinedHash;
+    }
+
+    public ArrayList<PackCacheData> packs() {
+      return this.packs;
+    }
+
+    public long lastAccess() {
+      return this.lastAccess;
+    }
+
+    public void setLastAccess(long lastAccess) {
+      this.lastAccess = lastAccess;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (obj == this)
+        return true;
+      if (obj == null || obj.getClass() != this.getClass())
+        return false;
+      var that = (ServerCacheData) obj;
+      return Objects.equals(this.serverId, that.serverId) && Objects.equals(this.combinedHash, that.combinedHash) &&
+             Objects.equals(this.packs, that.packs) && this.lastAccess == that.lastAccess;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(this.serverId, this.combinedHash, this.packs, this.lastAccess);
+    }
+
   }
 
   private record PackCacheData(String packId, ArrayList<ImageCacheData> images) {
@@ -478,10 +637,21 @@ public class CacheManager {
     }
   }
 
-  private record ImageCacheData(CustomId id, String hash, long lastAccess) {
+  private static final class ImageCacheData {
     private static final String NBT_ID = "Id";
     private static final String NBT_HASH = "Hash";
     private static final String NBT_LAST_ACCESS = "LastAccess";
+
+    private final CustomId id;
+    private final String hash;
+
+    private long lastAccess;
+
+    private ImageCacheData(CustomId id, String hash, long lastAccess) {
+      this.id = id;
+      this.hash = hash;
+      this.lastAccess = lastAccess;
+    }
 
     public static ImageCacheData fromNbt(NbtCompound nbt, String packId) {
       return new ImageCacheData(
@@ -494,6 +664,38 @@ public class CacheManager {
       nbt.putString(NBT_HASH, this.hash);
       nbt.putLong(NBT_LAST_ACCESS, this.lastAccess);
       return nbt;
+    }
+
+    public CustomId id() {
+      return this.id;
+    }
+
+    public String hash() {
+      return this.hash;
+    }
+
+    public long lastAccess() {
+      return this.lastAccess;
+    }
+
+    public void setLastAccess(long lastAccess) {
+      this.lastAccess = lastAccess;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (obj == this)
+        return true;
+      if (obj == null || obj.getClass() != this.getClass())
+        return false;
+      var that = (ImageCacheData) obj;
+      return Objects.equals(this.id, that.id) && Objects.equals(this.hash, that.hash) &&
+             this.lastAccess == that.lastAccess;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(this.id, this.hash, this.lastAccess);
     }
   }
 
