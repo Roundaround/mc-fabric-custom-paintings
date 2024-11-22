@@ -35,6 +35,26 @@ public class CacheManager {
     return instance;
   }
 
+  public static void runBackgroundClean() {
+    CompletableFuture.runAsync(() -> {
+      try {
+        Path cacheDir = getCacheDir();
+        Path dataFile = getDataFile(cacheDir);
+
+        if (Files.notExists(dataFile) || !Files.isRegularFile(dataFile)) {
+          return;
+        }
+
+        NbtCompound nbt = NbtIo.readCompressed(dataFile, NbtSizeTracker.ofUnlimitedBytes());
+        CacheData data = CacheData.fromNbt(nbt);
+
+        trimOldData(cacheDir, data);
+      } catch (Exception ignored) {
+        // TODO: Handle exception
+      }
+    }, Util.getIoWorkerExecutor());
+  }
+
   public CacheRead loadFromFile(
       UUID serverId, HashSet<CustomId> requestedImageIds
   ) {

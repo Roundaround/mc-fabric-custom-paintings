@@ -2,6 +2,7 @@ package me.roundaround.custompaintings.client;
 
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.client.option.KeyBindings;
+import me.roundaround.custompaintings.client.registry.CacheManager;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -12,6 +13,8 @@ public class CustomPaintingsClientMod implements ClientModInitializer {
     ClientNetworking.registerReceivers();
 
     KeyBindings.register();
+
+    CacheManager.runBackgroundClean();
 
     ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
       ClientPaintingManager.init();
