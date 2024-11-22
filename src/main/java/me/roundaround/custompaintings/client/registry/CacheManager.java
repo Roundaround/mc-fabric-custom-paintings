@@ -76,10 +76,10 @@ public class CacheManager {
       return null;
     }
 
-    long expiredLastAccess = Util.getEpochTimeMs() - getTtlMs();
+    final long expired = Util.getEpochTimeMs() - getTtlMs();
     ServerCacheData server = data.byServer.get(this.serverId);
 
-    if (server.lastAccess() <= expiredLastAccess) {
+    if (server.lastAccess() <= expired) {
       return null;
     }
 
@@ -89,7 +89,7 @@ public class CacheManager {
     for (PackCacheData pack : server.packs) {
       if (requestedPackIds.contains(pack.packId)) {
         for (ImageCacheData image : pack.images) {
-          if (image.lastAccess() > expiredLastAccess && requestedImageIds.contains(image.id)) {
+          if (image.lastAccess() > expired && requestedImageIds.contains(image.id)) {
             requestedHashes.put(image.id, image.hash);
           }
         }
