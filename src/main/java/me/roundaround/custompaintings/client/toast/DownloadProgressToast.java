@@ -98,12 +98,15 @@ public class DownloadProgressToast implements Toast {
 
   public void setReceived(int images, int bytes) {
     this.imagesReceived = images;
-    this.description = this.getDescription();
-    this.progress = (float) bytes / this.bytesExpected;
 
     if (bytes >= this.bytesExpected) {
+      this.progress = 1f;
       this.finishTime = this.lastTime;
+    } else {
+      this.progress = Math.clamp((float) bytes / this.bytesExpected, 0, 1);
     }
+
+    this.description = this.getDescription();
   }
 
   public void hide() {
