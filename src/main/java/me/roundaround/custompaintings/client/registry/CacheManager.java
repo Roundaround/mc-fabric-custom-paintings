@@ -268,8 +268,7 @@ public class CacheManager {
   }
 
   private static long getTtlMs() {
-    return 1000L * 60 * CustomPaintingsConfig.getInstance().cacheTtl.getValue();
-    //    return 1000L * 60 * 60 * 24 * CustomPaintingsConfig.getInstance().cacheTtl.getValue();
+    return 1000L * 60 * 60 * 24 * CustomPaintingsConfig.getInstance().cacheTtl.getValue();
   }
 
   private static void trimOldData(Path cacheDir, CacheData data) {
