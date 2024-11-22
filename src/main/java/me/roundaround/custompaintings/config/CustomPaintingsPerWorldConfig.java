@@ -32,7 +32,7 @@ public class CustomPaintingsPerWorldConfig extends ModConfigImpl implements Worl
     this.throttleImageDownloads = this.buildRegistration(
         BooleanConfigOption.yesNoBuilder(ConfigPath.of("throttleImageDownloads"))
             .setComment("Throttle image transfers to clients")
-            .setDefaultValue(false)
+            .setDefaultValue(true)
             .build()).serverOnly().commit();
 
     this.maxImagePacketsPerSecond = this.buildRegistration(
