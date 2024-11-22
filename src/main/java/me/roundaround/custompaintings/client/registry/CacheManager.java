@@ -82,6 +82,10 @@ public class CacheManager {
     Set<String> requestedPackIds = requestedImageIds.stream().map(CustomId::pack).collect(Collectors.toSet());
 
     ServerCacheData server = data.byServer.get(this.serverId);
+    if (Util.getMeasuringTimeMs() - server.lastAccess > getTtlMs()) {
+      return null;
+    }
+
     HashMap<CustomId, String> requestedHashes = new HashMap<>();
     for (PackCacheData pack : server.packs) {
       if (requestedPackIds.contains(pack.packId)) {
