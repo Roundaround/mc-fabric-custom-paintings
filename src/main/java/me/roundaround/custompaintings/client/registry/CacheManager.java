@@ -217,15 +217,15 @@ public class CacheManager {
       long value = 0;
     };
     try {
-      Files.walkFileTree(cacheDir, new SimpleFileVisitor<Path>() {
+      Files.walkFileTree(cacheDir, new SimpleFileVisitor<>() {
         @Override
-        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
           bytes.value += attrs.size();
           return FileVisitResult.CONTINUE;
         }
 
         @Override
-        public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+        public FileVisitResult visitFileFailed(Path file, IOException exc) {
           // Handle the error if a file cannot be accessed (optional)
           return FileVisitResult.CONTINUE;
         }
@@ -268,12 +268,14 @@ public class CacheManager {
   }
 
   private static long getTtlMs() {
-    return 1000L * 60 * 60 * 24 * CustomPaintingsConfig.getInstance().cacheTtl.getValue();
+    return 1000L * 60 * CustomPaintingsConfig.getInstance().cacheTtl.getValue();
+    //    return 1000L * 60 * 60 * 24 * CustomPaintingsConfig.getInstance().cacheTtl.getValue();
   }
 
   private static void trimOldData(Path cacheDir, CacheData data) {
     final long now = Util.getEpochTimeMs();
     final long ttl = getTtlMs();
+
 
     data.byServer.entrySet().removeIf(entry -> now - entry.getValue().lastAccess > ttl);
 
