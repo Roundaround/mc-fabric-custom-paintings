@@ -11,10 +11,7 @@ import net.minecraft.util.Util;
 
 import javax.imageio.ImageIO;
 import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
+import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -274,41 +271,81 @@ public class CacheManager {
   private static void trimOldData(Path cacheDir, CacheData data) {
     final long now = Util.getEpochTimeMs();
     final long ttl = getTtlMs();
+    final long expired = now - ttl;
 
-
-    data.byServer.entrySet().removeIf(entry -> now - entry.getValue().lastAccess > ttl);
-
-    Iterator<Map.Entry<String, ArrayList<HashCacheData>>> outerIter = data.byHash.entrySet().iterator();
-    while (outerIter.hasNext()) {
-      Map.Entry<String, ArrayList<HashCacheData>> entry = outerIter.next();
-      String hash = entry.getKey();
-      int removed = 0;
-
-      Iterator<HashCacheData> innerIter = entry.getValue().iterator();
-      while (innerIter.hasNext()) {
-        HashCacheData datum = innerIter.next();
-        if (now - datum.lastAccess > ttl) {
-          innerIter.remove();
-          removed++;
-        }
-      }
-
-      if (removed == entry.getValue().size()) {
-        try {
-          deleteImage(cacheDir, hash);
-          outerIter.remove();
-        } catch (IOException e) {
-          CustomPaintingsMod.LOGGER.warn(e);
-          CustomPaintingsMod.LOGGER.warn("Failed to delete stale cached image {}.png", hash);
-        }
-      }
+    if (Files.notExists(cacheDir)) {
+      return;
     }
 
-    try {
-      NbtIo.writeCompressed(data.toNbt(), getDataFile(cacheDir));
+    Path dataFile = getDataFile(cacheDir);
+    HashSet<String> remainingHashes = new HashSet<>();
+
+    try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(cacheDir)) {
+      directoryStream.forEach((path) -> {
+        if (path.equals(dataFile)) {
+          return;
+        }
+
+        String filename = path.getFileName().toString();
+        if (!filename.toLowerCase().endsWith(".png")) {
+          return;
+        }
+
+        String hash = filename.substring(0, filename.length() - 4);
+
+        if (!data.byHash().containsKey(hash)) {
+          try {
+            deleteImage(cacheDir, hash);
+          } catch (IOException e) {
+            CustomPaintingsMod.LOGGER.warn(String.format("Failed to delete stale cached image %s.png", hash), e);
+          }
+          return;
+        }
+
+        ArrayList<HashCacheData> servers = data.byHash().get(hash);
+        servers.removeIf((server) -> server.lastAccess() < expired);
+
+        if (servers.isEmpty()) {
+          data.byHash().remove(hash);
+          try {
+            deleteImage(cacheDir, hash);
+          } catch (IOException e) {
+            CustomPaintingsMod.LOGGER.warn(String.format("Failed to delete stale cached image %s.png", hash), e);
+          }
+          return;
+        }
+
+        remainingHashes.add(hash);
+      });
     } catch (IOException e) {
-      CustomPaintingsMod.LOGGER.warn(e);
-      CustomPaintingsMod.LOGGER.warn("Failed to write trimmed cache data file");
+      CustomPaintingsMod.LOGGER.warn("Failed to access cache directory for cleaning", e);
+      return;
+    }
+
+    data.byServer().entrySet().removeIf((entry) -> {
+      ServerCacheData server = entry.getValue();
+      if (server.lastAccess() < expired) {
+        return true;
+      }
+
+      ArrayList<PackCacheData> packs = server.packs();
+      if (packs.isEmpty()) {
+        return true;
+      }
+
+      packs.removeIf((pack) -> {
+        ArrayList<ImageCacheData> images = pack.images();
+        images.removeIf((image) -> !remainingHashes.contains(image.hash()) || image.lastAccess() < expired);
+        return images.isEmpty();
+      });
+
+      return packs.isEmpty();
+    });
+
+    try {
+      NbtIo.writeCompressed(data.toNbt(), dataFile);
+    } catch (IOException e) {
+      CustomPaintingsMod.LOGGER.warn("Failed to write trimmed cache data file", e);
     }
   }
 
