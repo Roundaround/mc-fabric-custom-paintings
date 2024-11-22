@@ -211,6 +211,11 @@ will open the Custom Paintings main menu on key press.
 
 ### Mod configuration
 
+The easiest way to manage mod configuration (for client-side/single player settings) is through the UI. From the main
+menu, navigate to the configuration page to adjust your settings from within the game.
+
+**TODO: Screenshot config screen**
+
 The mod has multiple configuration files to tweaking mod behavior. There is some client-side only configuration hosted
 in the main config folder inside your Minecraft's installation folder as well as world-specific configuration inside the
 save file (`world` on servers) folder.
@@ -238,7 +243,7 @@ stored in the cache before being marked as stale and getting automatically delet
 
 **Silence all legacy pack conversion prompts** (`silenceAllConvertPrompts`): `true|false` - Whether to silence prompts
 about converting legacy (pre-3.0.0) resource pack style painting packs to the new format. After joining a world, the mod
-will check if you have any of the old style painting packs in your resourcepacks directory and prompt you to convert
+will check if you have any of the old style painting packs in your resourcepacks folder and prompt you to convert
 them from the mod's main menu. Set this to `true` to silence them globally. Defaults to `false`.
 
 #### Single player per-world configuration
@@ -246,6 +251,9 @@ them from the mod's main menu. Set this to `true` to silence them globally. Defa
 There is also a config file in each world's save folder, i.e.
 `<minecraft directory>/saves/My World/config/custompaintings.toml`. If you are in a single player world, you can also
 modify these from the same in-game menu as the client-side config.
+
+**Silence legacy pack conversion prompts for this world** (`silenceConvertPrompt`): `true|false` - Same as
+`silenceAllConvertPrompts` from the client-side config, except specific to the current world. Defaults to `false`.
 
 #### Server-side configuration
 
@@ -271,7 +279,11 @@ image network packet that can be sent to clients, in KB. Only applies when `thro
 
 ### Enabling or disabling packs, or adding a pack to your world
 
+**TODO: Screenshot packs screen**
+
 ### Converting old (pre-3.0.0) packs to the new format
+
+**TODO: Screenshot legacy screen**
 
 ## Uninstalling this mod and data integrity
 
