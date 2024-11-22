@@ -394,8 +394,9 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     CustomPaintingsMod.LOGGER.info("All painting images received from server. Refreshing sprite atlas...");
     this.buildSpriteAtlas();
     this.saveBackToCache();
-    String time = StringUtil.formatToTwoDecimals((Util.getMeasuringTimeMs() - this.waitingForImagesTimer) / 1000.0);
-    CustomPaintingsMod.LOGGER.info("Painting images downloaded and sprite atlas refreshed in {}s", time);
+    CustomPaintingsMod.LOGGER.info("Painting images downloaded and sprite atlas refreshed in {}s",
+        StringUtil.formatDuration(Util.getMeasuringTimeMs() - this.waitingForImagesTimer)
+    );
 
     this.imagesExpected = 0;
     this.bytesExpected = 0;

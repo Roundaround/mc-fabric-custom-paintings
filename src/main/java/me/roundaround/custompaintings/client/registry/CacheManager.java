@@ -79,18 +79,20 @@ public class CacheManager {
       return null;
     }
 
-    Set<String> requestedPackIds = requestedImageIds.stream().map(CustomId::pack).collect(Collectors.toSet());
-
+    long expiredLastAccess = Util.getEpochTimeMs() - getTtlMs();
     ServerCacheData server = data.byServer.get(this.serverId);
-    if (Util.getMeasuringTimeMs() - server.lastAccess > getTtlMs()) {
+
+    if (server.lastAccess() <= expiredLastAccess) {
       return null;
     }
 
+    Set<String> requestedPackIds = requestedImageIds.stream().map(CustomId::pack).collect(Collectors.toSet());
     HashMap<CustomId, String> requestedHashes = new HashMap<>();
+
     for (PackCacheData pack : server.packs) {
       if (requestedPackIds.contains(pack.packId)) {
         for (ImageCacheData image : pack.images) {
-          if (requestedImageIds.contains(image.id)) {
+          if (image.lastAccess() > expiredLastAccess && requestedImageIds.contains(image.id)) {
             requestedHashes.put(image.id, image.hash);
           }
         }
@@ -98,6 +100,7 @@ public class CacheManager {
     }
 
     HashMap<CustomId, Image> images = new HashMap<>();
+
     requestedHashes.forEach((id, hash) -> {
       Image image = loadImage(cacheDir, hash);
       if (image == null || image.isEmpty()) {

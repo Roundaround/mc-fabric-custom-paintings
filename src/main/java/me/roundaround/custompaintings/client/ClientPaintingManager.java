@@ -51,7 +51,7 @@ public class ClientPaintingManager {
       this.cacheData(painting);
     });
     ClientTickEvents.START_CLIENT_TICK.register((client) -> {
-      long now = Util.getMeasuringTimeMs();
+      long now = Util.getEpochTimeMs();
       List<Integer> expiredIds = this.expiryTimes.entrySet()
           .stream()
           .filter((entry) -> now >= entry.getValue())
@@ -116,7 +116,7 @@ public class ClientPaintingManager {
     PaintingData data = painting.getCustomData();
     if (data != null && !data.isEmpty()) {
       this.cachedData.put(id, data);
-      this.expiryTimes.put(id, Util.getMeasuringTimeMs() + TTL);
+      this.expiryTimes.put(id, Util.getEpochTimeMs() + TTL);
     }
   }
 }
