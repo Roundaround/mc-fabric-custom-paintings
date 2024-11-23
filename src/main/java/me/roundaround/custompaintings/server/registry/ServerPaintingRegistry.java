@@ -169,7 +169,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
     if (packsDir == null || Files.notExists(packsDir)) {
       CustomPaintingsMod.LOGGER.info("Unable to locate packs directory, skipping");
-      return LoadResult.empty(1);
+      return LoadResult.empty(0);
     }
 
     try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(packsDir)) {
