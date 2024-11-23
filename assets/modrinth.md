@@ -14,19 +14,20 @@ Add your own custom paintings to Minecraft! Add as many as you like without bein
 paintings! Each painting can have a custom size and texture, and even name and artist labels. Using a custom "Painting
 Pack", add custom paintings to any world, even servers!
 
-**TODO: Screenshot of custom paintings on the wall**
+![](https://raw.githubusercontent.com/Roundaround/mc-fabric-custom-paintings/refs/heads/main/assets/screenshots/3_0_0/paintings-hallway.png)
 
 Out of the box, you'll also see a built-in pack containing the
 four elemental-themed paintings bundled in the game's assets that otherwise are not normally placeable. Enjoy your
 stylish Air, Earth, Fire, and Water paintings!
 
-**TODO: Screenshot of unplaceable paintings**
+![](https://raw.githubusercontent.com/Roundaround/mc-fabric-custom-paintings/refs/heads/main/assets/screenshots/3_0_0/unplaceables.png)
 
 In order to better work with all the paintings in your game, this mod also creates a painting picker menu. Instead of
 the game placing a random choice every time, placing a painting will now open up a menu where you can choose a pack and
 painting, complete with search and filtering. Now you can place the exact painting you want first time, every time!
 
-**TODO: Screenshot of pack & painting select screens**
+![](https://raw.githubusercontent.com/Roundaround/mc-fabric-custom-paintings/refs/heads/main/assets/screenshots/3_0_0/pack-select.png)
+![](https://raw.githubusercontent.com/Roundaround/mc-fabric-custom-paintings/refs/heads/main/assets/screenshots/3_0_0/painting-select.png)
 
 **Please note that _no_ new paintings are included in this mod. You need to supply your own!** You can use this mod
 without adding and packs, and it'll still give access to the hidden paintings and the fancy new painting picker menu.
@@ -68,7 +69,8 @@ You can also add a pack to a world by open the mod's main menu (see below), navi
 dragging the pack zip file or folder onto your game window, similar to how you would do it with resource packs. The mod
 will take care of copying the files over and should automatically refresh the list for you to let you know it worked!
 
-**TODO: Screenshot of packs screen**
+![](https://raw.githubusercontent.com/Roundaround/mc-fabric-custom-paintings/refs/heads/main/assets/screenshots/3_0_0/manage-packs.png)
+![](https://raw.githubusercontent.com/Roundaround/mc-fabric-custom-paintings/refs/heads/main/assets/screenshots/3_0_0/drop-pack.png)
 
 ## Adding a painting pack to your server
 
@@ -166,7 +168,7 @@ Open the `custompaintings.json` file and fill it with contents that look somethi
 
 #### Pack properties
 
-`id`: `Text, alphanumeric & underscores only` - The unique ID of the painting pack. This must be different from all
+`id`: `Text; alphanumeric, underscores, and dashes only` - The unique ID of the painting pack. This must be different from all
 other painting packs (and different from the mod IDs for other fabric mods that add custom paintings).
 
 `name`: `Text (optional)` - The name to show in the painting picker for this pack. If omitted the UI will simply
@@ -185,7 +187,7 @@ split large packs into multiple smaller ones.
 
 Each painting will need its own properties defined to tell the mod how the paintings should be displayed in game.
 
-`id`: `Text, alphanumeric & underscores only` - The unique ID of the painting. This should correspond to the name of the
+`id`: `Text; alphanumeric, underscores, and dashes only` - The unique ID of the painting. This should correspond to the name of the
 painting's PNG image file in the pack's "images" folder (without the '.png').
 
 `name`: `Text (optional)` - The name of the painting.
@@ -205,16 +207,16 @@ have [Mod Menu](https://modrinth.com/mod/modmenu) installed, you'll find the mai
 in the mods list. Otherwise, you can configure a keybind (`U` key by default) in Minecraft's vanilla keybinds menu which
 will open the Custom Paintings main menu on key press.
 
-**TODO: Mod Menu screenshot**
-**TODO: Keybinds screenshot**
-**TODO: Main menu screenshot**
+![](https://raw.githubusercontent.com/Roundaround/mc-fabric-custom-paintings/refs/heads/main/assets/screenshots/3_0_0/modmenu.png)
+![](https://raw.githubusercontent.com/Roundaround/mc-fabric-custom-paintings/refs/heads/main/assets/screenshots/3_0_0/keybind.png)
+![](https://raw.githubusercontent.com/Roundaround/mc-fabric-custom-paintings/refs/heads/main/assets/screenshots/3_0_0/mainmenu.png)
 
 ### Mod configuration
 
 The easiest way to manage mod configuration (for client-side/single player settings) is through the UI. From the main
 menu, navigate to the configuration page to adjust your settings from within the game.
 
-**TODO: Screenshot config screen**
+![](https://raw.githubusercontent.com/Roundaround/mc-fabric-custom-paintings/refs/heads/main/assets/screenshots/3_0_0/config.png)
 
 The mod has multiple configuration files to tweaking mod behavior. There is some client-side only configuration hosted
 in the main config folder inside your Minecraft's installation folder as well as world-specific configuration inside the
@@ -279,11 +281,11 @@ image network packet that can be sent to clients, in KB. Only applies when `thro
 
 ### Enabling or disabling packs, or adding a pack to your world
 
-**TODO: Screenshot packs screen**
+![](https://raw.githubusercontent.com/Roundaround/mc-fabric-custom-paintings/refs/heads/main/assets/screenshots/3_0_0/manage-packs.png)
 
 ### Converting old (pre-3.0.0) packs to the new format
 
-**TODO: Screenshot legacy screen**
+![](https://raw.githubusercontent.com/Roundaround/mc-fabric-custom-paintings/refs/heads/main/assets/screenshots/3_0_0/manage-legacy.png)
 
 ## Uninstalling this mod and data integrity
 
