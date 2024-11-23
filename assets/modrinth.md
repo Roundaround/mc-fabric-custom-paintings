@@ -168,7 +168,8 @@ Open the `custompaintings.json` file and fill it with contents that look somethi
 
 #### Pack properties
 
-`id`: `Text; alphanumeric, underscores, and dashes only` - The unique ID of the painting pack. This must be different from all
+`id`: `Text; alphanumeric, underscores, and dashes only` - The unique ID of the painting pack. This must be different
+from all
 other painting packs (and different from the mod IDs for other fabric mods that add custom paintings).
 
 `name`: `Text (optional)` - The name to show in the painting picker for this pack. If omitted the UI will simply
@@ -187,7 +188,8 @@ split large packs into multiple smaller ones.
 
 Each painting will need its own properties defined to tell the mod how the paintings should be displayed in game.
 
-`id`: `Text; alphanumeric, underscores, and dashes only` - The unique ID of the painting. This should correspond to the name of the
+`id`: `Text; alphanumeric, underscores, and dashes only` - The unique ID of the painting. This should correspond to the
+name of the
 painting's PNG image file in the pack's "images" folder (without the '.png').
 
 `name`: `Text (optional)` - The name of the painting.
@@ -204,11 +206,18 @@ painting would have a value of 3.
 
 The mod ships with a main menu to access a suite of utilities for working with the mod. If you
 have [Mod Menu](https://modrinth.com/mod/modmenu) installed, you'll find the main menu from the mod's configure button
-in the mods list. Otherwise, you can configure a keybind (`U` key by default) in Minecraft's vanilla keybinds menu which
-will open the Custom Paintings main menu on key press.
+in the mods list.
 
 ![](https://raw.githubusercontent.com/Roundaround/mc-fabric-custom-paintings/refs/heads/main/assets/screenshots/3_0_0/modmenu.png)
+
+Otherwise, you can configure a keybind (`U` key by default) in Minecraft's vanilla keybinds menu which
+will open the Custom Paintings main menu on key press.
+
 ![](https://raw.githubusercontent.com/Roundaround/mc-fabric-custom-paintings/refs/heads/main/assets/screenshots/3_0_0/keybind.png)
+
+Both of these options will open up the mod's main menu with buttons to navigate to all the configuration, management,
+and utilities you need for working with the Custom Paintings mod!
+
 ![](https://raw.githubusercontent.com/Roundaround/mc-fabric-custom-paintings/refs/heads/main/assets/screenshots/3_0_0/mainmenu.png)
 
 ### Mod configuration
@@ -281,13 +290,28 @@ image network packet that can be sent to clients, in KB. Only applies when `thro
 
 ### Enabling or disabling packs, or adding a pack to your world
 
+Opening the packs screen will show you a summary of all the packs available in your world/server. For single player and
+if you have OP permission on a server, you'll see something that resembles the resource packs screen, giving you the
+ability to enable and disable packs without having to mess with the files.
+
+On single player worlds, you'll also have the ability to drag and drop packs onto the game to add them to the world
+directly.
+
 ![](https://raw.githubusercontent.com/Roundaround/mc-fabric-custom-paintings/refs/heads/main/assets/screenshots/3_0_0/manage-packs.png)
 
 ### Converting old (pre-3.0.0) packs to the new format
 
+If you already have painting packs for a previous version of the mod that used a resource-pack system, the mod can help
+you migrate the packs to the new format and even directly add them into your world.
+
 ![](https://raw.githubusercontent.com/Roundaround/mc-fabric-custom-paintings/refs/heads/main/assets/screenshots/3_0_0/manage-legacy.png)
 
 ## Uninstalling this mod and data integrity
+
+Starting with v3.0.0, Custom Paintings now stores all your painting choices and relevant data in separate files within
+your world's save folder. This means it is safe to load the game without the mod installed (i.e. after upgrading to a
+new Minecraft version) without risk of losing your data! When you decide to install the mod again, all the data will be
+loaded and your paintings will be restored.
 
 -----
 
