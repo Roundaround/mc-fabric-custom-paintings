@@ -254,27 +254,12 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     return neededIds.stream().allMatch(imageCheck);
   }
 
-  public void trackExpectedPackets(List<CustomId> ids, int imageCount, int byteCount) {
-    HashSet<CustomId> neededIds = new HashSet<>();
-    neededIds.addAll(this.packsMap.keySet().stream().map(PackIcons::customId).toList());
-    neededIds.addAll(this.paintings.keySet());
-    neededIds.forEach((id) -> {
-      if (ids.contains(id)) {
-        this.cachedImages.remove(id);
-        return;
-      }
-      ImageStore.StoredImage cachedImage = this.cachedImages.get(id);
-      if (cachedImage == null) {
-        return;
-      }
-      this.images.put(id, cachedImage.image(), cachedImage.hash());
-    });
-
-    CustomPaintingsMod.LOGGER.info("Expecting {} painting image(s) from server", ids.size());
+  public void trackExpectedPackets(List<CustomId> expectedIds, int imageCount, int byteCount) {
+    CustomPaintingsMod.LOGGER.info("Expecting {} painting image(s) from server", expectedIds.size());
     this.waitingForImagesTimer = Util.getMeasuringTimeMs();
 
     this.neededImages.clear();
-    this.neededImages.addAll(ids);
+    this.neededImages.addAll(expectedIds);
     this.imagesExpected = imageCount;
     this.bytesExpected = byteCount;
 
@@ -282,6 +267,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
       DownloadProgressToast.add(this.client.getToastManager(), this.imagesExpected, this.bytesExpected);
     }
 
+    this.copyInCachedImageData(Set.copyOf(expectedIds));
     this.buildSpriteAtlas();
   }
 
@@ -421,6 +407,23 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.spriteIds.addAll(sprites.stream().map(SpriteContents::getId).map(CustomId::from).toList());
 
     this.atlasInitialized = true;
+  }
+
+  private void copyInCachedImageData(Set<CustomId> invalidatedIds) {
+    HashSet<CustomId> allIds = new HashSet<>();
+    allIds.addAll(this.packsMap.keySet().stream().map(PackIcons::customId).toList());
+    allIds.addAll(this.paintings.keySet());
+    allIds.forEach((id) -> {
+      if (invalidatedIds.contains(id)) {
+        this.cachedImages.remove(id);
+        return;
+      }
+      ImageStore.StoredImage cachedImage = this.cachedImages.get(id);
+      if (cachedImage == null) {
+        return;
+      }
+      this.images.put(id, cachedImage.image(), cachedImage.hash());
+    });
   }
 
   private void cacheNewImages() {
