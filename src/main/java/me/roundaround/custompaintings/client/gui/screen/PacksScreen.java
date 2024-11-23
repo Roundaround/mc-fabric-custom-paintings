@@ -162,14 +162,18 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
         boolean allSuccessful = true;
 
         for (Path src : packPaths) {
+          if (!ResourceUtil.isPaintingPack(src)) {
+            CustomPaintingsMod.LOGGER.warn("Entry is not a painting pack; skipping: {}", src);
+            allSuccessful = false;
+            continue;
+          }
+
           Path dest = packsDirectory.resolve(src.getFileName());
-          // TODO: Validate packs before copy
           try {
             Files.copy(src, dest);
           } catch (IOException e) {
             CustomPaintingsMod.LOGGER.warn("Failed to copy painting pack from {} to {}", src, dest);
             allSuccessful = false;
-            break;
           }
         }
 
