@@ -91,7 +91,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
     this.layout.addHeader(this.textRenderer, this.title);
     if (inSinglePlayer) {
       this.layout.addHeader(this.textRenderer,
-          Text.translatable("custompaintings.packs.drag").formatted(Formatting.GRAY)
+          Text.translatable("custompaintings.packs.drop").formatted(Formatting.GRAY)
       );
     }
 
