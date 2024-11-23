@@ -143,10 +143,12 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
       List<PackData> packs, UUID serverId, String combinedImageHash, Map<CustomId, Boolean> finishedMigrations
   ) {
     boolean initialLoad = this.packsMap.isEmpty();
+    if (initialLoad) {
+      this.checkAndPromptForLegacyPacks();
+    }
 
     this.setPacks(packs);
     this.setFinishedMigrations(finishedMigrations);
-    this.checkAndPromptForLegacyPacks();
     this.initCacheAndSpriteAtlas(initialLoad, serverId, combinedImageHash);
   }
 
@@ -407,6 +409,10 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.spriteIds.addAll(sprites.stream().map(SpriteContents::getId).map(CustomId::from).toList());
 
     this.atlasInitialized = true;
+
+    if (this.client.currentScreen instanceof PacksLoadedListener screen) {
+      screen.onPackTexturesInitialized();
+    }
   }
 
   private void copyInCachedImageData(Set<CustomId> invalidatedIds) {
@@ -481,7 +487,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
 
   @SuppressWarnings("BooleanMethodIsAlwaysInverted")
   private boolean usingCache() {
-    return CustomPaintingsConfig.getInstance().cacheImages.getValue();
+    return CustomPaintingsConfig.getInstance().cacheImages.getValue() && !this.client.isInSingleplayer();
   }
 
   private static NativeImage getNativeImage(Image image) {

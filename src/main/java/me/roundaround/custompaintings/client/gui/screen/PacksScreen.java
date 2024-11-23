@@ -202,6 +202,16 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
     this.resetPacks();
   }
 
+  @Override
+  public void onPackTexturesInitialized() {
+    if (this.inactiveList != null) {
+      this.inactiveList.refresh();
+    }
+    if (this.activeList != null) {
+      this.activeList.refresh();
+    }
+  }
+
   private void resetPacks() {
     this.inactivePacks.clear();
     this.activePacks.clear();
@@ -348,6 +358,10 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
     public void setPacks(Collection<PackData> packs) {
       this.packs.clear();
       this.packs.addAll(packs);
+      this.init();
+    }
+
+    public void refresh() {
       this.init();
     }
 
