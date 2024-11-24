@@ -3,7 +3,6 @@ package me.roundaround.custompaintings.client.gui;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.custompaintings.registry.VanillaPaintingRegistry;
 import net.minecraft.block.AbstractRedstoneGateBlock;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
@@ -218,7 +217,7 @@ public class PaintingEditState {
 
   protected void createVanillaPack() {
     String id = Identifier.DEFAULT_NAMESPACE;
-    List<PaintingData> paintings = VanillaPaintingRegistry.getInstance().getAll(VanillaPaintingRegistry.Placeable.YES);
+    List<PaintingData> paintings = ClientPaintingRegistry.getInstance().getAllVanilla();
     this.allPaintings.put(id, PackData.virtual(id, Text.translatable("custompaintings.pack.minecraft.name"),
         Text.translatable("custompaintings.pack.minecraft.name"), paintings
     ));
@@ -226,7 +225,7 @@ public class PaintingEditState {
 
   protected void createUnplaceableVanillaPack() {
     String id = Identifier.DEFAULT_NAMESPACE + "_unplaceable";
-    List<PaintingData> paintings = VanillaPaintingRegistry.getInstance().getAll(VanillaPaintingRegistry.Placeable.NO);
+    List<PaintingData> paintings = ClientPaintingRegistry.getInstance().getAllVanillaUnplaceable();
     this.allPaintings.put(id, PackData.virtual(id, Text.translatable("custompaintings.pack.unplaceable.name"),
         Text.translatable("custompaintings.pack.unplaceable.name"), paintings
     ));
@@ -241,7 +240,7 @@ public class PaintingEditState {
     if (this.canStayHashMap.containsKey(sizeString)) {
       return this.canStayHashMap.get(sizeString);
     }
-    boolean result = this.canStay(paintingData.getScaledWidth(), paintingData.getScaledHeight());
+    boolean result = this.canStay(paintingData.width(), paintingData.height());
     this.canStayHashMap.put(sizeString, result);
     return result;
   }
@@ -255,8 +254,8 @@ public class PaintingEditState {
       return false;
     }
 
-    int blocksWidth = Math.max(1, width / 16);
-    int blocksHeight = Math.max(1, height / 16);
+    int blocksWidth = Math.max(1, width);
+    int blocksHeight = Math.max(1, height);
     BlockPos pos = this.blockPos.offset(this.facing.getOpposite());
     Direction direction = this.facing.rotateYCounterclockwise();
     BlockPos.Mutable mutable = new BlockPos.Mutable();
@@ -279,6 +278,8 @@ public class PaintingEditState {
   }
 
   private Box getBoundingBox(int width, int height) {
+    // TODO: Rewrite
+
     double posX = this.blockPos.getX() + 0.5 - this.facing.getOffsetX() * 0.46875 +
                   this.facing.rotateYCounterclockwise().getOffsetX() * this.offsetForEven(width);
     double posY = this.blockPos.getY() + 0.5 + this.offsetForEven(height);

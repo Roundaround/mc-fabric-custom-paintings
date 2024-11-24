@@ -3,8 +3,8 @@ package me.roundaround.custompaintings.resource.legacy;
 import com.google.common.collect.ImmutableList;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.texture.LoadingSprite;
-import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.custompaintings.resource.*;
+import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.roundalib.util.PathAccessor;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
@@ -230,7 +230,7 @@ public class LegacyPackConverter {
       MinecraftClient client, Collection<PackMetadata<LegacyPackResource>> metas
   ) {
     this.atlas = new SpriteAtlasTexture(
-        new Identifier(CustomPaintingsMod.MOD_ID, "textures/atlas/legacy_pack_icons.png"));
+        Identifier.of(CustomPaintingsMod.MOD_ID, "textures/atlas/legacy_pack_icons.png"));
     client.getTextureManager().registerTexture(this.atlas.getId(), this.atlas);
 
     List<SpriteContents> spriteContents = new ArrayList<>();

@@ -8,17 +8,15 @@ import net.minecraft.entity.decoration.AbstractDecorationEntity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.Optional;
 import java.util.UUID;
 
 @Mixin(PaintingEntity.class)
@@ -59,13 +57,12 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
 
   @Override
   public void setVariant(CustomId id) {
-    Registries.PAINTING_VARIANT.streamEntries()
+    this.getEntityWorld()
+        .getRegistryManager()
+        .get(RegistryKeys.PAINTING_VARIANT)
+        .streamEntries()
         .filter((ref) -> ref.matchesId(id.toIdentifier()))
-        .map(RegistryEntry.Reference::getKey)
-        .filter(Optional::isPresent)
-        .map(Optional::get)
         .findFirst()
-        .flatMap(Registries.PAINTING_VARIANT::getEntry)
         .ifPresent((entry) -> {
           ((PaintingEntityAccessor) this).invokeSetVariant(entry);
         });
@@ -78,23 +75,31 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
     }
   }
 
-  @Inject(method = "getWidthPixels", at = @At(value = "HEAD"), cancellable = true)
-  private void getWidthPixels(CallbackInfoReturnable<Integer> info) {
+  @ModifyArg(
+      method = "calculateBoundingBox", at = @At(
+      value = "INVOKE", target = "Lnet/minecraft/entity/decoration/painting/PaintingEntity;getOffset(I)D", ordinal = 0
+  )
+  )
+  private int getAltWidth(int originalWidth) {
     PaintingData paintingData = this.getCustomData();
     if (paintingData.isEmpty()) {
-      return;
+      return originalWidth;
     }
 
-    info.setReturnValue(paintingData.getScaledWidth());
+    return paintingData.width();
   }
 
-  @Inject(method = "getHeightPixels", at = @At(value = "HEAD"), cancellable = true)
-  private void getHeightPixels(CallbackInfoReturnable<Integer> info) {
+  @ModifyArg(
+      method = "calculateBoundingBox", at = @At(
+      value = "INVOKE", target = "Lnet/minecraft/entity/decoration/painting/PaintingEntity;getOffset(I)D", ordinal = 1
+  )
+  )
+  private int getAltHeight(int originalHeight) {
     PaintingData paintingData = this.getCustomData();
     if (paintingData.isEmpty()) {
-      return;
+      return originalHeight;
     }
 
-    info.setReturnValue(paintingData.getScaledHeight());
+    return paintingData.height();
   }
 }

@@ -5,7 +5,6 @@ import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.registry.Registries;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
@@ -30,8 +29,8 @@ public record PaintingData(CustomId id, int width, int height, String name, Stri
   }
 
   public PaintingData(PaintingVariant vanillaVariant) {
-    this(CustomId.from(Registries.PAINTING_VARIANT.getId(vanillaVariant)), vanillaVariant.getWidth() / 16,
-        vanillaVariant.getHeight() / 16, Registries.PAINTING_VARIANT.getId(vanillaVariant).getPath(), "", true, false
+    this(CustomId.from(vanillaVariant.assetId()), vanillaVariant.width(), vanillaVariant.height(),
+        vanillaVariant.assetId().getPath(), "", true, false
     );
   }
 
@@ -44,13 +43,13 @@ public record PaintingData(CustomId id, int width, int height, String name, Stri
   }
 
   public int getScaledWidth(int maxWidth, int maxHeight) {
-    float scale = Math.min((float) maxWidth / this.getScaledWidth(), (float) maxHeight / this.getScaledHeight());
-    return Math.round(scale * this.getScaledWidth());
+    float scale = Math.min((float) maxWidth / this.width(), (float) maxHeight / this.height());
+    return Math.round(scale * this.width());
   }
 
   public int getScaledHeight(int maxWidth, int maxHeight) {
-    float scale = Math.min((float) maxWidth / this.getScaledWidth(), (float) maxHeight / this.getScaledHeight());
-    return Math.round(scale * this.getScaledHeight());
+    float scale = Math.min((float) maxWidth / this.width(), (float) maxHeight / this.height());
+    return Math.round(scale * this.height());
   }
 
   public boolean isEmpty() {

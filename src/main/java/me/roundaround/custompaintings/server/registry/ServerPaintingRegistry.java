@@ -11,6 +11,7 @@ import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.custompaintings.util.InvalidIdException;
 import me.roundaround.roundalib.util.PathAccessor;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.minecraft.registry.DynamicRegistryManager;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Util;
@@ -81,6 +82,11 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
       instance = new ServerPaintingRegistry();
     }
     return instance;
+  }
+
+  @Override
+  protected DynamicRegistryManager getRegistryManager() {
+    return this.server == null ? null : this.server.getRegistryManager();
   }
 
   @Override

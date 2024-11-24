@@ -56,10 +56,11 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
   private static final int BUTTON_HEIGHT = ButtonWidget.DEFAULT_HEIGHT;
   private static final int BUTTON_WIDTH = ButtonWidget.DEFAULT_WIDTH_SMALL;
   private static final int LIST_WIDTH = 200;
-  private static final Identifier SELECT_TEXTURE = new Identifier("transferable_list/select");
-  private static final Identifier SELECT_HIGHLIGHTED_TEXTURE = new Identifier("transferable_list/select_highlighted");
-  private static final Identifier UNSELECT_TEXTURE = new Identifier("transferable_list/unselect");
-  private static final Identifier UNSELECT_HIGHLIGHTED_TEXTURE = new Identifier(
+  private static final Identifier SELECT_TEXTURE = Identifier.ofVanilla("transferable_list/select");
+  private static final Identifier SELECT_HIGHLIGHTED_TEXTURE = Identifier.ofVanilla(
+      "transferable_list/select_highlighted");
+  private static final Identifier UNSELECT_TEXTURE = Identifier.ofVanilla("transferable_list/unselect");
+  private static final Identifier UNSELECT_HIGHLIGHTED_TEXTURE = Identifier.ofVanilla(
       "transferable_list/unselect_highlighted");
 
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);

@@ -7,8 +7,8 @@ import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.entity.decoration.painting.MigrationData;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
-import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.custompaintings.resource.PackIcons;
+import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.roundalib.client.gui.GuiUtil;
 import me.roundaround.roundalib.client.gui.layout.FillerWidget;
 import me.roundaround.roundalib.client.gui.layout.linear.LinearLayoutWidget;
@@ -320,8 +320,8 @@ public class MigrationsScreen extends Screen {
 
   private enum Status {
     NONE(LABEL_RUN, Text.empty(), null),
-    SUCCESS(LABEL_RE_RUN, TOOLTIP_SUCCESS, new Identifier("pending_invite/accept")),
-    FAILURE(LABEL_RUN, TOOLTIP_FAILURE, new Identifier("pending_invite/reject"));
+    SUCCESS(LABEL_RE_RUN, TOOLTIP_SUCCESS, Identifier.ofVanilla("pending_invite/accept")),
+    FAILURE(LABEL_RUN, TOOLTIP_FAILURE, Identifier.ofVanilla("pending_invite/reject"));
 
     private final Text buttonLabel;
     private final Text tooltip;

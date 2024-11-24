@@ -24,25 +24,25 @@ public final class Networking {
   private Networking() {
   }
 
-  public static final Identifier SUMMARY_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "summary_s2c");
-  public static final Identifier IMAGE_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "image_s2c");
-  public static final Identifier IMAGE_IDS_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "image_ids_s2c");
-  public static final Identifier DOWNLOAD_SUMMARY_S2C = new Identifier(
+  public static final Identifier SUMMARY_S2C = Identifier.of(CustomPaintingsMod.MOD_ID, "summary_s2c");
+  public static final Identifier IMAGE_S2C = Identifier.of(CustomPaintingsMod.MOD_ID, "image_s2c");
+  public static final Identifier IMAGE_IDS_S2C = Identifier.of(CustomPaintingsMod.MOD_ID, "image_ids_s2c");
+  public static final Identifier DOWNLOAD_SUMMARY_S2C = Identifier.of(
       CustomPaintingsMod.MOD_ID, "download_summary_s2c");
-  public static final Identifier IMAGE_HEADER_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "image_header_s2c");
-  public static final Identifier IMAGE_CHUNK_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "image_chunk_s2c");
-  public static final Identifier EDIT_PAINTING_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "edit_painting_s2c");
-  public static final Identifier SET_PAINTING_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "set_painting_s2c");
-  public static final Identifier SYNC_ALL_DATA_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "sync_all_data_s2c");
-  public static final Identifier MIGRATION_FINISH_S2C = new Identifier(
+  public static final Identifier IMAGE_HEADER_S2C = Identifier.of(CustomPaintingsMod.MOD_ID, "image_header_s2c");
+  public static final Identifier IMAGE_CHUNK_S2C = Identifier.of(CustomPaintingsMod.MOD_ID, "image_chunk_s2c");
+  public static final Identifier EDIT_PAINTING_S2C = Identifier.of(CustomPaintingsMod.MOD_ID, "edit_painting_s2c");
+  public static final Identifier SET_PAINTING_S2C = Identifier.of(CustomPaintingsMod.MOD_ID, "set_painting_s2c");
+  public static final Identifier SYNC_ALL_DATA_S2C = Identifier.of(CustomPaintingsMod.MOD_ID, "sync_all_data_s2c");
+  public static final Identifier MIGRATION_FINISH_S2C = Identifier.of(
       CustomPaintingsMod.MOD_ID, "migration_finish_s2c");
-  public static final Identifier OPEN_MENU_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "open_menu_s2c");
-  public static final Identifier LIST_UNKNOWN_S2C = new Identifier(CustomPaintingsMod.MOD_ID, "list_unknown_s2c");
+  public static final Identifier OPEN_MENU_S2C = Identifier.of(CustomPaintingsMod.MOD_ID, "open_menu_s2c");
+  public static final Identifier LIST_UNKNOWN_S2C = Identifier.of(CustomPaintingsMod.MOD_ID, "list_unknown_s2c");
 
-  public static final Identifier HASHES_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "hashes_c2s");
-  public static final Identifier RELOAD_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "reload_c2s");
-  public static final Identifier SET_PAINTING_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "set_painting_c2s");
-  public static final Identifier RUN_MIGRATION_C2S = new Identifier(CustomPaintingsMod.MOD_ID, "run_migration_c2s");
+  public static final Identifier HASHES_C2S = Identifier.of(CustomPaintingsMod.MOD_ID, "hashes_c2s");
+  public static final Identifier RELOAD_C2S = Identifier.of(CustomPaintingsMod.MOD_ID, "reload_c2s");
+  public static final Identifier SET_PAINTING_C2S = Identifier.of(CustomPaintingsMod.MOD_ID, "set_painting_c2s");
+  public static final Identifier RUN_MIGRATION_C2S = Identifier.of(CustomPaintingsMod.MOD_ID, "run_migration_c2s");
 
   public static void registerS2CPayloads() {
     PayloadTypeRegistry.playS2C().register(SummaryS2C.ID, SummaryS2C.CODEC);

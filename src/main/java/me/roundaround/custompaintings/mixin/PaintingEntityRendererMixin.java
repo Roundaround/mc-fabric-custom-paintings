@@ -56,9 +56,9 @@ public abstract class PaintingEntityRendererMixin extends EntityRenderer<Paintin
     ClientPaintingRegistry registry = ClientPaintingRegistry.getInstance();
 
     // 3 - width
-    args.set(3, paintingData.getScaledWidth());
+    args.set(3, paintingData.width());
     // 4 - height
-    args.set(4, paintingData.getScaledHeight());
+    args.set(4, paintingData.height());
 
     // 5 - front sprite
     args.set(5, registry.getSprite(paintingData));

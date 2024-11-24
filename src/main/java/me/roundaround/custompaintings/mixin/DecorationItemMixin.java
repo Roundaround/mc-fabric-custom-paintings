@@ -11,7 +11,7 @@ import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.entity.decoration.painting.PaintingVariants;
 import net.minecraft.item.DecorationItem;
 import net.minecraft.item.ItemUsageContext;
-import net.minecraft.registry.Registries;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
@@ -28,8 +28,8 @@ public abstract class DecorationItemMixin {
       method = "useOnBlock", at = @At(
       value = "INVOKE",
       target = "Lnet/minecraft/entity/decoration/painting/PaintingEntity;placePainting" +
-          "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/Direction;)" +
-          "Ljava/util/Optional;"
+               "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/Direction;)" +
+               "Ljava/util/Optional;"
   )
   )
   private Optional<PaintingEntity> wrapPlacePainting(
@@ -44,8 +44,9 @@ public abstract class DecorationItemMixin {
       return original.call(world, pos, facing);
     }
 
-    Optional<RegistryEntry.Reference<PaintingVariant>> placeholderVariant = Registries.PAINTING_VARIANT.getEntry(
-        PaintingVariants.KEBAB);
+    Optional<RegistryEntry.Reference<PaintingVariant>> placeholderVariant = world.getRegistryManager()
+        .get(RegistryKeys.PAINTING_VARIANT)
+        .getEntry(PaintingVariants.KEBAB);
     if (placeholderVariant.isEmpty()) {
       return Optional.empty();
     }

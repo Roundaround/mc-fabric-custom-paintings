@@ -24,7 +24,10 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.resource.metadata.AnimationFrameResourceMetadata;
 import net.minecraft.client.resource.metadata.AnimationResourceMetadata;
 import net.minecraft.client.texture.*;
-import net.minecraft.registry.Registries;
+import net.minecraft.client.world.ClientWorld;
+import net.minecraft.entity.decoration.painting.PaintingVariant;
+import net.minecraft.registry.DynamicRegistryManager;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.resource.metadata.ResourceMetadata;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
@@ -38,11 +41,9 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class ClientPaintingRegistry extends CustomPaintingRegistry {
-  private static final Identifier PAINTING_BACK_ID = new Identifier(Identifier.DEFAULT_NAMESPACE, "back");
-  private static final Identifier BACK_TEXTURE_ID = new Identifier(
-      Identifier.DEFAULT_NAMESPACE, "textures/painting/back.png");
-  private static final Identifier EARTH_TEXTURE_ID = new Identifier(
-      Identifier.DEFAULT_NAMESPACE, "textures/painting/earth.png");
+  private static final Identifier PAINTING_BACK_ID = Identifier.ofVanilla("back");
+  private static final Identifier BACK_TEXTURE_ID = Identifier.ofVanilla("textures/painting/back.png");
+  private static final Identifier EARTH_TEXTURE_ID = Identifier.ofVanilla("textures/painting/earth.png");
 
   private static ClientPaintingRegistry instance = null;
 
@@ -66,7 +67,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
 
   private ClientPaintingRegistry(MinecraftClient client) {
     this.client = client;
-    this.atlas = new SpriteAtlasTexture(new Identifier(CustomPaintingsMod.MOD_ID, "textures/atlas/paintings.png"));
+    this.atlas = new SpriteAtlasTexture(Identifier.of(CustomPaintingsMod.MOD_ID, "textures/atlas/paintings.png"));
     client.getTextureManager().registerTexture(this.atlas.getId(), this.atlas);
 
     MinecraftClientEvents.CLOSE.register(this::close);
@@ -77,6 +78,48 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
       instance = new ClientPaintingRegistry(MinecraftClient.getInstance());
     }
     return instance;
+  }
+
+  @Override
+  protected DynamicRegistryManager getRegistryManager() {
+    return this.client.world == null ? null : this.client.world.getRegistryManager();
+  }
+
+  @Override
+  public void setPacks(HashMap<String, PackData> packsMap) {
+    super.setPacks(packsMap);
+
+    CustomPaintingsMod.LOGGER.info("{} painting metadata entries loaded", this.paintings.size());
+    this.packsReceived = true;
+
+    this.pendingDataRequests.forEach((id, future) -> future.complete(this.get(id)));
+    this.pendingDataRequests.clear();
+
+    this.clearUnknownMigrations();
+
+    if (this.client != null && this.client.currentScreen instanceof PacksLoadedListener screen) {
+      screen.onPacksLoaded();
+    }
+  }
+
+  @Override
+  public void clear() {
+    super.clear();
+
+    this.packsReceived = false;
+    this.cacheDirty = false;
+    this.atlas.clear();
+    this.spriteIds.clear();
+    this.neededImages.clear();
+    this.cachedImages.clear();
+    this.imageBuilders.clear();
+    this.pendingDataRequests.forEach((id, future) -> future.cancel(true));
+    this.pendingDataRequests.clear();
+    this.finishedMigrations.clear();
+    this.imagesExpected = 0;
+    this.bytesExpected = 0;
+    this.imagesReceived = 0;
+    this.bytesReceived = 0;
   }
 
   public Identifier getAtlasId() {
@@ -116,8 +159,15 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
       return this.getBackSprite();
     }
     if (data.vanilla()) {
-      return this.client.getPaintingManager()
-          .getPaintingSprite(Registries.PAINTING_VARIANT.get(data.id().toIdentifier()));
+      ClientWorld world = this.client.world;
+      if (world == null) {
+        return this.getMissingSprite();
+      }
+
+      PaintingVariant variant = world.getRegistryManager()
+          .get(RegistryKeys.PAINTING_VARIANT)
+          .get(data.id().toIdentifier());
+      return this.client.getPaintingManager().getPaintingSprite(variant);
     }
     return this.getSprite(data.id());
   }
@@ -308,43 +358,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     CompletableFuture<PaintingData> future = new CompletableFuture<>();
     this.pendingDataRequests.put(id, future);
     return future;
-  }
-
-  @Override
-  public void setPacks(HashMap<String, PackData> packsMap) {
-    super.setPacks(packsMap);
-
-    CustomPaintingsMod.LOGGER.info("{} painting metadata entries loaded", this.paintings.size());
-    this.packsReceived = true;
-
-    this.pendingDataRequests.forEach((id, future) -> future.complete(this.get(id)));
-    this.pendingDataRequests.clear();
-
-    this.clearUnknownMigrations();
-
-    if (this.client != null && this.client.currentScreen instanceof PacksLoadedListener screen) {
-      screen.onPacksLoaded();
-    }
-  }
-
-  @Override
-  public void clear() {
-    super.clear();
-
-    this.packsReceived = false;
-    this.cacheDirty = false;
-    this.atlas.clear();
-    this.spriteIds.clear();
-    this.neededImages.clear();
-    this.cachedImages.clear();
-    this.imageBuilders.clear();
-    this.pendingDataRequests.forEach((id, future) -> future.cancel(true));
-    this.pendingDataRequests.clear();
-    this.finishedMigrations.clear();
-    this.imagesExpected = 0;
-    this.bytesExpected = 0;
-    this.imagesReceived = 0;
-    this.bytesReceived = 0;
   }
 
   private void close(MinecraftClient client) {

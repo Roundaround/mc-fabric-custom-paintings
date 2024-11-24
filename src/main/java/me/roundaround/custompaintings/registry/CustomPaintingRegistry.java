@@ -4,6 +4,11 @@ import me.roundaround.custompaintings.entity.decoration.painting.MigrationData;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.util.CustomId;
+import net.minecraft.entity.decoration.painting.PaintingVariant;
+import net.minecraft.registry.DynamicRegistryManager;
+import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.registry.tag.PaintingVariantTags;
 import net.minecraft.util.Identifier;
 
 import java.util.*;
@@ -17,6 +22,8 @@ public abstract class CustomPaintingRegistry {
 
   protected String combinedImageHash = "";
 
+  protected abstract DynamicRegistryManager getRegistryManager();
+
   public boolean contains(CustomId id) {
     PaintingData data = this.get(id);
     return data != null && !data.isEmpty();
@@ -27,7 +34,11 @@ public abstract class CustomPaintingRegistry {
       return PaintingData.EMPTY;
     }
     if (id.pack().equals(Identifier.DEFAULT_NAMESPACE)) {
-      return VanillaPaintingRegistry.getInstance().get(id);
+      PaintingVariant variant = this.getVanillaVariant(id);
+      if (variant == null) {
+        return PaintingData.EMPTY;
+      }
+      return new PaintingData(variant);
     }
     return this.paintings.get(id);
   }
@@ -87,5 +98,41 @@ public abstract class CustomPaintingRegistry {
         this.migrations.put(migration.id(), migration);
       });
     });
+  }
+
+  public List<PaintingData> getAllVanilla() {
+    DynamicRegistryManager registryManager = this.getRegistryManager();
+    if (registryManager == null) {
+      return List.of();
+    }
+
+    return registryManager.get(RegistryKeys.PAINTING_VARIANT)
+        .streamEntries()
+        .filter((entry) -> entry.isIn(PaintingVariantTags.PLACEABLE))
+        .map(RegistryEntry.Reference::value)
+        .map(PaintingData::new)
+        .toList();
+  }
+
+  public List<PaintingData> getAllVanillaUnplaceable() {
+    DynamicRegistryManager registryManager = this.getRegistryManager();
+    if (registryManager == null) {
+      return List.of();
+    }
+
+    return registryManager.get(RegistryKeys.PAINTING_VARIANT)
+        .streamEntries()
+        .filter((entry) -> !entry.isIn(PaintingVariantTags.PLACEABLE))
+        .map(RegistryEntry.Reference::value)
+        .map(PaintingData::new)
+        .toList();
+  }
+
+  protected PaintingVariant getVanillaVariant(CustomId id) {
+    DynamicRegistryManager registryManager = this.getRegistryManager();
+    if (registryManager == null) {
+      return null;
+    }
+    return registryManager.get(RegistryKeys.PAINTING_VARIANT).get(id.toIdentifier());
   }
 }

@@ -5,7 +5,6 @@ import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.MigrationData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.network.PaintingAssignment;
-import me.roundaround.custompaintings.registry.VanillaPaintingRegistry;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
 import me.roundaround.custompaintings.util.CustomId;
@@ -129,7 +128,7 @@ public class ServerPaintingManager extends PersistentState {
 
     PaintingData paintingData = painting.getCustomData();
     if (paintingData == null || paintingData.isEmpty()) {
-      this.setPaintingData(painting, VanillaPaintingRegistry.getInstance().get(painting.getVariant().value()));
+      this.setPaintingData(painting, new PaintingData(painting.getVariant().value()));
       return;
     }
 

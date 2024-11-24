@@ -49,7 +49,7 @@ public record CustomId(String pack, String resource) implements Comparable<Custo
   }
 
   public Identifier toIdentifier() {
-    return new Identifier(this.pack(), this.resource());
+    return Identifier.of(this.pack(), this.resource());
   }
 
   public String toTranslationKey() {

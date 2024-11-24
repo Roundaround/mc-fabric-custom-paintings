@@ -14,7 +14,7 @@ public class DownloadProgressToast implements Toast {
   public static final Type TYPE = new Type();
 
   private static final long DURATION = 2000L;
-  private static final Identifier TEXTURE = new Identifier(Identifier.DEFAULT_NAMESPACE, "toast/system");
+  private static final Identifier TEXTURE = Identifier.ofVanilla("toast/system");
   private static final Text TITLE = Text.translatable("custompaintings.toasts.download.title");
   private static final int TEXT_LEFT = 18;
   private static final int TITLE_Y = 7;
