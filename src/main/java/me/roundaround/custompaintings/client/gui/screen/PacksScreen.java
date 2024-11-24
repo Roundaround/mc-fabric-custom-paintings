@@ -491,9 +491,12 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
 
             Identifier buttonTexture = this.isHovered() ? that.highlightedButtonTexture : that.buttonTexture;
             context.fill(this.getX(), this.getY(), this.getRight(), this.getBottom(), 100, -1601138544);
-            context.drawGuiTexture(RenderLayer::getGuiTextured, buttonTexture, this.getX(), this.getY(), 101,
-                this.getWidth(), this.getHeight()
+            context.getMatrices().push();
+            context.getMatrices().translate(0, 0, 101);
+            context.drawGuiTexture(RenderLayer::getGuiTextured, buttonTexture, this.getX(), this.getY(),
+                this.getWidth(), this.getHeight(), -1
             );
+            context.getMatrices().pop();
           }
 
           @Override
