@@ -34,6 +34,10 @@ public record PaintingData(CustomId id, int width, int height, String name, Stri
     );
   }
 
+  public PaintingVariant toVariant() {
+    return new PaintingVariant(this.width(), this.height(), this.id().toIdentifier());
+  }
+
   public int getScaledWidth() {
     return this.width() * 16;
   }

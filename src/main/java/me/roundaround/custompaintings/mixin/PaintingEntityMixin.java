@@ -1,5 +1,6 @@
 package me.roundaround.custompaintings.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.util.CustomId;
@@ -14,7 +15,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.UUID;
@@ -75,31 +75,15 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
     }
   }
 
-  @ModifyArg(
-      method = "calculateBoundingBox", at = @At(
-      value = "INVOKE", target = "Lnet/minecraft/entity/decoration/painting/PaintingEntity;getOffset(I)D", ordinal = 0
+  @ModifyExpressionValue(
+      method = "calculateBoundingBox",
+      at = @At(value = "INVOKE", target = "Lnet/minecraft/registry/entry/RegistryEntry;value()Ljava/lang/Object;")
   )
-  )
-  private int getAltWidth(int originalWidth) {
-    PaintingData paintingData = this.getCustomData();
-    if (paintingData.isEmpty()) {
-      return originalWidth;
+  private Object getAltVariant(Object original) {
+    PaintingData data = this.getCustomData();
+    if (data.isEmpty()) {
+      return original;
     }
-
-    return paintingData.width();
-  }
-
-  @ModifyArg(
-      method = "calculateBoundingBox", at = @At(
-      value = "INVOKE", target = "Lnet/minecraft/entity/decoration/painting/PaintingEntity;getOffset(I)D", ordinal = 1
-  )
-  )
-  private int getAltHeight(int originalHeight) {
-    PaintingData paintingData = this.getCustomData();
-    if (paintingData.isEmpty()) {
-      return originalHeight;
-    }
-
-    return paintingData.height();
+    return data.toVariant();
   }
 }
