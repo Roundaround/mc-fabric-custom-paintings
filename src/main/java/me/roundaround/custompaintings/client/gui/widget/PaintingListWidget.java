@@ -194,6 +194,7 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
     ) {
       super(index, left, top, width, HEIGHT, paintingData);
 
+      assert paintingData != null;
       assert !paintingData.isEmpty();
 
       this.onSelect = onSelect;

@@ -15,10 +15,16 @@ public class SpriteWidget extends DrawableWidget {
   protected boolean inBatchUpdate = false;
 
   protected SpriteWidget(int x, int y, int width, int height, Sprite sprite) {
+    this(x, y, width, height, sprite, true);
+  }
+
+  protected SpriteWidget(int x, int y, int width, int height, Sprite sprite, boolean immediatelyCalculateBounds) {
     super(x, y, width, height);
 
     this.sprite = sprite;
-    this.calculateBounds();
+    if (immediatelyCalculateBounds) {
+      this.calculateBounds();
+    }
   }
 
   public void batchUpdates(Runnable runnable) {

@@ -10,7 +10,7 @@ public class PaintingSpriteWidget extends SpriteWidget {
   private boolean border;
 
   private PaintingSpriteWidget(int x, int y, int width, int height, PaintingData paintingData, boolean border) {
-    super(x, y, width, height, ClientPaintingRegistry.getInstance().getSprite(paintingData));
+    super(x, y, width, height, ClientPaintingRegistry.getInstance().getSprite(paintingData), false);
 
     this.paintingData = paintingData;
     this.border = border;
