@@ -33,14 +33,14 @@ public class FiltersScreen extends PaintingEditScreen {
         .build());
 
     this.layout.forEachChild(this::addDrawableChild);
-    this.initTabNavigation();
+    this.refreshWidgetPositions();
 
     this.filtersListWidget.updateFilters();
     this.setInitialFocus(this.filtersListWidget.getFirstFocusable());
   }
 
   @Override
-  protected void initTabNavigation() {
+  protected void refreshWidgetPositions() {
     this.layout.refreshPositions();
   }
 

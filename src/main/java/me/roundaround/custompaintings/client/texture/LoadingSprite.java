@@ -30,9 +30,9 @@ public class LoadingSprite {
     for (int x = 0; x < width; x++) {
       for (int y = 0; y < 2 * height; y++) {
         if (isAlongBorder(x, y, width, height)) {
-          nativeImage.setColor(x, y, BORDER_COLOR);
+          nativeImage.setColorArgb(x, y, BORDER_COLOR);
         } else {
-          nativeImage.setColor(x, y, y < height ? COLOR_1 : COLOR_2);
+          nativeImage.setColorArgb(x, y, y < height ? COLOR_1 : COLOR_2);
         }
       }
     }

@@ -36,6 +36,9 @@
     "loom:injected_interfaces": {
       "net/minecraft/class_1534": [
         "me/roundaround/custompaintings/entity/decoration/painting/ExpandedPaintingEntity"
+      ],
+      "net/minecraft/class_10049": [
+        "me/roundaround/custompaintings/client/render/entity/state/ExpandedPaintingEntityRenderState"
       ]
     }
   },

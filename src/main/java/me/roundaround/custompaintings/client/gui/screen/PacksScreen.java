@@ -31,6 +31,7 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.Widget;
+import net.minecraft.client.render.RenderLayer;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
@@ -133,11 +134,11 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
     VersionStamp.create(this.textRenderer, this.layout);
 
     this.layout.forEachChild(this::addDrawableChild);
-    this.initTabNavigation();
+    this.refreshWidgetPositions();
   }
 
   @Override
-  protected void initTabNavigation() {
+  protected void refreshWidgetPositions() {
     this.layout.refreshPositions();
   }
 
@@ -490,7 +491,9 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
 
             Identifier buttonTexture = this.isHovered() ? that.highlightedButtonTexture : that.buttonTexture;
             context.fill(this.getX(), this.getY(), this.getRight(), this.getBottom(), 100, -1601138544);
-            context.drawGuiTexture(buttonTexture, this.getX(), this.getY(), 101, this.getWidth(), this.getHeight());
+            context.drawGuiTexture(RenderLayer::getGuiTextured, buttonTexture, this.getX(), this.getY(), 101,
+                this.getWidth(), this.getHeight()
+            );
           }
 
           @Override

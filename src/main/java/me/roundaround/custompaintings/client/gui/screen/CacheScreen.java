@@ -75,11 +75,11 @@ public class CacheScreen extends Screen {
     VersionStamp.create(this.textRenderer, this.layout);
 
     this.layout.forEachChild(this::addDrawableChild);
-    this.initTabNavigation();
+    this.refreshWidgetPositions();
   }
 
   @Override
-  protected void initTabNavigation() {
+  protected void refreshWidgetPositions() {
     this.layout.refreshPositions();
   }
 

@@ -3,6 +3,7 @@ package me.roundaround.custompaintings.client.toast;
 import me.roundaround.roundalib.client.gui.GuiUtil;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.toast.Toast;
 import net.minecraft.client.toast.ToastManager;
 import net.minecraft.text.Text;
@@ -67,17 +68,23 @@ public class DownloadProgressToast implements Toast {
   }
 
   @Override
-  public Visibility draw(DrawContext context, ToastManager manager, long time) {
-    context.drawGuiTexture(TEXTURE, 0, 0, this.getWidth(), this.getHeight());
-    this.drawText(context, manager.getClient().textRenderer);
-    this.drawProgressBar(context, time);
+  public Visibility getVisibility() {
+    return this.visibility;
+  }
 
+  @Override
+  public void update(ToastManager manager, long time) {
     double displayDuration = DURATION * manager.getNotificationDisplayTimeMultiplier();
     if (this.progress >= 1f && time - this.finishTime > displayDuration) {
       this.hide();
     }
+  }
 
-    return this.visibility;
+  @Override
+  public void draw(DrawContext context, TextRenderer textRenderer, long time) {
+    context.drawGuiTexture(RenderLayer::getGuiTextured, TEXTURE, 0, 0, this.getWidth(), this.getHeight());
+    this.drawText(context, textRenderer);
+    this.drawProgressBar(context, time);
   }
 
   private void drawText(DrawContext context, TextRenderer textRenderer) {

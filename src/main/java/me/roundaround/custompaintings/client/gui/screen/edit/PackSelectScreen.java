@@ -32,11 +32,11 @@ public class PackSelectScreen extends PaintingEditScreen {
     this.layout.addFooter(ButtonWidget.builder(ScreenTexts.CANCEL, this::close).build());
 
     this.layout.forEachChild(this::addDrawableChild);
-    this.initTabNavigation();
+    this.refreshWidgetPositions();
   }
 
   @Override
-  protected void initTabNavigation() {
+  protected void refreshWidgetPositions() {
     this.layout.refreshPositions();
   }
 

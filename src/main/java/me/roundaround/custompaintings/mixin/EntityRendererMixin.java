@@ -1,11 +1,16 @@
 package me.roundaround.custompaintings.mixin;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.roundalib.client.gui.GuiUtil;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.EntityRenderDispatcher;
 import net.minecraft.client.render.entity.EntityRenderer;
+import net.minecraft.client.render.entity.state.EntityRenderState;
+import net.minecraft.client.render.entity.state.PaintingEntityRenderState;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
@@ -32,37 +37,67 @@ public abstract class EntityRendererMixin {
   @Shadow
   private TextRenderer textRenderer;
 
+  @WrapOperation(
+      method = "updateRenderState", at = @At(
+      value = "INVOKE",
+      target = "Lnet/minecraft/client/render/entity/EntityRenderer;hasLabel(Lnet/minecraft/entity/Entity;D)Z"
+  )
+  )
+  private boolean wrapHasLabel(
+      EntityRenderer<Entity, EntityRenderState> instance,
+      Entity entity,
+      double squaredDistanceToCamera,
+      Operation<Boolean> original,
+      @Local(argsOnly = true) EntityRenderState state
+  ) {
+    if (!(entity instanceof PaintingEntity)) {
+      return original.call(instance, entity, squaredDistanceToCamera);
+    }
+    return entity == this.dispatcher.targetedEntity && entity.isCustomNameVisible();
+  }
+
+  @WrapOperation(
+      method = "updateRenderState", at = @At(
+      value = "INVOKE",
+      target = "Lnet/minecraft/client/render/entity/EntityRenderer;getDisplayName(Lnet/minecraft/entity/Entity;)" +
+               "Lnet/minecraft/text/Text;"
+  )
+  )
+  private Text wrapGetDisplayName(
+      EntityRenderer<Entity, EntityRenderState> instance, Entity entity, Operation<Text> original
+  ) {
+    if (entity instanceof PaintingEntity) {
+      return Text.empty();
+    }
+    return original.call(instance, entity);
+  }
+
   @Inject(method = "renderLabelIfPresent", at = @At("HEAD"), cancellable = true)
   protected void renderLabelIfPresent(
-      Entity entity,
-      Text text,
-      MatrixStack matrixStack,
+      EntityRenderState rawState,
+      Text displayName,
+      MatrixStack matrices,
       VertexConsumerProvider vertexConsumers,
       int light,
-      float tickDelta,
       CallbackInfo ci
   ) {
-    if (!(entity instanceof PaintingEntity painting)) {
+    if (!(rawState instanceof PaintingEntityRenderState state)) {
       return;
     }
 
     ci.cancel();
 
-    if (painting != this.dispatcher.targetedEntity || this.dispatcher.getSquaredDistanceToCamera(painting) > 4096) {
-      return;
-    }
-
-    PaintingData paintingData = painting.getCustomData();
+    PaintingData data = state.getCustomData();
     TextRenderer textRenderer = this.textRenderer;
 
-    matrixStack.push();
-    matrixStack.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180f - painting.getHorizontalFacing().asRotation()));
-    matrixStack.translate(0, -paintingData.height() / 2f, -0.125f);
-    matrixStack.scale(-0.025f, -0.025f, 0.025f);
+    matrices.push();
+    matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180f - state.facing.asRotation()));
+    matrices.translate(0, -data.height() / 2f, -0.125f);
+    matrices.scale(-0.025f, -0.025f, 0.025f);
 
-    Matrix4f matrix4f = matrixStack.peek().getPositionMatrix();
+    Matrix4f matrix4f = matrices.peek().getPositionMatrix();
     float y = -(textRenderer.fontHeight + 3) / 2f;
-    for (Text line : this.getEntityLabel(painting)) {
+    for (Text line : this.getEntityLabel(state)) {
       float x = -textRenderer.getWidth(line) / 2f;
 
       textRenderer.draw(line, x, y, GuiUtil.genColorInt(1f, 1f, 1f, 0.75f), false, matrix4f, vertexConsumers,
@@ -75,21 +110,21 @@ public abstract class EntityRendererMixin {
       y += textRenderer.fontHeight + 1;
     }
 
-    matrixStack.pop();
+    matrices.pop();
   }
 
   @Unique
-  private List<Text> getEntityLabel(PaintingEntity painting) {
-    Text customName = painting.getCustomName();
+  private List<Text> getEntityLabel(PaintingEntityRenderState state) {
+    Text customName = state.getCustomName();
     if (customName != null) {
       return List.of(customName);
     }
 
-    PaintingData paintingData = painting.getCustomData();
-    if (paintingData.hasLabel()) {
-      return paintingData.getLabelAsLines();
+    PaintingData data = state.getCustomData();
+    if (data.hasLabel()) {
+      return data.getLabelAsLines();
     }
 
-    return List.of(paintingData.getIdText());
+    return List.of(data.getIdText());
   }
 }

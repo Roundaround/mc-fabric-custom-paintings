@@ -3,71 +3,24 @@ package me.roundaround.custompaintings.client.gui.widget;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.roundalib.client.gui.util.IntRect;
-import me.roundaround.roundalib.client.gui.widget.drawable.DrawableWidget;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.texture.Sprite;
 
-public class PaintingSpriteWidget extends DrawableWidget {
+public class PaintingSpriteWidget extends SpriteWidget {
   private PaintingData paintingData;
-  private boolean border = false;
-  private Sprite sprite;
-  private IntRect paintingBounds = IntRect.zero();
-  private boolean inBatchUpdate = false;
+  private boolean border;
 
   private PaintingSpriteWidget(int x, int y, int width, int height, PaintingData paintingData, boolean border) {
-    super(x, y, width, height);
+    super(x, y, width, height, ClientPaintingRegistry.getInstance().getSprite(paintingData));
 
     this.paintingData = paintingData;
     this.border = border;
-    this.sprite = ClientPaintingRegistry.getInstance().getSprite(paintingData);
-    this.calculateBounds();
-  }
-
-  public void batchUpdates(Runnable runnable) {
-    this.inBatchUpdate = true;
-    try {
-      runnable.run();
-    } finally {
-      this.inBatchUpdate = false;
-      this.calculateBounds();
-    }
-  }
-
-  @Override
-  public void setX(int x) {
-    super.setX(x);
-    this.calculateBounds();
-  }
-
-  @Override
-  public void setY(int y) {
-    super.setY(y);
-    this.calculateBounds();
-  }
-
-  @Override
-  public void setWidth(int width) {
-    super.setWidth(width);
-    this.calculateBounds();
-  }
-
-  @Override
-  public void setHeight(int height) {
-    super.setHeight(height);
-    this.calculateBounds();
-  }
-
-  @Override
-  public void setDimensions(int width, int height) {
-    super.setDimensions(width, height);
     this.calculateBounds();
   }
 
   public void setPaintingData(PaintingData paintingData) {
     this.visible = paintingData != null && !paintingData.isEmpty();
     this.paintingData = paintingData != null ? paintingData : PaintingData.EMPTY;
-    this.sprite = ClientPaintingRegistry.getInstance().getSprite(this.paintingData);
-    this.calculateBounds();
+    this.setSprite(ClientPaintingRegistry.getInstance().getSprite(this.paintingData));
   }
 
   public void setBorder(boolean border) {
@@ -75,10 +28,7 @@ public class PaintingSpriteWidget extends DrawableWidget {
     this.calculateBounds();
   }
 
-  public void setActive(boolean active) {
-    this.active = active;
-  }
-
+  @Override
   public void calculateBounds() {
     if (this.inBatchUpdate || !this.visible) {
       return;
@@ -99,25 +49,19 @@ public class PaintingSpriteWidget extends DrawableWidget {
     int scaledWidth = this.paintingData.getScaledWidth(width, height);
     int scaledHeight = this.paintingData.getScaledHeight(width, height);
 
-    this.paintingBounds = IntRect.byDimensions(
+    this.imageBounds = IntRect.byDimensions(
         x + (width - scaledWidth) / 2, y + (height - scaledHeight) / 2, scaledWidth, scaledHeight);
   }
 
   @Override
   protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
-    this.hovered = this.hovered && this.paintingBounds.contains(mouseX, mouseY);
-
-    float color = this.active ? 1f : 0.5f;
-
     if (this.border) {
-      context.fill(this.paintingBounds.left() - 1, this.paintingBounds.top() - 1, this.paintingBounds.right() + 1,
-          this.paintingBounds.bottom() + 1, 0xFF000000
+      context.fill(this.imageBounds.left() - 1, this.imageBounds.top() - 1, this.imageBounds.right() + 1,
+          this.imageBounds.bottom() + 1, 0xFF000000
       );
     }
 
-    context.drawSprite(this.paintingBounds.left(), this.paintingBounds.top(), 1, this.paintingBounds.getWidth(),
-        this.paintingBounds.getHeight(), this.sprite, color, color, color, 1f
-    );
+    super.renderWidget(context, mouseX, mouseY, delta);
   }
 
   public static Builder builder(PaintingData paintingData) {

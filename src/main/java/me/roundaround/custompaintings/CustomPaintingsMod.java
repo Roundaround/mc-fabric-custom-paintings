@@ -54,7 +54,7 @@ public final class CustomPaintingsMod implements ModInitializer {
     MinecraftServerEvents.RESOURCE_MANAGER_CREATING.register(ServerInfo::init);
 
     ServerWorldEvents.LOAD.register((server, world) -> {
-      server.getRegistryManager().getWrapperOrThrow(RegistryKeys.PAINTING_VARIANT);
+      server.getRegistryManager().getOrThrow(RegistryKeys.PAINTING_VARIANT);
       ServerPaintingRegistry.init(server);
       ServerPaintingManager.init(world);
     });
@@ -93,7 +93,7 @@ public final class CustomPaintingsMod implements ModInitializer {
       }
 
       painting.setCustomNameVisible(!painting.isCustomNameVisible());
-      return ActionResult.SUCCESS_NO_ITEM_USED;
+      return ActionResult.SUCCESS;
     });
   }
 }

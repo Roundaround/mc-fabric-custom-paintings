@@ -59,7 +59,7 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
   public void setVariant(CustomId id) {
     this.getEntityWorld()
         .getRegistryManager()
-        .get(RegistryKeys.PAINTING_VARIANT)
+        .getOrThrow(RegistryKeys.PAINTING_VARIANT)
         .streamEntries()
         .filter((ref) -> ref.matchesId(id.toIdentifier()))
         .findFirst()

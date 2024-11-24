@@ -45,8 +45,8 @@ public abstract class DecorationItemMixin {
     }
 
     Optional<RegistryEntry.Reference<PaintingVariant>> placeholderVariant = world.getRegistryManager()
-        .get(RegistryKeys.PAINTING_VARIANT)
-        .getEntry(PaintingVariants.KEBAB);
+        .getOrThrow(RegistryKeys.PAINTING_VARIANT)
+        .getOptional(PaintingVariants.KEBAB);
     if (placeholderVariant.isEmpty()) {
       return Optional.empty();
     }

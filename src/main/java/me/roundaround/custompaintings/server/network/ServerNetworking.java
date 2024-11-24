@@ -157,7 +157,7 @@ public final class ServerNetworking {
       PaintingData paintingData = ServerPaintingRegistry.getInstance().get(payload.dataId());
       if (paintingData == null || paintingData.isEmpty()) {
         painting.setEditor(null);
-        painting.damage(player.getDamageSources().playerAttack(player), 0f);
+        painting.damage(world, player.getDamageSources().playerAttack(player), 0f);
         return;
       }
 
@@ -168,7 +168,7 @@ public final class ServerNetworking {
 
       if (!painting.canStayAttached()) {
         painting.setEditor(null);
-        painting.damage(player.getDamageSources().playerAttack(player), 0f);
+        painting.damage(world, player.getDamageSources().playerAttack(player), 0f);
         return;
       }
 

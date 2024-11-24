@@ -13,6 +13,7 @@
   "client": [
     "EntityRendererMixin",
     "PaintingEntityRendererMixin",
+    "PaintingEntityRenderStateMixin",
     "ScreenMixin"
   ],
   "server": [],

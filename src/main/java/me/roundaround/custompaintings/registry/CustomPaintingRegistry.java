@@ -106,7 +106,7 @@ public abstract class CustomPaintingRegistry {
       return List.of();
     }
 
-    return registryManager.get(RegistryKeys.PAINTING_VARIANT)
+    return registryManager.getOrThrow(RegistryKeys.PAINTING_VARIANT)
         .streamEntries()
         .filter((entry) -> entry.isIn(PaintingVariantTags.PLACEABLE))
         .map(RegistryEntry.Reference::value)
@@ -120,7 +120,7 @@ public abstract class CustomPaintingRegistry {
       return List.of();
     }
 
-    return registryManager.get(RegistryKeys.PAINTING_VARIANT)
+    return registryManager.getOrThrow(RegistryKeys.PAINTING_VARIANT)
         .streamEntries()
         .filter((entry) -> !entry.isIn(PaintingVariantTags.PLACEABLE))
         .map(RegistryEntry.Reference::value)
@@ -133,6 +133,6 @@ public abstract class CustomPaintingRegistry {
     if (registryManager == null) {
       return null;
     }
-    return registryManager.get(RegistryKeys.PAINTING_VARIANT).get(id.toIdentifier());
+    return registryManager.getOrThrow(RegistryKeys.PAINTING_VARIANT).get(id.toIdentifier());
   }
 }

@@ -13,6 +13,7 @@ import net.minecraft.util.Formatting;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public record PaintingData(CustomId id, int width, int height, String name, String artist, boolean vanilla,
                            boolean unknown) {
@@ -35,7 +36,9 @@ public record PaintingData(CustomId id, int width, int height, String name, Stri
   }
 
   public PaintingVariant toVariant() {
-    return new PaintingVariant(this.width(), this.height(), this.id().toIdentifier());
+    return new PaintingVariant(this.width(), this.height(), this.id().toIdentifier(), Optional.of(this.getNameText()),
+        Optional.of(this.getArtistText())
+    );
   }
 
   public int getScaledWidth() {

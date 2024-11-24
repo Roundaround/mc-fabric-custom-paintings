@@ -165,7 +165,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
       }
 
       PaintingVariant variant = world.getRegistryManager()
-          .get(RegistryKeys.PAINTING_VARIANT)
+          .getOrThrow(RegistryKeys.PAINTING_VARIANT)
           .get(data.id().toIdentifier());
       return this.client.getPaintingManager().getPaintingSprite(variant);
     }
@@ -507,7 +507,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     NativeImage nativeImage = new NativeImage(image.width(), image.height(), false);
     for (int x = 0; x < image.width(); x++) {
       for (int y = 0; y < image.height(); y++) {
-        nativeImage.setColor(x, y, image.getABGR(x, y));
+        nativeImage.setColorArgb(x, y, image.getARGB(x, y));
       }
     }
     return nativeImage;

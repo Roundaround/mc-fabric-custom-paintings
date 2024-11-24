@@ -1,10 +1,13 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
+import me.roundaround.roundalib.client.gui.GuiUtil;
 import me.roundaround.roundalib.client.gui.util.IntRect;
 import me.roundaround.roundalib.client.gui.widget.drawable.DrawableWidget;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.texture.Sprite;
 import net.minecraft.client.texture.SpriteContents;
+import net.minecraft.util.Colors;
 
 public class SpriteWidget extends DrawableWidget {
   protected Sprite sprite;
@@ -92,10 +95,9 @@ public class SpriteWidget extends DrawableWidget {
   protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
     this.hovered = this.hovered && this.imageBounds.contains(mouseX, mouseY);
 
-    float color = this.active ? 1f : 0.5f;
-
-    context.drawSprite(this.imageBounds.left(), this.imageBounds.top(), 1, this.imageBounds.getWidth(),
-        this.imageBounds.getHeight(), this.sprite, color, color, color, 1f
+    context.drawSpriteStretched(RenderLayer::getGuiTextured, this.sprite, this.imageBounds.left(),
+        this.imageBounds.top(), this.imageBounds.getWidth(), this.imageBounds.getHeight(),
+        this.active ? Colors.WHITE : GuiUtil.genColorInt(0.5f, 0.5f, 0.5f, 1f)
     );
   }
 

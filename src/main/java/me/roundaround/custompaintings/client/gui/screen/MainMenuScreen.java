@@ -96,11 +96,11 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
     VersionStamp.create(this.textRenderer, this.layout);
 
     this.layout.forEachChild(this::addDrawableChild);
-    this.initTabNavigation();
+    this.refreshWidgetPositions();
   }
 
   @Override
-  protected void initTabNavigation() {
+  protected void refreshWidgetPositions() {
     this.layout.refreshPositions();
   }
 
