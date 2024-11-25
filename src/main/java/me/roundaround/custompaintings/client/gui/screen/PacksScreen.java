@@ -148,18 +148,20 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
       return;
     }
 
-    Path packsDirectory = PathAccessor.getInstance().getPerWorldModDir(CustomPaintingsMod.MOD_ID);
     List<Path> packPaths = paths.stream().filter(ResourceUtil::isPaintingPack).toList();
 
     if (packPaths.isEmpty()) {
       return;
     }
 
+    Path packsDirectory = PathAccessor.getInstance().getPerWorldModDir(CustomPaintingsMod.MOD_ID);
     String packList = packPaths.stream().map(Path::getFileName).map(Path::toString).collect(Collectors.joining(", "));
 
     this.client.setScreen(new ConfirmScreen((confirmed) -> {
       if (confirmed) {
         boolean allSuccessful = true;
+
+        this.ensurePacksDirExists(packsDirectory);
 
         for (Path src : packPaths) {
           if (!ResourceUtil.isPaintingPack(src)) {
@@ -172,7 +174,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
           try {
             Files.copy(src, dest);
           } catch (IOException e) {
-            CustomPaintingsMod.LOGGER.warn("Failed to copy painting pack from {} to {}", src, dest);
+            CustomPaintingsMod.LOGGER.warn(String.format("Failed to copy painting pack from %s to %s", src, dest), e);
             allSuccessful = false;
           }
         }
@@ -285,14 +287,17 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
     }
 
     Path path = PathAccessor.getInstance().getPerWorldModDir(CustomPaintingsMod.MOD_ID);
+    this.ensurePacksDirExists(path);
+    Util.getOperatingSystem().open(path.toUri());
+  }
+
+  private void ensurePacksDirExists(Path path) {
     try {
       if (Files.notExists(path)) {
         Files.createDirectories(path);
       }
-      Util.getOperatingSystem().open(path.toUri());
     } catch (IOException e) {
-      // TODO: Handle exception
-      CustomPaintingsMod.LOGGER.warn(e);
+      CustomPaintingsMod.LOGGER.warn(String.format("Failed to create packs directory %s", path), e);
     }
   }
 
