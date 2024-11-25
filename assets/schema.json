@@ -1,0 +1,94 @@
+{
+  "$id": "https://raw.githubusercontent.com/Roundaround/mc-fabric-custom-paintings/refs/heads/main/assets/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "patternProperties": {
+    "^format$": {
+      "type": "integer"
+    },
+    "^description$": {
+      "type": "string"
+    }
+  },
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "sourceLegacyPack": {
+      "type": "string"
+    },
+    "paintings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "artist": {
+            "type": "string"
+          },
+          "width": {
+            "type": "integer"
+          },
+          "height": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "width",
+          "height"
+        ]
+      }
+    },
+    "migrations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "patternProperties": {
+          "^description$": {
+            "type": "string"
+          }
+        },
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "pairs": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "description",
+          "pairs"
+        ]
+      }
+    }
+  },
+  "required": [
+    "id",
+    "paintings"
+  ]
+}
