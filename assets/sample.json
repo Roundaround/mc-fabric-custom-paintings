@@ -1,0 +1,65 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Roundaround/mc-fabric-custom-paintings/refs/heads/main/assets/schema.json",
+  "version": "1.0.0",
+  "id": "famouspaintings",
+  "name": "Famous Real Paintings",
+  "description": "Famous real paintings brought to Minecraft",
+  "paintings": [
+    {
+      "id": "davinci_mona_lisa",
+      "name": "Mona Lisa",
+      "artist": "Leonardo da Vinci",
+      "width": 1,
+      "height": 2
+    },
+    {
+      "id": "vermeer_pearl_earring",
+      "name": "Girl with a Pearl Earring",
+      "artist": "Johannes Vermeer",
+      "width": 2,
+      "height": 2
+    },
+    {
+      "id": "munch_scream",
+      "name": "The Scream",
+      "artist": "Edvard Munch",
+      "width": 2,
+      "height": 3
+    },
+    {
+      "id": "wood_american_gothic",
+      "name": "American Gothic",
+      "artist": "Grant Wood",
+      "width": 3,
+      "height": 3
+    },
+    {
+      "id": "hopper_nighthawks",
+      "name": "Nighthawks",
+      "artist": "Edward Hopper",
+      "width": 4,
+      "height": 2
+    },
+    {
+      "id": "vangogh_starry_night",
+      "name": "Starry Night",
+      "artist": "Vincent van Gogh",
+      "width": 4,
+      "height": 3
+    },
+    {
+      "id": "seurat_sunday",
+      "name": "Sunday on La Grande Jatte",
+      "artist": "Georges Seurat",
+      "width": 4,
+      "height": 3
+    },
+    {
+      "id": "monet_water_lilies",
+      "name": "Water Lilies",
+      "artist": "Claude Monet",
+      "width": 4,
+      "height": 4
+    }
+  ]
+}
