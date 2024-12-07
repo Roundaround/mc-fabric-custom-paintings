@@ -72,8 +72,8 @@ public final class Networking {
     public static final Id<SummaryS2C> ID = new Id<>(SUMMARY_S2C);
     public static final PacketCodec<RegistryByteBuf, SummaryS2C> CODEC = PacketCodec.tuple(Uuids.PACKET_CODEC,
         SummaryS2C::serverId, CustomCodecs.forList(PackData.PACKET_CODEC), SummaryS2C::packs, PacketCodecs.STRING,
-        SummaryS2C::combinedImageHash, CustomCodecs.forMap(CustomId.PACKET_CODEC, PacketCodecs.BOOL),
-        SummaryS2C::finishedMigrations, PacketCodecs.BOOL, SummaryS2C::skipped, PacketCodecs.INTEGER,
+        SummaryS2C::combinedImageHash, CustomCodecs.forMap(CustomId.PACKET_CODEC, PacketCodecs.BOOLEAN),
+        SummaryS2C::finishedMigrations, PacketCodecs.BOOLEAN, SummaryS2C::skipped, PacketCodecs.INTEGER,
         SummaryS2C::loadErrorOrSkipCount, SummaryS2C::new
     );
 
@@ -183,7 +183,7 @@ public final class Networking {
   public record MigrationFinishS2C(CustomId id, boolean succeeded) implements CustomPayload {
     public static final Id<MigrationFinishS2C> ID = new Id<>(MIGRATION_FINISH_S2C);
     public static final PacketCodec<RegistryByteBuf, MigrationFinishS2C> CODEC = PacketCodec.tuple(
-        CustomId.PACKET_CODEC, MigrationFinishS2C::id, PacketCodecs.BOOL, MigrationFinishS2C::succeeded,
+        CustomId.PACKET_CODEC, MigrationFinishS2C::id, PacketCodecs.BOOLEAN, MigrationFinishS2C::succeeded,
         MigrationFinishS2C::new
     );
 

@@ -12,6 +12,7 @@ import net.minecraft.resource.metadata.ResourceMetadata;
 import net.minecraft.util.Identifier;
 
 import java.util.List;
+import java.util.Optional;
 
 @Environment(EnvType.CLIENT)
 public class LoadingSprite {
@@ -45,11 +46,13 @@ public class LoadingSprite {
 
   private static ResourceMetadata generateMetadata(int width, int height) {
     return new ResourceMetadata.Builder().add(
-        AnimationResourceMetadata.READER, generateAnimationMetadata(width, height)).build();
+        AnimationResourceMetadata.SERIALIZER, generateAnimationMetadata(width, height)).build();
   }
 
   private static AnimationResourceMetadata generateAnimationMetadata(int width, int height) {
     return new AnimationResourceMetadata(
-        List.of(new AnimationFrameResourceMetadata(0), new AnimationFrameResourceMetadata(1)), width, height, 60, true);
+        Optional.of(List.of(new AnimationFrameResourceMetadata(0), new AnimationFrameResourceMetadata(1))),
+        Optional.of(width), Optional.of(height), 60, true
+    );
   }
 }

@@ -1,6 +1,5 @@
 package me.roundaround.custompaintings.client.registry;
 
-import com.google.common.collect.ImmutableList;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.gui.screen.PacksLoadedListener;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
@@ -21,8 +20,6 @@ import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.custompaintings.util.StringUtil;
 import me.roundaround.roundalib.client.event.MinecraftClientEvents;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.resource.metadata.AnimationFrameResourceMetadata;
-import net.minecraft.client.resource.metadata.AnimationResourceMetadata;
 import net.minecraft.client.texture.*;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
@@ -494,7 +491,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     NativeImage nativeImage = getNativeImage(image);
     return Optional.of(
         new SpriteContents(id.toIdentifier(), new SpriteDimensions(image.width(), image.height()), nativeImage,
-            getResourceMetadata(image)
+            ResourceMetadata.NONE
         ));
   }
 
@@ -511,14 +508,5 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
       }
     }
     return nativeImage;
-  }
-
-  private static ResourceMetadata getResourceMetadata(Image image) {
-    return new ResourceMetadata.Builder().add(AnimationResourceMetadata.READER,
-            new AnimationResourceMetadata(ImmutableList.of(new AnimationFrameResourceMetadata(0, -1)), image.width(),
-                image.height(), 1, false
-            )
-        )
-        .build();
   }
 }

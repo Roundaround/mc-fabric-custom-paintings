@@ -91,7 +91,7 @@ public abstract class EntityRendererMixin {
     TextRenderer textRenderer = this.textRenderer;
 
     matrices.push();
-    matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180f - state.facing.asRotation()));
+    matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180f - state.facing.getPositiveHorizontalDegrees()));
     matrices.translate(0, -data.height() / 2f, -0.125f);
     matrices.scale(-0.025f, -0.025f, 0.025f);
 

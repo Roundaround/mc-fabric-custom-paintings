@@ -143,7 +143,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
   }
 
   @Override
-  public void filesDragged(List<Path> paths) {
+  public void onFilesDropped(List<Path> paths) {
     assert this.client != null;
 
     if (!this.client.isInSingleplayer()) {

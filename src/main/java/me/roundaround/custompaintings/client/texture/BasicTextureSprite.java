@@ -15,7 +15,7 @@ import java.io.FileNotFoundException;
 public class BasicTextureSprite {
   public static SpriteContents fetch(MinecraftClient client, Identifier spriteId, Identifier textureId) {
     try {
-      SpriteOpener opener = SpriteOpener.create(SpriteLoader.METADATA_READERS);
+      SpriteOpener opener = SpriteOpener.create(SpriteLoader.METADATA_SERIALIZERS);
       return opener.loadSprite(spriteId, client.getResourceManager().getResourceOrThrow(textureId));
     } catch (FileNotFoundException e) {
       return MissingSprite.createSpriteContents();

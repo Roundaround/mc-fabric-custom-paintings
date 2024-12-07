@@ -1,6 +1,5 @@
 package me.roundaround.custompaintings.resource.legacy;
 
-import com.google.common.collect.ImmutableList;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.texture.LoadingSprite;
 import me.roundaround.custompaintings.resource.*;
@@ -8,8 +7,6 @@ import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.roundalib.util.PathAccessor;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.resource.metadata.AnimationFrameResourceMetadata;
-import net.minecraft.client.resource.metadata.AnimationResourceMetadata;
 import net.minecraft.client.texture.*;
 import net.minecraft.resource.metadata.ResourceMetadata;
 import net.minecraft.util.Identifier;
@@ -317,7 +314,7 @@ public class LegacyPackConverter {
     }
     NativeImage nativeImage = getNativeImage(image);
     return new SpriteContents(id, new SpriteDimensions(image.width(), image.height()), nativeImage,
-        getResourceMetadata(image)
+        ResourceMetadata.NONE
     );
   }
 
@@ -329,15 +326,6 @@ public class LegacyPackConverter {
       }
     }
     return nativeImage;
-  }
-
-  private static ResourceMetadata getResourceMetadata(Image image) {
-    return new ResourceMetadata.Builder().add(AnimationResourceMetadata.READER,
-            new AnimationResourceMetadata(ImmutableList.of(new AnimationFrameResourceMetadata(0, -1)), image.width(),
-                image.height(), 1, false
-            )
-        )
-        .build();
   }
 
   private static PackMetadata<LegacyPackResource> readPackMetadata(Path path) {
