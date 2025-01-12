@@ -101,6 +101,11 @@ public class DownloadProgressToast implements Toast {
 
     this.lastProgress = lerpedProgress;
     this.lastTime = time;
+
+    if (bytesExpected == 0 && progress < 1f) {
+      this.progress = 1f;
+      this.finishTime = time;
+    }
   }
 
   public void setReceived(int images, int bytes) {
