@@ -105,6 +105,8 @@ public class DownloadProgressToast implements Toast {
     if (bytesExpected == 0 && progress < 1f) {
       this.progress = 1f;
       this.finishTime = time;
+
+      this.description = this.getDescription();
     }
   }
 
