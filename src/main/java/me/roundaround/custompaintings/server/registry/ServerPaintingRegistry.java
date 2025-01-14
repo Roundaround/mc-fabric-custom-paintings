@@ -23,8 +23,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.text.DecimalFormat;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -154,15 +154,17 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
       images.put(id, image);
     });
 
+    if (images.isEmpty()) {
+      CustomPaintingsMod.LOGGER.info(
+          "{} has incorrect combined hash, but all correct images. " +
+          "This is likely due to paintings being removed server-side.", player.getName().getString());
+      ServerNetworking.sendDownloadSummaryPacket(player, new HashSet<>(0), 0, 0);
+      return;
+    }
+
     CustomPaintingsMod.LOGGER.info(
         "{} needs to download {} image(s). Sending to client.", player.getName().getString(), images.size());
-    long timer = Util.getMeasuringTimeMs();
     ImagePacketQueue.getInstance().add(player, images);
-
-    DecimalFormat format = new DecimalFormat("0.##");
-    CustomPaintingsMod.LOGGER.info("Sent {} images to {} in {}s", images.size(), player.getName().getString(),
-        format.format((Util.getMeasuringTimeMs() - timer) / 1000.0)
-    );
   }
 
   public void markMigrationFinished(CustomId migrationId, boolean succeeded) {

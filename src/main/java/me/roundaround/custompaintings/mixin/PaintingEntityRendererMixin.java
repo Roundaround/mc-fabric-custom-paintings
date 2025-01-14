@@ -80,7 +80,7 @@ public abstract class PaintingEntityRendererMixin {
   )
   private Object getAltVariant(Object original, @Local(argsOnly = true) PaintingEntity painting) {
     PaintingData data = painting.getCustomData();
-    if (data.vanilla()) {
+    if (data.isEmpty() || data.vanilla()) {
       return original;
     }
     return data.toVariant();

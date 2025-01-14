@@ -81,7 +81,7 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
   )
   private Object getAltVariant(Object original) {
     PaintingData data = this.getCustomData();
-    if (data.isEmpty()) {
+    if (data.isEmpty() || data.vanilla()) {
       return original;
     }
     return data.toVariant();
