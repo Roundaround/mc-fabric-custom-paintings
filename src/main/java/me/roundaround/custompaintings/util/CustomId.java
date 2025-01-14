@@ -68,6 +68,13 @@ public record CustomId(String pack, String resource) implements Comparable<Custo
     PACKET_CODEC.encode(buf, this);
   }
 
+  public static Identifier toIdentifier(CustomId id) {
+    if (id == null) {
+      return null;
+    }
+    return id.toIdentifier();
+  }
+
   public static CustomId read(PacketByteBuf buf) {
     return PACKET_CODEC.decode(buf);
   }

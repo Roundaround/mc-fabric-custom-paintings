@@ -43,12 +43,12 @@ public class ClientPaintingManager {
       }
 
       Entity.RemovalReason removalReason = painting.getRemovalReason();
-      if (removalReason != null && removalReason.shouldDestroy()) {
+      // On client side, unloaded paintings are always "discarded"
+      if (removalReason == Entity.RemovalReason.DISCARDED) {
+        this.cacheData(painting);
+      } else {
         this.remove(painting.getId());
-        return;
       }
-
-      this.cacheData(painting);
     });
     ClientTickEvents.START_CLIENT_TICK.register((client) -> {
       long now = Util.getEpochTimeMs();
@@ -79,18 +79,18 @@ public class ClientPaintingManager {
     CompletableFuture<PaintingData> future = assignment.isKnown() ?
         ClientPaintingRegistry.getInstance().safeGet(assignment.getDataId()) :
         CompletableFuture.completedFuture(assignment.getData());
-    future.thenAccept((paintingData) -> {
-      if (paintingData == null || paintingData.isEmpty()) {
+    future.thenAccept((data) -> {
+      if (data == null || data.isEmpty()) {
         return;
       }
 
       Entity entity = world.getEntityById(id);
       if (!(entity instanceof PaintingEntity painting)) {
-        this.cachedData.put(id, paintingData);
+        this.cachedData.put(id, data);
         return;
       }
 
-      this.setPaintingData(painting, paintingData);
+      this.setPaintingData(painting, data);
     });
   }
 
@@ -99,11 +99,11 @@ public class ClientPaintingManager {
     this.expiryTimes.clear();
   }
 
-  private void setPaintingData(PaintingEntity painting, PaintingData paintingData) {
-    if (paintingData.vanilla()) {
-      painting.setVariant(paintingData.id());
+  private void setPaintingData(PaintingEntity painting, PaintingData data) {
+    if (data.vanilla()) {
+      painting.setVariant(data.id());
     }
-    painting.setCustomData(paintingData);
+    painting.setCustomData(data);
   }
 
   private void remove(int id) {

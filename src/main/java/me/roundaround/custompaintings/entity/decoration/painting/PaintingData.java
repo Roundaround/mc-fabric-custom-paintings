@@ -35,7 +35,7 @@ public record PaintingData(CustomId id, int width, int height, String name, Stri
   }
 
   public PaintingVariant toVariant() {
-    return new PaintingVariant(this.width(), this.height(), this.id().toIdentifier());
+    return new PaintingVariant(this.width(), this.height(), CustomId.toIdentifier(this.id()));
   }
 
   public int getScaledWidth() {
@@ -57,15 +57,15 @@ public record PaintingData(CustomId id, int width, int height, String name, Stri
   }
 
   public boolean isEmpty() {
-    return this.id == null;
+    return this.id() == null;
   }
 
   public boolean hasName() {
-    return this.vanilla() || this.name != null && !this.name.isEmpty();
+    return this.vanilla() || this.name() != null && !this.name().isEmpty();
   }
 
   public boolean hasArtist() {
-    return this.vanilla() || this.artist != null && !this.artist.isEmpty();
+    return this.vanilla() || this.artist() != null && !this.artist().isEmpty();
   }
 
   public boolean hasLabel() {
@@ -81,7 +81,7 @@ public record PaintingData(CustomId id, int width, int height, String name, Stri
       return Text.translatable(this.id().toTranslationKey("painting", "title")).formatted(Formatting.YELLOW);
     }
 
-    return Text.literal(this.name).formatted(Formatting.LIGHT_PURPLE);
+    return Text.literal(this.name()).formatted(Formatting.LIGHT_PURPLE);
   }
 
   public MutableText getArtistText() {
