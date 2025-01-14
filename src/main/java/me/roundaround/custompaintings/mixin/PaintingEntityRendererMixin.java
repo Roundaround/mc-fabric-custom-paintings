@@ -47,21 +47,21 @@ public abstract class PaintingEntityRendererMixin extends EntityRenderer<Paintin
   )
   private void adjustRenderPaintingArgs(Args args) {
     PaintingEntity entity = args.get(2);
-    PaintingData paintingData = entity.getCustomData();
+    PaintingData data = entity.getCustomData();
 
-    if (paintingData.vanilla()) {
+    if (data.isEmpty() || data.vanilla()) {
       return;
     }
 
     ClientPaintingRegistry registry = ClientPaintingRegistry.getInstance();
 
     // 3 - width
-    args.set(3, paintingData.getScaledWidth());
+    args.set(3, data.getScaledWidth());
     // 4 - height
-    args.set(4, paintingData.getScaledHeight());
+    args.set(4, data.getScaledHeight());
 
     // 5 - front sprite
-    args.set(5, registry.getSprite(paintingData));
+    args.set(5, registry.getSprite(data));
     // 6 - back sprite
     args.set(6, registry.getBackSprite());
   }

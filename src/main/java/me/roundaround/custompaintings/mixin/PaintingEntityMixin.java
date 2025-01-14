@@ -1,5 +1,6 @@
 package me.roundaround.custompaintings.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import me.roundaround.custompaintings.entity.decoration.painting.ExpandedPaintingEntity;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.util.CustomId;
@@ -80,21 +81,21 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
 
   @Inject(method = "getWidthPixels", at = @At(value = "HEAD"), cancellable = true)
   private void getWidthPixels(CallbackInfoReturnable<Integer> info) {
-    PaintingData paintingData = this.getCustomData();
-    if (paintingData.isEmpty()) {
+    PaintingData data = this.getCustomData();
+    if (data.isEmpty() || data.vanilla()) {
       return;
     }
 
-    info.setReturnValue(paintingData.getScaledWidth());
+    info.setReturnValue(data.getScaledWidth());
   }
 
   @Inject(method = "getHeightPixels", at = @At(value = "HEAD"), cancellable = true)
   private void getHeightPixels(CallbackInfoReturnable<Integer> info) {
-    PaintingData paintingData = this.getCustomData();
-    if (paintingData.isEmpty()) {
+    PaintingData data = this.getCustomData();
+    if (data.isEmpty() || data.vanilla()) {
       return;
     }
 
-    info.setReturnValue(paintingData.getScaledHeight());
+    info.setReturnValue(data.getScaledHeight());
   }
 }
