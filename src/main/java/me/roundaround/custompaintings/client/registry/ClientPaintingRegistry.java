@@ -237,7 +237,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   }
 
   private void initCacheAndSpriteAtlas(boolean initialLoad, UUID serverId, String serverCombinedImageHash) {
-    if (this.hasAllImages(serverCombinedImageHash, this.images::contains)) {
+    if (this.isHashCorrectAndAllImagesPresent(serverCombinedImageHash, this.images::contains)) {
       CustomPaintingsMod.LOGGER.info("All image info still valid, skipping re-fetching images");
       this.buildSpriteAtlas();
       return;
@@ -281,7 +281,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
       CustomPaintingsMod.LOGGER.info("Cache was empty; requesting all images from server");
       this.cacheDirty = true;
       ClientNetworking.sendHashesPacket(Map.of());
-    } else if (this.hasAllImages(cacheRead.combinedHash(), cacheRead.images()::containsKey)) {
+    } else if (this.isHashCorrectAndAllImagesPresent(cacheRead.combinedHash(), cacheRead.images()::containsKey)) {
       CustomPaintingsMod.LOGGER.info("All images successfully pulled from cache; skipping server image download");
       this.images.setAll(cacheRead.images(), cacheRead.hashes());
     } else {
@@ -294,7 +294,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.buildSpriteAtlas();
   }
 
-  private boolean hasAllImages(String newCombinedHash, Predicate<CustomId> imageCheck) {
+  private boolean isHashCorrectAndAllImagesPresent(String newCombinedHash, Predicate<CustomId> imageCheck) {
     if (!Objects.equals(newCombinedHash, this.combinedImageHash)) {
       return false;
     }
@@ -304,6 +304,15 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   }
 
   public void trackExpectedPackets(List<CustomId> expectedIds, int imageCount, int byteCount) {
+    if (expectedIds.isEmpty() || byteCount == 0) {
+      CustomPaintingsMod.LOGGER.info(
+          "Combined image hash is invalid, but all the individual images are fine. Rebuilding cache.");
+      this.cacheDirty = true;
+      this.cacheNewImages();
+      this.buildSpriteAtlas();
+      return;
+    }
+
     CustomPaintingsMod.LOGGER.info("Expecting {} painting image(s) from server", expectedIds.size());
     this.waitingForImagesTimer = Util.getMeasuringTimeMs();
 

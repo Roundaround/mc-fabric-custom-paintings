@@ -76,12 +76,6 @@ public class ServerPaintingManager extends PersistentState {
   public void onEntityLoad(PaintingEntity painting) {
     this.loadPainting(painting);
     this.fixCustomName(painting);
-
-    ServerNetworking.sendSetPaintingPacketToAll(this.world,
-        PaintingAssignment.from(painting.getId(), painting.getCustomData(),
-            ServerPaintingRegistry.getInstance()::contains
-        )
-    );
   }
 
   public void onEntityUnload(PaintingEntity painting) {
@@ -110,8 +104,12 @@ public class ServerPaintingManager extends PersistentState {
   }
 
   public void setPaintingData(PaintingEntity painting, PaintingData data) {
+    this.setPaintingData(painting, data, false);
+  }
+
+  public void setPaintingData(PaintingEntity painting, PaintingData data, boolean forceSync) {
     painting.setCustomData(data);
-    if (this.setTrackedData(painting.getUuid(), painting.getId(), data)) {
+    if (this.setTrackedData(painting.getUuid(), painting.getId(), data) || forceSync) {
       ServerNetworking.sendSetPaintingPacketToAll(this.world,
           PaintingAssignment.from(painting.getId(), data, ServerPaintingRegistry.getInstance()::contains)
       );
@@ -121,18 +119,15 @@ public class ServerPaintingManager extends PersistentState {
   private void loadPainting(PaintingEntity painting) {
     UUID uuid = painting.getUuid();
 
-    if (this.allPaintings.containsKey(uuid)) {
-      this.setPaintingData(painting, this.allPaintings.get(uuid));
-      return;
+    PaintingData data = this.allPaintings.get(uuid);
+    if (data == null) {
+      data = painting.getCustomData();
+    }
+    if (data.isEmpty()) {
+      data = new PaintingData(painting.getVariant().value());
     }
 
-    PaintingData paintingData = painting.getCustomData();
-    if (paintingData == null || paintingData.isEmpty()) {
-      this.setPaintingData(painting, new PaintingData(painting.getVariant().value()));
-      return;
-    }
-
-    this.setTrackedData(uuid, painting.getId(), paintingData);
+    this.setPaintingData(painting, data, true);
   }
 
   /**
@@ -142,10 +137,10 @@ public class ServerPaintingManager extends PersistentState {
    * in the world, we want to try to detect when we might have set these parameters and remove them.
    */
   private void fixCustomName(PaintingEntity painting) {
-    PaintingData paintingData = painting.getCustomData();
+    PaintingData data = painting.getCustomData();
     Text customName = painting.getCustomName();
 
-    if (paintingData.isEmpty() || !painting.isCustomNameVisible() || customName == null) {
+    if (data.isEmpty() || !painting.isCustomNameVisible() || customName == null) {
       return;
     }
 
@@ -154,11 +149,11 @@ public class ServerPaintingManager extends PersistentState {
       return;
     }
 
-    if (!paintingData.hasLabel()) {
+    if (!data.hasLabel()) {
       return;
     }
 
-    List<String> potentialOldLabels = List.of(paintingData.name(), paintingData.artist(), paintingData.id().resource());
+    List<String> potentialOldLabels = List.of(data.name(), data.artist(), data.id().resource());
     String customNameContent = customName.getString();
     if (potentialOldLabels.stream().anyMatch(customNameContent::startsWith)) {
       painting.setCustomName(null);
