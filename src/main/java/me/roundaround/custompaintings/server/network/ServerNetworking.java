@@ -37,7 +37,12 @@ public final class ServerNetworking {
   ) {
     server.getPlayerManager()
         .getPlayerList()
-        .forEach((player) -> sendSummaryPacket(player, packs, combinedImageHash, finishedMigrations, skipped,
+        .forEach((player) -> sendSummaryPacket(
+            player,
+            packs,
+            combinedImageHash,
+            finishedMigrations,
+            skipped,
             loadErrorOrSkipCount
         ));
   }
@@ -55,19 +60,27 @@ public final class ServerNetworking {
       return;
     }
     UUID serverId = ServerInfo.getInstance().getServerId();
-    ServerPlayNetworking.send(player,
+    ServerPlayNetworking.send(
+        player,
         new Networking.SummaryS2C(serverId, packs, combinedImageHash, finishedMigrations, skipped, loadErrorOrSkipCount)
     );
   }
 
   public static void sendDownloadSummaryPacket(
-      ServerPlayerEntity player, Collection<CustomId> ids, int imageCount, int byteCount
+      ServerPlayerEntity player,
+      Collection<CustomId> ids,
+      int imageCount,
+      int byteCount
   ) {
     ServerPlayNetworking.send(player, new Networking.DownloadSummaryS2C(ids.stream().toList(), imageCount, byteCount));
   }
 
   public static void sendEditPaintingPacket(
-      ServerPlayerEntity player, UUID paintingUuid, int paintingId, BlockPos pos, Direction facing
+      ServerPlayerEntity player,
+      UUID paintingUuid,
+      int paintingId,
+      BlockPos pos,
+      Direction facing
   ) {
     ServerPlayNetworking.send(player, new Networking.EditPaintingS2C(paintingUuid, paintingId, pos, facing));
   }
@@ -91,9 +104,7 @@ public final class ServerNetworking {
     }
   }
 
-  public static void sendMigrationFinishPacketToAll(
-      MinecraftServer server, CustomId id, boolean succeeded
-  ) {
+  public static void sendMigrationFinishPacketToAll(MinecraftServer server, CustomId id, boolean succeeded) {
     Networking.MigrationFinishS2C payload = new Networking.MigrationFinishS2C(id, succeeded);
     server.getPlayerManager().getPlayerList().forEach((player) -> {
       sendMigrationFinishPacket(player, payload);
@@ -150,30 +161,31 @@ public final class ServerNetworking {
         return;
       }
 
-      if (painting.getEditor() == null || !painting.getEditor().equals(player.getUuid())) {
+      if (painting.custompaintings$getEditor() == null ||
+          !painting.custompaintings$getEditor().equals(player.getUuid())) {
         return;
       }
 
       PaintingData paintingData = ServerPaintingRegistry.getInstance().get(payload.dataId());
       if (paintingData == null || paintingData.isEmpty()) {
-        painting.setEditor(null);
+        painting.custompaintings$setEditor(null);
         painting.damage(world, player.getDamageSources().playerAttack(player), 0f);
         return;
       }
 
       if (paintingData.vanilla()) {
-        painting.setVariant(paintingData.id());
+        painting.custompaintings$setVariant(paintingData.id());
       }
-      painting.setCustomData(paintingData);
+      painting.custompaintings$setData(paintingData);
 
       if (!painting.canStayAttached()) {
-        painting.setEditor(null);
+        painting.custompaintings$setEditor(null);
         painting.damage(world, player.getDamageSources().playerAttack(player), 0f);
         return;
       }
 
-      ServerPaintingManager.getInstance(world).setPaintingData(painting, paintingData);
-      painting.setEditor(null);
+      world.custompaintings$getPaintingManager().setPaintingData(painting, paintingData);
+      painting.custompaintings$setEditor(null);
     });
   }
 

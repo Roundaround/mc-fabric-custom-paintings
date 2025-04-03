@@ -11,12 +11,24 @@ import me.roundaround.custompaintings.util.InvalidIdException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
-public record PackResource(Integer format, String id, String name, String description, String sourceLegacyPack,
-                           List<PaintingResource> paintings, List<MigrationResource> migrations) {
+public record PackResource(Integer format,
+                           String id,
+                           String name,
+                           String description,
+                           String sourceLegacyPack,
+                           List<PaintingResource> paintings,
+                           List<MigrationResource> migrations) {
   public PackData toData(PackFileUid packFileUid, boolean disabled) {
-    return new PackData(packFileUid.stringValue(), disabled, packFileUid.fileSize(), this.id, this.name,
-        this.description, this.sourceLegacyPack,
+    return new PackData(
+        packFileUid.stringValue(),
+        disabled,
+        packFileUid.fileSize(),
+        this.id,
+        this.name,
+        Optional.ofNullable(this.description),
+        Optional.ofNullable(this.sourceLegacyPack),
         this.paintings.stream().map((painting) -> painting.toData(this.id)).toList(),
         this.migrations.stream().map((migration) -> migration.toData(this.id)).toList()
     );
@@ -40,8 +52,8 @@ public record PackResource(Integer format, String id, String name, String descri
 
   public static class TypeAdapter extends com.google.gson.TypeAdapter<PackResource> {
     private final Gson gson = new Gson();
-    private final com.google.gson.TypeAdapter<PaintingResource> paintingAdapter = this.gson.getAdapter(
-        PaintingResource.class);
+    private final com.google.gson.TypeAdapter<PaintingResource> paintingAdapter =
+        this.gson.getAdapter(PaintingResource.class);
     private final com.google.gson.TypeAdapter<MigrationResource> migrationAdapter = this.gson.getAdapter(
         MigrationResource.class);
 
@@ -158,7 +170,14 @@ public record PackResource(Integer format, String id, String name, String descri
       in.endObject();
 
       return new PackResource(
-          format, id, name, description, legacyPackId, List.copyOf(paintings), List.copyOf(migrations));
+          format,
+          id,
+          name,
+          description,
+          legacyPackId,
+          List.copyOf(paintings),
+          List.copyOf(migrations)
+      );
     }
   }
 }

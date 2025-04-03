@@ -8,11 +8,11 @@ import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.resource.PackResource;
 import me.roundaround.custompaintings.resource.legacy.CustomPaintingsJson;
+import me.roundaround.custompaintings.roundalib.event.ResourceManagerEvents;
 import me.roundaround.custompaintings.server.ServerInfo;
-import me.roundaround.custompaintings.server.ServerPaintingManager;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
-import me.roundaround.roundalib.client.event.MinecraftServerEvents;
+import me.roundaround.gradle.api.annotation.Entrypoint;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
@@ -27,6 +27,7 @@ import net.minecraft.util.ActionResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+@Entrypoint(Entrypoint.MAIN)
 public final class CustomPaintingsMod implements ModInitializer {
   public static final String MOD_ID = "custompaintings";
   public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
@@ -51,36 +52,36 @@ public final class CustomPaintingsMod implements ModInitializer {
       CustomPaintingsCommand.register(dispatcher);
     });
 
-    MinecraftServerEvents.RESOURCE_MANAGER_CREATING.register(ServerInfo::init);
+    ResourceManagerEvents.CREATING.register(ServerInfo::init);
 
     ServerWorldEvents.LOAD.register((server, world) -> {
       server.getRegistryManager().getOrThrow(RegistryKeys.PAINTING_VARIANT);
       ServerPaintingRegistry.init(server);
-      ServerPaintingManager.init(world);
+      world.custompaintings$getPaintingManager();
     });
 
     ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
       if (!(entity instanceof PaintingEntity painting)) {
         return;
       }
-      ServerPaintingManager.getInstance(world).onEntityLoad(painting);
+      world.custompaintings$getPaintingManager().onEntityLoad(painting);
     });
 
     ServerEntityEvents.ENTITY_UNLOAD.register((entity, world) -> {
       if (!(entity instanceof PaintingEntity painting)) {
         return;
       }
-      ServerPaintingManager.getInstance(world).onEntityUnload(painting);
+      world.custompaintings$getPaintingManager().onEntityUnload(painting);
     });
 
     ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
       ServerPlayerEntity player = handler.getPlayer();
       ServerPaintingRegistry.getInstance().sendSummaryToPlayer(player);
-      ServerPaintingManager.getInstance(player.getServerWorld()).syncAllDataForPlayer(player);
+      player.getServerWorld().custompaintings$getPaintingManager().syncAllDataForPlayer(player);
     });
 
     ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, origin, destination) -> {
-      ServerPaintingManager.getInstance(destination).syncAllDataForPlayer(player);
+      destination.custompaintings$getPaintingManager().syncAllDataForPlayer(player);
     });
 
     UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {

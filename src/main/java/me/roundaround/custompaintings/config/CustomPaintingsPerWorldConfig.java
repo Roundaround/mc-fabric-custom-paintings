@@ -1,11 +1,11 @@
 package me.roundaround.custompaintings.config;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.roundalib.config.ConfigPath;
-import me.roundaround.roundalib.config.manage.ModConfigImpl;
-import me.roundaround.roundalib.config.manage.store.WorldScopedFileStore;
-import me.roundaround.roundalib.config.option.BooleanConfigOption;
-import me.roundaround.roundalib.config.option.IntConfigOption;
+import me.roundaround.custompaintings.roundalib.config.ConfigPath;
+import me.roundaround.custompaintings.roundalib.config.manage.ModConfigImpl;
+import me.roundaround.custompaintings.roundalib.config.manage.store.WorldScopedFileStore;
+import me.roundaround.custompaintings.roundalib.config.option.BooleanConfigOption;
+import me.roundaround.custompaintings.roundalib.config.option.IntConfigOption;
 
 public class CustomPaintingsPerWorldConfig extends ModConfigImpl implements WorldScopedFileStore {
   private static CustomPaintingsPerWorldConfig instance = null;
@@ -29,25 +29,24 @@ public class CustomPaintingsPerWorldConfig extends ModConfigImpl implements Worl
 
   @Override
   protected void registerOptions() {
-    this.throttleImageDownloads = this.buildRegistration(
-        BooleanConfigOption.yesNoBuilder(ConfigPath.of("throttleImageDownloads"))
-            .setComment("Throttle image transfers to clients")
-            .setDefaultValue(true)
-            .build()).serverOnly().commit();
+    this.throttleImageDownloads = this.buildRegistration(BooleanConfigOption.yesNoBuilder(ConfigPath.of(
+            "throttleImageDownloads")).setComment("Throttle image transfers to clients").setDefaultValue(true).build())
+        .serverOnly()
+        .commit();
 
-    this.maxImagePacketsPerSecond = this.buildRegistration(
-        IntConfigOption.builder(ConfigPath.of("maxImagePacketsPerSecond"))
-            .setComment("Maximum number of image packets per second")
-            .setDefaultValue(40)
-            .setMinValue(0)
-            .build()).serverOnly().commit();
+    this.maxImagePacketsPerSecond = this.buildRegistration(IntConfigOption.builder(ConfigPath.of(
+            "maxImagePacketsPerSecond"))
+        .setComment("Maximum number of image packets per second")
+        .setDefaultValue(40)
+        .setMinValue(0)
+        .build()).serverOnly().commit();
 
-    this.maxPerClientImagePacketsPerSecond = this.buildRegistration(
-        IntConfigOption.builder(ConfigPath.of("maxPerClientImagePacketsPerSecond"))
-            .setComment("Maximum number of image packets per second per client")
-            .setDefaultValue(10)
-            .setMinValue(0)
-            .build()).serverOnly().commit();
+    this.maxPerClientImagePacketsPerSecond = this.buildRegistration(IntConfigOption.builder(ConfigPath.of(
+            "maxPerClientImagePacketsPerSecond"))
+        .setComment("Maximum number of image packets per second per client")
+        .setDefaultValue(10)
+        .setMinValue(0)
+        .build()).serverOnly().commit();
 
     this.maxImagePacketSize = this.buildRegistration(IntConfigOption.builder(ConfigPath.of("maxImagePacketSize"))
         .setComment("Maximum size for each image packet in KB")
@@ -56,10 +55,10 @@ public class CustomPaintingsPerWorldConfig extends ModConfigImpl implements Worl
         .setMinValue(0)
         .build()).serverOnly().commit();
 
-    this.silenceConvertPrompt = this.buildRegistration(
-        BooleanConfigOption.yesNoBuilder(ConfigPath.of("silenceConvertPrompt"))
-            .setComment("Silence legacy pack conversion prompts for this world")
-            .setDefaultValue(false)
-            .build()).singlePlayerOnly().commit();
+    this.silenceConvertPrompt = this.buildRegistration(BooleanConfigOption.yesNoBuilder(ConfigPath.of(
+            "silenceConvertPrompt"))
+        .setComment("Silence legacy pack conversion prompts for this world")
+        .setDefaultValue(false)
+        .build()).singlePlayerOnly().commit();
   }
 }

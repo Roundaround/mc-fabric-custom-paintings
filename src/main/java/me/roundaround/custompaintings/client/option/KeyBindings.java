@@ -1,8 +1,8 @@
 package me.roundaround.custompaintings.client.option;
 
 import me.roundaround.custompaintings.client.gui.screen.MainMenuScreen;
-import me.roundaround.roundalib.client.event.MinecraftClientEvents;
-import me.roundaround.roundalib.client.event.ScreenInputEvent;
+import me.roundaround.custompaintings.roundalib.event.MinecraftClientEvents;
+import me.roundaround.custompaintings.roundalib.event.ScreenInputEvent;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.TitleScreen;
@@ -17,10 +17,12 @@ public class KeyBindings {
   }
 
   public static void register() {
-    openMenu = KeyBindingHelper.registerKeyBinding(
-        new KeyBinding("custompaintings.key.openMainMenu", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_U,
-            "custompaintings.keyCategory"
-        ));
+    openMenu = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+        "custompaintings.key.openMainMenu",
+        InputUtil.Type.KEYSYM,
+        GLFW.GLFW_KEY_U,
+        "custompaintings.keyCategory"
+    ));
 
     MinecraftClientEvents.HANDLE_INPUT.register((client) -> {
       while (openMenu.wasPressed()) {

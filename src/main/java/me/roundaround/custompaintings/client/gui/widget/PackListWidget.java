@@ -3,11 +3,11 @@ package me.roundaround.custompaintings.client.gui.widget;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.resource.PackIcons;
-import me.roundaround.roundalib.client.gui.GuiUtil;
-import me.roundaround.roundalib.client.gui.layout.linear.LinearLayoutWidget;
-import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
-import me.roundaround.roundalib.client.gui.widget.NarratableEntryListWidget;
-import me.roundaround.roundalib.client.gui.widget.drawable.LabelWidget;
+import me.roundaround.custompaintings.roundalib.client.gui.layout.linear.LinearLayoutWidget;
+import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
+import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
+import me.roundaround.custompaintings.roundalib.client.gui.widget.NarratableEntryListWidget;
+import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.LabelWidget;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
@@ -23,9 +23,7 @@ import java.util.function.Consumer;
 public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Entry> {
   private final Consumer<String> onPackSelect;
 
-  public PackListWidget(
-      MinecraftClient client, ThreeSectionLayoutWidget layout, Consumer<String> onPackSelect
-  ) {
+  public PackListWidget(MinecraftClient client, ThreeSectionLayoutWidget layout, Consumer<String> onPackSelect) {
     super(client, layout);
 
     this.setAlternatingRowShading(true);
@@ -65,7 +63,13 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
     private final PackData pack;
 
     public Entry(
-        TextRenderer textRenderer, Consumer<String> onSelect, PackData pack, int index, int left, int top, int width
+        TextRenderer textRenderer,
+        Consumer<String> onSelect,
+        PackData pack,
+        int index,
+        int left,
+        int top,
+        int width
     ) {
       super(index, left, top, width, HEIGHT);
       this.onSelect = onSelect;
@@ -75,34 +79,42 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
           LinearLayoutWidget.horizontal().spacing(GuiUtil.PADDING).defaultOffAxisContentAlignCenter(), (self) -> {
             self.setPosition(this.getContentLeft(), this.getContentTop());
             self.setDimensions(this.getContentWidth(), this.getContentHeight());
-          });
+          }
+      );
 
       layout.add(
-          SpriteWidget.create(ClientPaintingRegistry.getInstance().getSprite(PackIcons.customId(this.pack.id()))),
+          SpriteWidget.create(ClientPaintingRegistry.getInstance()
+              .getSprite(PackIcons.customId(this.pack.id()))),
           (parent, self) -> self.setDimensions(this.getIconWidth(), this.getIconHeight())
       );
 
       LinearLayoutWidget column = LinearLayoutWidget.vertical().spacing(GuiUtil.PADDING).mainAxisContentAlignCenter();
 
-      column.add(LabelWidget.builder(textRenderer, Text.of(pack.name()))
-          .alignTextLeft()
-          .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
-          .hideBackground()
-          .showShadow()
-          .build(), (parent, self) -> self.setWidth(parent.getWidth()));
-      if (pack.description() != null && !pack.description().isBlank()) {
-        column.add(LabelWidget.builder(textRenderer, Text.literal(pack.description()).formatted(Formatting.GRAY))
-            .alignTextLeft()
-            .overflowBehavior(LabelWidget.OverflowBehavior.WRAP)
-            .maxLines(2)
-            .hideBackground()
-            .showShadow()
-            .build(), (parent, self) -> self.setWidth(parent.getWidth()));
+      column.add(
+          LabelWidget.builder(textRenderer, Text.of(pack.name()))
+              .alignTextLeft()
+              .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
+              .hideBackground()
+              .showShadow()
+              .build(), (parent, self) -> self.setWidth(parent.getWidth())
+      );
+      if (pack.description().isPresent() && !pack.description().get().isBlank()) {
+        column.add(
+            LabelWidget.builder(textRenderer, Text.literal(pack.description().get()).formatted(Formatting.GRAY))
+                .alignTextLeft()
+                .overflowBehavior(LabelWidget.OverflowBehavior.WRAP)
+                .maxLines(2)
+                .hideBackground()
+                .showShadow()
+                .build(), (parent, self) -> self.setWidth(parent.getWidth())
+        );
       }
 
-      layout.add(column, (parent, self) -> {
-        self.setDimensions(this.getContentWidth() - GuiUtil.PADDING - this.getIconWidth(), this.getContentHeight());
-      });
+      layout.add(
+          column, (parent, self) -> {
+            self.setDimensions(this.getContentWidth() - GuiUtil.PADDING - this.getIconWidth(), this.getContentHeight());
+          }
+      );
 
       layout.forEachChild(this::addDrawable);
     }

@@ -37,8 +37,8 @@ public class InfoSub {
     ArrayList<Text> lines = new ArrayList<>();
     lines.add(Text.translatable("custompaintings.commands.info.name", pack.name()));
     lines.add(Text.translatable("custompaintings.commands.info.id", pack.id()));
-    if (pack.description() != null && !pack.description().isBlank()) {
-      lines.add(Text.translatable("custompaintings.commands.info.description", pack.description()));
+    if (pack.description().isPresent() && !pack.description().get().isBlank()) {
+      lines.add(Text.translatable("custompaintings.commands.info.description", pack.description().get()));
     }
     if (!pack.paintings().isEmpty()) {
       lines.add(Text.translatable("custompaintings.commands.info.paintings", pack.paintings().size()));
@@ -48,16 +48,18 @@ public class InfoSub {
     }
     lines.add(Text.translatable("custompaintings.commands.info.fileSize", StringUtil.formatBytes(pack.fileSize())));
 
-    context.getSource().sendFeedback(() -> {
-      MutableText message = Text.empty();
-      for (int i = 0; i < lines.size(); i++) {
-        message.append(lines.get(i));
-        if (i < lines.size() - 1) {
-          message.append(ScreenTexts.LINE_BREAK);
-        }
-      }
-      return message;
-    }, false);
+    context.getSource().sendFeedback(
+        () -> {
+          MutableText message = Text.empty();
+          for (int i = 0; i < lines.size(); i++) {
+            message.append(lines.get(i));
+            if (i < lines.size() - 1) {
+              message.append(ScreenTexts.LINE_BREAK);
+            }
+          }
+          return message;
+        }, false
+    );
 
     return 1;
   }

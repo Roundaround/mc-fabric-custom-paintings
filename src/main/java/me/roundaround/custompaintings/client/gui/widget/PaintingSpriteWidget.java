@@ -2,7 +2,7 @@ package me.roundaround.custompaintings.client.gui.widget;
 
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.roundalib.client.gui.util.IntRect;
+import me.roundaround.custompaintings.roundalib.client.gui.util.IntRect;
 import net.minecraft.client.gui.DrawContext;
 
 public class PaintingSpriteWidget extends SpriteWidget {

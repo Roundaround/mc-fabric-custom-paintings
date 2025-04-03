@@ -57,7 +57,7 @@ public abstract class DecorationItemMixin {
       return Optional.empty();
     }
 
-    painting.setEditor(player.getUuid());
+    painting.custompaintings$setEditor(player.getUuid());
 
     ServerNetworking.sendEditPaintingPacket(player, painting.getUuid(), painting.getId(), pos, facing);
 

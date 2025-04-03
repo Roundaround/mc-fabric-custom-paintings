@@ -1,13 +1,20 @@
 package me.roundaround.custompaintings.client.registry;
 
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.registry.ImageStore;
 import me.roundaround.custompaintings.resource.Image;
 import me.roundaround.custompaintings.util.CustomId;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.nbt.*;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.NbtSizeTracker;
 import net.minecraft.util.Util;
+import net.minecraft.util.Uuids;
+import org.jetbrains.annotations.NotNull;
 
 import javax.imageio.ImageIO;
 import java.io.IOException;
@@ -16,6 +23,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -36,27 +44,27 @@ public class CacheManager {
   }
 
   public static void runBackgroundClean() {
-    CompletableFuture.runAsync(() -> {
-      try {
-        Path dataFile = getDataFile(getCacheDir());
+    CompletableFuture.runAsync(
+        () -> {
+          try {
+            Path dataFile = getDataFile(getCacheDir());
 
-        if (Files.notExists(dataFile) || !Files.isRegularFile(dataFile)) {
-          return;
-        }
+            if (Files.notExists(dataFile) || !Files.isRegularFile(dataFile)) {
+              return;
+            }
 
-        NbtCompound nbt = NbtIo.readCompressed(dataFile, NbtSizeTracker.ofUnlimitedBytes());
-        CacheData data = CacheData.fromNbt(nbt);
+            NbtCompound nbt = NbtIo.readCompressed(dataFile, NbtSizeTracker.ofUnlimitedBytes());
+            CacheData data = CacheData.fromNbt(nbt);
 
-        trimExpired(data);
-      } catch (Exception ignored) {
-        // TODO: Handle exception
-      }
-    }, Util.getIoWorkerExecutor());
+            trimExpired(data);
+          } catch (Exception ignored) {
+            // TODO: Handle exception
+          }
+        }, Util.getIoWorkerExecutor()
+    );
   }
 
-  public CacheRead loadFromFile(
-      UUID serverId, HashSet<CustomId> requestedImageIds
-  ) {
+  public CacheRead loadFromFile(UUID serverId, HashSet<CustomId> requestedImageIds) {
     this.serverId = serverId;
     Path cacheDir = getCacheDir();
     Path dataFile = getDataFile(cacheDir);
@@ -91,8 +99,8 @@ public class CacheManager {
     for (PackCacheData pack : server.packs()) {
       if (requestedPackIds.contains(pack.packId())) {
         for (ImageCacheData image : pack.images()) {
-          if (image.lastAccess() > expired && requestedImageIds.contains(image.id())) {
-            requestedHashes.put(image.id(), image.hash());
+          if (image.lastAccess() > expired && requestedImageIds.contains(image.id(pack.packId()))) {
+            requestedHashes.put(image.id(pack.packId()), image.hash());
           }
         }
       }
@@ -143,7 +151,7 @@ public class CacheManager {
         }
 
         ImageIO.write(image.toBufferedImage(), "png", cacheDir.resolve(hash + ".png").toFile());
-        pack.images().add(new ImageCacheData(id, hash, now));
+        pack.images().add(new ImageCacheData(id.resource(), hash, now));
       } catch (IOException e) {
         CustomPaintingsMod.LOGGER.warn(e);
         CustomPaintingsMod.LOGGER.warn("Failed to save image to cache: {}", id);
@@ -182,19 +190,21 @@ public class CacheManager {
     if (Files.notExists(cacheDir)) {
       return;
     }
-    Files.walkFileTree(cacheDir, new SimpleFileVisitor<>() {
-      @Override
-      public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-        Files.delete(file);
-        return FileVisitResult.CONTINUE;
-      }
+    Files.walkFileTree(
+        cacheDir, new SimpleFileVisitor<>() {
+          @Override
+          public @NotNull FileVisitResult visitFile(Path file, @NotNull BasicFileAttributes attrs) throws IOException {
+            Files.delete(file);
+            return FileVisitResult.CONTINUE;
+          }
 
-      @Override
-      public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-        Files.delete(dir);
-        return FileVisitResult.CONTINUE;
-      }
-    });
+          @Override
+          public @NotNull FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+            Files.delete(dir);
+            return FileVisitResult.CONTINUE;
+          }
+        }
+    );
   }
 
   public CacheStats getStats() {
@@ -221,19 +231,21 @@ public class CacheManager {
       long value = 0;
     };
     try {
-      Files.walkFileTree(cacheDir, new SimpleFileVisitor<>() {
-        @Override
-        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-          bytes.value += attrs.size();
-          return FileVisitResult.CONTINUE;
-        }
+      Files.walkFileTree(
+          cacheDir, new SimpleFileVisitor<>() {
+            @Override
+            public @NotNull FileVisitResult visitFile(Path file, @NotNull BasicFileAttributes attrs) {
+              bytes.value += attrs.size();
+              return FileVisitResult.CONTINUE;
+            }
 
-        @Override
-        public FileVisitResult visitFileFailed(Path file, IOException exc) {
-          // Handle the error if a file cannot be accessed (optional)
-          return FileVisitResult.CONTINUE;
-        }
-      });
+            @Override
+            public @NotNull FileVisitResult visitFileFailed(Path file, @NotNull IOException exc) {
+              // Handle the error if a file cannot be accessed (optional)
+              return FileVisitResult.CONTINUE;
+            }
+          }
+      );
     } catch (IOException e) {
       // TODO: Handle exception
       throw new RuntimeException(e);
@@ -276,11 +288,16 @@ public class CacheManager {
   }
 
   private static void touchCache(
-      CacheData data, UUID serverId, String combinedHash, Map<CustomId, String> touchedImages
+      CacheData data,
+      UUID serverId,
+      String combinedHash,
+      Map<CustomId, String> touchedImages
   ) {
     final long now = Util.getEpochTimeMs();
 
-    ServerCacheData server = getAndIfPresentOrCompute(data.byServer(), serverId,
+    ServerCacheData server = getAndIfPresentOrCompute(
+        data.byServer(),
+        serverId,
         (existing) -> existing.setLastAccess(now),
         () -> new ServerCacheData(serverId, combinedHash, new ArrayList<>(), now)
     );
@@ -292,20 +309,28 @@ public class CacheManager {
     });
 
     imagesByPack.forEach((packId, packImages) -> {
-      PackCacheData pack = findOrCompute(server.packs(), (p) -> Objects.equals(p.packId(), packId),
+      PackCacheData pack = findOrCompute(
+          server.packs(),
+          (p) -> Objects.equals(p.packId(), packId),
           () -> new PackCacheData(packId, new ArrayList<>())
       );
 
       packImages.forEach((id, hash) -> {
-        ifPresentOrCompute(pack.images(), (i) -> i.id().equals(id), (image) -> image.setLastAccess(now),
-            () -> new ImageCacheData(id, hash, now)
+        ifPresentOrCompute(
+            pack.images(),
+            (i) -> i.id(pack.packId()).equals(id),
+            (image) -> image.setLastAccess(now),
+            () -> new ImageCacheData(id.resource(), hash, now)
         );
       });
     });
 
     touchedImages.forEach((id, hash) -> {
       Optional.ofNullable(data.byHash().get(hash)).ifPresent((usages) -> {
-        ifPresentOrCompute(usages, (usage) -> usage.serverId().equals(serverId), (usage) -> usage.setLastAccess(now),
+        ifPresentOrCompute(
+            usages,
+            (usage) -> usage.serverId().equals(serverId),
+            (usage) -> usage.setLastAccess(now),
             () -> new HashCacheData(serverId, now)
         );
       });
@@ -400,9 +425,7 @@ public class CacheManager {
     }
   }
 
-  private static <T, U> U getAndIfPresentOrCompute(
-      Map<T, U> map, T key, Consumer<U> ifPresent, Supplier<U> compute
-  ) {
+  private static <T, U> U getAndIfPresentOrCompute(Map<T, U> map, T key, Consumer<U> ifPresent, Supplier<U> compute) {
     U value = map.get(key);
     if (value != null) {
       ifPresent.accept(value);
@@ -420,83 +443,56 @@ public class CacheManager {
   }
 
   private static <T> void ifPresentOrCompute(
-      Collection<T> collection, Predicate<T> predicate, Consumer<T> ifPresent, Supplier<T> compute
+      Collection<T> collection,
+      Predicate<T> predicate,
+      Consumer<T> ifPresent,
+      Supplier<T> compute
   ) {
     collection.stream().filter(predicate).findAny().ifPresentOrElse(ifPresent, () -> collection.add(compute.get()));
   }
 
-  private record CacheData(int version, HashMap<UUID, ServerCacheData> byServer,
+  private record CacheData(int version,
+                           HashMap<UUID, ServerCacheData> byServer,
                            HashMap<String, ArrayList<HashCacheData>> byHash) {
-    private static final String NBT_VERSION = "Version";
-    private static final String NBT_BY_SERVER = "ByServer";
-    private static final String NBT_BY_HASH = "ByHash";
+    public static final String NBT_VERSION = "Version";
+    public static final String NBT_BY_SERVER = "ByServer";
+    public static final String NBT_BY_HASH = "ByHash";
+    public static Codec<CacheData> CODEC = RecordCodecBuilder.create((instance) -> instance.group(
+        Codec.INT.fieldOf(NBT_VERSION).forGetter(CacheData::version),
+        Codec.unboundedMap(Uuids.STRING_CODEC, ServerCacheData.CODEC)
+            .xmap(HashMap::new, Function.identity())
+            .fieldOf(NBT_BY_SERVER)
+            .forGetter(CacheData::byServer),
+        Codec.unboundedMap(Codec.STRING, Codec.list(HashCacheData.CODEC).xmap(ArrayList::new, Function.identity()))
+            .xmap(HashMap::new, Function.identity())
+            .fieldOf(NBT_BY_HASH)
+            .forGetter(CacheData::byHash)
+    ).apply(instance, CacheData::new));
 
     public static CacheData fromNbt(NbtCompound nbt) {
-      int version = nbt.contains(NBT_VERSION, NbtElement.INT_TYPE) ? nbt.getInt(NBT_VERSION) : 1;
-      NbtCompound serversNbt = nbt.contains(NBT_BY_SERVER, NbtElement.COMPOUND_TYPE) ?
-          nbt.getCompound(NBT_BY_SERVER) :
-          new NbtCompound();
-      HashMap<UUID, ServerCacheData> byServer = new HashMap<>();
-      for (String key : serversNbt.getKeys()) {
-        UUID serverId = UUID.fromString(key);
-        byServer.put(serverId, ServerCacheData.fromNbt(serversNbt.getCompound(key)));
-      }
-
-      NbtCompound hashesNbt = nbt.contains(NBT_BY_HASH, NbtElement.COMPOUND_TYPE) ?
-          nbt.getCompound(NBT_BY_HASH) :
-          new NbtCompound();
-      HashMap<String, ArrayList<HashCacheData>> byHash = new HashMap<>();
-      for (String hash : hashesNbt.getKeys()) {
-        ArrayList<HashCacheData> items = byHash.computeIfAbsent(hash, (k) -> new ArrayList<>());
-        NbtList list = hashesNbt.getList(hash, NbtElement.COMPOUND_TYPE);
-        int size = list.size();
-        for (int i = 0; i < size; i++) {
-          items.add(HashCacheData.fromNbt(list.getCompound(i)));
-        }
-      }
-
-      return new CacheData(version, byServer, byHash);
+      return CODEC.decode(NbtOps.INSTANCE, nbt).getOrThrow().getFirst();
     }
 
     public NbtCompound toNbt() {
-      NbtCompound nbt = new NbtCompound();
-      nbt.putInt(NBT_VERSION, this.version);
-      NbtCompound serversNbt = new NbtCompound();
-      this.byServer.forEach((serverId, server) -> serversNbt.put(serverId.toString(), server.toNbt()));
-      nbt.put(NBT_BY_SERVER, serversNbt);
-      NbtCompound hashesNbt = new NbtCompound();
-      this.byHash.forEach((hash, data) -> {
-        NbtList list = new NbtList();
-        data.forEach((datum) -> list.add(datum.toNbt()));
-        hashesNbt.put(hash, list);
-      });
-      nbt.put(NBT_BY_HASH, hashesNbt);
-      return nbt;
+      return (NbtCompound) CODEC.encodeStart(NbtOps.INSTANCE, this).getOrThrow();
     }
   }
 
   private static final class HashCacheData {
-    private static final String NBT_ID = "Id";
-    private static final String NBT_LAST_ACCESS = "LastAccess";
+    public static final String NBT_ID = "Id";
+    public static final String NBT_LAST_ACCESS = "LastAccess";
+    public static final Codec<HashCacheData> CODEC = RecordCodecBuilder.create((instance) -> instance.group(
+        Uuids.INT_STREAM_CODEC.fieldOf(
+            NBT_ID).forGetter(HashCacheData::serverId),
+        Codec.LONG.fieldOf(NBT_LAST_ACCESS).forGetter(HashCacheData::lastAccess)
+    ).apply(instance, HashCacheData::new));
+
     private final UUID serverId;
     private long lastAccess;
 
     private HashCacheData(UUID serverId, long lastAccess) {
       this.serverId = serverId;
       this.lastAccess = lastAccess;
-    }
-
-    public static HashCacheData fromNbt(NbtCompound nbt) {
-      UUID serverId = nbt.getUuid(NBT_ID);
-      long lastAccess = nbt.getLong(NBT_LAST_ACCESS);
-      return new HashCacheData(serverId, lastAccess);
-    }
-
-    public NbtCompound toNbt() {
-      NbtCompound nbt = new NbtCompound();
-      nbt.putUuid(NBT_ID, this.serverId);
-      nbt.putLong(NBT_LAST_ACCESS, this.lastAccess);
-      return nbt;
     }
 
     public UUID serverId() {
@@ -513,10 +509,12 @@ public class CacheManager {
 
     @Override
     public boolean equals(Object obj) {
-      if (obj == this)
+      if (obj == this) {
         return true;
-      if (obj == null || obj.getClass() != this.getClass())
+      }
+      if (obj == null || obj.getClass() != this.getClass()) {
         return false;
+      }
       var that = (HashCacheData) obj;
       return Objects.equals(this.serverId, that.serverId) && this.lastAccess == that.lastAccess;
     }
@@ -528,10 +526,19 @@ public class CacheManager {
   }
 
   private static final class ServerCacheData {
-    private static final String NBT_ID = "Id";
-    private static final String NBT_COMBINED_HASH = "CombinedHash";
-    private static final String NBT_PACKS = "Packs";
-    private static final String NBT_LAST_ACCESS = "LastAccess";
+    public static final String NBT_ID = "Id";
+    public static final String NBT_COMBINED_HASH = "CombinedHash";
+    public static final String NBT_PACKS = "Packs";
+    public static final String NBT_LAST_ACCESS = "LastAccess";
+    public static final Codec<ServerCacheData> CODEC = RecordCodecBuilder.create((instance) -> instance.group(
+        Uuids.INT_STREAM_CODEC.fieldOf(NBT_ID).forGetter(ServerCacheData::serverId),
+        Codec.STRING.fieldOf(NBT_COMBINED_HASH).forGetter(ServerCacheData::combinedHash),
+        Codec.list(PackCacheData.CODEC)
+            .xmap(ArrayList::new, Function.identity())
+            .fieldOf(NBT_PACKS)
+            .forGetter(ServerCacheData::packs),
+        Codec.LONG.fieldOf(NBT_LAST_ACCESS).forGetter(ServerCacheData::lastAccess)
+    ).apply(instance, ServerCacheData::new));
 
     private final UUID serverId;
     private final String combinedHash;
@@ -544,30 +551,6 @@ public class CacheManager {
       this.combinedHash = combinedHash;
       this.packs = packs;
       this.lastAccess = lastAccess;
-    }
-
-    public static ServerCacheData fromNbt(NbtCompound nbt) {
-      UUID serverId = nbt.getUuid(NBT_ID);
-      String combinedHash = nbt.getString(NBT_COMBINED_HASH);
-      ArrayList<PackCacheData> packs = new ArrayList<>();
-      NbtList list = nbt.getList(NBT_PACKS, NbtElement.COMPOUND_TYPE);
-      int size = list.size();
-      for (int i = 0; i < size; i++) {
-        packs.add(PackCacheData.fromNbt(list.getCompound(i)));
-      }
-      long lastAccess = nbt.getLong(NBT_LAST_ACCESS);
-      return new ServerCacheData(serverId, combinedHash, packs, lastAccess);
-    }
-
-    public NbtCompound toNbt() {
-      NbtCompound nbt = new NbtCompound();
-      nbt.putUuid(NBT_ID, this.serverId);
-      nbt.putString(NBT_COMBINED_HASH, this.combinedHash);
-      NbtList list = new NbtList();
-      this.packs.forEach((pack) -> list.add(pack.toNbt()));
-      nbt.put(NBT_PACKS, list);
-      nbt.putLong(NBT_LAST_ACCESS, this.lastAccess);
-      return nbt;
     }
 
     public UUID serverId() {
@@ -592,10 +575,12 @@ public class CacheManager {
 
     @Override
     public boolean equals(Object obj) {
-      if (obj == this)
+      if (obj == this) {
         return true;
-      if (obj == null || obj.getClass() != this.getClass())
+      }
+      if (obj == null || obj.getClass() != this.getClass()) {
         return false;
+      }
       var that = (ServerCacheData) obj;
       return Objects.equals(this.serverId, that.serverId) && Objects.equals(this.combinedHash, that.combinedHash) &&
              Objects.equals(this.packs, that.packs) && this.lastAccess == that.lastAccess;
@@ -609,65 +594,48 @@ public class CacheManager {
   }
 
   private record PackCacheData(String packId, ArrayList<ImageCacheData> images) {
-    private static final String NBT_ID = "Id";
-    private static final String NBT_IMAGES = "Images";
+    public static final String NBT_ID = "Id";
+    public static final String NBT_IMAGES = "Images";
+    public static final Codec<PackCacheData> CODEC = RecordCodecBuilder.create((instance) -> instance.group(
+        Codec.STRING.fieldOf(NBT_ID).forGetter(PackCacheData::packId),
+        Codec.list(ImageCacheData.CODEC)
+            .xmap(ArrayList::new, Function.identity())
+            .fieldOf(NBT_IMAGES)
+            .forGetter(PackCacheData::images)
+    ).apply(instance, PackCacheData::new));
 
     public static PackCacheData empty(String packId) {
       return new PackCacheData(packId, new ArrayList<>());
     }
-
-    public static PackCacheData fromNbt(NbtCompound nbt) {
-      String packId = nbt.getString(NBT_ID);
-      ArrayList<ImageCacheData> images = new ArrayList<>();
-      NbtList list = nbt.getList(NBT_IMAGES, NbtElement.COMPOUND_TYPE);
-      int size = list.size();
-      for (int i = 0; i < size; i++) {
-        images.add(ImageCacheData.fromNbt(list.getCompound(i), packId));
-      }
-      return new PackCacheData(packId, images);
-    }
-
-    public NbtCompound toNbt() {
-      NbtCompound nbt = new NbtCompound();
-      nbt.putString(NBT_ID, this.packId);
-      NbtList list = new NbtList();
-      this.images.forEach((image) -> list.add(image.toNbt()));
-      nbt.put(NBT_IMAGES, list);
-      return nbt;
-    }
   }
 
   private static final class ImageCacheData {
-    private static final String NBT_ID = "Id";
-    private static final String NBT_HASH = "Hash";
-    private static final String NBT_LAST_ACCESS = "LastAccess";
+    public static final String NBT_ID = "Id";
+    public static final String NBT_HASH = "Hash";
+    public static final String NBT_LAST_ACCESS = "LastAccess";
+    public static final Codec<ImageCacheData> CODEC = RecordCodecBuilder.create((instance) -> instance.group(
+        Codec.STRING.fieldOf(NBT_ID).forGetter(ImageCacheData::id),
+        Codec.STRING.fieldOf(NBT_HASH).forGetter(ImageCacheData::hash),
+        Codec.LONG.fieldOf(NBT_LAST_ACCESS).forGetter(ImageCacheData::lastAccess)
+    ).apply(instance, ImageCacheData::new));
 
-    private final CustomId id;
+    private final String id;
     private final String hash;
 
     private long lastAccess;
 
-    private ImageCacheData(CustomId id, String hash, long lastAccess) {
+    private ImageCacheData(String id, String hash, long lastAccess) {
       this.id = id;
       this.hash = hash;
       this.lastAccess = lastAccess;
     }
 
-    public static ImageCacheData fromNbt(NbtCompound nbt, String packId) {
-      return new ImageCacheData(
-          new CustomId(packId, nbt.getString(NBT_ID)), nbt.getString(NBT_HASH), nbt.getLong(NBT_LAST_ACCESS));
-    }
-
-    public NbtCompound toNbt() {
-      NbtCompound nbt = new NbtCompound();
-      nbt.putString(NBT_ID, this.id.resource());
-      nbt.putString(NBT_HASH, this.hash);
-      nbt.putLong(NBT_LAST_ACCESS, this.lastAccess);
-      return nbt;
-    }
-
-    public CustomId id() {
+    public String id() {
       return this.id;
+    }
+
+    public CustomId id(String packId) {
+      return new CustomId(packId, this.id());
     }
 
     public String hash() {
@@ -684,10 +652,12 @@ public class CacheManager {
 
     @Override
     public boolean equals(Object obj) {
-      if (obj == this)
+      if (obj == this) {
         return true;
-      if (obj == null || obj.getClass() != this.getClass())
+      }
+      if (obj == null || obj.getClass() != this.getClass()) {
         return false;
+      }
       var that = (ImageCacheData) obj;
       return Objects.equals(this.id, that.id) && Objects.equals(this.hash, that.hash) &&
              this.lastAccess == that.lastAccess;

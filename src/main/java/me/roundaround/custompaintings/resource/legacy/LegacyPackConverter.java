@@ -4,7 +4,7 @@ import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.texture.LoadingSprite;
 import me.roundaround.custompaintings.resource.*;
 import me.roundaround.custompaintings.util.CustomId;
-import me.roundaround.roundalib.util.PathAccessor;
+import me.roundaround.custompaintings.roundalib.util.PathAccessor;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.texture.*;

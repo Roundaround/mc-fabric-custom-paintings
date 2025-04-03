@@ -9,7 +9,7 @@ import me.roundaround.custompaintings.server.network.ImagePacketQueue;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
 import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.custompaintings.util.InvalidIdException;
-import me.roundaround.roundalib.util.PathAccessor;
+import me.roundaround.custompaintings.roundalib.util.PathAccessor;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.registry.DynamicRegistryManager;
 import net.minecraft.server.MinecraftServer;

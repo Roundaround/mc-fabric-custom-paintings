@@ -1,6 +1,6 @@
 package me.roundaround.custompaintings.client.toast;
 
-import me.roundaround.roundalib.client.gui.GuiUtil;
+import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.render.RenderLayer;

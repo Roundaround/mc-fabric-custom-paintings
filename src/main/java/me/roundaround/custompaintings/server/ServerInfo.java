@@ -1,8 +1,14 @@
 package me.roundaround.custompaintings.server;
 
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.minecraft.nbt.*;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.NbtSizeTracker;
+import net.minecraft.util.Uuids;
 import net.minecraft.world.World;
 import net.minecraft.world.level.storage.LevelStorage;
 
@@ -10,6 +16,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -24,6 +31,14 @@ public class ServerInfo {
   private final HashSet<String> disabledPacks = new HashSet<>();
 
   private boolean dirty;
+
+  private ServerInfo(Path savePath) {
+    this(savePath, UUID.randomUUID(), Set.of(), true);
+  }
+
+  private ServerInfo(Path savePath, UUID serverId, Set<String> disabledPacks) {
+    this(savePath, serverId, disabledPacks, false);
+  }
 
   private ServerInfo(Path savePath, UUID serverId, Set<String> disabledPacks, boolean initiallyDirty) {
     this.savePath = savePath;
@@ -50,16 +65,15 @@ public class ServerInfo {
         .resolve("data")
         .resolve(CustomPaintingsMod.MOD_ID + "_server" + ".dat");
 
-    InitialData data;
+    StoredData data;
     try {
       data = load(savePath);
+      instance = new ServerInfo(savePath, data.serverId(), data.disabledPacks());
     } catch (Exception e) {
       CustomPaintingsMod.LOGGER.warn(e);
       CustomPaintingsMod.LOGGER.warn("Failed to load Custom Paintings mod server info; setting defaults");
-      data = InitialData.defaultValue();
+      instance = new ServerInfo(savePath);
     }
-
-    instance = new ServerInfo(savePath, data.serverId(), data.disabledPacks(), data.dirty());
   }
 
   public static ServerInfo getInstance() {
@@ -104,38 +118,28 @@ public class ServerInfo {
       return;
     }
 
-    NbtCompound nbt = new NbtCompound();
-    nbt.putUuid(NBT_SERVER_ID, this.serverId);
-    NbtList list = new NbtList();
-    for (String disabledPack : this.disabledPacks) {
-      list.add(NbtString.of(disabledPack));
-    }
-    nbt.put(NBT_DISABLED_PACKS, list);
-
+    NbtCompound nbt = (NbtCompound) StoredData.CODEC.encodeStart(
+        NbtOps.INSTANCE,
+        new StoredData(this.serverId, this.disabledPacks)
+    ).getOrThrow();
     NbtIo.writeCompressed(nbt, this.savePath);
     this.dirty = false;
   }
 
-  private static InitialData load(Path savePath) throws IOException {
+  private static StoredData load(Path savePath) throws IOException {
     NbtCompound nbt = Files.exists(savePath) ?
         NbtIo.readCompressed(savePath, NbtSizeTracker.ofUnlimitedBytes()) :
         new NbtCompound();
-
-    UUID serverId = nbt.containsUuid(NBT_SERVER_ID) ? nbt.getUuid(NBT_SERVER_ID) : UUID.randomUUID();
-
-    HashSet<String> disabledPacks = new HashSet<>();
-    NbtList list = nbt.getList(NBT_DISABLED_PACKS, NbtElement.STRING_TYPE);
-    int size = list.size();
-    for (int i = 0; i < size; i++) {
-      disabledPacks.add(list.getString(i));
-    }
-
-    return new InitialData(serverId, disabledPacks, !nbt.containsUuid(NBT_SERVER_ID));
+    return StoredData.CODEC.decode(NbtOps.INSTANCE, nbt).getOrThrow().getFirst();
   }
 
-  private record InitialData(UUID serverId, Set<String> disabledPacks, boolean dirty) {
-    public static InitialData defaultValue() {
-      return new InitialData(UUID.randomUUID(), Set.of(), true);
-    }
+  private record StoredData(UUID serverId, Set<String> disabledPacks) {
+    public static final Codec<StoredData> CODEC = RecordCodecBuilder.create((instance) -> instance.group(
+        Uuids.INT_STREAM_CODEC.fieldOf("ServerId").forGetter(StoredData::serverId),
+        Codec.list(Codec.STRING)
+            .xmap(Set::copyOf, List::copyOf)
+            .fieldOf("DisabledPacks")
+            .forGetter(StoredData::disabledPacks)
+    ).apply(instance, StoredData::new));
   }
 }

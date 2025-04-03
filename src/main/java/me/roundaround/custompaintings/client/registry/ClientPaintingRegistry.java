@@ -16,9 +16,9 @@ import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
 import me.roundaround.custompaintings.registry.ImageStore;
 import me.roundaround.custompaintings.resource.*;
 import me.roundaround.custompaintings.resource.legacy.LegacyPackConverter;
+import me.roundaround.custompaintings.roundalib.event.MinecraftClientEvents;
 import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.custompaintings.util.StringUtil;
-import me.roundaround.roundalib.client.event.MinecraftClientEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.texture.*;
 import net.minecraft.client.world.ClientWorld;
@@ -187,7 +187,10 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   }
 
   public void processSummary(
-      List<PackData> packs, UUID serverId, String combinedImageHash, Map<CustomId, Boolean> finishedMigrations
+      List<PackData> packs,
+      UUID serverId,
+      String combinedImageHash,
+      Map<CustomId, Boolean> finishedMigrations
   ) {
     boolean initialLoad = this.packsMap.isEmpty();
     if (initialLoad) {
@@ -211,10 +214,8 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
       return;
     }
 
-    LegacyPackConverter.getInstance()
-        .checkForLegacyPacks(this.client)
-        .orTimeout(30, TimeUnit.SECONDS)
-        .thenAcceptAsync((metas) -> {
+    LegacyPackConverter.getInstance().checkForLegacyPacks(this.client).orTimeout(30, TimeUnit.SECONDS).thenAcceptAsync(
+        (metas) -> {
           if (this.client.player == null) {
             return;
           }
@@ -222,7 +223,8 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
           HashSet<String> alreadyLoaded = this.packsMap.values()
               .stream()
               .map(PackData::sourceLegacyPack)
-              .filter((id) -> id != null && !id.isBlank())
+              .filter((id) -> id.isPresent() && !id.get().isBlank())
+              .map(Optional::get)
               .collect(Collectors.toCollection(HashSet::new));
           HashSet<String> legacyPacks = metas.stream()
               .map(PackMetadata::packFileUid)
@@ -233,7 +235,8 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
           if (!legacyPacks.isEmpty()) {
             CustomSystemToasts.addLegacyPacksFound(this.client, legacyPacks.size());
           }
-        }, this.client);
+        }, this.client
+    );
   }
 
   private void initCacheAndSpriteAtlas(boolean initialLoad, UUID serverId, String serverCombinedImageHash) {
@@ -400,7 +403,8 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     CustomPaintingsMod.LOGGER.info("All painting images received from server. Refreshing sprite atlas...");
     this.buildSpriteAtlas();
     this.cacheNewImages();
-    CustomPaintingsMod.LOGGER.info("Painting images downloaded and sprite atlas refreshed in {}s",
+    CustomPaintingsMod.LOGGER.info(
+        "Painting images downloaded and sprite atlas refreshed in {}s",
         StringUtil.formatDuration(Util.getMeasuringTimeMs() - this.waitingForImagesTimer)
     );
 
@@ -417,8 +421,11 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     sprites.add(MissingSprite.createSpriteContents());
     sprites.add(BasicTextureSprite.fetch(this.client, PAINTING_BACK_ID, BACK_TEXTURE_ID));
     sprites.add(VanillaIconSprite.create(this.client, PackIcons.MINECRAFT_ICON_ID.toIdentifier(), "vanilla"));
-    sprites.add(
-        BasicTextureSprite.fetch(this.client, PackIcons.MINECRAFT_HIDDEN_ICON_ID.toIdentifier(), EARTH_TEXTURE_ID));
+    sprites.add(BasicTextureSprite.fetch(
+        this.client,
+        PackIcons.MINECRAFT_HIDDEN_ICON_ID.toIdentifier(),
+        EARTH_TEXTURE_ID
+    ));
     this.paintings.values().forEach((painting) -> this.getSpriteContents(painting).ifPresent(sprites::add));
     this.packsMap.keySet().forEach((packId) -> this.getSpriteContents(packId).ifPresent(sprites::add));
 
@@ -458,20 +465,24 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
 
     final ImageStore images = this.images.copy();
     final String combinedImageHash = this.combinedImageHash;
-    CompletableFuture.supplyAsync(() -> {
-      try {
-        CacheManager.getInstance().saveToFile(images, combinedImageHash);
-        return true;
-      } catch (IOException e) {
-        CustomPaintingsMod.LOGGER.warn(e);
-        CustomPaintingsMod.LOGGER.warn("Failed to write images and metadata to cache.");
-        return false;
-      }
-    }, Util.getIoWorkerExecutor()).thenAcceptAsync((succeeded) -> {
-      if (succeeded) {
-        this.cacheDirty = false;
-      }
-    }, this.client);
+    CompletableFuture.supplyAsync(
+        () -> {
+          try {
+            CacheManager.getInstance().saveToFile(images, combinedImageHash);
+            return true;
+          } catch (IOException e) {
+            CustomPaintingsMod.LOGGER.warn(e);
+            CustomPaintingsMod.LOGGER.warn("Failed to write images and metadata to cache.");
+            return false;
+          }
+        }, Util.getIoWorkerExecutor()
+    ).thenAcceptAsync(
+        (succeeded) -> {
+          if (succeeded) {
+            this.cacheDirty = false;
+          }
+        }, this.client
+    );
   }
 
   @SuppressWarnings("BooleanMethodIsAlwaysInverted")
@@ -482,7 +493,11 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
 
   private Optional<SpriteContents> getSpriteContents(PaintingData painting) {
     return this.getSpriteContents(
-        painting.id(), this.images.getImage(painting.id()), painting.getScaledWidth(), painting.getScaledHeight());
+        painting.id(),
+        this.images.getImage(painting.id()),
+        painting.getScaledWidth(),
+        painting.getScaledHeight()
+    );
   }
 
   private Optional<SpriteContents> getSpriteContents(String packId) {
@@ -498,10 +513,12 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
       return Optional.empty();
     }
     NativeImage nativeImage = getNativeImage(image);
-    return Optional.of(
-        new SpriteContents(id.toIdentifier(), new SpriteDimensions(image.width(), image.height()), nativeImage,
-            ResourceMetadata.NONE
-        ));
+    return Optional.of(new SpriteContents(
+        id.toIdentifier(),
+        new SpriteDimensions(image.width(), image.height()),
+        nativeImage,
+        ResourceMetadata.NONE
+    ));
   }
 
   @SuppressWarnings("BooleanMethodIsAlwaysInverted")

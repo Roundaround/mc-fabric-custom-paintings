@@ -1,6 +1,6 @@
 package me.roundaround.custompaintings.client.texture;
 
-import me.roundaround.roundalib.client.gui.GuiUtil;
+import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.resource.metadata.AnimationFrameResourceMetadata;

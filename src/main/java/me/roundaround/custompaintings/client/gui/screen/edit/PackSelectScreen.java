@@ -2,7 +2,7 @@ package me.roundaround.custompaintings.client.gui.screen.edit;
 
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.widget.PackListWidget;
-import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
+import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.screen.ScreenTexts;

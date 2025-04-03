@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "id": "custompaintings",
+  "id": "${modId}",
   "version": "${version}",
   "name": "Custom Paintings",
-  "description": "Add your own custom paintings to Minecraft.\n${library}",
+  "description": "Add your own custom paintings to Minecraft.",
   "authors": [
     "Roundaround"
   ],
@@ -13,38 +13,17 @@
     "issues": "https://github.com/Roundaround/mc-fabric-custom-paintings/issues"
   },
   "license": "MIT",
-  "icon": "assets/custompaintings/icon.png",
-  "environment": "*",
-  "entrypoints": {
-    "client": [
-      "me.roundaround.custompaintings.client.CustomPaintingsClientMod"
-    ],
-    "server": [
-      "me.roundaround.custompaintings.server.CustomPaintingsServerMod"
-    ],
-    "main": [
-      "me.roundaround.custompaintings.CustomPaintingsMod"
-    ],
-    "modmenu": [
-      "me.roundaround.custompaintings.compat.modmenu.ModMenuImpl"
-    ]
-  },
-  "mixins": [
-    "custompaintings.mixins.json"
-  ],
   "custom": {
     "loom:injected_interfaces": {
-      "net/minecraft/class_1534": [
-        "me/roundaround/custompaintings/entity/decoration/painting/ExpandedPaintingEntity"
-      ],
       "net/minecraft/class_10049": [
-        "me/roundaround/custompaintings/client/render/entity/state/ExpandedPaintingEntityRenderState"
+        "me/roundaround/custompaintings/client/render/entity/state/PaintingEntityRenderStateExtensions"
+      ],
+      "net/minecraft/class_1534": [
+        "me/roundaround/custompaintings/entity/decoration/painting/PaintingEntityExtensions"
+      ],
+      "net/minecraft/class_3218": [
+        "me/roundaround/custompaintings/server/world/ServerWorldExtensions"
       ]
     }
-  },
-  "depends": {
-    "fabric-api": "*",
-    "minecraft": "1.21.*",
-    "java": ">=17"
   }
 }

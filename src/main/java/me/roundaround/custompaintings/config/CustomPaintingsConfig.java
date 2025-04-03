@@ -1,11 +1,11 @@
 package me.roundaround.custompaintings.config;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.roundalib.config.ConfigPath;
-import me.roundaround.roundalib.config.manage.ModConfigImpl;
-import me.roundaround.roundalib.config.manage.store.GameScopedFileStore;
-import me.roundaround.roundalib.config.option.BooleanConfigOption;
-import me.roundaround.roundalib.config.option.IntConfigOption;
+import me.roundaround.custompaintings.roundalib.config.ConfigPath;
+import me.roundaround.custompaintings.roundalib.config.manage.ModConfigImpl;
+import me.roundaround.custompaintings.roundalib.config.manage.store.GameScopedFileStore;
+import me.roundaround.custompaintings.roundalib.config.option.BooleanConfigOption;
+import me.roundaround.custompaintings.roundalib.config.option.IntConfigOption;
 
 public class CustomPaintingsConfig extends ModConfigImpl implements GameScopedFileStore {
   private static CustomPaintingsConfig instance = null;
@@ -29,20 +29,19 @@ public class CustomPaintingsConfig extends ModConfigImpl implements GameScopedFi
 
   @Override
   protected void registerOptions() {
-    this.overrideRenderDistance = this.buildRegistration(
-        BooleanConfigOption.yesNoBuilder(ConfigPath.of("overrideRenderDistance"))
-            .setComment("Override vanilla render distance")
-            .setDefaultValue(false)
-            .build()).clientOnly().commit();
+    this.overrideRenderDistance = this.buildRegistration(BooleanConfigOption.yesNoBuilder(ConfigPath.of(
+            "overrideRenderDistance")).setComment("Override vanilla render distance").setDefaultValue(false).build())
+        .clientOnly()
+        .commit();
 
-    this.renderDistanceScale = this.buildRegistration(
-        IntConfigOption.sliderBuilder(ConfigPath.of("renderDistanceScale"))
-            .setComment("Render distance scale")
-            .setDefaultValue(16)
-            .setMinValue(1)
-            .setMaxValue(64)
-            .setStep(4)
-            .build()).clientOnly().commit();
+    this.renderDistanceScale = this.buildRegistration(IntConfigOption.sliderBuilder(ConfigPath.of(
+        "renderDistanceScale"))
+        .setComment("Render distance scale")
+        .setDefaultValue(16)
+        .setMinValue(1)
+        .setMaxValue(64)
+        .setStep(4)
+        .build()).clientOnly().commit();
 
     this.cacheImages = this.buildRegistration(BooleanConfigOption.yesNoBuilder(ConfigPath.of("cacheImages"))
         .setComment("Cache images from the server locally")
@@ -57,10 +56,10 @@ public class CustomPaintingsConfig extends ModConfigImpl implements GameScopedFi
         .onUpdate((option) -> option.setDisabled(!this.cacheImages.getPendingValue()))
         .build()).clientOnly().commit();
 
-    this.silenceAllConvertPrompts = this.buildRegistration(
-        BooleanConfigOption.yesNoBuilder(ConfigPath.of("silenceAllConvertPrompts"))
-            .setComment("Silence all legacy pack conversion prompts")
-            .setDefaultValue(false)
-            .build()).clientOnly().commit();
+    this.silenceAllConvertPrompts = this.buildRegistration(BooleanConfigOption.yesNoBuilder(ConfigPath.of(
+            "silenceAllConvertPrompts"))
+        .setComment("Silence all legacy pack conversion prompts")
+        .setDefaultValue(false)
+        .build()).clientOnly().commit();
   }
 }

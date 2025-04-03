@@ -3,7 +3,7 @@ package me.roundaround.custompaintings.mixin;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.gui.screen.LegacyConvertScreen;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
-import me.roundaround.roundalib.client.gui.GuiUtil;
+import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.gui.screen.Screen;
@@ -30,7 +30,7 @@ public abstract class ScreenMixin {
       return;
     }
 
-    switch (clickEvent.getValue()) {
+    switch (clickEvent.getAction().asString()) {
       case CustomPaintingsMod.MSG_CMD_IGNORE -> this.onPress(this::ignore, cir);
       case CustomPaintingsMod.MSG_CMD_OPEN_CONVERT_SCREEN -> this.onPress(this::openConvertScreen, cir);
     }

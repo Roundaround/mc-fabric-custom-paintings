@@ -9,7 +9,9 @@ import java.util.function.Function;
 
 public class PaintingAssignment {
   public static final PacketCodec<PacketByteBuf, PaintingAssignment> PACKET_CODEC = PacketCodec.of(
-      PaintingAssignment::write, PaintingAssignment::read);
+      PaintingAssignment::write,
+      PaintingAssignment::read
+  );
 
   private final int paintingId;
   private final CustomId dataId;
@@ -53,7 +55,7 @@ public class PaintingAssignment {
     if (buf.readBoolean()) {
       dataId = CustomId.read(buf);
     } else {
-      data = PaintingData.read(buf);
+      data = PaintingData.PACKET_CODEC.decode(buf);
     }
     return new PaintingAssignment(paintingId, dataId, data);
   }
@@ -65,7 +67,7 @@ public class PaintingAssignment {
       this.dataId.write(buf);
     } else {
       buf.writeBoolean(false);
-      this.data.write(buf);
+      PaintingData.PACKET_CODEC.encode(buf, this.data);
     }
   }
 }

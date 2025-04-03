@@ -1,5 +1,8 @@
 package me.roundaround.custompaintings.util;
 
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
+import io.netty.buffer.ByteBuf;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.codec.PacketCodecs;
@@ -11,8 +14,11 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 public record CustomId(String pack, String resource) implements Comparable<CustomId> {
-  public static final PacketCodec<PacketByteBuf, CustomId> PACKET_CODEC = PacketCodec.tuple(
-      PacketCodecs.STRING, CustomId::pack, PacketCodecs.STRING, CustomId::resource, CustomId::new);
+  public static final Codec<CustomId> CODEC = Codec.STRING.comapFlatMap(CustomId::validate, CustomId::toString);
+  public static final PacketCodec<ByteBuf, CustomId> PACKET_CODEC = PacketCodecs.STRING.xmap(
+      CustomId::parse,
+      CustomId::toString
+  );
 
   private static final Predicate<String> IS_VALID_PART = Pattern.compile("^[^\\s:'\"]+$").asMatchPredicate();
   private static final Predicate<String> IS_VALID_ID = Pattern.compile("^(?:[^\\s:'\"]+:)?[^\\s:'\"]+$")
@@ -21,10 +27,12 @@ public record CustomId(String pack, String resource) implements Comparable<Custo
 
   @Override
   public boolean equals(Object o) {
-    if (this == o)
+    if (this == o) {
       return true;
-    if (!(o instanceof CustomId that))
+    }
+    if (!(o instanceof CustomId that)) {
       return false;
+    }
     return Objects.equals(this.pack, that.pack) && Objects.equals(this.resource, that.resource);
   }
 
@@ -141,19 +149,20 @@ public record CustomId(String pack, String resource) implements Comparable<Custo
     }
   }
 
-  public static void validate(String part) throws InvalidIdException {
-    try {
-      validateOrThrow(part);
-    } catch (IllegalArgumentException e) {
-      throw new InvalidIdException(part, e);
-    }
-  }
-
   public static void validate(String part, String resource) throws InvalidIdException {
     try {
       validateOrThrow(part);
     } catch (IllegalArgumentException e) {
       throw new InvalidIdException(part, resource, e);
+    }
+  }
+
+  public static DataResult<CustomId> validate(String value) {
+    try {
+      validateOrThrow(value);
+      return DataResult.success(CustomId.parse(value));
+    } catch (IllegalArgumentException e) {
+      return DataResult.error(() -> "Invalid CustomId: " + e.getMessage());
     }
   }
 }

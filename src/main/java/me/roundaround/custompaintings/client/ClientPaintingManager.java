@@ -101,9 +101,9 @@ public class ClientPaintingManager {
 
   private void setPaintingData(PaintingEntity painting, PaintingData data) {
     if (data.vanilla()) {
-      painting.setVariant(data.id());
+      painting.custompaintings$setVariant(data.id());
     }
-    painting.setCustomData(data);
+    painting.custompaintings$setData(data);
   }
 
   private void remove(int id) {
@@ -113,7 +113,7 @@ public class ClientPaintingManager {
 
   private void cacheData(PaintingEntity painting) {
     int id = painting.getId();
-    PaintingData data = painting.getCustomData();
+    PaintingData data = painting.custompaintings$getData();
     if (data != null && !data.isEmpty()) {
       this.cachedData.put(id, data);
       this.expiryTimes.put(id, Util.getEpochTimeMs() + TTL);

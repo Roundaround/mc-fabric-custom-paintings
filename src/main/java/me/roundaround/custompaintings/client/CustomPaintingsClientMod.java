@@ -4,9 +4,11 @@ import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.client.option.KeyBindings;
 import me.roundaround.custompaintings.client.registry.CacheManager;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
+import me.roundaround.gradle.api.annotation.Entrypoint;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 
+@Entrypoint(Entrypoint.CLIENT)
 public class CustomPaintingsClientMod implements ClientModInitializer {
   @Override
   public void onInitializeClient() {

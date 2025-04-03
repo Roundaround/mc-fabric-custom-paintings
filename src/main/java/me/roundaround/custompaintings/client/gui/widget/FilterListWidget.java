@@ -1,11 +1,11 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
 import me.roundaround.custompaintings.client.gui.FiltersState;
-import me.roundaround.roundalib.client.gui.GuiUtil;
-import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
-import me.roundaround.roundalib.client.gui.widget.IntSliderWidget;
-import me.roundaround.roundalib.client.gui.widget.ParentElementEntryListWidget;
-import me.roundaround.roundalib.client.gui.widget.drawable.LabelWidget;
+import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
+import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
+import me.roundaround.custompaintings.roundalib.client.gui.widget.IntSliderWidget;
+import me.roundaround.custompaintings.roundalib.client.gui.widget.ParentElementEntryListWidget;
+import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.LabelWidget;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;

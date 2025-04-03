@@ -1,43 +1,102 @@
 package me.roundaround.custompaintings.entity.decoration.painting;
 
+import com.mojang.datafixers.Products;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import io.netty.buffer.ByteBuf;
 import me.roundaround.custompaintings.util.CustomId;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.codec.PacketCodec;
+import net.minecraft.network.codec.PacketCodecs;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-public record PaintingData(CustomId id, int width, int height, String name, String artist, boolean vanilla,
-                           boolean unknown) {
+public class PaintingData {
   public static final PaintingData EMPTY = new PaintingData(null, 0, 0);
-  public static final PacketCodec<PacketByteBuf, PaintingData> PACKET_CODEC = PacketCodec.of(
-      PaintingData::write, PaintingData::read);
+  public static final Codec<PaintingData> CODEC =
+      RecordCodecBuilder.create((instance) -> mapBaseCodecFields(instance).apply(instance,
+      PaintingData::new
+  ));
+  public static final PacketCodec<ByteBuf, PaintingData> PACKET_CODEC = PacketCodec.tuple(
+      CustomId.PACKET_CODEC,
+      PaintingData::id,
+      PacketCodecs.INTEGER,
+      PaintingData::width,
+      PacketCodecs.INTEGER,
+      PaintingData::height,
+      PacketCodecs.STRING,
+      PaintingData::name,
+      PacketCodecs.STRING,
+      PaintingData::artist,
+      PacketCodecs.BOOLEAN,
+      PaintingData::vanilla,
+      PacketCodecs.BOOLEAN,
+      PaintingData::unknown,
+      PaintingData::new
+  );
+  private final CustomId id;
+  private final int width;
+  private final int height;
+  private final @NotNull String name;
+  private final @NotNull String artist;
+  private final boolean vanilla;
+  private final boolean unknown;
+
+  public PaintingData(
+      CustomId id,
+      int width,
+      int height,
+      @NotNull String name,
+      @NotNull String artist,
+      boolean vanilla,
+      boolean unknown
+  ) {
+    assert name != null;
+    assert artist != null;
+    this.id = id;
+    this.width = width;
+    this.height = height;
+    this.name = name;
+    this.artist = artist;
+    this.vanilla = vanilla;
+    this.unknown = unknown;
+  }
 
   public PaintingData(CustomId id, int width, int height) {
     this(id, width, height, "", "");
   }
 
-  public PaintingData(CustomId id, int width, int height, String name, String artist) {
+  public PaintingData(CustomId id, int width, int height, @NotNull String name, @NotNull String artist) {
     this(id, width, height, name, artist, false, false);
   }
 
   public PaintingData(PaintingVariant vanillaVariant) {
-    this(CustomId.from(vanillaVariant.assetId()), vanillaVariant.width(), vanillaVariant.height(),
-        vanillaVariant.assetId().getPath(), "", true, false
+    this(
+        CustomId.from(vanillaVariant.assetId()),
+        vanillaVariant.width(),
+        vanillaVariant.height(),
+        vanillaVariant.assetId().getPath(),
+        "",
+        true,
+        false
     );
   }
 
   public PaintingVariant toVariant() {
-    return new PaintingVariant(this.width(), this.height(), CustomId.toIdentifier(this.id()),
-        Optional.of(this.getNameText()), Optional.of(this.getArtistText())
+    return new PaintingVariant(
+        this.width(),
+        this.height(),
+        CustomId.toIdentifier(this.id()),
+        Optional.of(this.getNameText()),
+        Optional.of(this.getArtistText())
     );
   }
 
@@ -64,11 +123,11 @@ public record PaintingData(CustomId id, int width, int height, String name, Stri
   }
 
   public boolean hasName() {
-    return this.vanilla() || this.name() != null && !this.name().isEmpty();
+    return this.vanilla() || !this.name().isEmpty();
   }
 
   public boolean hasArtist() {
-    return this.vanilla() || this.artist() != null && !this.artist().isEmpty();
+    return this.vanilla() || !this.artist().isEmpty();
   }
 
   public boolean hasLabel() {
@@ -169,15 +228,15 @@ public record PaintingData(CustomId id, int width, int height, String name, Stri
     return new PaintingData(this.id, width, height, this.name, this.artist, this.vanilla, this.unknown);
   }
 
-  public PaintingData setName(String name) {
+  public PaintingData setName(@NotNull String name) {
     return new PaintingData(this.id, this.width, this.height, name, this.artist, this.vanilla, this.unknown);
   }
 
-  public PaintingData setArtist(String artist) {
+  public PaintingData setArtist(@NotNull String artist) {
     return new PaintingData(this.id, this.width, this.height, this.name, artist, this.vanilla, this.unknown);
   }
 
-  public PaintingData setLabel(String name, String artist) {
+  public PaintingData setLabel(@NotNull String name, @NotNull String artist) {
     return new PaintingData(this.id, this.width, this.height, name, artist, this.vanilla, this.unknown);
   }
 
@@ -203,74 +262,73 @@ public record PaintingData(CustomId id, int width, int height, String name, Stri
     return Objects.equals(this.id(), other.id());
   }
 
+  public CustomId id() {
+    return this.id;
+  }
+
+  public int width() {
+    return this.width;
+  }
+
+  public int height() {
+    return this.height;
+  }
+
+  public String name() {
+    return this.name;
+  }
+
+  public String artist() {
+    return this.artist;
+  }
+
+  public boolean vanilla() {
+    return this.vanilla;
+  }
+
+  public boolean unknown() {
+    return this.unknown;
+  }
+
   @Override
   public boolean equals(Object o) {
-    if (this == o)
+    if (this == o) {
       return true;
-    if (!(o instanceof PaintingData that))
+    }
+    if (!(o instanceof PaintingData that)) {
       return false;
+    }
 
     return this.width == that.width && this.height == that.height && this.vanilla == that.vanilla &&
            Objects.equals(this.name, that.name) && Objects.equals(this.id, that.id) &&
            Objects.equals(this.artist, that.artist);
   }
 
-  public NbtCompound write() {
-    NbtCompound nbt = new NbtCompound();
-    if (this.isEmpty()) {
-      return nbt;
-    }
-
-    nbt.putString("Id", this.id.toString());
-    nbt.putInt("Width", this.width);
-    nbt.putInt("Height", this.height);
-    nbt.putString("Name", this.name == null ? "" : this.name);
-    nbt.putString("Artist", this.artist == null ? "" : this.artist);
-    nbt.putBoolean("Vanilla", this.vanilla);
-    return nbt;
+  @Override
+  public int hashCode() {
+    return Objects.hash(this.id, this.width, this.height, this.name, this.artist, this.vanilla, this.unknown);
   }
 
-  public void write(PacketByteBuf buf) {
-    if (this.isEmpty()) {
-      buf.writeBoolean(false);
-      return;
-    }
-    buf.writeBoolean(true);
-    this.id.write(buf);
-    buf.writeInt(this.width);
-    buf.writeInt(this.height);
-    buf.writeString(this.name == null ? "" : this.name);
-    buf.writeString(this.artist == null ? "" : this.artist);
-    buf.writeBoolean(this.vanilla);
-    buf.writeBoolean(this.unknown);
+  @Override
+  public String toString() {
+    return "PaintingData[" + "id=" + this.id + ", " + "width=" + this.width + ", " + "height=" + this.height + ", " +
+           "name=" + this.name + ", " + "artist=" + this.artist + ", " + "vanilla=" + this.vanilla + ", " + "unknown=" +
+           this.unknown + ']';
   }
 
-  public static PaintingData read(NbtCompound nbt) {
-    if (!nbt.contains("Id")) {
-      return EMPTY;
-    }
-
-    CustomId id = CustomId.parse(nbt.getString("Id"));
-    int width = nbt.getInt("Width");
-    int height = nbt.getInt("Height");
-    String name = nbt.getString("Name");
-    String artist = nbt.getString("Artist");
-    boolean isVanilla = nbt.getBoolean("Vanilla");
-    return new PaintingData(id, width, height, name, artist, isVanilla, false);
-  }
-
-  public static PaintingData read(PacketByteBuf buf) {
-    if (!buf.readBoolean()) {
-      return EMPTY;
-    }
-    CustomId id = CustomId.read(buf);
-    int width = buf.readInt();
-    int height = buf.readInt();
-    String name = buf.readString();
-    String artist = buf.readString();
-    boolean isVanilla = buf.readBoolean();
-    boolean isUnknown = buf.readBoolean();
-    return new PaintingData(id, width, height, name, artist, isVanilla, isUnknown);
+  public static <T extends PaintingData> Products.P7<RecordCodecBuilder.Mu<T>, CustomId, Integer, Integer, String,
+      String, Boolean, Boolean> mapBaseCodecFields(
+      RecordCodecBuilder.Instance<T> instance
+  ) {
+    return instance.group(
+        CustomId.CODEC.fieldOf("Id").forGetter(PaintingData::id),
+        Codec.INT.fieldOf("Width").forGetter(PaintingData::width),
+        Codec.INT.fieldOf("Height").forGetter(PaintingData::height),
+        Codec.STRING.optionalFieldOf("Name", "").forGetter(PaintingData::name),
+        Codec.STRING.optionalFieldOf("Artist", "").forGetter(PaintingData::artist),
+        Codec.BOOL.fieldOf("Vanilla").forGetter(PaintingData::vanilla),
+        Codec.BOOL.optionalFieldOf("Unknown", false).forGetter(PaintingData::unknown)
+    );
   }
 
   public enum MismatchedCategory {

@@ -1,76 +1,65 @@
 package me.roundaround.custompaintings.server;
 
 import com.google.common.collect.Streams;
-import me.roundaround.custompaintings.CustomPaintingsMod;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import me.roundaround.custompaintings.entity.decoration.painting.MigrationData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.network.PaintingAssignment;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
 import me.roundaround.custompaintings.util.CustomId;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
+import net.minecraft.util.Uuids;
 import net.minecraft.world.PersistentState;
-import net.minecraft.world.World;
+import net.minecraft.world.PersistentStateType;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ServerPaintingManager extends PersistentState {
-  private static final String NBT_PAINTINGS = "Paintings";
-  private static final String NBT_PAINTING_UUID = "PaintingUuid";
+  public static final Codec<ServerPaintingManager> CODEC =
+      RecordCodecBuilder.create((instance) -> instance.group(Codec.list(
+          PaintingDataWithUuid.CODEC)
+      .xmap(ServerPaintingManager::listToMap, ServerPaintingManager::mapToList)
+      .fieldOf("Paintings")
+      .forGetter((i) -> i.paintings)).apply(instance, ServerPaintingManager::new));
+  public static final PersistentStateType<ServerPaintingManager> STATE_TYPE = new PersistentStateType<>(
+      Constants.MOD_ID,
+      ServerPaintingManager::new,
+      CODEC,
+      null
+  );
 
-  private final ServerWorld world;
-  private final HashMap<UUID, PaintingData> allPaintings = new HashMap<>();
+  private final HashMap<UUID, PaintingData> paintings = new HashMap<>();
   private final HashMap<UUID, Integer> networkIds = new HashMap<>();
 
-  private ServerPaintingManager(ServerWorld world) {
-    this.world = world;
+  private ServerPaintingManager() {
+    this.markDirty();
   }
 
-  public static void init(ServerWorld world) {
-    // Just getting the instance also creates/initializes it
-    getInstance(world);
+  private ServerPaintingManager(Map<UUID, PaintingData> paintings) {
+    this.paintings.putAll(paintings);
   }
 
-  public static ServerPaintingManager getInstance(MinecraftServer server) {
-    ServerWorld world;
-    if (server == null || (world = server.getWorld(World.OVERWORLD)) == null) {
-      IllegalStateException exception = new IllegalStateException(
-          "Trying to get a ServerPaintingManager instance when server is not running");
-      CustomPaintingsMod.LOGGER.error(exception);
-      throw exception;
+  private static Map<UUID, PaintingData> listToMap(List<PaintingDataWithUuid> list) {
+    HashMap<UUID, PaintingData> map = new HashMap<>(list.size());
+    for (var item : list) {
+      map.put(item.paintingUuid(), item);
     }
-    return getInstance(world);
+    return map;
   }
 
-  public static ServerPaintingManager getInstance(ServerWorld world) {
-    Type<ServerPaintingManager> persistentStateType = new PersistentState.Type<>(() -> new ServerPaintingManager(world),
-        (nbt, registryLookup) -> fromNbt(world, nbt), null
-    );
-    return world.getPersistentStateManager().getOrCreate(persistentStateType, CustomPaintingsMod.MOD_ID);
-  }
-
-  @Override
-  public NbtCompound writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-    NbtList nbtList = new NbtList();
-    this.allPaintings.forEach((uuid, paintingData) -> {
-      NbtCompound nbtCompound = paintingData.write();
-      nbtCompound.putUuid(NBT_PAINTING_UUID, uuid);
-      nbtList.add(nbtCompound);
-    });
-    nbt.put(NBT_PAINTINGS, nbtList);
-
-    return nbt;
+  private static List<PaintingDataWithUuid> mapToList(Map<UUID, PaintingData> map) {
+    return map.entrySet().stream().map((entry) -> new PaintingDataWithUuid(entry.getKey(), entry.getValue())).toList();
   }
 
   public void onEntityLoad(PaintingEntity painting) {
@@ -87,11 +76,8 @@ public class ServerPaintingManager extends PersistentState {
   }
 
   public void syncAllDataForPlayer(ServerPlayerEntity player) {
-    if (player.getServerWorld() != this.world) {
-      return;
-    }
     Function<CustomId, Boolean> lookup = ServerPaintingRegistry.getInstance()::contains;
-    List<PaintingAssignment> assignments = this.allPaintings.entrySet()
+    List<PaintingAssignment> assignments = this.paintings.entrySet()
         .stream()
         .filter((entry) -> this.networkIds.containsKey(entry.getKey()))
         .map((entry) -> {
@@ -108,9 +94,10 @@ public class ServerPaintingManager extends PersistentState {
   }
 
   public void setPaintingData(PaintingEntity painting, PaintingData data, boolean forceSync) {
-    painting.setCustomData(data);
+    painting.custompaintings$setData(data);
     if (this.setTrackedData(painting.getUuid(), painting.getId(), data) || forceSync) {
-      ServerNetworking.sendSetPaintingPacketToAll(this.world,
+      ServerNetworking.sendSetPaintingPacketToAll(
+          (ServerWorld) painting.getWorld(),
           PaintingAssignment.from(painting.getId(), data, ServerPaintingRegistry.getInstance()::contains)
       );
     }
@@ -119,9 +106,9 @@ public class ServerPaintingManager extends PersistentState {
   private void loadPainting(PaintingEntity painting) {
     UUID uuid = painting.getUuid();
 
-    PaintingData data = this.allPaintings.get(uuid);
+    PaintingData data = this.paintings.get(uuid);
     if (data == null) {
-      data = painting.getCustomData();
+      data = painting.custompaintings$getData();
     }
     if (data.isEmpty()) {
       data = new PaintingData(painting.getVariant().value());
@@ -137,7 +124,7 @@ public class ServerPaintingManager extends PersistentState {
    * in the world, we want to try to detect when we might have set these parameters and remove them.
    */
   private void fixCustomName(PaintingEntity painting) {
-    PaintingData data = painting.getCustomData();
+    PaintingData data = painting.custompaintings$getData();
     Text customName = painting.getCustomName();
 
     if (data.isEmpty() || !painting.isCustomNameVisible() || customName == null) {
@@ -163,7 +150,7 @@ public class ServerPaintingManager extends PersistentState {
 
   private void remove(UUID uuid) {
     this.networkIds.remove(uuid);
-    if (this.allPaintings.remove(uuid) != null) {
+    if (this.paintings.remove(uuid) != null) {
       this.markDirty();
     }
   }
@@ -173,7 +160,7 @@ public class ServerPaintingManager extends PersistentState {
       this.networkIds.put(paintingUuid, paintingId);
     }
 
-    PaintingData previousData = this.allPaintings.put(paintingUuid, data);
+    PaintingData previousData = this.paintings.put(paintingUuid, data);
     if (previousData == null || !previousData.equals(data)) {
       this.markDirty();
       return true;
@@ -182,21 +169,10 @@ public class ServerPaintingManager extends PersistentState {
     return false;
   }
 
-  private static ServerPaintingManager fromNbt(ServerWorld world, NbtCompound nbt) {
-    ServerPaintingManager manager = new ServerPaintingManager(world);
-
-    NbtList nbtList = nbt.getList(NBT_PAINTINGS, NbtElement.COMPOUND_TYPE);
-    for (int i = 0; i < nbtList.size(); i++) {
-      NbtCompound nbtCompound = nbtList.getCompound(i);
-      manager.allPaintings.put(nbtCompound.getUuid(NBT_PAINTING_UUID), PaintingData.read(nbtCompound));
-    }
-    return manager;
-  }
-
   public static void syncAllDataForAllPlayers(MinecraftServer server) {
     server.getPlayerManager()
         .getPlayerList()
-        .forEach((player) -> getInstance(player.getServerWorld()).syncAllDataForPlayer(player));
+        .forEach((player) -> player.getServerWorld().custompaintings$getPaintingManager().syncAllDataForPlayer(player));
   }
 
   public static void runMigration(ServerPlayerEntity sourcePlayer, CustomId migrationId) {
@@ -236,8 +212,8 @@ public class ServerPaintingManager extends PersistentState {
     };
 
     server.getWorlds().forEach((world) -> {
-      ServerPaintingManager manager = ServerPaintingManager.getInstance(world);
-      manager.allPaintings.forEach((paintingUuid, currentData) -> {
+      ServerPaintingManager manager = world.custompaintings$getPaintingManager();
+      manager.paintings.forEach((paintingUuid, currentData) -> {
         CustomId id = currentData.id();
         ArrayDeque<CustomId> ids = new ArrayDeque<>(List.of(id));
         migration.pairs().forEach((from, to) -> {
@@ -260,7 +236,7 @@ public class ServerPaintingManager extends PersistentState {
         Integer paintingId = null;
         if (world.getEntity(paintingUuid) instanceof PaintingEntity painting) {
           paintingId = painting.getId();
-          painting.setCustomData(data);
+          painting.custompaintings$setData(data);
         }
 
         changed.value = changed.value || manager.setTrackedData(paintingUuid, paintingId, data);
@@ -279,7 +255,7 @@ public class ServerPaintingManager extends PersistentState {
 
   public Set<UUID> getUnknownPaintings(CustomId dataId) {
     ServerPaintingRegistry registry = ServerPaintingRegistry.getInstance();
-    return this.allPaintings.entrySet().stream().filter((entry) -> {
+    return this.paintings.entrySet().stream().filter((entry) -> {
       CustomId id = entry.getValue().id();
       return !registry.contains(id) && (dataId == null || dataId.equals(id));
     }).map(Map.Entry::getKey).collect(Collectors.toSet());
@@ -289,8 +265,8 @@ public class ServerPaintingManager extends PersistentState {
     HashMap<CustomId, Integer> counts = new HashMap<>();
     ServerPaintingRegistry registry = ServerPaintingRegistry.getInstance();
 
-    this.allPaintings.forEach((uuid, data) -> {
-      CustomId id = data.id();
+    this.paintings.forEach((uuid, assignment) -> {
+      CustomId id = assignment.id();
       if (registry.contains(id)) {
         return;
       }
@@ -300,7 +276,7 @@ public class ServerPaintingManager extends PersistentState {
     return counts;
   }
 
-  public int fixUnknownPaintings(CustomId dataId, CustomId targetId) {
+  public int fixUnknownPaintings(ServerWorld world, CustomId dataId, CustomId targetId) {
     PaintingData targetData = ServerPaintingRegistry.getInstance().get(targetId);
 
     if (targetData == null || targetData.isEmpty()) {
@@ -316,9 +292,9 @@ public class ServerPaintingManager extends PersistentState {
     needsFixed.forEach((uuid) -> {
       Integer paintingId = null;
 
-      if (this.world.getEntity(uuid) instanceof PaintingEntity painting) {
+      if (world.getEntity(uuid) instanceof PaintingEntity painting) {
         paintingId = painting.getId();
-        painting.setCustomData(targetData);
+        painting.custompaintings$setData(targetData);
       }
 
       if (this.setTrackedData(uuid, paintingId, targetData)) {
@@ -335,7 +311,7 @@ public class ServerPaintingManager extends PersistentState {
 
   public Set<MismatchedReference> getMismatchedPaintings(PaintingData.MismatchedCategory category) {
     ServerPaintingRegistry registry = ServerPaintingRegistry.getInstance();
-    return this.allPaintings.entrySet().stream().map((entry) -> {
+    return this.paintings.entrySet().stream().map((entry) -> {
       PaintingData currentData = entry.getValue();
       PaintingData knownData = registry.get(currentData.id());
       if (knownData == null || knownData.isEmpty() || !currentData.isMismatched(knownData, category)) {
@@ -345,7 +321,7 @@ public class ServerPaintingManager extends PersistentState {
     }).filter(Objects::nonNull).collect(Collectors.toSet());
   }
 
-  public int fixMismatchedPaintings(PaintingData.MismatchedCategory category) {
+  public int fixMismatchedPaintings(ServerWorld world, PaintingData.MismatchedCategory category) {
     Set<MismatchedReference> needsFixed = this.getMismatchedPaintings(category);
     var changed = new Object() {
       int count = 0;
@@ -356,9 +332,9 @@ public class ServerPaintingManager extends PersistentState {
       PaintingData knownData = ref.knownData();
       Integer paintingId = null;
 
-      if (this.world.getEntity(uuid) instanceof PaintingEntity painting) {
+      if (world.getEntity(uuid) instanceof PaintingEntity painting) {
         paintingId = painting.getId();
-        painting.setCustomData(knownData);
+        painting.custompaintings$setData(knownData);
       }
 
       if (this.setTrackedData(uuid, paintingId, knownData)) {
@@ -371,19 +347,19 @@ public class ServerPaintingManager extends PersistentState {
 
   public static Set<UUID> getUnknownPaintings(MinecraftServer server, CustomId dataId) {
     return Streams.stream(server.getWorlds())
-        .flatMap((world) -> getInstance(world).getUnknownPaintings(dataId).stream())
+        .flatMap((world) -> world.custompaintings$getPaintingManager().getUnknownPaintings(dataId).stream())
         .collect(Collectors.toSet());
   }
 
   public static Map<CustomId, Integer> getUnknownPaintingCounts(MinecraftServer server) {
     return Streams.stream(server.getWorlds())
-        .flatMap((world) -> getInstance(world).getUnknownPaintingCounts().entrySet().stream())
+        .flatMap((world) -> world.custompaintings$getPaintingManager().getUnknownPaintingCounts().entrySet().stream())
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
   public static int fixUnknownPaintings(MinecraftServer server, CustomId dataId, CustomId targetId) {
     return Streams.stream(server.getWorlds())
-        .mapToInt((world) -> getInstance(world).fixUnknownPaintings(dataId, targetId))
+        .mapToInt((world) -> world.custompaintings$getPaintingManager().fixUnknownPaintings(world, dataId, targetId))
         .sum();
   }
 
@@ -392,32 +368,74 @@ public class ServerPaintingManager extends PersistentState {
   }
 
   public static Set<MismatchedReference> getMismatchedPaintings(
-      MinecraftServer server, PaintingData.MismatchedCategory category
+      MinecraftServer server,
+      PaintingData.MismatchedCategory category
   ) {
     return Streams.stream(server.getWorlds())
-        .flatMap((world) -> getInstance(world).getMismatchedPaintings(category).stream())
+        .flatMap((world) -> world.custompaintings$getPaintingManager().getMismatchedPaintings(category).stream())
         .collect(Collectors.toSet());
   }
 
   public static int fixMismatchedPaintings(MinecraftServer server, PaintingData.MismatchedCategory category) {
     return Streams.stream(server.getWorlds())
-        .mapToInt((world) -> getInstance(world).fixMismatchedPaintings(category))
+        .mapToInt((world) -> world.custompaintings$getPaintingManager().fixMismatchedPaintings(world, category))
         .sum();
   }
 
   public record MismatchedReference(UUID uuid, PaintingData knownData) {
     @Override
     public boolean equals(Object o) {
-      if (this == o)
+      if (this == o) {
         return true;
-      if (!(o instanceof MismatchedReference that))
+      }
+      if (!(o instanceof MismatchedReference that)) {
         return false;
+      }
       return Objects.equals(this.uuid, that.uuid);
     }
 
     @Override
     public int hashCode() {
       return Objects.hashCode(this.uuid);
+    }
+  }
+
+  private static class PaintingDataWithUuid extends PaintingData {
+    public static final Codec<PaintingDataWithUuid> CODEC = RecordCodecBuilder.create((instance) -> mapBaseCodecFields(
+        instance).and(Uuids.INT_STREAM_CODEC.fieldOf("PaintingUuid").forGetter(PaintingDataWithUuid::paintingUuid))
+        .apply(instance, PaintingDataWithUuid::new));
+
+    private final UUID paintingUuid;
+
+    public PaintingDataWithUuid(
+        CustomId id,
+        int width,
+        int height,
+        @NotNull String name,
+        @NotNull String artist,
+        boolean vanilla,
+        boolean unknown,
+        UUID paintingUuid
+    ) {
+      super(id, width, height, name, artist, vanilla, unknown);
+      this.paintingUuid = paintingUuid;
+    }
+
+    public PaintingDataWithUuid(UUID paintingUuid, PaintingData base) {
+      this(
+          base.id(),
+          base.width(),
+          base.height(),
+          base.name(),
+          base.artist(),
+          base.vanilla(),
+          base.unknown(),
+          paintingUuid
+      );
+    }
+
+    public UUID paintingUuid() {
+      return this.paintingUuid;
     }
   }
 }
