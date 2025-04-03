@@ -1,6 +1,7 @@
 package me.roundaround.custompaintings.server;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -21,9 +22,6 @@ import java.util.Set;
 import java.util.UUID;
 
 public class ServerInfo {
-  private static final String NBT_SERVER_ID = "ServerId";
-  private static final String NBT_DISABLED_PACKS = "DisabledPacks";
-
   private static ServerInfo instance = null;
 
   private final Path savePath;
@@ -51,7 +49,7 @@ public class ServerInfo {
         this.save();
       } catch (Exception e) {
         CustomPaintingsMod.LOGGER.warn(e);
-        CustomPaintingsMod.LOGGER.warn("Failed to save Custom Paintings mod server info");
+        CustomPaintingsMod.LOGGER.warn("Failed to save Custom Paintings mod server info:", e);
       }
     });
 
@@ -65,13 +63,15 @@ public class ServerInfo {
         .resolve("data")
         .resolve(CustomPaintingsMod.MOD_ID + "_server" + ".dat");
 
-    StoredData data;
     try {
-      data = load(savePath);
-      instance = new ServerInfo(savePath, data.serverId(), data.disabledPacks());
+      load(savePath).ifSuccess((data) -> {
+        instance = new ServerInfo(savePath, data.serverId(), data.disabledPacks());
+      }).ifError((e) -> {
+        CustomPaintingsMod.LOGGER.warn("Failed to load Custom Paintings mod server info; setting defaults: {}", e);
+        instance = new ServerInfo(savePath);
+      });
     } catch (Exception e) {
-      CustomPaintingsMod.LOGGER.warn(e);
-      CustomPaintingsMod.LOGGER.warn("Failed to load Custom Paintings mod server info; setting defaults");
+      CustomPaintingsMod.LOGGER.warn("Failed to load Custom Paintings mod server info; setting defaults:", e);
       instance = new ServerInfo(savePath);
     }
   }
@@ -126,11 +126,11 @@ public class ServerInfo {
     this.dirty = false;
   }
 
-  private static StoredData load(Path savePath) throws IOException {
-    NbtCompound nbt = Files.exists(savePath) ?
-        NbtIo.readCompressed(savePath, NbtSizeTracker.ofUnlimitedBytes()) :
-        new NbtCompound();
-    return StoredData.CODEC.decode(NbtOps.INSTANCE, nbt).getOrThrow().getFirst();
+  private static DataResult<StoredData> load(Path savePath) throws IOException {
+    if (Files.notExists(savePath)) {
+      return DataResult.error(() -> "No file to load");
+    }
+    return StoredData.CODEC.parse(NbtOps.INSTANCE, NbtIo.readCompressed(savePath, NbtSizeTracker.ofUnlimitedBytes()));
   }
 
   private record StoredData(UUID serverId, Set<String> disabledPacks) {

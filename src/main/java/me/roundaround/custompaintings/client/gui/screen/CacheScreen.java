@@ -5,14 +5,14 @@ import me.roundaround.custompaintings.client.gui.widget.VersionStamp;
 import me.roundaround.custompaintings.client.registry.CacheManager;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
-import me.roundaround.custompaintings.util.StringUtil;
-import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.linear.LinearLayoutWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.screen.ConfigScreen;
+import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.FlowListWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.NarratableEntryListWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.LabelWidget;
+import me.roundaround.custompaintings.util.StringUtil;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -24,10 +24,11 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
 import net.minecraft.util.Util;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 public class CacheScreen extends Screen {
@@ -52,24 +53,18 @@ public class CacheScreen extends Screen {
     this.layout.addHeader(this.textRenderer, this.title);
 
     StatsList list = this.layout.addBody(new StatsList(this.client, this.layout));
-    CompletableFuture.supplyAsync(CacheManager.getInstance()::getStats)
-        .orTimeout(30, TimeUnit.SECONDS)
-        .whenCompleteAsync((result, exception) -> {
-          if (exception != null || result == null) {
-            list.setError();
-          } else {
-            list.setStats(result.servers(), result.images(), result.shared(), result.bytes());
-          }
-        }, this.client);
+    this.fetchStats(list, CacheManager.getInstance()::getStats);
 
-    this.layout.addFooter(
-        ButtonWidget.builder(Text.translatable("custompaintings.cache.clear"), (b) -> this.clearCache(list))
-            .width(BUTTON_WIDTH)
-            .build());
-    this.layout.addFooter(
-        ButtonWidget.builder(Text.translatable("custompaintings.cache.configure"), (b) -> this.navigateConfig())
-            .width(BUTTON_WIDTH)
-            .build());
+    this.layout.addFooter(ButtonWidget.builder(
+        Text.translatable("custompaintings.cache.clear"),
+        (b) -> this.clearCache(list)
+    ).width(BUTTON_WIDTH).build());
+    this.layout.addFooter(ButtonWidget.builder(
+            Text.translatable("custompaintings.cache.configure"),
+            (b) -> this.navigateConfig()
+        )
+        .width(BUTTON_WIDTH)
+        .build());
     this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, (b) -> this.close()).width(BUTTON_WIDTH).build());
 
     VersionStamp.create(this.textRenderer, this.layout);
@@ -90,25 +85,34 @@ public class CacheScreen extends Screen {
   }
 
   private void clearCache(StatsList list) {
-    CompletableFuture.supplyAsync(() -> {
-      try {
-        CacheManager.getInstance().clear();
-        return CacheManager.getInstance().getStats();
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    }, Util.getIoWorkerExecutor()).orTimeout(30, TimeUnit.SECONDS).whenCompleteAsync((result, exception) -> {
-      if (exception != null || result == null) {
-        list.setError();
-      } else {
-        list.setStats(result.servers(), result.images(), result.shared(), result.bytes());
-      }
-    }, this.client);
+    this.fetchStats(list, CacheManager.getInstance()::clear);
+  }
+
+  private void fetchStats(StatsList list, Supplier<CacheManager.CacheStats> supplier) {
+    CompletableFuture.supplyAsync(supplier, Util.getIoWorkerExecutor())
+        .orTimeout(30, TimeUnit.SECONDS)
+        .whenCompleteAsync(
+            (result, exception) -> {
+              if (exception != null || result == null) {
+                if (exception instanceof TimeoutException) {
+                  CustomPaintingsMod.LOGGER.warn("Timeout while loading cache stats:", exception);
+                } else if (exception != null) {
+                  CustomPaintingsMod.LOGGER.warn("Exception raised while loading cache stats:", exception);
+                }
+                list.setError();
+              } else {
+                list.setStats(result.servers(), result.images(), result.shared(), result.bytes());
+              }
+            }, this.client
+        );
   }
 
   private void navigateConfig() {
     assert this.client != null;
-    this.client.setScreen(new ConfigScreen(this, CustomPaintingsMod.MOD_ID, CustomPaintingsConfig.getInstance(),
+    this.client.setScreen(new ConfigScreen(
+        this,
+        CustomPaintingsMod.MOD_ID,
+        CustomPaintingsConfig.getInstance(),
         CustomPaintingsPerWorldConfig.getInstance()
     ));
   }
@@ -250,15 +254,23 @@ public class CacheScreen extends Screen {
         LinearLayoutWidget layout = this.addLayout(
             LinearLayoutWidget.horizontal().spacing(GuiUtil.PADDING).defaultOffAxisContentAlignCenter(), (self) -> {
               self.setPositionAndDimensions(
-                  this.getContentLeft(), this.getContentTop(), this.getContentWidth(), this.getContentHeight());
-            });
+                  this.getContentLeft(),
+                  this.getContentTop(),
+                  this.getContentWidth(),
+                  this.getContentHeight()
+              );
+            }
+        );
 
-        layout.add(LabelWidget.builder(textRenderer, this.label)
-            .alignTextLeft()
-            .hideBackground()
-            .showShadow()
-            .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
-            .build(), (parent, self) -> self.setWidth(this.getContentWidth() - parent.getSpacing() - valueColumnWidth));
+        layout.add(
+            LabelWidget.builder(textRenderer, this.label)
+                .alignTextLeft()
+                .hideBackground()
+                .showShadow()
+                .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
+                .build(),
+            (parent, self) -> self.setWidth(this.getContentWidth() - parent.getSpacing() - valueColumnWidth)
+        );
 
         layout.add(LabelWidget.builder(textRenderer, this.value)
             .alignTextRight()
@@ -276,10 +288,21 @@ public class CacheScreen extends Screen {
       }
 
       public static FlowListWidget.EntryFactory<StatEntry> factory(
-          TextRenderer textRenderer, Text label, Text value, int valueColumnWidth
+          TextRenderer textRenderer,
+          Text label,
+          Text value,
+          int valueColumnWidth
       ) {
         return (index, left, top, width) -> new StatEntry(
-            index, left, top, width, textRenderer, label, value, valueColumnWidth);
+            index,
+            left,
+            top,
+            width,
+            textRenderer,
+            label,
+            value,
+            valueColumnWidth
+        );
       }
     }
   }

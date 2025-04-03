@@ -185,43 +185,49 @@ public class CacheManager {
     CompletableFuture.runAsync(() -> trimExpired(data), Util.getIoWorkerExecutor());
   }
 
-  public void clear() throws IOException {
+  public @NotNull CacheStats clear() {
     Path cacheDir = getCacheDir();
-    if (Files.notExists(cacheDir)) {
-      return;
-    }
-    Files.walkFileTree(
-        cacheDir, new SimpleFileVisitor<>() {
-          @Override
-          public @NotNull FileVisitResult visitFile(Path file, @NotNull BasicFileAttributes attrs) throws IOException {
-            Files.delete(file);
-            return FileVisitResult.CONTINUE;
-          }
-
-          @Override
-          public @NotNull FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-            Files.delete(dir);
-            return FileVisitResult.CONTINUE;
-          }
-        }
-    );
-  }
-
-  public CacheStats getStats() {
-    Path cacheDir = getCacheDir();
-    Path dataFile = getDataFile(cacheDir);
-
-    NbtCompound nbt;
-    if (Files.notExists(dataFile)) {
-      nbt = new NbtCompound();
-    } else {
+    if (Files.exists(cacheDir)) {
       try {
-        nbt = NbtIo.readCompressed(dataFile, NbtSizeTracker.ofUnlimitedBytes());
+        Files.walkFileTree(
+            cacheDir, new SimpleFileVisitor<>() {
+              @Override
+              public @NotNull FileVisitResult visitFile(Path file, @NotNull BasicFileAttributes attrs)
+                  throws IOException {
+                Files.delete(file);
+                return FileVisitResult.CONTINUE;
+              }
+
+              @Override
+              public @NotNull FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                Files.delete(dir);
+                return FileVisitResult.CONTINUE;
+              }
+            }
+        );
       } catch (IOException e) {
-        // TODO: Handle exception
         throw new RuntimeException(e);
       }
     }
+    return this.getStats();
+  }
+
+  public @NotNull CacheStats getStats() {
+    Path cacheDir = getCacheDir();
+    Path dataFile = getDataFile(cacheDir);
+
+    if (Files.notExists(dataFile)) {
+      return new CacheStats(0, 0, 0, 0);
+    }
+
+    NbtCompound nbt;
+    try {
+      nbt = NbtIo.readCompressed(dataFile, NbtSizeTracker.ofUnlimitedBytes());
+    } catch (IOException e) {
+      CustomPaintingsMod.LOGGER.warn("Exception raised while reading cache stats:", e);
+      throw new RuntimeException(e);
+    }
+
     CacheData data = CacheData.fromNbt(nbt);
     int servers = data.byServer().size();
     int images = data.byHash().size();
@@ -247,7 +253,7 @@ public class CacheManager {
           }
       );
     } catch (IOException e) {
-      // TODO: Handle exception
+      CustomPaintingsMod.LOGGER.warn("Exception raised while reading cache stats:", e);
       throw new RuntimeException(e);
     }
 
@@ -470,7 +476,7 @@ public class CacheManager {
     ).apply(instance, CacheData::new));
 
     public static CacheData fromNbt(NbtCompound nbt) {
-      return CODEC.decode(NbtOps.INSTANCE, nbt).getOrThrow().getFirst();
+      return CODEC.parse(NbtOps.INSTANCE, nbt).getPartialOrThrow();
     }
 
     public NbtCompound toNbt() {
