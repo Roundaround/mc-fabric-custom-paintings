@@ -12,6 +12,8 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -70,6 +72,24 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
         .filter((ref) -> ref.matchesId(id.toIdentifier()))
         .findFirst()
         .ifPresent(this::setVariant);
+  }
+
+  @Inject(method = "<init>(Lnet/minecraft/entity/EntityType;Lnet/minecraft/world/World;)V", at = @At("RETURN"))
+  private void afterFirst(EntityType<?> entityType, World world, CallbackInfo ci) {
+    this.data = PaintingData.EMPTY;
+  }
+
+  @Inject(
+      method = "<init>(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;" +
+               "Lnet/minecraft/util/math/Direction;Lnet/minecraft/registry/entry/RegistryEntry;)V", at = @At("RETURN")
+  )
+  private void afterSecond(World world, BlockPos pos, Direction direction, RegistryEntry<?> variant, CallbackInfo ci) {
+    this.data = PaintingData.EMPTY;
+  }
+
+  @Inject(method = "<init>(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)V", at = @At("RETURN"))
+  private void afterThird(World world, BlockPos pos, CallbackInfo ci) {
+    this.data = PaintingData.EMPTY;
   }
 
   @Inject(method = "readCustomDataFromNbt", at = @At(value = "HEAD"))
