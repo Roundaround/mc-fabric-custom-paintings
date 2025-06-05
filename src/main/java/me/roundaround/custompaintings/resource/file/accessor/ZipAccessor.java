@@ -41,6 +41,11 @@ public class ZipAccessor extends FileAccessor {
   }
 
   @Override
+  public String getPathSeparator() {
+    return "/";
+  }
+
+  @Override
   public void close() throws IOException {
     this.zip.close();
   }

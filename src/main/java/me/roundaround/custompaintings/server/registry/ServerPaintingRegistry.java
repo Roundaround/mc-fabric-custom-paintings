@@ -1,24 +1,15 @@
 package me.roundaround.custompaintings.server.registry;
 
-import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.DirectoryStream;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
-import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-
-import javax.imageio.ImageIO;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
@@ -44,10 +35,7 @@ import net.minecraft.util.Util;
 
 public class ServerPaintingRegistry extends CustomPaintingRegistry {
   private static final String LOG_FAIL_ALL = "Skipping loading packs due to an error";
-  private static final String LOG_FAIL_IMAGES = "Skipping loading images for pack \"%s\" to to an error while loading";
-  private static final String LOG_MISSING_PAINTING = "Missing custom painting image file for {}";
   private static final String LOG_LARGE_IMAGE = "Image file for {} is too large, skipping";
-  private static final String LOG_PAINTING_READ_FAIL = "Failed to read image file for %s";
   private static final int MAX_SIZE = 1 << 24;
 
   private static ServerPaintingRegistry instance = null;
@@ -216,7 +204,18 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
           images.put(PackIcons.customId(packId), meta.icon());
         }
         if (!disabled) {
-          images.putAll(readPaintingImages(path, meta.pack()));
+          HashMap<CustomId, Image> paintingImages = PackReader.readPaintingImages(meta);
+          for (Map.Entry<CustomId, Image> entry : paintingImages.entrySet()) {
+            CustomId id = entry.getKey();
+            Image image = entry.getValue();
+            long size = (long) image.width() * image.height();
+            if (size > MAX_SIZE) {
+              CustomPaintingsMod.LOGGER.warn(LOG_LARGE_IMAGE, id);
+              continue;
+            }
+
+            images.put(id, image);
+          }
         }
       });
 
@@ -227,107 +226,6 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
       CustomPaintingsMod.LOGGER.warn(LOG_FAIL_ALL, e);
       return LoadResult.empty(1);
     }
-  }
-
-  private static HashMap<CustomId, Image> readPaintingImages(Path path, Pack pack) {
-    try {
-      BasicFileAttributes fileAttributes = Files.readAttributes(
-          path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
-
-      if (fileAttributes.isDirectory()) {
-        return readPaintingImagesFromDirectory(path, pack);
-      }
-
-      if (fileAttributes.isRegularFile()) {
-        return readPaintingImagesFromZip(path, pack);
-      }
-    } catch (Exception e) {
-      CustomPaintingsMod.LOGGER.warn(String.format(LOG_FAIL_IMAGES, path.getFileName()), e);
-    }
-
-    return new HashMap<>();
-  }
-
-  private static HashMap<CustomId, Image> readPaintingImagesFromDirectory(Path path, Pack pack) {
-    HashMap<CustomId, Image> images = new HashMap<>();
-
-    if (Files.notExists(path)) {
-      return images;
-    }
-
-    pack.paintings().forEach((painting) -> {
-      CustomId id = new CustomId(pack.id(), painting.id());
-      Path imagePath = path.resolve("images").resolve(painting.id() + ".png");
-      if (!Files.exists(imagePath)) {
-        CustomPaintingsMod.LOGGER.warn(LOG_MISSING_PAINTING, id);
-        return;
-      }
-
-      try {
-        BufferedImage image = ImageIO.read(Files.newInputStream(imagePath, LinkOption.NOFOLLOW_LINKS));
-        if (image == null) {
-          throw new IOException("BufferedImage is null");
-        }
-
-        long size = (long) image.getWidth() * image.getHeight();
-        if (size > MAX_SIZE) {
-          CustomPaintingsMod.LOGGER.warn(LOG_LARGE_IMAGE, id);
-          return;
-        }
-
-        images.put(id, Image.read(image));
-      } catch (IOException e) {
-        CustomPaintingsMod.LOGGER.warn(String.format(LOG_PAINTING_READ_FAIL, id), e);
-      }
-    });
-
-    return images;
-  }
-
-  private static HashMap<CustomId, Image> readPaintingImagesFromZip(Path path, Pack pack) {
-    HashMap<CustomId, Image> images = new HashMap<>();
-
-    String filename = path.getFileName().toString();
-    if (!filename.endsWith(".zip")) {
-      return images;
-    }
-
-    if (path.getFileSystem() != FileSystems.getDefault()) {
-      return images;
-    }
-
-    try (ZipFile zip = new ZipFile(path.toFile())) {
-      String folderPrefix = ResourceUtil.getFolderPrefix(zip);
-
-      pack.paintings().forEach((painting) -> {
-        CustomId id = new CustomId(pack.id(), painting.id());
-        ZipEntry zipImage = ResourceUtil.getImageZipEntry(zip, folderPrefix, "images", painting.id() + ".png");
-        if (zipImage == null) {
-          CustomPaintingsMod.LOGGER.warn(LOG_MISSING_PAINTING, id);
-          return;
-        }
-
-        try (InputStream stream = zip.getInputStream(zipImage)) {
-          BufferedImage image = ImageIO.read(stream);
-          if (image == null) {
-            throw new IOException("BufferedImage is null");
-          }
-
-          long size = (long) image.getWidth() * image.getHeight();
-          if (size > MAX_SIZE) {
-            CustomPaintingsMod.LOGGER.warn(LOG_LARGE_IMAGE, id);
-            return;
-          }
-
-          images.put(id, Image.read(image));
-        } catch (IOException e) {
-          CustomPaintingsMod.LOGGER.warn(String.format(LOG_PAINTING_READ_FAIL, id), e);
-        }
-      });
-    } catch (IOException ignored) {
-    }
-
-    return images;
   }
 
   private record LoadResult(HashMap<String, PackData> packs, HashMap<CustomId, Image> images, int erroredOrSkipped) {
