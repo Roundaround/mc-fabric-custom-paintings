@@ -1,6 +1,14 @@
 package me.roundaround.custompaintings.client.gui.screen;
 
+import java.awt.EventQueue;
+import java.io.File;
+
+import javax.swing.JFileChooser;
+import javax.swing.filechooser.FileNameExtensionFilter;
+
 import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.client.gui.screen.editor.PackData;
+import me.roundaround.custompaintings.client.gui.screen.editor.PackEditorScreen;
 import me.roundaround.custompaintings.client.gui.widget.LoadingButtonWidget;
 import me.roundaround.custompaintings.client.gui.widget.VersionStamp;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
@@ -44,30 +52,34 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
         .width(BUTTON_WIDTH)
         .build());
 
+    this.layout.addBody(ButtonWidget.builder(Text.translatable("custompaintings.main.editor"), this::navigateEditor)
+        .width(BUTTON_WIDTH)
+        .build());
+
     this.layout.addBody(ButtonWidget.builder(Text.translatable("custompaintings.main.cache"), this::navigateCache)
         .width(BUTTON_WIDTH)
         .build());
 
-    Text packsLabel = canEdit ?
-        Text.translatable("custompaintings.main.packs.manage") :
-        Text.translatable("custompaintings.main.packs.view");
-    ButtonWidget packsButton = this.layout.addBody(
-        ButtonWidget.builder(packsLabel, this::navigatePacks).width(BUTTON_WIDTH).build());
+    Text packsLabel = canEdit ? Text.translatable("custompaintings.main.packs.manage")
+        : Text.translatable("custompaintings.main.packs.view");
+    ButtonWidget packsButton = this.layout.addBody(ButtonWidget.builder(packsLabel, this::navigatePacks)
+        .width(BUTTON_WIDTH)
+        .build());
 
-    this.reloadButton = this.layout.addBody(
-        new LoadingButtonWidget(0, 0, BUTTON_WIDTH, BUTTON_HEIGHT, Text.translatable("custompaintings.main.reload"),
-            (b) -> this.reloadPacks()
-        ));
+    this.reloadButton = this.layout.addBody(new LoadingButtonWidget(
+        0,
+        0,
+        BUTTON_WIDTH,
+        BUTTON_HEIGHT,
+        Text.translatable("custompaintings.main.reload"),
+        (b) -> this.reloadPacks()));
 
-    ButtonWidget migrationsButton = this.layout.addBody(
-        ButtonWidget.builder(Text.translatable("custompaintings.main.migrate"), this::navigateMigrate)
-            .width(BUTTON_WIDTH)
-            .build());
+    ButtonWidget migrationsButton = this.layout.addBody(ButtonWidget.builder(
+        Text.translatable("custompaintings.main.migrate"), this::navigateMigrate).width(BUTTON_WIDTH).build());
 
-    ButtonWidget legacyButton = this.layout.addBody(
-        ButtonWidget.builder(Text.translatable("custompaintings.main.legacy"), this::navigateConvert)
-            .width(BUTTON_WIDTH)
-            .build());
+    ButtonWidget legacyButton = this.layout.addBody(ButtonWidget.builder(
+        Text.translatable("custompaintings.main.legacy"),
+        this::navigateConvert).width(BUTTON_WIDTH).build());
 
     if (!inWorld) {
       packsButton.active = false;
@@ -121,9 +133,37 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
 
   private void navigateConfig(ButtonWidget button) {
     assert this.client != null;
-    this.client.setScreen(new ConfigScreen(this, CustomPaintingsMod.MOD_ID, CustomPaintingsConfig.getInstance(),
-        CustomPaintingsPerWorldConfig.getInstance()
-    ));
+    this.client.setScreen(new ConfigScreen(
+        this,
+        CustomPaintingsMod.MOD_ID,
+        CustomPaintingsConfig.getInstance(),
+        CustomPaintingsPerWorldConfig.getInstance()));
+  }
+
+  private void navigateEditor(ButtonWidget button) {
+    assert this.client != null;
+
+    EventQueue.invokeLater(() -> {
+      JFileChooser fileChooser = new JFileChooser();
+      fileChooser.setDialogTitle(Text.translatable("custompaintings.editor.open_file").getString());
+      fileChooser.setFileFilter(new FileNameExtensionFilter("ZIP Files", "zip"));
+
+      int result = fileChooser.showOpenDialog(null);
+      PackData packData = result == JFileChooser.APPROVE_OPTION
+          ? this.getPackData(fileChooser.getSelectedFile())
+          : new PackData();
+
+      this.client.execute(() -> {
+        this.client.setScreen(new PackEditorScreen(this, this.client, packData));
+      });
+    });
+  }
+
+  private PackData getPackData(File file) {
+    return new PackData(
+        "test",
+        file.getName(),
+        "");
   }
 
   private void navigateCache(ButtonWidget button) {

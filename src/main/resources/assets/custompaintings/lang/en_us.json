@@ -44,6 +44,7 @@
   "custompaintings.silenceConvertPrompt.label": "Silence legacy pack conversion prompts for this world",
   "custompaintings.main.title": "Custom Paintings Main Menu",
   "custompaintings.main.config": "Configuration",
+  "custompaintings.main.editor": "Pack Editor",
   "custompaintings.main.legacy": "Convert Legacy Packs",
   "custompaintings.main.legacy.multiplayer": "Not available for multiplayer servers",
   "custompaintings.main.migrate": "Migrate Old Painting Data",
@@ -133,5 +134,12 @@
   "custompaintings.commands.enable.notFound": "Pack \"%s\" not found",
   "custompaintings.commands.enable.enabled": "Pack \"%s\" enabled. Reloading packs",
   "custompaintings.commands.enable.reloaded": "Packs reloaded",
-  "custompaintings.commands.enable.alreadyEnabled": "Pack \"%s\"already enabled"
+  "custompaintings.commands.enable.alreadyEnabled": "Pack \"%s\"already enabled",
+  "custompaintings.editor.title": "Custom Paintings Pack Editor",
+  "custompaintings.editor.tab.metadata.title": "Metadata",
+  "custompaintings.editor.tab.paintings.title": "Paintings",
+  "custompaintings.editor.tab.migrations.title": "Migrations",
+  "custompaintings.editor.tab.metadata.id": "ID",
+  "custompaintings.editor.tab.metadata.name": "Name",
+  "custompaintings.editor.tab.metadata.description": "Description"
 }

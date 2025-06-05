@@ -1,4 +1,4 @@
-package me.roundaround.custompaintings.client.gui.screen.edit;
+package me.roundaround.custompaintings.client.gui.screen.set;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
@@ -27,7 +27,7 @@ import org.lwjgl.glfw.GLFW;
 import java.util.List;
 import java.util.Objects;
 
-public class PaintingSelectScreen extends PaintingEditScreen implements PaintingEditState.StateChangedListener {
+public class PaintingSelectScreen extends BaseSetPaintingScreen implements PaintingEditState.StateChangedListener {
   protected static final int BUTTON_HEIGHT = 20;
   protected static final int BUTTON_SPACING = GuiUtil.PADDING * 2;
 

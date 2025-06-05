@@ -1,4 +1,4 @@
-package me.roundaround.custompaintings.client.gui.screen.edit;
+package me.roundaround.custompaintings.client.gui.screen.set;
 
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.widget.FilterListWidget;
@@ -9,7 +9,7 @@ import net.minecraft.text.Text;
 
 import java.util.Objects;
 
-public class FiltersScreen extends PaintingEditScreen {
+public class FiltersScreen extends BaseSetPaintingScreen {
   protected final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
 
   private FilterListWidget filtersListWidget;

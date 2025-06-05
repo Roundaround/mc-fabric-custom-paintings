@@ -1,4 +1,4 @@
-package me.roundaround.custompaintings.client.gui.screen.edit;
+package me.roundaround.custompaintings.client.gui.screen.set;
 
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
@@ -8,10 +8,10 @@ import net.minecraft.text.Text;
 
 import java.util.Objects;
 
-public abstract class PaintingEditScreen extends Screen {
+public abstract class BaseSetPaintingScreen extends Screen {
   protected final PaintingEditState state;
 
-  protected PaintingEditScreen(Text title, PaintingEditState state) {
+  protected BaseSetPaintingScreen(Text title, PaintingEditState state) {
     super(title);
     this.state = state;
     this.state.updatePaintingList();

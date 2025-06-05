@@ -1,4 +1,4 @@
-package me.roundaround.custompaintings.client.gui.screen.edit;
+package me.roundaround.custompaintings.client.gui.screen.set;
 
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.widget.PackListWidget;
@@ -11,7 +11,7 @@ import net.minecraft.text.Text;
 
 import java.util.Objects;
 
-public class PackSelectScreen extends PaintingEditScreen {
+public class PackSelectScreen extends BaseSetPaintingScreen {
   protected final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
 
   public PackSelectScreen(PaintingEditState state) {

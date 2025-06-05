@@ -5,7 +5,7 @@ import me.roundaround.custompaintings.client.ClientPaintingManager;
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.screen.MainMenuScreen;
 import me.roundaround.custompaintings.client.gui.screen.MigrationsScreen;
-import me.roundaround.custompaintings.client.gui.screen.edit.PackSelectScreen;
+import me.roundaround.custompaintings.client.gui.screen.set.PackSelectScreen;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.client.toast.CustomSystemToasts;
 import me.roundaround.custompaintings.network.Networking;

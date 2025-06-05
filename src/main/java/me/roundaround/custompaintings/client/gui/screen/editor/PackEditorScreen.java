@@ -1,0 +1,237 @@
+package me.roundaround.custompaintings.client.gui.screen.editor;
+
+import java.util.function.Consumer;
+
+import org.jetbrains.annotations.NotNull;
+
+import me.roundaround.custompaintings.roundalib.client.gui.layout.linear.LinearLayoutWidget;
+import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
+import me.roundaround.custompaintings.roundalib.client.gui.util.Axis;
+import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
+import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.LabelWidget;
+import me.roundaround.custompaintings.roundalib.util.Observable;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.ScreenRect;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.tab.Tab;
+import net.minecraft.client.gui.tab.TabManager;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.ClickableWidget;
+import net.minecraft.client.gui.widget.TabNavigationWidget;
+import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.render.RenderLayer;
+import net.minecraft.screen.ScreenTexts;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
+
+public class PackEditorScreen extends Screen {
+  private static final int BUTTON_WIDTH = ButtonWidget.DEFAULT_WIDTH_SMALL;
+  private static final int BUTTON_HEIGHT = ButtonWidget.DEFAULT_HEIGHT;
+  private static final int PREFERRED_WIDTH = 300;
+  private static final Identifier TAB_HEADER_BACKGROUND_TEXTURE = Identifier
+      .ofVanilla("textures/gui/tab_header_background.png");
+
+  private final Screen parent;
+  private final @NotNull MinecraftClient client;
+  private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
+  private final TabManager tabManager = new TabManager(
+      (element) -> this.addDrawableChild(element),
+      (child) -> this.remove(child));
+
+  private TabNavigationWidget tabNavigation;
+  private State state;
+
+  public PackEditorScreen(Screen parent, @NotNull MinecraftClient client, @NotNull PackData pack) {
+    super(Text.translatable("custompaintings.editor.title"));
+    this.parent = parent;
+    this.client = client;
+    this.state = new State(pack);
+  }
+
+  @Override
+  protected void init() {
+    this.tabNavigation = TabNavigationWidget.builder(this.tabManager, this.width)
+        .tabs(new MetadataTab(), new PaintingsTab(), new MigrationsTab())
+        .build();
+    this.addDrawableChild(this.tabNavigation);
+
+    ButtonWidget doneButton = this.layout.addFooter(ButtonWidget
+        .builder(this.getDoneButtonMessage(this.state.dirty.get()), (b) -> this.close()).width(BUTTON_WIDTH).build());
+    this.state.dirty.subscribe((dirty) -> doneButton.setMessage(this.getDoneButtonMessage(dirty)));
+
+    this.layout.forEachChild((child) -> {
+      child.setNavigationOrder(1);
+      this.addDrawableChild(child);
+    });
+    this.tabNavigation.selectTab(0, false);
+    this.refreshWidgetPositions();
+  }
+
+  @Override
+  protected void refreshWidgetPositions() {
+    if (this.tabNavigation == null) {
+      return;
+    }
+
+    this.tabNavigation.setWidth(this.width);
+    this.tabNavigation.init();
+
+    int headerFooterHeight = this.tabNavigation.getNavigationFocus().getBottom();
+    ScreenRect tabArea = new ScreenRect(0, headerFooterHeight, this.width,
+        this.height - this.layout.getFooterHeight() - headerFooterHeight);
+    this.tabManager.setTabArea(tabArea);
+
+    this.layout.setHeaderHeight(headerFooterHeight);
+    this.layout.refreshPositions();
+  }
+
+  @Override
+  public void render(DrawContext context, int mouseX, int mouseY, float deltaTicks) {
+    super.render(context, mouseX, mouseY, deltaTicks);
+    context.drawTexture(
+        RenderLayer::getGuiTextured, Screen.FOOTER_SEPARATOR_TEXTURE, 0,
+        this.height - this.layout.getFooterHeight() - 2, 0, 0, this.width, 2, 32, 2);
+  }
+
+  @Override
+  protected void renderDarkening(DrawContext context) {
+    context.drawTexture(
+        RenderLayer::getGuiTextured,
+        TAB_HEADER_BACKGROUND_TEXTURE,
+        0, 0, 0, 0,
+        this.width,
+        this.layout.getHeaderHeight(),
+        16, 16);
+    this.renderDarkening(context, 0, this.layout.getHeaderHeight(), this.width, this.height);
+  }
+
+  @Override
+  public void close() {
+    this.state.close();
+    this.client.setScreen(this.parent);
+  }
+
+  private Text getDoneButtonMessage(boolean dirty) {
+    MutableText text = ScreenTexts.DONE.copy();
+    if (dirty) {
+      text.append(" *");
+    }
+    return text;
+  }
+
+  abstract class PackEditorTab implements Tab {
+    protected final Text title;
+    protected final LinearLayoutWidget layout = new LinearLayoutWidget(Axis.VERTICAL)
+        .mainAxisContentAlignStart()
+        .defaultOffAxisContentAlignCenter()
+        .spacing(0);
+
+    protected PackEditorTab(Text title) {
+      this.title = title;
+    }
+
+    @Override
+    public Text getTitle() {
+      return this.title;
+    }
+
+    @Override
+    public void forEachChild(Consumer<ClickableWidget> consumer) {
+      this.layout.forEachChild(consumer);
+    }
+
+    @Override
+    public void refreshGrid(ScreenRect tabArea) {
+      this.layout.setPositionAndDimensions(
+          tabArea.getLeft(),
+          tabArea.getTop(),
+          tabArea.width(),
+          tabArea.height());
+      this.layout.refreshPositions();
+    }
+
+    protected TextRenderer textRenderer() {
+      return PackEditorScreen.this.client.textRenderer;
+    }
+
+    protected State state() {
+      return PackEditorScreen.this.state;
+    }
+
+    protected int getContentWidth() {
+      return Math.min(PREFERRED_WIDTH, this.layout.getWidth() - 2 * GuiUtil.PADDING);
+    }
+  }
+
+  class MetadataTab extends PackEditorTab {
+    private final TextFieldWidget idField;
+
+    public MetadataTab() {
+      super(Text.translatable("custompaintings.editor.tab.metadata.title"));
+
+      this.idField = this.textField("id", this.state().id);
+      this.textField("name", this.state().name);
+      this.textField("description", this.state().description);
+
+      this.layout.refreshPositions();
+
+      PackEditorScreen.this.setInitialFocus(this.idField);
+    }
+
+    private TextFieldWidget textField(String id, Observable<String> observable) {
+      this.layout.add(
+          LabelWidget.builder(this.textRenderer(), Text.translatable("custompaintings.editor.tab.metadata." + id))
+              .hideBackground()
+              .showShadow()
+              .build(),
+          (parent, self) -> self.setWidth(this.getContentWidth()));
+
+      TextFieldWidget field = this.layout.add(
+          new TextFieldWidget(this.textRenderer(), this.getContentWidth(), BUTTON_HEIGHT,
+              Text.translatable("custompaintings.editor.tab.metadata." + id)),
+          (parent, self) -> self.setWidth(this.getContentWidth()));
+
+      field.setChangedListener(observable::set);
+      observable.subscribe((value) -> {
+        String text = field.getText();
+        if (!text.equals(value)) {
+          field.setText(value);
+          field.setCursorToEnd(false);
+          field.setSelectionStart(0);
+          field.setSelectionEnd(0);
+        }
+      });
+
+      return field;
+    }
+  }
+
+  class PaintingsTab extends PackEditorTab {
+    public PaintingsTab() {
+      super(Text.translatable("custompaintings.editor.tab.paintings.title"));
+
+      this.layout.add(
+          LabelWidget.builder(this.textRenderer(), Text.of("Paintings"))
+              .hideBackground()
+              .showShadow()
+              .build(),
+          (parent, self) -> self.setWidth(this.getContentWidth()));
+    }
+  }
+
+  class MigrationsTab extends PackEditorTab {
+    public MigrationsTab() {
+      super(Text.translatable("custompaintings.editor.tab.migrations.title"));
+
+      this.layout.add(
+          LabelWidget.builder(this.textRenderer(), Text.of("Migrations"))
+              .hideBackground()
+              .showShadow()
+              .build(),
+          (parent, self) -> self.setWidth(this.getContentWidth()));
+    }
+  }
+}
