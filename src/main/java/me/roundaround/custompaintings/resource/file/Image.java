@@ -1,18 +1,20 @@
-package me.roundaround.custompaintings.resource;
+package me.roundaround.custompaintings.resource.file;
 
-import com.google.common.hash.Hashing;
-import com.google.common.io.ByteSource;
-import io.netty.buffer.ByteBuf;
-import me.roundaround.custompaintings.CustomPaintingsMod;
-import net.minecraft.network.codec.PacketCodec;
-
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.function.Function;
+
+import javax.imageio.ImageIO;
+
+import com.google.common.hash.Hashing;
+import com.google.common.io.ByteSource;
+
+import io.netty.buffer.ByteBuf;
+import me.roundaround.custompaintings.CustomPaintingsMod;
+import net.minecraft.network.codec.PacketCodec;
 
 public record Image(Color[] pixels, int width, int height) {
   public static final PacketCodec<ByteBuf, Image> PACKET_CODEC = PacketCodec.of(
@@ -40,7 +42,8 @@ public record Image(Color[] pixels, int width, int height) {
     int height = image.getHeight();
     Color[] pixels = new Color[width * height];
 
-    // Translate the pixels (read in as rows, stored as columns) and parse them into Color objects.
+    // Translate the pixels (read in as rows, stored as columns) and parse them into
+    // Color objects.
     int[] rawARGB = image.getRGB(0, 0, width, height, null, 0, width);
     for (int x = 0; x < width; x++) {
       for (int y = 0; y < height; y++) {
@@ -54,7 +57,7 @@ public record Image(Color[] pixels, int width, int height) {
   public static Image read(InputStream stream) throws IOException {
     BufferedImage image = ImageIO.read(stream);
     if (image == null) {
-      throw new IOException("Invalid painting image file");
+      return null;
     }
 
     return read(image);

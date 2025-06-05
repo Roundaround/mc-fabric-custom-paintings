@@ -1,6 +1,6 @@
 package me.roundaround.custompaintings.client.registry;
 
-import me.roundaround.custompaintings.resource.Image;
+import me.roundaround.custompaintings.resource.file.Image;
 
 import java.util.ArrayDeque;
 import java.util.Comparator;

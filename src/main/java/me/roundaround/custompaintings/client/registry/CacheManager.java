@@ -5,7 +5,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.registry.ImageStore;
-import me.roundaround.custompaintings.resource.Image;
+import me.roundaround.custompaintings.resource.file.Image;
 import me.roundaround.custompaintings.util.CustomId;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.nbt.NbtCompound;

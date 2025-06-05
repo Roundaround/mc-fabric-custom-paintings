@@ -15,6 +15,9 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
 import me.roundaround.custompaintings.registry.ImageStore;
 import me.roundaround.custompaintings.resource.*;
+import me.roundaround.custompaintings.resource.file.FileUid;
+import me.roundaround.custompaintings.resource.file.Image;
+import me.roundaround.custompaintings.resource.file.Metadata;
 import me.roundaround.custompaintings.resource.legacy.LegacyPackConverter;
 import me.roundaround.custompaintings.roundalib.event.MinecraftClientEvents;
 import me.roundaround.custompaintings.util.CustomId;
@@ -227,8 +230,8 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
               .map(Optional::get)
               .collect(Collectors.toCollection(HashSet::new));
           HashSet<String> legacyPacks = metas.stream()
-              .map(PackMetadata::packFileUid)
-              .map(PackFileUid::stringValue)
+              .map(Metadata::fileUid)
+              .map(FileUid::stringValue)
               .collect(Collectors.toCollection(HashSet::new));
           legacyPacks.removeAll(alreadyLoaded);
 

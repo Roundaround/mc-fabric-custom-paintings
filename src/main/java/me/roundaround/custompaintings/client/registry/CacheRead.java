@@ -1,6 +1,6 @@
 package me.roundaround.custompaintings.client.registry;
 
-import me.roundaround.custompaintings.resource.Image;
+import me.roundaround.custompaintings.resource.file.Image;
 import me.roundaround.custompaintings.util.CustomId;
 
 import java.util.HashMap;

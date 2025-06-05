@@ -1,17 +1,25 @@
 package me.roundaround.custompaintings.client.gui.screen;
 
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
+
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.gui.widget.LoadingButtonWidget;
 import me.roundaround.custompaintings.client.gui.widget.SpriteWidget;
 import me.roundaround.custompaintings.client.gui.widget.VersionStamp;
-import me.roundaround.custompaintings.resource.PackMetadata;
+import me.roundaround.custompaintings.resource.file.Metadata;
 import me.roundaround.custompaintings.resource.legacy.LegacyPackConverter;
-import me.roundaround.custompaintings.resource.legacy.LegacyPackResource;
-import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.FillerWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.linear.LinearLayoutWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.util.Alignment;
+import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.FlowListWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.IconButtonWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.ParentElementEntryListWidget;
@@ -32,15 +40,6 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.stream.Stream;
-
 public class LegacyConvertScreen extends Screen {
   private static final Text LABEL_CONVERT = Text.translatable("custompaintings.legacy.entry.convert");
   private static final Text LABEL_RE_CONVERT = Text.translatable("custompaintings.legacy.entry.reConvert");
@@ -57,8 +56,7 @@ public class LegacyConvertScreen extends Screen {
   private HashMap<String, ConvertState> currentStates;
 
   public LegacyConvertScreen(
-      MinecraftClient client, Screen parent
-  ) {
+      MinecraftClient client, Screen parent) {
     super(Text.translatable("custompaintings.legacy.title"));
     this.parent = parent;
 
@@ -76,17 +74,17 @@ public class LegacyConvertScreen extends Screen {
             return;
           }
 
-          for (PackMetadata<LegacyPackResource> meta : result.metas()) {
-            String packFileUid = meta.packFileUid().stringValue();
+          for (Metadata meta : result.metas()) {
+            String fileUid = meta.fileUid().stringValue();
 
-            Path globalOutPath = result.globalConvertedIds().get(packFileUid);
+            Path globalOutPath = result.globalConvertedIds().get(fileUid);
             if (globalOutPath != null) {
-              this.globalStates.put(packFileUid, ConvertState.success(globalOutPath));
+              this.globalStates.put(fileUid, ConvertState.success(globalOutPath));
             }
 
-            Path worldOutPath = result.worldConvertedIds().get(packFileUid);
+            Path worldOutPath = result.worldConvertedIds().get(fileUid);
             if (worldOutPath != null) {
-              this.worldStates.put(packFileUid, ConvertState.success(worldOutPath));
+              this.worldStates.put(fileUid, ConvertState.success(worldOutPath));
             }
           }
 
@@ -143,8 +141,8 @@ public class LegacyConvertScreen extends Screen {
   }
 
   private void convertPack(LegacyPackList.PackEntry entry) {
-    PackMetadata<LegacyPackResource> meta = entry.getMeta();
-    Path path = this.outDir.resolve(cleanFilename(meta.pack().path()) + ".zip");
+    Metadata meta = entry.getMeta();
+    Path path = this.outDir.resolve(cleanFilename(meta.fileUid().filename()) + ".zip");
 
     entry.markLoading();
     LegacyPackConverter.getInstance()
@@ -161,7 +159,7 @@ public class LegacyConvertScreen extends Screen {
           } else {
             state = ConvertState.success(path);
           }
-          this.currentStates.put(meta.packFileUid().stringValue(), state);
+          this.currentStates.put(meta.fileUid().stringValue(), state);
           entry.setState(state);
         }, this.executor);
   }
@@ -176,21 +174,19 @@ public class LegacyConvertScreen extends Screen {
     this.close();
   }
 
-  private static String cleanFilename(Path path) {
-    String noExtension = path.getFileName().toString();
-    int dotIndex = noExtension.lastIndexOf(".");
-    if (dotIndex > 0 && dotIndex < noExtension.length() - 1) {
-      return noExtension.substring(0, dotIndex);
+  private static String cleanFilename(String fileName) {
+    int dotIndex = fileName.lastIndexOf(".");
+    if (dotIndex > 0 && dotIndex < fileName.length() - 1) {
+      return fileName.substring(0, dotIndex);
     }
-    return noExtension;
+    return fileName;
   }
 
   private static class LegacyPackList extends ParentElementEntryListWidget<LegacyPackList.Entry> {
     private final Consumer<LegacyPackList.PackEntry> convert;
 
     public LegacyPackList(
-        MinecraftClient client, ThreeSectionLayoutWidget layout, Consumer<LegacyPackList.PackEntry> convert
-    ) {
+        MinecraftClient client, ThreeSectionLayoutWidget layout, Consumer<LegacyPackList.PackEntry> convert) {
       super(client, layout);
       this.convert = convert;
       this.addEntry(LoadingEntry.factory(client.textRenderer));
@@ -203,8 +199,7 @@ public class LegacyConvertScreen extends Screen {
     }
 
     public void setPacks(
-        HashMap<String, ConvertState> currentStates, Collection<PackMetadata<LegacyPackResource>> metas
-    ) {
+        HashMap<String, ConvertState> currentStates, Collection<Metadata> metas) {
       this.clearEntries();
 
       if (metas.isEmpty()) {
@@ -212,8 +207,8 @@ public class LegacyConvertScreen extends Screen {
         return;
       }
 
-      for (PackMetadata<LegacyPackResource> meta : metas) {
-        ConvertState state = currentStates.getOrDefault(meta.packFileUid().stringValue(), ConvertState.none());
+      for (Metadata meta : metas) {
+        ConvertState state = currentStates.getOrDefault(meta.fileUid().stringValue(), ConvertState.none());
         this.addEntry(PackEntry.factory(this.client.textRenderer, state, meta, this.convert));
       }
 
@@ -223,7 +218,7 @@ public class LegacyConvertScreen extends Screen {
     public void updateAllStates(HashMap<String, ConvertState> states) {
       this.entries.forEach((entry) -> {
         if (entry instanceof PackEntry packEntry) {
-          packEntry.setState(states.getOrDefault(packEntry.getMeta().packFileUid().stringValue(), ConvertState.none()));
+          packEntry.setState(states.getOrDefault(packEntry.getMeta().fileUid().stringValue(), ConvertState.none()));
         }
       });
     }
@@ -347,7 +342,7 @@ public class LegacyConvertScreen extends Screen {
       private static final Text NONE_PLACEHOLDER = Text.translatable("custompaintings.legacy.entry.emptyField")
           .formatted(Formatting.ITALIC, Formatting.GRAY);
 
-      private final PackMetadata<LegacyPackResource> meta;
+      private final Metadata meta;
       private final LoadingButtonWidget convertButton;
       private final IconButtonWidget statusButton;
 
@@ -360,9 +355,8 @@ public class LegacyConvertScreen extends Screen {
           int width,
           TextRenderer textRenderer,
           ConvertState initialState,
-          PackMetadata<LegacyPackResource> meta,
-          Consumer<PackEntry> convert
-      ) {
+          Metadata meta,
+          Consumer<PackEntry> convert) {
         super(index, left, top, width, HEIGHT);
         this.meta = meta;
         this.outPath = initialState.path;
@@ -372,14 +366,12 @@ public class LegacyConvertScreen extends Screen {
             (self) -> {
               self.setPositionAndDimensions(
                   this.getContentLeft(), this.getContentTop(), this.getContentWidth(), this.getContentHeight());
-            }
-        );
+            });
 
-        layout.add(SpriteWidget.create(LegacyPackConverter.getInstance().getSprite(this.meta.pack().packId())),
+        layout.add(SpriteWidget.create(LegacyPackConverter.getInstance().getSprite(this.meta.pack().id())),
             (parent, self) -> {
               self.setDimensions(PACK_ICON_SIZE, PACK_ICON_SIZE);
-            }
-        );
+            });
 
         layout.add(FillerWidget.empty());
 
@@ -389,15 +381,12 @@ public class LegacyConvertScreen extends Screen {
             .max()
             .orElse(1);
         textSection.add(
-            this.textLine(textRenderer, headerWidth, LINE_FILE, this.meta.pack().path().getFileName().toString()),
-            (parent, self) -> self.setWidth(parent.getWidth())
-        );
+            this.textLine(textRenderer, headerWidth, LINE_FILE, this.meta.fileUid().filename()),
+            (parent, self) -> self.setWidth(parent.getWidth()));
         textSection.add(this.textLine(textRenderer, headerWidth, LINE_NAME, this.meta.pack().name()),
-            (parent, self) -> self.setWidth(parent.getWidth())
-        );
+            (parent, self) -> self.setWidth(parent.getWidth()));
         textSection.add(this.textLine(textRenderer, headerWidth, LINE_DESCRIPTION, this.meta.pack().description()),
-            (parent, self) -> self.setWidth(parent.getWidth())
-        );
+            (parent, self) -> self.setWidth(parent.getWidth()));
         layout.add(textSection, (parent, self) -> {
           int textSectionWidth = this.getContentWidth();
           textSectionWidth -= (parent.getChildren().size() - 1) * parent.getSpacing();
@@ -414,8 +403,7 @@ public class LegacyConvertScreen extends Screen {
         Status status = initialState.status;
         this.convertButton = layout.add(
             new LoadingButtonWidget(0, 0, CONVERT_BUTTON_SIZE, ButtonWidget.DEFAULT_HEIGHT, status.getButtonLabel(),
-                (button) -> convert.accept(this)
-            ));
+                (button) -> convert.accept(this)));
         this.statusButton = layout.add(IconButtonWidget.builder(status.getTexture(), IconButtonWidget.SIZE_L)
             .dimensions(STATUS_BUTTON_SIZE)
             .tooltip(status.getTooltip())
@@ -443,16 +431,15 @@ public class LegacyConvertScreen extends Screen {
             LabelWidget.builder(textRenderer, header).hideBackground().showShadow().color(Colors.LIGHT_GRAY).build(),
             (parent, self) -> {
               self.setWidth(headerWidth);
-            }
-        );
+            });
         line.add(LabelWidget.builder(textRenderer, valueText)
             .alignTextLeft()
             .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
             .hideBackground()
             .showShadow()
             .build(), (parent, self) -> {
-          self.setWidth(parent.getWidth() - parent.getSpacing() - headerWidth);
-        });
+              self.setWidth(parent.getWidth() - parent.getSpacing() - headerWidth);
+            });
 
         return line;
       }
@@ -460,14 +447,13 @@ public class LegacyConvertScreen extends Screen {
       public static FlowListWidget.EntryFactory<PackEntry> factory(
           TextRenderer textRenderer,
           ConvertState initialState,
-          PackMetadata<LegacyPackResource> meta,
-          Consumer<PackEntry> convert
-      ) {
+          Metadata meta,
+          Consumer<PackEntry> convert) {
         return (index, left, top, width) -> new PackEntry(
             index, left, top, width, textRenderer, initialState, meta, convert);
       }
 
-      public PackMetadata<LegacyPackResource> getMeta() {
+      public Metadata getMeta() {
         return this.meta;
       }
 

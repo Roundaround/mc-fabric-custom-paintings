@@ -1,18 +1,20 @@
 package me.roundaround.custompaintings.registry;
 
-import com.google.common.collect.ImmutableMap;
-import me.roundaround.custompaintings.resource.Image;
-import me.roundaround.custompaintings.util.CustomId;
-import me.roundaround.custompaintings.util.TriConsumer;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Predicate;
 
+import com.google.common.collect.ImmutableMap;
+
+import me.roundaround.custompaintings.resource.file.Image;
+import me.roundaround.custompaintings.util.CustomId;
+import me.roundaround.custompaintings.util.TriConsumer;
+
 public class ImageStore {
   private final HashMap<CustomId, StoredImage> store = new HashMap<>();
 
-  public ImageStore() {}
+  public ImageStore() {
+  }
 
   private ImageStore(Map<CustomId, StoredImage> store) {
     this.store.putAll(store);

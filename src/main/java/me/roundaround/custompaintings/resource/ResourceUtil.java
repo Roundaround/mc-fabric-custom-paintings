@@ -1,20 +1,31 @@
 package me.roundaround.custompaintings.resource;
 
-import com.google.common.hash.Hashing;
-import com.google.common.io.ByteSource;
-import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.custompaintings.util.CustomId;
-
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeSet;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+
+import javax.imageio.ImageIO;
+
+import com.google.common.hash.Hashing;
+import com.google.common.io.ByteSource;
+
+import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.resource.file.Image;
+import me.roundaround.custompaintings.util.CustomId;
 
 public class ResourceUtil {
   private static final String CUSTOM_PAINTINGS_JSON = "custompaintings.json";

@@ -1,19 +1,19 @@
 package me.roundaround.custompaintings.server.network;
 
+import java.util.ArrayDeque;
+import java.util.HashMap;
+import java.util.UUID;
+
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
-import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.custompaintings.network.Networking;
-import me.roundaround.custompaintings.resource.Image;
+import me.roundaround.custompaintings.resource.file.Image;
+import me.roundaround.custompaintings.util.CustomId;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Util;
-
-import java.util.ArrayDeque;
-import java.util.HashMap;
-import java.util.UUID;
 
 public class ImagePacketQueue {
   private static ImagePacketQueue instance = null;

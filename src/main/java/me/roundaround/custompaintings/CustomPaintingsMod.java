@@ -7,7 +7,8 @@ import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.resource.PackResource;
-import me.roundaround.custompaintings.resource.legacy.CustomPaintingsJson;
+import me.roundaround.custompaintings.resource.file.json.CustomPaintingsJson;
+import me.roundaround.custompaintings.resource.file.json.LegacyCustomPaintingsJson;
 import me.roundaround.custompaintings.roundalib.event.ResourceManagerEvents;
 import me.roundaround.custompaintings.server.ServerInfo;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
@@ -33,6 +34,7 @@ public final class CustomPaintingsMod implements ModInitializer {
   public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
   public static final Gson GSON = new GsonBuilder().setPrettyPrinting()
       .registerTypeAdapter(CustomPaintingsJson.class, new CustomPaintingsJson.TypeAdapter())
+      .registerTypeAdapter(LegacyCustomPaintingsJson.class, new LegacyCustomPaintingsJson.TypeAdapter())
       .registerTypeAdapter(PackResource.class, new PackResource.TypeAdapter())
       .create();
   public static final String MSG_CMD_IGNORE = CustomPaintingsMod.MOD_ID + ":" + "ignore";

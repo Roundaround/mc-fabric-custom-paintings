@@ -1,35 +1,59 @@
 package me.roundaround.custompaintings.resource.legacy;
 
-import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.custompaintings.client.texture.LoadingSprite;
-import me.roundaround.custompaintings.resource.*;
-import me.roundaround.custompaintings.util.CustomId;
-import me.roundaround.custompaintings.roundalib.util.PathAccessor;
-import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.texture.*;
-import net.minecraft.resource.metadata.ResourceMetadata;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Util;
-
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.file.*;
+import java.nio.file.DirectoryStream;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
+import javax.imageio.ImageIO;
+
+import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.client.texture.LoadingSprite;
+import me.roundaround.custompaintings.resource.MigrationResource;
+import me.roundaround.custompaintings.resource.PackIcons;
+import me.roundaround.custompaintings.resource.PackResource;
+import me.roundaround.custompaintings.resource.PaintingResource;
+import me.roundaround.custompaintings.resource.ResourceUtil;
+import me.roundaround.custompaintings.resource.file.Image;
+import me.roundaround.custompaintings.resource.file.Metadata;
+import me.roundaround.custompaintings.resource.file.Pack;
+import me.roundaround.custompaintings.resource.file.PackReader;
+import me.roundaround.custompaintings.resource.file.Painting;
+import me.roundaround.custompaintings.roundalib.util.PathAccessor;
+import me.roundaround.custompaintings.util.CustomId;
+import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.texture.MissingSprite;
+import net.minecraft.client.texture.NativeImage;
+import net.minecraft.client.texture.Sprite;
+import net.minecraft.client.texture.SpriteAtlasTexture;
+import net.minecraft.client.texture.SpriteContents;
+import net.minecraft.client.texture.SpriteDimensions;
+import net.minecraft.client.texture.SpriteLoader;
+import net.minecraft.resource.metadata.ResourceMetadata;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.Util;
+
 public class LegacyPackConverter {
   private static final String CUSTOM_PAINTINGS_JSON = "custompaintings.json";
-  private static final String PACK_MCMETA = "pack.mcmeta";
   private static final String PACK_PNG = "pack.png";
   private static final String ICON_PNG = "icon.png";
 
@@ -117,7 +141,7 @@ public class LegacyPackConverter {
     return this.globalOutDir;
   }
 
-  public CompletableFuture<Collection<PackMetadata<LegacyPackResource>>> checkForLegacyPacks(MinecraftClient client) {
+  public CompletableFuture<Collection<Metadata>> checkForLegacyPacks(MinecraftClient client) {
     Path resourcePackDir = client.getResourcePackDir();
     return CompletableFuture.supplyAsync(() -> this.checkForLegacyPackMetadata(resourcePackDir), this.ioExecutor);
   }
@@ -128,26 +152,25 @@ public class LegacyPackConverter {
 
     return CompletableFuture.supplyAsync(
         () -> this.loadAllDataFromFiles(resourcePackDir, isSinglePlayer), this.ioExecutor).thenApplyAsync((result) -> {
-      this.uploadIconsSpriteAtlas(client, result.metas());
-      return result;
-    }, client);
+          this.uploadIconsSpriteAtlas(client, result.metas());
+          return result;
+        }, client);
   }
 
   private LegacyPackCheckResult loadAllDataFromFiles(Path resourcePackDir, boolean isSinglePlayer) {
-    Collection<PackMetadata<LegacyPackResource>> metas = this.checkForLegacyPackMetadata(resourcePackDir);
+    Collection<Metadata> metas = this.checkForLegacyPackMetadata(resourcePackDir);
     HashMap<String, Path> globalConvertedIds = this.lookUpConvertedPacks(this.getGlobalOutDir());
-    HashMap<String, Path> worldConvertedIds = isSinglePlayer ?
-        this.lookUpConvertedPacks(this.getWorldOutDir()) :
-        new HashMap<>();
+    HashMap<String, Path> worldConvertedIds = isSinglePlayer ? this.lookUpConvertedPacks(this.getWorldOutDir())
+        : new HashMap<>();
     return new LegacyPackCheckResult(metas, globalConvertedIds, worldConvertedIds);
   }
 
-  private ArrayList<PackMetadata<LegacyPackResource>> checkForLegacyPackMetadata(Path resourcePackDir) {
-    ArrayList<PackMetadata<LegacyPackResource>> metas = new ArrayList<>();
+  private ArrayList<Metadata> checkForLegacyPackMetadata(Path resourcePackDir) {
+    ArrayList<Metadata> metas = new ArrayList<>();
 
     try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(resourcePackDir)) {
       directoryStream.forEach((path) -> {
-        PackMetadata<LegacyPackResource> metadata = readPackMetadata(path);
+        Metadata metadata = PackReader.readMetadata(path);
         if (metadata == null) {
           return;
         }
@@ -224,8 +247,7 @@ public class LegacyPackConverter {
   }
 
   private void uploadIconsSpriteAtlas(
-      MinecraftClient client, Collection<PackMetadata<LegacyPackResource>> metas
-  ) {
+      MinecraftClient client, Collection<Metadata> metas) {
     this.atlas = new SpriteAtlasTexture(
         Identifier.of(CustomPaintingsMod.MOD_ID, "textures/atlas/legacy_pack_icons.png"));
     client.getTextureManager().registerTexture(this.atlas.getId(), this.atlas);
@@ -236,28 +258,26 @@ public class LegacyPackConverter {
       if (meta.icon() == null) {
         return;
       }
-      CustomId id = PackIcons.customId(meta.pack().packId());
+      CustomId id = PackIcons.customId(meta.pack().id());
       this.spriteIds.add(id);
       spriteContents.add(getIconSpriteContents(id.toIdentifier(), meta.icon()));
     });
     this.atlas.upload(SpriteLoader.fromAtlas(this.atlas).stitch(spriteContents, 0, Util.getMainWorkerExecutor()));
   }
 
-  public CompletableFuture<Boolean> convertPack(PackMetadata<LegacyPackResource> metadata, Path path) {
+  public CompletableFuture<Boolean> convertPack(Metadata metadata, Path path) {
     return CompletableFuture.supplyAsync(() -> {
-      LegacyPackResource legacyPack = metadata.pack();
-      HashMap<CustomId, Image> images = readPaintingImages(legacyPack);
+      Pack legacyPack = metadata.pack();
+      HashMap<CustomId, Image> images = readPaintingImages(metadata.path(), metadata);
       HashMap<String, PaintingResource> paintings = new HashMap<>();
       HashMap<String, MigrationResource> migrations = new HashMap<>();
 
       legacyPack.paintings().forEach((legacyPainting) -> {
         paintings.put(legacyPainting.id(),
             new PaintingResource(legacyPainting.id(), legacyPainting.name(), legacyPainting.artist(),
-                legacyPainting.height(), legacyPainting.width()
-            )
-        );
+                legacyPainting.height(), legacyPainting.width()));
       });
-      paintings.keySet().removeIf(paintingId -> !images.containsKey(new CustomId(legacyPack.packId(), paintingId)));
+      paintings.keySet().removeIf(paintingId -> !images.containsKey(new CustomId(legacyPack.id(), paintingId)));
 
       legacyPack.migrations().forEach((legacyMigration) -> {
         List<List<String>> pairs = legacyMigration.pairs().stream().map(List::copyOf).toList();
@@ -265,9 +285,8 @@ public class LegacyPackConverter {
             legacyMigration.id(), new MigrationResource(legacyMigration.id(), legacyMigration.description(), pairs));
       });
 
-      PackResource pack = new PackResource(1, legacyPack.packId(), legacyPack.name(), legacyPack.description(),
-          metadata.packFileUid().stringValue(), List.copyOf(paintings.values()), List.copyOf(migrations.values())
-      );
+      PackResource pack = new PackResource(1, legacyPack.id(), legacyPack.name(), legacyPack.description(),
+          metadata.fileUid().stringValue(), List.copyOf(paintings.values()), List.copyOf(migrations.values()));
 
       try {
         Files.createDirectories(path.getParent());
@@ -283,8 +302,8 @@ public class LegacyPackConverter {
       }
 
       try (
-          FileOutputStream fos = new FileOutputStream(path.toFile()); ZipOutputStream zos = new ZipOutputStream(fos)
-      ) {
+          FileOutputStream fos = new FileOutputStream(path.toFile());
+          ZipOutputStream zos = new ZipOutputStream(fos)) {
         writeCustomPaintingsJson(zos, pack);
 
         CustomId iconId = PackIcons.customId(pack.id());
@@ -300,7 +319,7 @@ public class LegacyPackConverter {
         }
       } catch (IOException e) {
         CustomPaintingsMod.LOGGER.warn(
-            "Failed to automatically convert legacy painting pack {}", legacyPack.path().getFileName());
+            "Failed to automatically convert legacy painting pack {}", metadata.fileUid().filename());
         return false;
       }
 
@@ -314,8 +333,7 @@ public class LegacyPackConverter {
     }
     NativeImage nativeImage = getNativeImage(image);
     return new SpriteContents(id, new SpriteDimensions(image.width(), image.height()), nativeImage,
-        ResourceMetadata.NONE
-    );
+        ResourceMetadata.NONE);
   }
 
   private static NativeImage getNativeImage(Image image) {
@@ -328,132 +346,43 @@ public class LegacyPackConverter {
     return nativeImage;
   }
 
-  private static PackMetadata<LegacyPackResource> readPackMetadata(Path path) {
+  private static HashMap<CustomId, Image> readPaintingImages(Path path, Metadata metadata) {
     try {
       BasicFileAttributes fileAttributes = Files.readAttributes(
           path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
 
       if (fileAttributes.isDirectory()) {
-        return readPackMetadataFromDirectory(path);
+        return readPaintingImagesFromDirectory(path, metadata.pack());
       }
 
       if (fileAttributes.isRegularFile()) {
-        return readPackMetadataFromZip(path);
-      }
-    } catch (Exception e) {
-      CustomPaintingsMod.LOGGER.warn(e);
-      CustomPaintingsMod.LOGGER.warn("Error reading Custom Paintings pack \"{}\", skipping...", path.getFileName());
-    }
-
-    return null;
-  }
-
-  private static PackMetadata<LegacyPackResource> readPackMetadataFromDirectory(Path path) {
-    if (!Files.isRegularFile(path.resolve(CUSTOM_PAINTINGS_JSON), LinkOption.NOFOLLOW_LINKS)) {
-      return null;
-    }
-
-    CustomPaintingsJson json = readCustomPaintingsJson(path.resolve(CUSTOM_PAINTINGS_JSON));
-    if (json == null) {
-      return null;
-    }
-
-    String dirname = path.getFileName().toString();
-    long lastModified = ResourceUtil.lastModified(path);
-    long fileSize = ResourceUtil.fileSize(path);
-    PackFileUid packFileUid = new PackFileUid(false, dirname, lastModified, fileSize);
-
-    PackMcmeta meta = readPackMcmeta(path.resolve(PACK_MCMETA));
-
-    String packId = json.id();
-    String name = json.name();
-    List<LegacyPaintingResource> paintings = json.paintings();
-    List<LegacyMigrationResource> migrations = json.migrations();
-    String description = meta == null ? "" : meta.pack().description();
-
-    LegacyPackResource pack = new LegacyPackResource(path, packId, name, description, paintings, migrations);
-    Image packIcon = readImage(path.resolve(PACK_PNG));
-
-    return new PackMetadata<>(packFileUid, pack, packIcon);
-  }
-
-  private static PackMetadata<LegacyPackResource> readPackMetadataFromZip(Path path) {
-    String filename = path.getFileName().toString();
-    if (!filename.endsWith(".zip")) {
-      return null;
-    }
-
-    if (path.getFileSystem() != FileSystems.getDefault()) {
-      return null;
-    }
-
-    try (ZipFile zip = new ZipFile(path.toFile())) {
-      String folderPrefix = ResourceUtil.getFolderPrefix(zip);
-
-      CustomPaintingsJson json = readCustomPaintingsJson(zip, folderPrefix + CUSTOM_PAINTINGS_JSON);
-      if (json == null) {
-        return null;
-      }
-
-      long lastModified = ResourceUtil.lastModified(path);
-      long fileSize = ResourceUtil.fileSize(path);
-      PackFileUid packFileUid = new PackFileUid(true, filename, lastModified, fileSize);
-
-      PackMcmeta meta = readPackMcmeta(zip, folderPrefix + PACK_MCMETA);
-
-      String packId = json.id();
-      String name = json.name();
-      List<LegacyPaintingResource> paintings = json.paintings();
-      List<LegacyMigrationResource> migrations = json.migrations();
-      String description = meta == null ? "" : meta.pack().description();
-
-      LegacyPackResource pack = new LegacyPackResource(path, packId, name, description, paintings, migrations);
-      Image packIcon = ResourceUtil.readImageFromZip(zip, folderPrefix, PACK_PNG);
-
-      return new PackMetadata<>(packFileUid, pack, packIcon);
-    } catch (IOException e) {
-      return null;
-    }
-  }
-
-  private static HashMap<CustomId, Image> readPaintingImages(LegacyPackResource pack) {
-    try {
-      BasicFileAttributes fileAttributes = Files.readAttributes(
-          pack.path(), BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
-
-      if (fileAttributes.isDirectory()) {
-        return readPaintingImagesFromDirectory(pack);
-      }
-
-      if (fileAttributes.isRegularFile()) {
-        return readPaintingImagesFromZip(pack);
+        return readPaintingImagesFromZip(path, metadata.pack());
       }
     } catch (Exception e) {
       CustomPaintingsMod.LOGGER.warn(e);
       CustomPaintingsMod.LOGGER.warn(
-          "Error reading Custom Paintings pack \"{}\", skipping...", pack.path().getFileName());
+          "Error reading Custom Paintings pack \"{}\", skipping...", metadata.fileUid().filename());
     }
 
     return new HashMap<>();
   }
 
-  private static HashMap<CustomId, Image> readPaintingImagesFromDirectory(LegacyPackResource pack) {
+  private static HashMap<CustomId, Image> readPaintingImagesFromDirectory(Path path, Pack pack) {
     HashMap<CustomId, Image> images = new HashMap<>();
 
-    Path path = pack.path();
     if (Files.notExists(path)) {
       return images;
     }
 
-    String packId = pack.packId();
-    List<LegacyPaintingResource> paintings = pack.paintings();
+    String packId = pack.id();
+    List<Painting> paintings = pack.paintings();
 
     Image packIcon = readImage(path.resolve(PACK_PNG));
     if (packIcon != null) {
       images.put(PackIcons.customId(packId), packIcon);
     }
 
-    for (LegacyPaintingResource painting : paintings) {
+    for (Painting painting : paintings) {
       Image image = readImage(path.resolve(getPaintingPath(packId, painting.id())));
       if (image != null) {
         images.put(new CustomId(packId, painting.id()), image);
@@ -463,10 +392,9 @@ public class LegacyPackConverter {
     return images;
   }
 
-  private static HashMap<CustomId, Image> readPaintingImagesFromZip(LegacyPackResource pack) {
+  private static HashMap<CustomId, Image> readPaintingImagesFromZip(Path path, Pack pack) {
     HashMap<CustomId, Image> images = new HashMap<>();
 
-    Path path = pack.path();
     String filename = path.getFileName().toString();
     if (!filename.endsWith(".zip")) {
       return images;
@@ -478,15 +406,15 @@ public class LegacyPackConverter {
 
     try (ZipFile zip = new ZipFile(path.toFile())) {
       String folderPrefix = ResourceUtil.getFolderPrefix(zip);
-      String packId = pack.packId();
-      List<LegacyPaintingResource> paintings = pack.paintings();
+      String packId = pack.id();
+      List<Painting> paintings = pack.paintings();
 
       Image packIcon = ResourceUtil.readImageFromZip(zip, folderPrefix, PACK_PNG);
       if (packIcon != null) {
         images.put(PackIcons.customId(packId), packIcon);
       }
 
-      for (LegacyPaintingResource painting : paintings) {
+      for (Painting painting : paintings) {
         ArrayList<String> segments = getPaintingPathSegments(packId, painting.id());
         if (!folderPrefix.isBlank()) {
           segments.addFirst(folderPrefix);
@@ -500,62 +428,6 @@ public class LegacyPackConverter {
     }
 
     return images;
-  }
-
-  private static CustomPaintingsJson readCustomPaintingsJson(Path path) {
-    CustomPaintingsJson json;
-    try {
-      json = CustomPaintingsMod.GSON.fromJson(Files.newBufferedReader(path), CustomPaintingsJson.class);
-    } catch (Exception e) {
-      return null;
-    }
-
-    if (json.paintings().isEmpty()) {
-      return null;
-    }
-
-    return json;
-  }
-
-  private static CustomPaintingsJson readCustomPaintingsJson(ZipFile zip, String path) {
-    ZipEntry entry = zip.getEntry(path);
-    if (entry == null) {
-      return null;
-    }
-
-    CustomPaintingsJson json;
-    try (InputStream stream = zip.getInputStream(entry)) {
-      json = CustomPaintingsMod.GSON.fromJson(new InputStreamReader(stream), CustomPaintingsJson.class);
-    } catch (Exception e) {
-      return null;
-    }
-
-    if (json.paintings().isEmpty()) {
-      return null;
-    }
-
-    return json;
-  }
-
-  private static PackMcmeta readPackMcmeta(Path path) {
-    try {
-      return CustomPaintingsMod.GSON.fromJson(Files.newBufferedReader(path), PackMcmeta.class);
-    } catch (Exception e) {
-      return null;
-    }
-  }
-
-  private static PackMcmeta readPackMcmeta(ZipFile zip, String path) {
-    ZipEntry entry = zip.getEntry(path);
-    if (entry == null) {
-      return null;
-    }
-
-    try (InputStream stream = zip.getInputStream(entry)) {
-      return CustomPaintingsMod.GSON.fromJson(new InputStreamReader(stream), PackMcmeta.class);
-    } catch (Exception e) {
-      return null;
-    }
   }
 
   private static Image readImage(Path path) {

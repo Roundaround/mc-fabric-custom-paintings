@@ -2,7 +2,7 @@ package me.roundaround.custompaintings.network;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
-import me.roundaround.custompaintings.resource.Image;
+import me.roundaround.custompaintings.resource.file.Image;
 import me.roundaround.custompaintings.roundalib.network.RoundaLibPacketCodecs;
 import me.roundaround.custompaintings.util.CustomId;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
