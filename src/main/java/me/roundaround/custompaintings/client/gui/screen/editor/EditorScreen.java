@@ -212,7 +212,8 @@ public class EditorScreen extends Screen {
           "description",
           this.state().description,
           this.state().descriptionDirty,
-          () -> this.state().getLastSaved().description()));
+          () -> this.state().getLastSaved().description(),
+          255));
 
       this.layout.refreshPositions();
 
@@ -266,7 +267,7 @@ public class EditorScreen extends Screen {
           Observable<String> valueObservable,
           Observable<Boolean> dirtyObservable,
           Supplier<String> getLastSaved,
-          Integer maxLength) {
+          int maxLength) {
         super(textRenderer, index, x, y, width, HEIGHT);
 
         Text label = Text.translatable("custompaintings.editor.editor.tab.metadata." + id);
@@ -293,10 +294,10 @@ public class EditorScreen extends Screen {
             (parent, self) -> {
               self.setWidth(this.getControlWidth(parent));
             });
+        this.field.setMaxLength(maxLength);
+        this.field.setText(valueObservable.get());
 
-        if (maxLength != null) {
-          this.field.setMaxLength(maxLength);
-        }
+        // TODO: If the initial value is too long show a warning tooltip
 
         this.field.setChangedListener(valueObservable::set);
         valueObservable.subscribe((value) -> {
@@ -312,7 +313,13 @@ public class EditorScreen extends Screen {
         IconButtonWidget resetButton = layout.add(IconButtonWidget.builder(BuiltinIcon.UNDO_18, Constants.MOD_ID)
             .vanillaSize()
             .messageAndTooltip(Text.translatable("custompaintings.editor.editor.revert"))
-            .onPress((button) -> valueObservable.set(getLastSaved.get()))
+            .onPress((button) -> {
+              String value = getLastSaved.get();
+              if (value.length() > maxLength) {
+                value = value.substring(0, maxLength);
+              }
+              this.field.setText(value);
+            })
             .build());
         dirtyObservable.subscribe((dirty) -> resetButton.active = dirty);
 
@@ -347,7 +354,7 @@ public class EditorScreen extends Screen {
           Observable<String> valueObservable,
           Observable<Boolean> dirtyObservable,
           Supplier<String> getLastSaved) {
-        return factory(textRenderer, id, valueObservable, dirtyObservable, getLastSaved, null);
+        return factory(textRenderer, id, valueObservable, dirtyObservable, getLastSaved, 32);
       }
 
       public static FlowListWidget.EntryFactory<TextFieldEntry> factory(
@@ -356,7 +363,7 @@ public class EditorScreen extends Screen {
           Observable<String> valueObservable,
           Observable<Boolean> dirtyObservable,
           Supplier<String> getLastSaved,
-          Integer maxLength) {
+          int maxLength) {
         return (index, left, top, width) -> new TextFieldEntry(
             textRenderer,
             index,
