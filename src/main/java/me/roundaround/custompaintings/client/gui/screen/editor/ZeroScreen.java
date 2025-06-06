@@ -1,7 +1,7 @@
 package me.roundaround.custompaintings.client.gui.screen.editor;
 
 import java.awt.EventQueue;
-import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -103,6 +103,21 @@ public class ZeroScreen extends Screen {
     super.removed();
   }
 
+  @Override
+  public void onFilesDropped(List<Path> paths) {
+    Path path = paths.isEmpty() ? null : paths.getFirst();
+    if (path == null) {
+      return;
+    }
+
+    PackData packData = this.getPackData(path);
+    if (packData == null) {
+      return;
+    }
+
+    this.navigateToEditor(packData);
+  }
+
   private void navigateToEditor(PackData packData) {
     this.client.setScreen(new EditorScreen(new Parent(this), this.client, packData));
   }
@@ -121,8 +136,9 @@ public class ZeroScreen extends Screen {
 
         fc = new JFileChooser();
         fc.setDialogTitle(Text.translatable("custompaintings.editor.open_file").getString());
+        fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
         fc.setAcceptAllFileFilterUsed(false);
-        fc.setFileFilter(new FileNameExtensionFilter("ZIP Files", "zip"));
+        fc.setFileFilter(new FileNameExtensionFilter("Directories and zip files (*.zip)", "zip"));
 
         return fc;
       });
@@ -132,7 +148,7 @@ public class ZeroScreen extends Screen {
         return;
       }
 
-      PackData packData = this.getPackData(fileChooser.getSelectedFile());
+      PackData packData = this.getPackData(Paths.get(fileChooser.getSelectedFile().getAbsolutePath()));
       if (packData == null) {
         return;
       }
@@ -145,8 +161,18 @@ public class ZeroScreen extends Screen {
     });
   }
 
-  private PackData getPackData(File file) {
-    Path path = Paths.get(file.getAbsolutePath());
+  private boolean isDirectory(Path path) {
+    return Files.isDirectory(path);
+  }
+
+  private boolean isZipFile(Path path) {
+    return Files.isRegularFile(path) && path.getFileName().toString().endsWith(".zip");
+  }
+
+  private PackData getPackData(Path path) {
+    if (!this.isDirectory(path) && !this.isZipFile(path)) {
+      return null;
+    }
 
     try {
       Metadata meta = PackReader.readMetadata(path);
