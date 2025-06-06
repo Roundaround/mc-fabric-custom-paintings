@@ -174,7 +174,7 @@ public class PackEditorScreen extends Screen {
 
       this.idField = this.textField("id", this.state().id);
       this.textField("name", this.state().name);
-      this.textField("description", this.state().description);
+      this.textField("description", this.state().description, 80);
 
       this.layout.refreshPositions();
 
@@ -182,6 +182,10 @@ public class PackEditorScreen extends Screen {
     }
 
     private TextFieldWidget textField(String id, Observable<String> observable) {
+      return this.textField(id, observable, null);
+    }
+
+    private TextFieldWidget textField(String id, Observable<String> observable, Integer maxLength) {
       this.layout.add(
           LabelWidget.builder(this.textRenderer(), Text.translatable("custompaintings.editor.tab.metadata." + id))
               .hideBackground()
@@ -193,6 +197,10 @@ public class PackEditorScreen extends Screen {
           new TextFieldWidget(this.textRenderer(), this.getContentWidth(), BUTTON_HEIGHT,
               Text.translatable("custompaintings.editor.tab.metadata." + id)),
           (parent, self) -> self.setWidth(this.getContentWidth()));
+
+      if (maxLength != null) {
+        field.setMaxLength(maxLength);
+      }
 
       field.setChangedListener(observable::set);
       observable.subscribe((value) -> {

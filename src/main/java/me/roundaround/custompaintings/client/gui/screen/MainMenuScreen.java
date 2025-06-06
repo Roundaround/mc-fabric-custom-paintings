@@ -2,6 +2,12 @@ package me.roundaround.custompaintings.client.gui.screen;
 
 import java.awt.EventQueue;
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -14,8 +20,13 @@ import me.roundaround.custompaintings.client.gui.widget.VersionStamp;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
+import me.roundaround.custompaintings.resource.file.Image;
+import me.roundaround.custompaintings.resource.file.Metadata;
+import me.roundaround.custompaintings.resource.file.PackReader;
+import me.roundaround.custompaintings.resource.file.Painting;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.screen.ConfigScreen;
+import me.roundaround.custompaintings.util.CustomId;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -153,6 +164,10 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
           ? this.getPackData(fileChooser.getSelectedFile())
           : new PackData();
 
+      if (packData == null) {
+        return;
+      }
+
       this.client.execute(() -> {
         this.client.setScreen(new PackEditorScreen(this, this.client, packData));
       });
@@ -160,10 +175,63 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
   }
 
   private PackData getPackData(File file) {
-    return new PackData(
-        "test",
-        file.getName(),
-        "");
+    Path path = Paths.get(file.getAbsolutePath());
+
+    try {
+      Metadata meta = PackReader.readMetadata(path);
+      HashMap<CustomId, Image> images = PackReader.readPaintingImages(meta);
+
+      List<PackData.Painting> paintings = new ArrayList<>();
+      for (Painting painting : meta.pack().paintings()) {
+        CustomId id = new CustomId(meta.pack().id(), painting.id());
+        Image image = images.remove(id);
+
+        int pixelWidth = image == null ? 16 : image.width();
+        int pixelHeight = image == null ? 16 : image.height();
+        String hash = image == null ? "" : image.getHash();
+
+        paintings.add(new PackData.Painting(
+            painting.id(),
+            painting.name(),
+            painting.artist(),
+            pixelWidth,
+            pixelHeight,
+            hash,
+            image));
+      }
+
+      for (Map.Entry<CustomId, Image> entry : images.entrySet()) {
+        CustomId id = entry.getKey();
+        Image image = entry.getValue();
+
+        int pixelWidth = image.width();
+        int pixelHeight = image.height();
+        String hash = image.getHash();
+
+        paintings.add(new PackData.Painting(
+            id.resource(),
+            id.resource(),
+            "",
+            pixelWidth,
+            pixelHeight,
+            hash,
+            image));
+      }
+
+      Image icon = meta.icon();
+      String iconHash = icon == null ? "" : icon.getHash();
+
+      return new PackData(
+          meta.pack().id(),
+          meta.pack().name(),
+          meta.pack().description(),
+          iconHash,
+          icon,
+          paintings);
+    } catch (Exception e) {
+      CustomPaintingsMod.LOGGER.warn("Failed to read metadata for {}", path, e);
+      return null;
+    }
   }
 
   private void navigateCache(ButtonWidget button) {
