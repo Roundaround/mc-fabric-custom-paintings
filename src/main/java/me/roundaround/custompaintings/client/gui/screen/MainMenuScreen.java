@@ -1,33 +1,15 @@
 package me.roundaround.custompaintings.client.gui.screen;
 
-import java.awt.EventQueue;
-import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.swing.JFileChooser;
-import javax.swing.filechooser.FileNameExtensionFilter;
-
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.custompaintings.client.gui.screen.editor.PackData;
-import me.roundaround.custompaintings.client.gui.screen.editor.PackEditorScreen;
+import me.roundaround.custompaintings.client.gui.screen.editor.ZeroScreen;
 import me.roundaround.custompaintings.client.gui.widget.LoadingButtonWidget;
 import me.roundaround.custompaintings.client.gui.widget.VersionStamp;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
-import me.roundaround.custompaintings.resource.file.Image;
-import me.roundaround.custompaintings.resource.file.Metadata;
-import me.roundaround.custompaintings.resource.file.PackReader;
-import me.roundaround.custompaintings.resource.file.Painting;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.screen.ConfigScreen;
-import me.roundaround.custompaintings.util.CustomId;
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.screen.ScreenTexts;
@@ -39,19 +21,15 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
   private static final int BUTTON_WIDTH = ButtonWidget.field_49479;
 
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
-  private final Screen parent;
 
   private LoadingButtonWidget reloadButton;
 
-  public MainMenuScreen(Screen parent) {
-    super(Text.translatable("custompaintings.main.title"));
-    this.parent = parent;
+  public MainMenuScreen(net.minecraft.client.gui.screen.Screen parent) {
+    super(Text.translatable("custompaintings.main.title"), new Parent(parent), MinecraftClient.getInstance());
   }
 
   @Override
   protected void init() {
-    assert this.client != null;
-
     boolean inWorld = this.client.world != null;
     boolean inSinglePlayer = this.client.isInSingleplayer();
     boolean hasOp = this.client.player != null && this.client.player.hasPermissionLevel(3);
@@ -128,14 +106,6 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
   }
 
   @Override
-  public void close() {
-    if (this.client == null) {
-      return;
-    }
-    this.client.setScreen(this.parent);
-  }
-
-  @Override
   public void onPacksLoaded() {
     if (this.reloadButton.isLoading()) {
       this.reloadButton.setLoading(false);
@@ -143,7 +113,6 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
   }
 
   private void navigateConfig(ButtonWidget button) {
-    assert this.client != null;
     this.client.setScreen(new ConfigScreen(
         this,
         CustomPaintingsMod.MOD_ID,
@@ -152,102 +121,20 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
   }
 
   private void navigateEditor(ButtonWidget button) {
-    assert this.client != null;
-
-    EventQueue.invokeLater(() -> {
-      JFileChooser fileChooser = new JFileChooser();
-      fileChooser.setDialogTitle(Text.translatable("custompaintings.editor.open_file").getString());
-      fileChooser.setFileFilter(new FileNameExtensionFilter("ZIP Files", "zip"));
-
-      int result = fileChooser.showOpenDialog(null);
-      PackData packData = result == JFileChooser.APPROVE_OPTION
-          ? this.getPackData(fileChooser.getSelectedFile())
-          : new PackData();
-
-      if (packData == null) {
-        return;
-      }
-
-      this.client.execute(() -> {
-        this.client.setScreen(new PackEditorScreen(this, this.client, packData));
-      });
-    });
-  }
-
-  private PackData getPackData(File file) {
-    Path path = Paths.get(file.getAbsolutePath());
-
-    try {
-      Metadata meta = PackReader.readMetadata(path);
-      HashMap<CustomId, Image> images = PackReader.readPaintingImages(meta);
-
-      List<PackData.Painting> paintings = new ArrayList<>();
-      for (Painting painting : meta.pack().paintings()) {
-        CustomId id = new CustomId(meta.pack().id(), painting.id());
-        Image image = images.remove(id);
-
-        int pixelWidth = image == null ? 16 : image.width();
-        int pixelHeight = image == null ? 16 : image.height();
-        String hash = image == null ? "" : image.getHash();
-
-        paintings.add(new PackData.Painting(
-            painting.id(),
-            painting.name(),
-            painting.artist(),
-            pixelWidth,
-            pixelHeight,
-            hash,
-            image));
-      }
-
-      for (Map.Entry<CustomId, Image> entry : images.entrySet()) {
-        CustomId id = entry.getKey();
-        Image image = entry.getValue();
-
-        int pixelWidth = image.width();
-        int pixelHeight = image.height();
-        String hash = image.getHash();
-
-        paintings.add(new PackData.Painting(
-            id.resource(),
-            id.resource(),
-            "",
-            pixelWidth,
-            pixelHeight,
-            hash,
-            image));
-      }
-
-      Image icon = meta.icon();
-      String iconHash = icon == null ? "" : icon.getHash();
-
-      return new PackData(
-          meta.pack().id(),
-          meta.pack().name(),
-          meta.pack().description(),
-          iconHash,
-          icon,
-          paintings);
-    } catch (Exception e) {
-      CustomPaintingsMod.LOGGER.warn("Failed to read metadata for {}", path, e);
-      return null;
-    }
+    this.client.setScreen(new ZeroScreen(new Parent(this), this.client));
   }
 
   private void navigateCache(ButtonWidget button) {
-    assert this.client != null;
     this.client.setScreen(new CacheScreen(this));
   }
 
   private void navigatePacks(ButtonWidget button) {
-    assert this.client != null;
     boolean inSinglePlayer = this.client.isInSingleplayer();
     boolean hasOps = this.client.player != null && this.client.player.hasPermissionLevel(3);
     this.client.setScreen(new PacksScreen(this, inSinglePlayer || hasOps));
   }
 
   private void navigateConvert(ButtonWidget button) {
-    assert this.client != null;
     if (this.client.world != null && !this.client.isInSingleplayer()) {
       return;
     }
@@ -256,12 +143,10 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
   }
 
   private void navigateMigrate(ButtonWidget button) {
-    assert this.client != null;
     this.client.setScreen(new MigrationsScreen(this));
   }
 
   private void reloadPacks() {
-    assert this.client != null;
     if (this.client.player == null || this.client.world == null || !this.client.player.hasPermissionLevel(3)) {
       return;
     }

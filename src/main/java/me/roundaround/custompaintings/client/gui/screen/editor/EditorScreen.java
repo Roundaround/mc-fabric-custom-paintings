@@ -4,6 +4,9 @@ import java.util.function.Consumer;
 
 import org.jetbrains.annotations.NotNull;
 
+import me.roundaround.custompaintings.client.gui.screen.Parent;
+import me.roundaround.custompaintings.client.gui.screen.Screen;
+import me.roundaround.custompaintings.client.gui.widget.VersionStamp;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.linear.LinearLayoutWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.util.Axis;
@@ -14,7 +17,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.ScreenRect;
-import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tab.Tab;
 import net.minecraft.client.gui.tab.TabManager;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -27,15 +29,11 @@ import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
-public class PackEditorScreen extends Screen {
-  private static final int BUTTON_WIDTH = ButtonWidget.DEFAULT_WIDTH_SMALL;
-  private static final int BUTTON_HEIGHT = ButtonWidget.DEFAULT_HEIGHT;
+public class EditorScreen extends Screen {
   private static final int PREFERRED_WIDTH = 300;
   private static final Identifier TAB_HEADER_BACKGROUND_TEXTURE = Identifier
       .ofVanilla("textures/gui/tab_header_background.png");
 
-  private final Screen parent;
-  private final @NotNull MinecraftClient client;
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
   private final TabManager tabManager = new TabManager(
       (element) -> this.addDrawableChild(element),
@@ -44,10 +42,11 @@ public class PackEditorScreen extends Screen {
   private TabNavigationWidget tabNavigation;
   private State state;
 
-  public PackEditorScreen(Screen parent, @NotNull MinecraftClient client, @NotNull PackData pack) {
-    super(Text.translatable("custompaintings.editor.title"));
-    this.parent = parent;
-    this.client = client;
+  public EditorScreen(
+      @NotNull Parent parent,
+      @NotNull MinecraftClient client,
+      @NotNull PackData pack) {
+    super(Text.translatable("custompaintings.editor.editor.title"), parent, client);
     this.state = new State(pack);
   }
 
@@ -58,9 +57,14 @@ public class PackEditorScreen extends Screen {
         .build();
     this.addDrawableChild(this.tabNavigation);
 
-    ButtonWidget doneButton = this.layout.addFooter(ButtonWidget
-        .builder(this.getDoneButtonMessage(this.state.dirty.get()), (b) -> this.close()).width(BUTTON_WIDTH).build());
+    ButtonWidget doneButton = this.layout.addFooter(ButtonWidget.builder(
+        this.getDoneButtonMessage(this.state.dirty.get()),
+        (b) -> this.close())
+        .width(ButtonWidget.field_49479)
+        .build());
     this.state.dirty.subscribe((dirty) -> doneButton.setMessage(this.getDoneButtonMessage(dirty)));
+
+    VersionStamp.create(this.textRenderer, this.layout);
 
     this.layout.forEachChild((child) -> {
       child.setNavigationOrder(1);
@@ -111,7 +115,7 @@ public class PackEditorScreen extends Screen {
   @Override
   public void close() {
     this.state.close();
-    this.client.setScreen(this.parent);
+    super.close();
   }
 
   private Text getDoneButtonMessage(boolean dirty) {
@@ -154,11 +158,11 @@ public class PackEditorScreen extends Screen {
     }
 
     protected TextRenderer textRenderer() {
-      return PackEditorScreen.this.client.textRenderer;
+      return EditorScreen.this.client.textRenderer;
     }
 
     protected State state() {
-      return PackEditorScreen.this.state;
+      return EditorScreen.this.state;
     }
 
     protected int getContentWidth() {
@@ -170,7 +174,7 @@ public class PackEditorScreen extends Screen {
     private final TextFieldWidget idField;
 
     public MetadataTab() {
-      super(Text.translatable("custompaintings.editor.tab.metadata.title"));
+      super(Text.translatable("custompaintings.editor.editor.tab.metadata.title"));
 
       this.idField = this.textField("id", this.state().id);
       this.textField("name", this.state().name);
@@ -178,7 +182,7 @@ public class PackEditorScreen extends Screen {
 
       this.layout.refreshPositions();
 
-      PackEditorScreen.this.setInitialFocus(this.idField);
+      EditorScreen.this.setInitialFocus(this.idField);
     }
 
     private TextFieldWidget textField(String id, Observable<String> observable) {
@@ -187,15 +191,19 @@ public class PackEditorScreen extends Screen {
 
     private TextFieldWidget textField(String id, Observable<String> observable, Integer maxLength) {
       this.layout.add(
-          LabelWidget.builder(this.textRenderer(), Text.translatable("custompaintings.editor.tab.metadata." + id))
+          LabelWidget
+              .builder(this.textRenderer(), Text.translatable("custompaintings.editor.editor.tab.metadata." + id))
               .hideBackground()
               .showShadow()
               .build(),
           (parent, self) -> self.setWidth(this.getContentWidth()));
 
       TextFieldWidget field = this.layout.add(
-          new TextFieldWidget(this.textRenderer(), this.getContentWidth(), BUTTON_HEIGHT,
-              Text.translatable("custompaintings.editor.tab.metadata." + id)),
+          new TextFieldWidget(
+              this.textRenderer(),
+              this.getContentWidth(),
+              ButtonWidget.DEFAULT_HEIGHT,
+              Text.translatable("custompaintings.editor.editor.tab.metadata." + id)),
           (parent, self) -> self.setWidth(this.getContentWidth()));
 
       if (maxLength != null) {
@@ -219,7 +227,7 @@ public class PackEditorScreen extends Screen {
 
   class PaintingsTab extends PackEditorTab {
     public PaintingsTab() {
-      super(Text.translatable("custompaintings.editor.tab.paintings.title"));
+      super(Text.translatable("custompaintings.editor.editor.tab.paintings.title"));
 
       this.layout.add(
           LabelWidget.builder(this.textRenderer(), Text.of("Paintings"))
@@ -232,7 +240,7 @@ public class PackEditorScreen extends Screen {
 
   class MigrationsTab extends PackEditorTab {
     public MigrationsTab() {
-      super(Text.translatable("custompaintings.editor.tab.migrations.title"));
+      super(Text.translatable("custompaintings.editor.editor.tab.migrations.title"));
 
       this.layout.add(
           LabelWidget.builder(this.textRenderer(), Text.of("Migrations"))
