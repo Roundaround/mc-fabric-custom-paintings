@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -37,6 +38,7 @@ import net.minecraft.text.Text;
 
 public class ZeroScreen extends Screen {
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
+  private final AtomicReference<JFileChooser> fileChooser = new AtomicReference<>(null);
 
   public ZeroScreen(
       @NotNull Parent parent,
@@ -89,6 +91,18 @@ public class ZeroScreen extends Screen {
     this.refreshWidgetPositions();
   }
 
+  @Override
+  public void removed() {
+    this.fileChooser.updateAndGet((fileChooser) -> {
+      if (fileChooser != null) {
+        fileChooser.cancelSelection();
+        fileChooser.setVisible(false);
+      }
+      return null;
+    });
+    super.removed();
+  }
+
   private void navigateToEditor(PackData packData) {
     this.client.setScreen(new EditorScreen(new Parent(this), this.client, packData));
   }
@@ -99,10 +113,19 @@ public class ZeroScreen extends Screen {
 
   private void openPack(ButtonWidget button) {
     EventQueue.invokeLater(() -> {
-      JFileChooser fileChooser = new JFileChooser();
-      fileChooser.setDialogTitle(Text.translatable("custompaintings.editor.open_file").getString());
-      fileChooser.setAcceptAllFileFilterUsed(false);
-      fileChooser.setFileFilter(new FileNameExtensionFilter("ZIP Files", "zip"));
+      JFileChooser fileChooser = this.fileChooser.updateAndGet((fc) -> {
+        if (fc != null) {
+          fc.cancelSelection();
+          fc.setVisible(false);
+        }
+
+        fc = new JFileChooser();
+        fc.setDialogTitle(Text.translatable("custompaintings.editor.open_file").getString());
+        fc.setAcceptAllFileFilterUsed(false);
+        fc.setFileFilter(new FileNameExtensionFilter("ZIP Files", "zip"));
+
+        return fc;
+      });
 
       int result = fileChooser.showOpenDialog(null);
       if (result != JFileChooser.APPROVE_OPTION) {
@@ -115,7 +138,9 @@ public class ZeroScreen extends Screen {
       }
 
       this.client.execute(() -> {
-        this.navigateToEditor(packData);
+        if (this.client.currentScreen == this) {
+          this.navigateToEditor(packData);
+        }
       });
     });
   }
