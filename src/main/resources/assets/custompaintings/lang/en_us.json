@@ -143,6 +143,7 @@
   "custompaintings.editor.zero.open.label": "Open an existing pack for editing",
   "custompaintings.editor.zero.open.button": "Open",
   "custompaintings.editor.editor.title": "Custom Paintings Pack Editor",
+  "custompaintings.editor.editor.revert": "Revert",
   "custompaintings.editor.editor.tab.metadata.title": "Metadata",
   "custompaintings.editor.editor.tab.paintings.title": "Paintings",
   "custompaintings.editor.editor.tab.migrations.title": "Migrations",

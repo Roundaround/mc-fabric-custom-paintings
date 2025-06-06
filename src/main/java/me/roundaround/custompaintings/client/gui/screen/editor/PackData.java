@@ -25,34 +25,6 @@ public record PackData(
     this(UUID.randomUUID(), id, name, description, iconHash, icon, paintings);
   }
 
-  public UUID getUuid() {
-    return this.uuid;
-  }
-
-  public String getId() {
-    return this.id;
-  }
-
-  public String getName() {
-    return this.name;
-  }
-
-  public String getDescription() {
-    return this.description;
-  }
-
-  public String getIconHash() {
-    return this.iconHash;
-  }
-
-  public Image getIcon() {
-    return this.icon;
-  }
-
-  public List<Painting> getPaintings() {
-    return this.paintings;
-  }
-
   public boolean equals(PackData other) {
     return this.id.equals(other.id)
         && this.name.equals(other.name)

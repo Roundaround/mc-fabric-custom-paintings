@@ -1,5 +1,6 @@
 package me.roundaround.custompaintings.client.gui.screen.editor;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -9,81 +10,90 @@ import me.roundaround.custompaintings.resource.file.Image;
 import me.roundaround.custompaintings.roundalib.util.Observable;
 
 public class State implements AutoCloseable {
-  public final Observable<UUID> uuid = Observable.of(null);
-  public final Observable<String> id = Observable.of("");
-  public final Observable<String> name = Observable.of("");
-  public final Observable<String> description = Observable.of("");
-  public final Observable<Image> icon = Observable.of(null);
-  public final Observable<String> iconHash = Observable.computed(this.icon,
-      (icon) -> icon == null ? "" : icon.getHash());
-  public final Observable<List<PackData.Painting>> paintings = Observable.of(List.of());
-  public final Observable<Boolean> dirty = Observable.of(false);
+  private final List<Observable<?>> observables = new ArrayList<>();
 
-  private @NotNull PackData lastSaved;
+  public final Observable<UUID> uuid = this.addObservable(
+      Observable.of(null));
+  public final Observable<String> id = this.addObservable(
+      Observable.of(""));
+  public final Observable<String> name = this.addObservable(
+      Observable.of(""));
+  public final Observable<String> description = this.addObservable(
+      Observable.of(""));
+  public final Observable<Image> icon = this.addObservable(
+      Observable.of(null));
+  public final Observable<String> iconHash = this.addObservable(
+      Observable.computed(this.icon, (icon) -> icon == null ? "" : icon.getHash()));
+  public final Observable<List<PackData.Painting>> paintings = this.addObservable(
+      Observable.of(List.of()));
+
+  private final Observable<PackData> lastSaved;
+
+  public final Observable<Boolean> idDirty;
+  public final Observable<Boolean> nameDirty;
+  public final Observable<Boolean> descriptionDirty;
+  public final Observable<Boolean> iconDirty;
+  public final Observable<Boolean> paintingsDirty;
+
+  public final Observable<Boolean> dirty;
 
   public State(@NotNull PackData pack) {
-    this.uuid.set(pack.getUuid());
-    this.id.set(pack.getId());
-    this.name.set(pack.getName());
-    this.icon.set(pack.getIcon());
-    this.description.set(pack.getDescription());
-    this.paintings.set(pack.getPaintings());
-    this.lastSaved = pack;
+    this.uuid.set(pack.uuid());
+    this.id.set(pack.id());
+    this.name.set(pack.name());
+    this.icon.set(pack.icon());
+    this.description.set(pack.description());
+    this.paintings.set(pack.paintings());
 
-    this.id.subscribe((id) -> {
-      this.dirty.set(this.dirty.get()
-          ? this.calculateDirty()
-          : !id.equals(this.lastSaved.getId()));
-    }, Observable.SubscribeOptions.notEmittingImmediately());
+    this.lastSaved = this.addObservable(
+        Observable.of(pack));
 
-    this.name.subscribe((name) -> {
-      this.dirty.set(this.dirty.get()
-          ? this.calculateDirty()
-          : !name.equals(this.lastSaved.getName()));
-    }, Observable.SubscribeOptions.notEmittingImmediately());
+    this.idDirty = this.addObservable(
+        Observable.computed(this.id, this.lastSaved,
+            (id, lastSaved) -> !id.equals(lastSaved.id())));
+    this.nameDirty = this.addObservable(
+        Observable.computed(this.name, this.lastSaved,
+            (name, lastSaved) -> !name.equals(lastSaved.name())));
+    this.descriptionDirty = this.addObservable(
+        Observable.computed(this.description,
+            this.lastSaved,
+            (description, lastSaved) -> !description.equals(lastSaved.description())));
+    this.iconDirty = this.addObservable(
+        Observable.computed(this.iconHash, this.icon, this.lastSaved,
+            (iconHash, icon, lastSaved) -> !iconHash.equals(lastSaved.iconHash())
+                || !PackData.imagesEqual(icon, lastSaved.icon())));
+    this.paintingsDirty = this.addObservable(
+        Observable.computed(this.paintings, this.lastSaved,
+            (paintings, lastSaved) -> !paintings.equals(lastSaved.paintings())));
 
-    this.description.subscribe((description) -> {
-      this.dirty.set(this.dirty.get()
-          ? this.calculateDirty()
-          : !description.equals(this.lastSaved.getDescription()));
-    }, Observable.SubscribeOptions.notEmittingImmediately());
-
-    this.iconHash.subscribe((iconHash) -> {
-      this.dirty.set(this.dirty.get()
-          ? this.calculateDirty()
-          : !iconHash.equals(this.lastSaved.getIconHash()));
-    }, Observable.SubscribeOptions.notEmittingImmediately());
-
-    this.icon.subscribe((icon) -> {
-      this.dirty.set(this.dirty.get()
-          ? this.calculateDirty()
-          : !PackData.imagesEqual(icon, this.lastSaved.getIcon()));
-    }, Observable.SubscribeOptions.notEmittingImmediately());
-
-    this.paintings.subscribe((paintings) -> {
-      this.dirty.set(this.dirty.get()
-          ? this.calculateDirty()
-          : !paintings.equals(this.lastSaved.getPaintings()));
-    }, Observable.SubscribeOptions.notEmittingImmediately());
+    this.dirty = this.addObservable(
+        Observable.computed(
+            this.idDirty,
+            this.nameDirty,
+            this.descriptionDirty,
+            this.iconDirty,
+            this.paintingsDirty,
+            (idDirty, nameDirty, descriptionDirty, iconDirty, paintingsDirty) -> idDirty
+                || nameDirty
+                || descriptionDirty
+                || iconDirty
+                || paintingsDirty));
   }
 
   @Override
   public void close() {
-    this.uuid.clear();
-    this.id.clear();
-    this.name.clear();
-    this.description.clear();
-    this.icon.clear();
-    this.iconHash.clear();
-    this.paintings.clear();
+    for (Observable<?> observable : this.observables) {
+      observable.clear();
+    }
+    this.observables.clear();
   }
 
-  private boolean calculateDirty() {
-    return !this.id.get().equals(this.lastSaved.getId())
-        || !this.name.get().equals(this.lastSaved.getName())
-        || !this.description.get().equals(this.lastSaved.getDescription())
-        || !this.iconHash.get().equals(this.lastSaved.getIconHash())
-        || !PackData.imagesEqual(this.icon.get(), this.lastSaved.getIcon())
-        || !this.paintings.get().equals(this.lastSaved.getPaintings());
+  public PackData getLastSaved() {
+    return this.lastSaved.get();
+  }
+
+  private <T> Observable<T> addObservable(Observable<T> observable) {
+    this.observables.add(observable);
+    return observable;
   }
 }

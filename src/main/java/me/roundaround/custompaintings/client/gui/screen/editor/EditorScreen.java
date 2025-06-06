@@ -1,16 +1,22 @@
 package me.roundaround.custompaintings.client.gui.screen.editor;
 
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.jetbrains.annotations.NotNull;
 
 import me.roundaround.custompaintings.client.gui.screen.Parent;
 import me.roundaround.custompaintings.client.gui.screen.Screen;
 import me.roundaround.custompaintings.client.gui.widget.VersionStamp;
+import me.roundaround.custompaintings.generated.Constants;
+import me.roundaround.custompaintings.roundalib.client.gui.icon.BuiltinIcon;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.linear.LinearLayoutWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.util.Axis;
 import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
+import me.roundaround.custompaintings.roundalib.client.gui.widget.FlowListWidget;
+import me.roundaround.custompaintings.roundalib.client.gui.widget.IconButtonWidget;
+import me.roundaround.custompaintings.roundalib.client.gui.widget.ParentElementEntryListWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.LabelWidget;
 import me.roundaround.custompaintings.roundalib.util.Observable;
 import net.minecraft.client.MinecraftClient;
@@ -176,52 +182,193 @@ public class EditorScreen extends Screen {
     public MetadataTab() {
       super(Text.translatable("custompaintings.editor.editor.tab.metadata.title"));
 
-      this.idField = this.textField("id", this.state().id);
-      this.textField("name", this.state().name);
-      this.textField("description", this.state().description, 80);
+      MetadataList list = this.layout.add(new MetadataList(
+          EditorScreen.this.client,
+          this.layout),
+          (parent, self) -> {
+            self.setDimensionsAndPosition(
+                parent.getWidth(),
+                parent.getHeight(),
+                parent.getX(),
+                parent.getY());
+          });
+
+      MetadataList.TextFieldEntry idEntry = list.addEntry(MetadataList.TextFieldEntry.factory(
+          this.textRenderer(),
+          "id",
+          this.state().id,
+          this.state().idDirty,
+          () -> this.state().getLastSaved().id()));
+      this.idField = idEntry.getField();
+
+      list.addEntry(MetadataList.TextFieldEntry.factory(
+          this.textRenderer(),
+          "name",
+          this.state().name,
+          this.state().nameDirty,
+          () -> this.state().getLastSaved().name()));
+      list.addEntry(MetadataList.TextFieldEntry.factory(
+          this.textRenderer(),
+          "description",
+          this.state().description,
+          this.state().descriptionDirty,
+          () -> this.state().getLastSaved().description()));
 
       this.layout.refreshPositions();
 
       EditorScreen.this.setInitialFocus(this.idField);
     }
+  }
 
-    private TextFieldWidget textField(String id, Observable<String> observable) {
-      return this.textField(id, observable, null);
+  static class MetadataList extends ParentElementEntryListWidget<MetadataList.Entry> {
+    public MetadataList(MinecraftClient client, LinearLayoutWidget layout) {
+      super(client, layout.getX(), layout.getY(), layout.getWidth(), layout.getHeight());
+      this.setContentPadding(2 * GuiUtil.PADDING);
     }
 
-    private TextFieldWidget textField(String id, Observable<String> observable, Integer maxLength) {
-      this.layout.add(
-          LabelWidget
-              .builder(this.textRenderer(), Text.translatable("custompaintings.editor.editor.tab.metadata." + id))
-              .hideBackground()
-              .showShadow()
-              .build(),
-          (parent, self) -> self.setWidth(this.getContentWidth()));
+    @Override
+    protected void renderListBackground(DrawContext context) {
+      // Disable background
+    }
 
-      TextFieldWidget field = this.layout.add(
-          new TextFieldWidget(
-              this.textRenderer(),
+    @Override
+    protected void renderListBorders(DrawContext context) {
+      // Disable borders
+    }
+
+    @Override
+    protected int getPreferredContentWidth() {
+      return VANILLA_LIST_WIDTH_L;
+    }
+
+    static class Entry extends ParentElementEntryListWidget.Entry {
+      protected static final int HEIGHT = 20;
+      protected static final int CONTROL_MIN_WIDTH = 140;
+
+      protected final TextRenderer textRenderer;
+
+      public Entry(TextRenderer textRenderer, int index, int x, int y, int width, int contentHeight) {
+        super(index, x, y, width, contentHeight);
+        this.textRenderer = textRenderer;
+      }
+    }
+
+    static class TextFieldEntry extends Entry {
+      private final TextFieldWidget field;
+
+      public TextFieldEntry(
+          TextRenderer textRenderer,
+          int index,
+          int x,
+          int y,
+          int width,
+          String id,
+          Observable<String> valueObservable,
+          Observable<Boolean> dirtyObservable,
+          Supplier<String> getLastSaved,
+          Integer maxLength) {
+        super(textRenderer, index, x, y, width, HEIGHT);
+
+        Text label = Text.translatable("custompaintings.editor.editor.tab.metadata." + id);
+
+        LinearLayoutWidget layout = LinearLayoutWidget.horizontal()
+            .spacing(GuiUtil.PADDING)
+            .defaultOffAxisContentAlignCenter();
+
+        layout.add(LabelWidget.builder(this.textRenderer, label)
+            .alignTextLeft()
+            .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
+            .hideBackground()
+            .showShadow()
+            .build(), (parent, self) -> {
+              self.setDimensions(this.getLabelWidth(parent), this.getContentHeight());
+            });
+
+        this.field = layout.add(
+            new TextFieldWidget(
+                this.textRenderer,
+                this.getControlWidth(layout),
+                HEIGHT,
+                label),
+            (parent, self) -> {
+              self.setWidth(this.getControlWidth(parent));
+            });
+
+        if (maxLength != null) {
+          this.field.setMaxLength(maxLength);
+        }
+
+        this.field.setChangedListener(valueObservable::set);
+        valueObservable.subscribe((value) -> {
+          String text = this.field.getText();
+          if (!text.equals(value)) {
+            this.field.setText(value);
+            this.field.setCursorToEnd(false);
+            this.field.setSelectionStart(0);
+            this.field.setSelectionEnd(0);
+          }
+        });
+
+        IconButtonWidget resetButton = layout.add(IconButtonWidget.builder(BuiltinIcon.UNDO_18, Constants.MOD_ID)
+            .vanillaSize()
+            .messageAndTooltip(Text.translatable("custompaintings.editor.editor.revert"))
+            .onPress((button) -> valueObservable.set(getLastSaved.get()))
+            .build());
+        dirtyObservable.subscribe((dirty) -> resetButton.active = dirty);
+
+        this.addLayout(layout, (self) -> {
+          self.setPositionAndDimensions(
+              this.getContentLeft(),
+              this.getContentTop(),
               this.getContentWidth(),
-              ButtonWidget.DEFAULT_HEIGHT,
-              Text.translatable("custompaintings.editor.editor.tab.metadata." + id)),
-          (parent, self) -> self.setWidth(this.getContentWidth()));
-
-      if (maxLength != null) {
-        field.setMaxLength(maxLength);
+              this.getContentHeight());
+        });
+        layout.forEachChild(this::addDrawableChild);
       }
 
-      field.setChangedListener(observable::set);
-      observable.subscribe((value) -> {
-        String text = field.getText();
-        if (!text.equals(value)) {
-          field.setText(value);
-          field.setCursorToEnd(false);
-          field.setSelectionStart(0);
-          field.setSelectionEnd(0);
-        }
-      });
+      public TextFieldWidget getField() {
+        return this.field;
+      }
 
-      return field;
+      private int getLabelWidth(LinearLayoutWidget layout) {
+        return layout.getWidth()
+            - 2 * layout.getSpacing()
+            - this.getControlWidth(layout)
+            - IconButtonWidget.SIZE_V;
+      }
+
+      private int getControlWidth(LinearLayoutWidget layout) {
+        return Math.max(CONTROL_MIN_WIDTH, Math.round(layout.getWidth() * 0.6f));
+      }
+
+      public static FlowListWidget.EntryFactory<TextFieldEntry> factory(
+          TextRenderer textRenderer,
+          String id,
+          Observable<String> valueObservable,
+          Observable<Boolean> dirtyObservable,
+          Supplier<String> getLastSaved) {
+        return factory(textRenderer, id, valueObservable, dirtyObservable, getLastSaved, null);
+      }
+
+      public static FlowListWidget.EntryFactory<TextFieldEntry> factory(
+          TextRenderer textRenderer,
+          String id,
+          Observable<String> valueObservable,
+          Observable<Boolean> dirtyObservable,
+          Supplier<String> getLastSaved,
+          Integer maxLength) {
+        return (index, left, top, width) -> new TextFieldEntry(
+            textRenderer,
+            index,
+            left,
+            top,
+            width,
+            id,
+            valueObservable,
+            dirtyObservable,
+            getLastSaved,
+            maxLength);
+      }
     }
   }
 
