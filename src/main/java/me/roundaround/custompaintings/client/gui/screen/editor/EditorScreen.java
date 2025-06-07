@@ -1,34 +1,17 @@
 package me.roundaround.custompaintings.client.gui.screen.editor;
 
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-
 import org.jetbrains.annotations.NotNull;
 
 import me.roundaround.custompaintings.client.gui.screen.Parent;
 import me.roundaround.custompaintings.client.gui.screen.Screen;
 import me.roundaround.custompaintings.client.gui.widget.VersionStamp;
-import me.roundaround.custompaintings.generated.Constants;
-import me.roundaround.custompaintings.roundalib.client.gui.icon.BuiltinIcon;
-import me.roundaround.custompaintings.roundalib.client.gui.layout.linear.LinearLayoutWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.util.Axis;
-import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
-import me.roundaround.custompaintings.roundalib.client.gui.widget.FlowListWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.widget.IconButtonWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.widget.ParentElementEntryListWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.LabelWidget;
-import me.roundaround.custompaintings.roundalib.util.Observable;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.ScreenRect;
-import net.minecraft.client.gui.tab.Tab;
 import net.minecraft.client.gui.tab.TabManager;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.client.gui.widget.TabNavigationWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.MutableText;
@@ -36,7 +19,6 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 public class EditorScreen extends Screen {
-  private static final int PREFERRED_WIDTH = 300;
   private static final Identifier TAB_HEADER_BACKGROUND_TEXTURE = Identifier
       .ofVanilla("textures/gui/tab_header_background.png");
 
@@ -59,7 +41,10 @@ public class EditorScreen extends Screen {
   @Override
   protected void init() {
     this.tabNavigation = TabNavigationWidget.builder(this.tabManager, this.width)
-        .tabs(new MetadataTab(), new PaintingsTab(), new MigrationsTab())
+        .tabs(
+            new MetadataTab(this.client, this.state),
+            new PaintingsTab(this.client, this.state),
+            new MigrationsTab(this.client, this.state))
         .build();
     this.addDrawableChild(this.tabNavigation);
 
@@ -130,278 +115,5 @@ public class EditorScreen extends Screen {
       text.append(" *");
     }
     return text;
-  }
-
-  abstract class PackEditorTab implements Tab {
-    protected final Text title;
-    protected final LinearLayoutWidget layout = new LinearLayoutWidget(Axis.VERTICAL)
-        .mainAxisContentAlignStart()
-        .defaultOffAxisContentAlignCenter()
-        .spacing(0);
-
-    protected PackEditorTab(Text title) {
-      this.title = title;
-    }
-
-    @Override
-    public Text getTitle() {
-      return this.title;
-    }
-
-    @Override
-    public void forEachChild(Consumer<ClickableWidget> consumer) {
-      this.layout.forEachChild(consumer);
-    }
-
-    @Override
-    public void refreshGrid(ScreenRect tabArea) {
-      this.layout.setPositionAndDimensions(
-          tabArea.getLeft(),
-          tabArea.getTop(),
-          tabArea.width(),
-          tabArea.height());
-      this.layout.refreshPositions();
-    }
-
-    protected TextRenderer textRenderer() {
-      return EditorScreen.this.client.textRenderer;
-    }
-
-    protected State state() {
-      return EditorScreen.this.state;
-    }
-
-    protected int getContentWidth() {
-      return Math.min(PREFERRED_WIDTH, this.layout.getWidth() - 2 * GuiUtil.PADDING);
-    }
-  }
-
-  class MetadataTab extends PackEditorTab {
-    private final TextFieldWidget idField;
-
-    public MetadataTab() {
-      super(Text.translatable("custompaintings.editor.editor.tab.metadata.title"));
-
-      MetadataList list = this.layout.add(new MetadataList(
-          EditorScreen.this.client,
-          this.layout),
-          (parent, self) -> {
-            self.setDimensionsAndPosition(
-                parent.getWidth(),
-                parent.getHeight(),
-                parent.getX(),
-                parent.getY());
-          });
-
-      MetadataList.TextFieldEntry idEntry = list.addEntry(MetadataList.TextFieldEntry.factory(
-          this.textRenderer(),
-          "id",
-          this.state().id,
-          this.state().idDirty,
-          () -> this.state().getLastSaved().id()));
-      this.idField = idEntry.getField();
-
-      list.addEntry(MetadataList.TextFieldEntry.factory(
-          this.textRenderer(),
-          "name",
-          this.state().name,
-          this.state().nameDirty,
-          () -> this.state().getLastSaved().name()));
-      list.addEntry(MetadataList.TextFieldEntry.factory(
-          this.textRenderer(),
-          "description",
-          this.state().description,
-          this.state().descriptionDirty,
-          () -> this.state().getLastSaved().description(),
-          255));
-
-      this.layout.refreshPositions();
-
-      EditorScreen.this.setInitialFocus(this.idField);
-    }
-  }
-
-  static class MetadataList extends ParentElementEntryListWidget<MetadataList.Entry> {
-    public MetadataList(MinecraftClient client, LinearLayoutWidget layout) {
-      super(client, layout.getX(), layout.getY(), layout.getWidth(), layout.getHeight());
-      this.setContentPadding(2 * GuiUtil.PADDING);
-    }
-
-    @Override
-    protected void renderListBackground(DrawContext context) {
-      // Disable background
-    }
-
-    @Override
-    protected void renderListBorders(DrawContext context) {
-      // Disable borders
-    }
-
-    @Override
-    protected int getPreferredContentWidth() {
-      return VANILLA_LIST_WIDTH_L;
-    }
-
-    static class Entry extends ParentElementEntryListWidget.Entry {
-      protected static final int HEIGHT = 20;
-      protected static final int CONTROL_MIN_WIDTH = 140;
-
-      protected final TextRenderer textRenderer;
-
-      public Entry(TextRenderer textRenderer, int index, int x, int y, int width, int contentHeight) {
-        super(index, x, y, width, contentHeight);
-        this.textRenderer = textRenderer;
-      }
-    }
-
-    static class TextFieldEntry extends Entry {
-      private final TextFieldWidget field;
-
-      public TextFieldEntry(
-          TextRenderer textRenderer,
-          int index,
-          int x,
-          int y,
-          int width,
-          String id,
-          Observable<String> valueObservable,
-          Observable<Boolean> dirtyObservable,
-          Supplier<String> getLastSaved,
-          int maxLength) {
-        super(textRenderer, index, x, y, width, HEIGHT);
-
-        Text label = Text.translatable("custompaintings.editor.editor.tab.metadata." + id);
-
-        LinearLayoutWidget layout = LinearLayoutWidget.horizontal()
-            .spacing(GuiUtil.PADDING)
-            .defaultOffAxisContentAlignCenter();
-
-        layout.add(LabelWidget.builder(this.textRenderer, label)
-            .alignTextLeft()
-            .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
-            .hideBackground()
-            .showShadow()
-            .build(), (parent, self) -> {
-              self.setDimensions(this.getLabelWidth(parent), this.getContentHeight());
-            });
-
-        this.field = layout.add(
-            new TextFieldWidget(
-                this.textRenderer,
-                this.getControlWidth(layout),
-                HEIGHT,
-                label),
-            (parent, self) -> {
-              self.setWidth(this.getControlWidth(parent));
-            });
-        this.field.setMaxLength(maxLength);
-        this.field.setText(valueObservable.get());
-
-        // TODO: If the initial value is too long show a warning tooltip
-
-        this.field.setChangedListener(valueObservable::set);
-        valueObservable.subscribe((value) -> {
-          String text = this.field.getText();
-          if (!text.equals(value)) {
-            this.field.setText(value);
-            this.field.setCursorToEnd(false);
-            this.field.setSelectionStart(0);
-            this.field.setSelectionEnd(0);
-          }
-        });
-
-        IconButtonWidget resetButton = layout.add(IconButtonWidget.builder(BuiltinIcon.UNDO_18, Constants.MOD_ID)
-            .vanillaSize()
-            .messageAndTooltip(Text.translatable("custompaintings.editor.editor.revert"))
-            .onPress((button) -> {
-              String value = getLastSaved.get();
-              if (value.length() > maxLength) {
-                value = value.substring(0, maxLength);
-              }
-              this.field.setText(value);
-            })
-            .build());
-        dirtyObservable.subscribe((dirty) -> resetButton.active = dirty);
-
-        this.addLayout(layout, (self) -> {
-          self.setPositionAndDimensions(
-              this.getContentLeft(),
-              this.getContentTop(),
-              this.getContentWidth(),
-              this.getContentHeight());
-        });
-        layout.forEachChild(this::addDrawableChild);
-      }
-
-      public TextFieldWidget getField() {
-        return this.field;
-      }
-
-      private int getLabelWidth(LinearLayoutWidget layout) {
-        return layout.getWidth()
-            - 2 * layout.getSpacing()
-            - this.getControlWidth(layout)
-            - IconButtonWidget.SIZE_V;
-      }
-
-      private int getControlWidth(LinearLayoutWidget layout) {
-        return Math.max(CONTROL_MIN_WIDTH, Math.round(layout.getWidth() * 0.6f));
-      }
-
-      public static FlowListWidget.EntryFactory<TextFieldEntry> factory(
-          TextRenderer textRenderer,
-          String id,
-          Observable<String> valueObservable,
-          Observable<Boolean> dirtyObservable,
-          Supplier<String> getLastSaved) {
-        return factory(textRenderer, id, valueObservable, dirtyObservable, getLastSaved, 32);
-      }
-
-      public static FlowListWidget.EntryFactory<TextFieldEntry> factory(
-          TextRenderer textRenderer,
-          String id,
-          Observable<String> valueObservable,
-          Observable<Boolean> dirtyObservable,
-          Supplier<String> getLastSaved,
-          int maxLength) {
-        return (index, left, top, width) -> new TextFieldEntry(
-            textRenderer,
-            index,
-            left,
-            top,
-            width,
-            id,
-            valueObservable,
-            dirtyObservable,
-            getLastSaved,
-            maxLength);
-      }
-    }
-  }
-
-  class PaintingsTab extends PackEditorTab {
-    public PaintingsTab() {
-      super(Text.translatable("custompaintings.editor.editor.tab.paintings.title"));
-
-      this.layout.add(
-          LabelWidget.builder(this.textRenderer(), Text.of("Paintings"))
-              .hideBackground()
-              .showShadow()
-              .build(),
-          (parent, self) -> self.setWidth(this.getContentWidth()));
-    }
-  }
-
-  class MigrationsTab extends PackEditorTab {
-    public MigrationsTab() {
-      super(Text.translatable("custompaintings.editor.editor.tab.migrations.title"));
-
-      this.layout.add(
-          LabelWidget.builder(this.textRenderer(), Text.of("Migrations"))
-              .hideBackground()
-              .showShadow()
-              .build(),
-          (parent, self) -> self.setWidth(this.getContentWidth()));
-    }
   }
 }
