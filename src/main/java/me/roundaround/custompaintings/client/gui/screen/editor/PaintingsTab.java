@@ -1,23 +1,27 @@
 package me.roundaround.custompaintings.client.gui.screen.editor;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 import org.jetbrains.annotations.NotNull;
 
+import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.resource.file.Image;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.linear.LinearLayoutWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
 import me.roundaround.custompaintings.roundalib.client.gui.util.IntRect;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.FlowListWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.ParentElementEntryListWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.DrawableWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.LabelWidget;
 import me.roundaround.custompaintings.roundalib.util.Observable;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.render.RenderLayer;
+import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
+import net.minecraft.util.Colors;
 
 public class PaintingsTab extends PackEditorTab {
 
@@ -48,7 +52,9 @@ public class PaintingsTab extends PackEditorTab {
       observable.subscribe((paintings) -> {
         if (paintings.size() > this.getEntryCount()) {
           for (int i = this.getEntryCount(); i < paintings.size(); i++) {
-            this.addEntry(Entry.factory(this.client.textRenderer, paintings.get(i)));
+            this.addEntry(Entry.factory(this.client.textRenderer, (index) -> {
+              CustomPaintingsMod.LOGGER.info("Clicked painting {}", index);
+            }, paintings.get(i)));
           }
         } else {
           for (int i = this.getEntryCount(); i > paintings.size(); i--) {
@@ -78,12 +84,22 @@ public class PaintingsTab extends PackEditorTab {
     }
 
     static class Entry extends ParentElementEntryListWidget.Entry {
+      private final Consumer<Integer> onClick;
       private final LabelWidget nameLabel;
+      private final ImageButtonWidget imageButton;
 
       private PackData.Painting painting;
 
-      public Entry(TextRenderer textRenderer, int index, int left, int top, int width, PackData.Painting painting) {
+      public Entry(
+          TextRenderer textRenderer,
+          int index,
+          int left,
+          int top,
+          int width,
+          Consumer<Integer> onClick,
+          PackData.Painting painting) {
         super(index, left, top, width, 36);
+        this.onClick = onClick;
         this.painting = painting;
 
         LinearLayoutWidget layout = LinearLayoutWidget.horizontal()
@@ -96,46 +112,11 @@ public class PaintingsTab extends PackEditorTab {
             .showShadow()
             .build());
 
-        layout.add(new DrawableWidget() {
-          @Override
-          public void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
-            Image image = Entry.this.painting.image();
-
-            int width = this.getWidth();
-            int height = this.getHeight();
-            int x = this.getX();
-            int y = this.getY();
-
-            int imageWidth = image == null ? 32 : image.width();
-            int imageHeight = image == null ? 32 : image.height();
-
-            float scale = Math.min((float) width / imageWidth, (float) height / imageHeight);
-            int scaledWidth = Math.round(scale * imageWidth);
-            int scaledHeight = Math.round(scale * imageHeight);
-
-            IntRect bounds = IntRect.byDimensions(
-                x + (width - scaledWidth) / 2,
-                y + (height - scaledHeight) / 2,
-                scaledWidth,
-                scaledHeight);
-
-            context.drawTexture(
-                RenderLayer::getGuiTextured,
-                State.getImageTextureId(image),
-                bounds.left(),
-                bounds.top(),
-                0,
-                0,
-                bounds.getWidth(),
-                bounds.getHeight(),
-                imageWidth,
-                imageHeight,
-                imageWidth,
-                imageHeight);
-          }
-        }, (parent, self) -> {
-          self.setDimensions(this.getContentHeight(), this.getContentHeight());
-        });
+        this.imageButton = layout.add(new ImageButtonWidget(
+            (button) -> this.onClick.accept(index),
+            this.painting.image()), (parent, self) -> {
+              self.setDimensions(this.getContentHeight(), this.getContentHeight());
+            });
 
         this.addLayout(layout, (self) -> {
           self.setPositionAndDimensions(
@@ -150,11 +131,133 @@ public class PaintingsTab extends PackEditorTab {
       public void setPainting(PackData.Painting painting) {
         this.painting = painting;
         this.nameLabel.setText(Text.of(this.painting.name()));
+        this.imageButton.setImage(this.painting.image());
       }
 
-      public static FlowListWidget.EntryFactory<Entry> factory(TextRenderer textRenderer, PackData.Painting painting) {
-        return (index, left, top, width) -> new Entry(textRenderer, index, left, top, width, painting);
+      public static FlowListWidget.EntryFactory<Entry> factory(TextRenderer textRenderer, Consumer<Integer> onClick,
+          PackData.Painting painting) {
+        return (index, left, top, width) -> new Entry(textRenderer, index, left, top, width, onClick, painting);
       }
+    }
+  }
+
+  static class ImageButtonWidget extends ButtonWidget {
+    protected Image image;
+    protected int imageWidth;
+    protected int imageHeight;
+    protected IntRect imageBounds = IntRect.zero();
+    protected boolean inBatchUpdate = false;
+
+    public ImageButtonWidget(ButtonWidget.PressAction pressAction, Image image) {
+      this(pressAction, image, true);
+    }
+
+    public ImageButtonWidget(ButtonWidget.PressAction pressAction, Image image, boolean immediatelyCalculateBounds) {
+      super(0, 0, 0, 0, ScreenTexts.EMPTY, pressAction, DEFAULT_NARRATION_SUPPLIER);
+      this.image = image;
+      this.imageWidth = image == null ? 32 : image.width();
+      this.imageHeight = image == null ? 32 : image.height();
+      if (immediatelyCalculateBounds) {
+        this.calculateBounds();
+      }
+    }
+
+    public void batchUpdates(Runnable runnable) {
+      this.inBatchUpdate = true;
+      try {
+        runnable.run();
+      } finally {
+        this.inBatchUpdate = false;
+        this.calculateBounds();
+      }
+    }
+
+    @Override
+    public void setX(int x) {
+      super.setX(x);
+      this.calculateBounds();
+    }
+
+    @Override
+    public void setY(int y) {
+      super.setY(y);
+      this.calculateBounds();
+    }
+
+    @Override
+    public void setWidth(int width) {
+      super.setWidth(width);
+      this.calculateBounds();
+    }
+
+    @Override
+    public void setHeight(int height) {
+      super.setHeight(height);
+      this.calculateBounds();
+    }
+
+    @Override
+    public void setDimensions(int width, int height) {
+      super.setDimensions(width, height);
+      this.calculateBounds();
+    }
+
+    public void setImage(Image image) {
+      this.image = image;
+      this.calculateBounds();
+    }
+
+    public void calculateBounds() {
+      if (this.inBatchUpdate || !this.visible) {
+        return;
+      }
+
+      int width = this.getWidth() - 2;
+      int height = this.getHeight() - 2;
+      int x = this.getX() + 1;
+      int y = this.getY() + 1;
+
+      float scale = Math.min(
+          (float) this.getWidth() / this.imageWidth,
+          (float) this.getHeight() / this.imageHeight);
+      int scaledWidth = Math.round(scale * this.imageWidth);
+      int scaledHeight = Math.round(scale * this.imageHeight);
+
+      this.imageBounds = IntRect.byDimensions(
+          x + (width - scaledWidth) / 2,
+          y + (height - scaledHeight) / 2,
+          scaledWidth,
+          scaledHeight);
+    }
+
+    @Override
+    public boolean isMouseOver(double mouseX, double mouseY) {
+      return this.active && this.visible && this.imageBounds.contains(mouseX, mouseY);
+    }
+
+    @Override
+    public void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+      this.hovered = this.hovered && this.imageBounds.contains(mouseX, mouseY);
+
+      context.fill(
+          this.imageBounds.left() - 1,
+          this.imageBounds.top() - 1,
+          this.imageBounds.right() + 1,
+          this.imageBounds.bottom() + 1,
+          this.hovered ? Colors.WHITE : Colors.BLACK);
+      context.drawTexture(
+          RenderLayer::getGuiTextured,
+          State.getImageTextureId(this.image),
+          this.imageBounds.left(),
+          this.imageBounds.top(),
+          0,
+          0,
+          this.imageBounds.getWidth(),
+          this.imageBounds.getHeight(),
+          this.imageWidth,
+          this.imageHeight,
+          this.imageWidth,
+          this.imageHeight);
     }
   }
 }
