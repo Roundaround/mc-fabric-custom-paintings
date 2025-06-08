@@ -88,7 +88,7 @@ public class EditorScreen extends Screen {
     super.render(context, mouseX, mouseY, deltaTicks);
     context.drawTexture(
         RenderLayer::getGuiTextured, Screen.FOOTER_SEPARATOR_TEXTURE, 0,
-        this.height - this.layout.getFooterHeight() - 2, 0, 0, this.width, 2, 32, 2);
+        this.height - this.layout.getFooterHeight(), 0, 0, this.width, 2, 32, 2);
   }
 
   @Override
