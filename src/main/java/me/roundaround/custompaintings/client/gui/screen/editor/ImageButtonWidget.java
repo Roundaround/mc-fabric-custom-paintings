@@ -71,6 +71,8 @@ public class ImageButtonWidget extends ButtonWidget {
 
   public void setImage(Image image) {
     this.image = image;
+    this.imageWidth = image == null ? 32 : image.width();
+    this.imageHeight = image == null ? 32 : image.height();
     this.calculateBounds();
   }
 
