@@ -30,6 +30,7 @@ import me.roundaround.custompaintings.roundalib.client.gui.widget.FlowListWidget
 import me.roundaround.custompaintings.roundalib.client.gui.widget.ParentElementEntryListWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.LabelWidget;
 import me.roundaround.custompaintings.util.CustomId;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -80,6 +81,26 @@ public class ZeroScreen extends Screen {
             Text.translatable("custompaintings.editor.zero.open.button"),
             this::openPack)
             .width(ButtonWidget.DEFAULT_WIDTH_SMALL).build()));
+
+    if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
+      list.addEntry(ZeroList.ButtonEntry.factory(
+          this.textRenderer,
+          Text.of("Open Famous Paintings from assets"),
+          ButtonWidget.builder(
+              Text.translatable("custompaintings.editor.zero.open.button"),
+              (button) -> {
+                Path path = FabricLoader.getInstance()
+                    .getGameDir()
+                    .getParent()
+                    .resolve("assets/FamousPaintings-1.0.0.zip");
+                PackData packData = this.getPackData(path);
+                if (packData == null) {
+                  return;
+                }
+                this.navigateToEditor(packData);
+              })
+              .width(ButtonWidget.DEFAULT_WIDTH_SMALL).build()));
+    }
 
     this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, this::done)
         .width(ButtonWidget.field_49479)

@@ -128,6 +128,8 @@ public class PaintingsTab extends PackEditorTab {
                 bounds.getWidth(),
                 bounds.getHeight(),
                 imageWidth,
+                imageHeight,
+                imageWidth,
                 imageHeight);
           }
         }, (parent, self) -> {
