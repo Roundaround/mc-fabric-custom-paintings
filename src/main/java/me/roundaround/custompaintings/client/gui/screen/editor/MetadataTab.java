@@ -7,7 +7,7 @@ import net.minecraft.text.Text;
 
 public class MetadataTab extends PackEditorTab {
   public MetadataTab(@NotNull MinecraftClient client, @NotNull State state) {
-    super(client, state, Text.translatable("custompaintings.editor.editor.tab.metadata.title"));
+    super(client, state, Text.translatable("custompaintings.editor.editor.metadata.title"));
 
     MetadataList list = this.layout.add(new MetadataList(
         this.client,

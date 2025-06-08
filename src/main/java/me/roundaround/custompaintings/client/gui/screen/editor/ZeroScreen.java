@@ -204,15 +204,12 @@ public class ZeroScreen extends Screen {
         CustomId id = new CustomId(meta.pack().id(), painting.id());
         Image image = images.remove(id);
 
-        int pixelWidth = image == null ? 16 : image.width();
-        int pixelHeight = image == null ? 16 : image.height();
-
         paintings.add(new PackData.Painting(
             painting.id(),
             painting.name(),
             painting.artist(),
-            pixelWidth,
-            pixelHeight,
+            painting.width(),
+            painting.height(),
             image));
       }
 

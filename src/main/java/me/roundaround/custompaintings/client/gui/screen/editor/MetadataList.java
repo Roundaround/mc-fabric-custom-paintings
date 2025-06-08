@@ -66,7 +66,7 @@ public class MetadataList extends ParentElementEntryListWidget<MetadataList.Entr
         int maxLength) {
       super(textRenderer, index, x, y, width, HEIGHT);
 
-      Text label = Text.translatable("custompaintings.editor.editor.tab.metadata." + id);
+      Text label = Text.translatable("custompaintings.editor.editor.metadata." + id);
 
       LinearLayoutWidget layout = LinearLayoutWidget.horizontal()
           .spacing(GuiUtil.PADDING)
