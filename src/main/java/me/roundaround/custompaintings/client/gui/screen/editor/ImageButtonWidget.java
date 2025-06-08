@@ -111,7 +111,7 @@ public class ImageButtonWidget extends ButtonWidget {
         this.imageBounds.top() - 1,
         this.imageBounds.right() + 1,
         this.imageBounds.bottom() + 1,
-        this.hovered ? Colors.WHITE : Colors.BLACK);
+        this.hovered || this.isFocused() ? Colors.WHITE : Colors.BLACK);
     context.drawTexture(
         RenderLayer::getGuiTextured,
         State.getImageTextureId(this.image),
