@@ -185,7 +185,6 @@ public class ZeroScreen extends Screen {
 
         int pixelWidth = image == null ? 16 : image.width();
         int pixelHeight = image == null ? 16 : image.height();
-        String hash = image == null ? "" : image.getHash();
 
         paintings.add(new PackData.Painting(
             painting.id(),
@@ -193,8 +192,7 @@ public class ZeroScreen extends Screen {
             painting.artist(),
             pixelWidth,
             pixelHeight,
-            hash,
-            image));
+            new PackData.HashedImage(image)));
       }
 
       for (Map.Entry<CustomId, Image> entry : images.entrySet()) {
@@ -203,7 +201,6 @@ public class ZeroScreen extends Screen {
 
         int pixelWidth = image.width();
         int pixelHeight = image.height();
-        String hash = image.getHash();
 
         paintings.add(new PackData.Painting(
             id.resource(),
@@ -211,19 +208,14 @@ public class ZeroScreen extends Screen {
             "",
             pixelWidth,
             pixelHeight,
-            hash,
-            image));
+            new PackData.HashedImage(image)));
       }
-
-      Image icon = meta.icon();
-      String iconHash = icon == null ? "" : icon.getHash();
 
       return new PackData(
           meta.pack().id(),
           meta.pack().name(),
           meta.pack().description(),
-          iconHash,
-          icon,
+          meta.icon(),
           paintings);
     } catch (Exception e) {
       CustomPaintingsMod.LOGGER.warn("Failed to read metadata for {}", path, e);

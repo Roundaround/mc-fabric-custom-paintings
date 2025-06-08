@@ -14,6 +14,7 @@ import com.google.common.io.ByteSource;
 
 import io.netty.buffer.ByteBuf;
 import me.roundaround.custompaintings.CustomPaintingsMod;
+import net.minecraft.client.texture.NativeImage;
 import net.minecraft.network.codec.PacketCodec;
 
 public record Image(Color[] pixels, int width, int height) {
@@ -75,6 +76,16 @@ public record Image(Color[] pixels, int width, int height) {
       }
     }
     return bufferedImage;
+  }
+
+  public NativeImage toNativeImage() {
+    NativeImage nativeImage = new NativeImage(this.width(), this.height(), false);
+    for (int x = 0; x < this.width(); x++) {
+      for (int y = 0; y < this.height(); y++) {
+        nativeImage.setColorArgb(x, y, this.getARGB(x, y));
+      }
+    }
+    return nativeImage;
   }
 
   public byte[] getBytes() {

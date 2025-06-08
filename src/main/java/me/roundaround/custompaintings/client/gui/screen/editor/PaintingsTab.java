@@ -6,13 +6,16 @@ import org.jetbrains.annotations.NotNull;
 
 import me.roundaround.custompaintings.roundalib.client.gui.layout.linear.LinearLayoutWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
+import me.roundaround.custompaintings.roundalib.client.gui.util.IntRect;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.FlowListWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.ParentElementEntryListWidget;
+import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.DrawableWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.LabelWidget;
 import me.roundaround.custompaintings.roundalib.util.Observable;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.render.RenderLayer;
 import net.minecraft.text.Text;
 
 public class PaintingsTab extends PackEditorTab {
@@ -91,6 +94,45 @@ public class PaintingsTab extends PackEditorTab {
             .hideBackground()
             .showShadow()
             .build());
+
+        layout.add(new DrawableWidget() {
+          @Override
+          public void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+            PackData.HashedImage hashed = Entry.this.painting.image();
+
+            int width = this.getWidth();
+            int height = this.getHeight();
+            int x = this.getX();
+            int y = this.getY();
+
+            int imageWidth = hashed.image == null ? 32 : hashed.image.width();
+            int imageHeight = hashed.image == null ? 32 : hashed.image.height();
+
+            float scale = Math.min((float) width / imageWidth, (float) height / imageHeight);
+            int scaledWidth = Math.round(scale * imageWidth);
+            int scaledHeight = Math.round(scale * imageHeight);
+
+            IntRect bounds = IntRect.byDimensions(
+                x + (width - scaledWidth) / 2,
+                y + (height - scaledHeight) / 2,
+                scaledWidth,
+                scaledHeight);
+
+            context.drawTexture(
+                RenderLayer::getGuiTextured,
+                State.getImageTextureId(hashed),
+                bounds.left(),
+                bounds.top(),
+                0,
+                0,
+                bounds.getWidth(),
+                bounds.getHeight(),
+                imageWidth,
+                imageHeight);
+          }
+        }, (parent, self) -> {
+          self.setDimensions(this.getContentHeight(), this.getContentHeight());
+        });
 
         this.addLayout(layout, (self) -> {
           self.setPositionAndDimensions(

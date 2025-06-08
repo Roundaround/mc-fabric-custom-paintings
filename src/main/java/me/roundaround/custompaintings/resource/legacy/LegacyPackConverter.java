@@ -332,19 +332,9 @@ public class LegacyPackConverter {
     if (image == null || image.isEmpty()) {
       return LoadingSprite.generate(id, 16, 16);
     }
-    NativeImage nativeImage = getNativeImage(image);
+    NativeImage nativeImage = image.toNativeImage();
     return new SpriteContents(id, new SpriteDimensions(image.width(), image.height()), nativeImage,
         ResourceMetadata.NONE);
-  }
-
-  private static NativeImage getNativeImage(Image image) {
-    NativeImage nativeImage = new NativeImage(image.width(), image.height(), false);
-    for (int x = 0; x < image.width(); x++) {
-      for (int y = 0; y < image.height(); y++) {
-        nativeImage.setColorArgb(x, y, image.getARGB(x, y));
-      }
-    }
-    return nativeImage;
   }
 
   private static void writeCustomPaintingsJson(ZipOutputStream zos, PackResource pack) throws IOException {
