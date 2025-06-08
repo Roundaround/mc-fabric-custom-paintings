@@ -14,7 +14,6 @@ import java.util.function.Consumer;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
-import me.roundaround.custompaintings.resource.HashResult;
 import me.roundaround.custompaintings.resource.PackIcons;
 import me.roundaround.custompaintings.resource.ResourceUtil;
 import me.roundaround.custompaintings.resource.file.FileUid;
@@ -114,9 +113,9 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
   }
 
   public void setImages(HashMap<CustomId, Image> images) {
-    HashResult hashResult = ResourceUtil.hashImages(images);
-    this.images.setAll(images, hashResult.imageHashes());
-    this.combinedImageHash = hashResult.combinedImageHash();
+    this.images.clear();
+    this.images.putAll(images);
+    this.combinedImageHash = ResourceUtil.hashImages(images);
   }
 
   public void sendSummaryToAll() {
@@ -131,8 +130,8 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
   public void checkPlayerHashes(ServerPlayerEntity player, Map<CustomId, String> hashes) {
     HashMap<CustomId, Image> images = new HashMap<>();
-    this.images.forEach((id, image, hash) -> {
-      if (hash.equals(hashes.get(id))) {
+    this.images.forEach((id, image) -> {
+      if (image.hash().equals(hashes.get(id))) {
         return;
       }
       images.put(id, image);

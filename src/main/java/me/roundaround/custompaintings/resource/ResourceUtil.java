@@ -8,7 +8,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -190,17 +189,8 @@ public class ResourceUtil {
     }
   }
 
-  public static HashResult hashImages(Map<CustomId, Image> images) {
-    HashMap<CustomId, String> imageHashes = new HashMap<>();
-    LinkedHashMap<CustomId, ByteSource> byteSources = getByteSources(images);
-
-    for (var entry : byteSources.entrySet()) {
-      imageHashes.put(entry.getKey(), hashOrEmpty(entry.getValue()));
-    }
-
-    String combinedImageHash = calculateCombinedHash(byteSources);
-
-    return new HashResult(combinedImageHash, imageHashes);
+  public static String hashImages(Map<CustomId, Image> images) {
+    return hashOrEmpty(ByteSource.concat(getByteSources(images).values()));
   }
 
   private static LinkedHashMap<CustomId, ByteSource> getByteSources(Map<CustomId, Image> images) {
@@ -210,9 +200,5 @@ public class ResourceUtil {
       byteSources.putIfAbsent(id, images.get(id).getByteSource());
     }
     return byteSources;
-  }
-
-  private static String calculateCombinedHash(LinkedHashMap<CustomId, ByteSource> byteSources) {
-    return hashOrEmpty(ByteSource.concat(byteSources.values()));
   }
 }

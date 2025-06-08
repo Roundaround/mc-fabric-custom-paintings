@@ -1,5 +1,22 @@
 package me.roundaround.custompaintings.client.registry;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.gui.screen.PacksLoadedListener;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
@@ -13,8 +30,8 @@ import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
-import me.roundaround.custompaintings.registry.ImageStore;
-import me.roundaround.custompaintings.resource.*;
+import me.roundaround.custompaintings.resource.PackIcons;
+import me.roundaround.custompaintings.resource.ResourceUtil;
 import me.roundaround.custompaintings.resource.file.FileUid;
 import me.roundaround.custompaintings.resource.file.Image;
 import me.roundaround.custompaintings.resource.file.Metadata;
@@ -23,7 +40,13 @@ import me.roundaround.custompaintings.roundalib.event.MinecraftClientEvents;
 import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.custompaintings.util.StringUtil;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.texture.*;
+import net.minecraft.client.texture.MissingSprite;
+import net.minecraft.client.texture.NativeImage;
+import net.minecraft.client.texture.Sprite;
+import net.minecraft.client.texture.SpriteAtlasTexture;
+import net.minecraft.client.texture.SpriteContents;
+import net.minecraft.client.texture.SpriteDimensions;
+import net.minecraft.client.texture.SpriteLoader;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.registry.DynamicRegistryManager;
@@ -31,14 +54,6 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.resource.metadata.ResourceMetadata;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
-
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 public class ClientPaintingRegistry extends CustomPaintingRegistry {
   private static final Identifier PAINTING_BACK_ID = Identifier.ofVanilla("back");
@@ -50,7 +65,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   private final MinecraftClient client;
   private final SpriteAtlasTexture atlas;
   private final HashSet<CustomId> spriteIds = new HashSet<>();
-  private final ImageStore cachedImages = new ImageStore();
+  private final HashMap<CustomId, Image> cachedImages = new HashMap<>();
   private final HashSet<CustomId> neededImages = new HashSet<>();
   private final HashMap<CustomId, ImageChunkBuilder> imageBuilders = new HashMap<>();
   private final LinkedHashMap<CustomId, CompletableFuture<PaintingData>> pendingDataRequests = new LinkedHashMap<>();
@@ -130,9 +145,12 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     try {
       return this.atlas.getSprite(MissingSprite.getMissingSpriteId());
     } catch (IllegalStateException e) {
-      // In single player we will (usually) initialize the atlas before the first render. In multiplayer and potentially
-      // in single player on slower PCs however, first render could come before we receive the summary packet and
-      // initialize the atlas. In those cases, atlas.getSprite throws an exception. If it does, simply build the sprite
+      // In single player we will (usually) initialize the atlas before the first
+      // render. In multiplayer and potentially
+      // in single player on slower PCs however, first render could come before we
+      // receive the summary packet and
+      // initialize the atlas. In those cases, atlas.getSprite throws an exception. If
+      // it does, simply build the sprite
       // atlas and try again.
       if (!this.atlasInitialized) {
         this.buildSpriteAtlas();
@@ -193,8 +211,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
       List<PackData> packs,
       UUID serverId,
       String combinedImageHash,
-      Map<CustomId, Boolean> finishedMigrations
-  ) {
+      Map<CustomId, Boolean> finishedMigrations) {
     boolean initialLoad = this.packsMap.isEmpty();
     if (initialLoad) {
       this.checkAndPromptForLegacyPacks();
@@ -238,12 +255,11 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
           if (!legacyPacks.isEmpty()) {
             CustomSystemToasts.addLegacyPacksFound(this.client, legacyPacks.size());
           }
-        }, this.client
-    );
+        }, this.client);
   }
 
   private void initCacheAndSpriteAtlas(boolean initialLoad, UUID serverId, String serverCombinedImageHash) {
-    if (this.isHashCorrectAndAllImagesPresent(serverCombinedImageHash, this.images::contains)) {
+    if (this.isHashCorrectAndAllImagesPresent(serverCombinedImageHash, this.images::containsKey)) {
       CustomPaintingsMod.LOGGER.info("All image info still valid, skipping re-fetching images");
       this.buildSpriteAtlas();
       return;
@@ -289,12 +305,17 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
       ClientNetworking.sendHashesPacket(Map.of());
     } else if (this.isHashCorrectAndAllImagesPresent(cacheRead.combinedHash(), cacheRead.images()::containsKey)) {
       CustomPaintingsMod.LOGGER.info("All images successfully pulled from cache; skipping server image download");
-      this.images.setAll(cacheRead.images(), cacheRead.hashes());
+      this.images.clear();
+      this.images.putAll(cacheRead.images());
     } else {
       CustomPaintingsMod.LOGGER.info("Requesting images from server");
       this.cacheDirty = true;
-      this.cachedImages.putAll(cacheRead.images(), cacheRead.hashes());
-      ClientNetworking.sendHashesPacket(this.cachedImages.getHashes());
+      this.cachedImages.putAll(cacheRead.images());
+      ClientNetworking.sendHashesPacket(this.cachedImages.entrySet()
+          .stream()
+          .collect(Collectors.toMap(
+              Map.Entry::getKey,
+              (entry) -> entry.getValue().hash())));
     }
 
     this.buildSpriteAtlas();
@@ -408,8 +429,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.cacheNewImages();
     CustomPaintingsMod.LOGGER.info(
         "Painting images downloaded and sprite atlas refreshed in {}s",
-        StringUtil.formatDuration(Util.getMeasuringTimeMs() - this.waitingForImagesTimer)
-    );
+        StringUtil.formatDuration(Util.getMeasuringTimeMs() - this.waitingForImagesTimer));
 
     this.imagesExpected = 0;
     this.bytesExpected = 0;
@@ -418,7 +438,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   }
 
   private void buildSpriteAtlas() {
-    this.images.removeIf((id) -> !this.isValidImageId(id));
+    this.images.keySet().removeIf((id) -> !this.isValidImageId(id));
 
     List<SpriteContents> sprites = new ArrayList<>();
     sprites.add(MissingSprite.createSpriteContents());
@@ -427,8 +447,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     sprites.add(BasicTextureSprite.fetch(
         this.client,
         PackIcons.MINECRAFT_HIDDEN_ICON_ID.toIdentifier(),
-        EARTH_TEXTURE_ID
-    ));
+        EARTH_TEXTURE_ID));
     this.paintings.values().forEach((painting) -> this.getSpriteContents(painting).ifPresent(sprites::add));
     this.packsMap.keySet().forEach((packId) -> this.getSpriteContents(packId).ifPresent(sprites::add));
 
@@ -453,11 +472,11 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
         this.cachedImages.remove(id);
         return;
       }
-      ImageStore.StoredImage cachedImage = this.cachedImages.get(id);
+      Image cachedImage = this.cachedImages.get(id);
       if (cachedImage == null) {
         return;
       }
-      this.images.put(id, cachedImage.image(), cachedImage.hash());
+      this.images.put(id, cachedImage);
     });
   }
 
@@ -466,7 +485,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
       return;
     }
 
-    final ImageStore images = this.images.copy();
+    final HashMap<CustomId, Image> images = new HashMap<>(this.images);
     final String combinedImageHash = this.combinedImageHash;
     CompletableFuture.supplyAsync(
         () -> {
@@ -478,34 +497,31 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
             CustomPaintingsMod.LOGGER.warn("Failed to write images and metadata to cache.");
             return false;
           }
-        }, Util.getIoWorkerExecutor()
-    ).thenAcceptAsync(
-        (succeeded) -> {
-          if (succeeded) {
-            this.cacheDirty = false;
-          }
-        }, this.client
-    );
+        }, Util.getIoWorkerExecutor()).thenAcceptAsync(
+            (succeeded) -> {
+              if (succeeded) {
+                this.cacheDirty = false;
+              }
+            }, this.client);
   }
 
   @SuppressWarnings("BooleanMethodIsAlwaysInverted")
   private boolean isValidImageId(CustomId id) {
     return this.paintings.containsKey(id) ||
-           (id.pack().equals(PackIcons.ICON_NAMESPACE) && this.packsMap.containsKey(id.resource()));
+        (id.pack().equals(PackIcons.ICON_NAMESPACE) && this.packsMap.containsKey(id.resource()));
   }
 
   private Optional<SpriteContents> getSpriteContents(PaintingData painting) {
     return this.getSpriteContents(
         painting.id(),
-        this.images.getImage(painting.id()),
+        this.images.get(painting.id()),
         painting.getScaledWidth(),
-        painting.getScaledHeight()
-    );
+        painting.getScaledHeight());
   }
 
   private Optional<SpriteContents> getSpriteContents(String packId) {
     CustomId id = PackIcons.customId(packId);
-    return this.getSpriteContents(id, this.images.getImage(id), 16, 16);
+    return this.getSpriteContents(id, this.images.get(id), 16, 16);
   }
 
   private Optional<SpriteContents> getSpriteContents(CustomId id, Image image, int width, int height) {
@@ -520,8 +536,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
         id.toIdentifier(),
         new SpriteDimensions(image.width(), image.height()),
         nativeImage,
-        ResourceMetadata.NONE
-    ));
+        ResourceMetadata.NONE));
   }
 
   @SuppressWarnings("BooleanMethodIsAlwaysInverted")

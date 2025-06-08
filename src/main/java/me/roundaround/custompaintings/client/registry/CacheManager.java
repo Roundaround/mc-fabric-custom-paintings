@@ -1,10 +1,37 @@
 package me.roundaround.custompaintings.client.registry;
 
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import javax.imageio.ImageIO;
+
+import org.jetbrains.annotations.NotNull;
+
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
-import me.roundaround.custompaintings.registry.ImageStore;
 import me.roundaround.custompaintings.resource.file.Image;
 import me.roundaround.custompaintings.util.CustomId;
 import net.fabricmc.loader.api.FabricLoader;
@@ -14,19 +41,6 @@ import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.NbtSizeTracker;
 import net.minecraft.util.Util;
 import net.minecraft.util.Uuids;
-import org.jetbrains.annotations.NotNull;
-
-import javax.imageio.ImageIO;
-import java.io.IOException;
-import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 public class CacheManager {
   private static CacheManager instance = null;
@@ -60,8 +74,7 @@ public class CacheManager {
           } catch (Exception ignored) {
             // TODO: Handle exception
           }
-        }, Util.getIoWorkerExecutor()
-    );
+        }, Util.getIoWorkerExecutor());
   }
 
   public CacheRead loadFromFile(UUID serverId, HashSet<CustomId> requestedImageIds) {
@@ -118,14 +131,15 @@ public class CacheManager {
 
     String combinedHash = server.combinedHash();
 
-    // Note to self: run in this thread and block to avoid any potential of multiple threads accessing the file at the
+    // Note to self: run in this thread and block to avoid any potential of multiple
+    // threads accessing the file at the
     // same time (i.e. saveToFile or trimExpired).
     touchCache(data, serverId, combinedHash, Map.copyOf(requestedHashes));
 
     return new CacheRead(images, requestedHashes, combinedHash);
   }
 
-  public void saveToFile(ImageStore images, String combinedHash) throws IOException {
+  public void saveToFile(HashMap<CustomId, Image> images, String combinedHash) throws IOException {
     if (this.serverId == null) {
       return;
     }
@@ -140,18 +154,18 @@ public class CacheManager {
     Path dataFile = getDataFile(cacheDir);
     HashMap<String, PackCacheData> packs = new HashMap<>();
 
-    images.forEach((id, image, hash) -> {
+    images.forEach((id, image) -> {
       try {
         String packId = id.pack();
         PackCacheData pack = packs.computeIfAbsent(packId, (k) -> PackCacheData.empty(packId));
 
-        if (hash == null) {
+        if (image.hash() == null || image.hash().isEmpty()) {
           CustomPaintingsMod.LOGGER.warn("Failed to save image to cache: {}", id);
           return;
         }
 
-        ImageIO.write(image.toBufferedImage(), "png", cacheDir.resolve(hash + ".png").toFile());
-        pack.images().add(new ImageCacheData(id.resource(), hash, now));
+        ImageIO.write(image.toBufferedImage(), "png", cacheDir.resolve(image.hash() + ".png").toFile());
+        pack.images().add(new ImageCacheData(id.resource(), image.hash(), now));
       } catch (IOException e) {
         CustomPaintingsMod.LOGGER.warn(e);
         CustomPaintingsMod.LOGGER.warn("Failed to save image to cache: {}", id);
@@ -174,8 +188,8 @@ public class CacheManager {
     data.byServer()
         .put(this.serverId, new ServerCacheData(this.serverId, combinedHash, new ArrayList<>(packs.values()), now));
 
-    images.getHashes().forEach((id, hash) -> {
-      ArrayList<HashCacheData> hashData = data.byHash().computeIfAbsent(hash, (k) -> new ArrayList<>());
+    images.forEach((id, image) -> {
+      ArrayList<HashCacheData> hashData = data.byHash().computeIfAbsent(image.hash(), (k) -> new ArrayList<>());
       hashData.removeIf((datum) -> datum.serverId().equals(this.serverId));
       hashData.add(new HashCacheData(this.serverId, now));
     });
@@ -203,8 +217,7 @@ public class CacheManager {
                 Files.delete(dir);
                 return FileVisitResult.CONTINUE;
               }
-            }
-        );
+            });
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
@@ -250,8 +263,7 @@ public class CacheManager {
               // Handle the error if a file cannot be accessed (optional)
               return FileVisitResult.CONTINUE;
             }
-          }
-      );
+          });
     } catch (IOException e) {
       CustomPaintingsMod.LOGGER.warn("Exception raised while reading cache stats:", e);
       throw new RuntimeException(e);
@@ -297,16 +309,14 @@ public class CacheManager {
       CacheData data,
       UUID serverId,
       String combinedHash,
-      Map<CustomId, String> touchedImages
-  ) {
+      Map<CustomId, String> touchedImages) {
     final long now = Util.getEpochTimeMs();
 
     ServerCacheData server = getAndIfPresentOrCompute(
         data.byServer(),
         serverId,
         (existing) -> existing.setLastAccess(now),
-        () -> new ServerCacheData(serverId, combinedHash, new ArrayList<>(), now)
-    );
+        () -> new ServerCacheData(serverId, combinedHash, new ArrayList<>(), now));
 
     HashMap<String, HashMap<CustomId, String>> imagesByPack = new HashMap<>();
     touchedImages.forEach((id, hash) -> {
@@ -318,16 +328,14 @@ public class CacheManager {
       PackCacheData pack = findOrCompute(
           server.packs(),
           (p) -> Objects.equals(p.packId(), packId),
-          () -> new PackCacheData(packId, new ArrayList<>())
-      );
+          () -> new PackCacheData(packId, new ArrayList<>()));
 
       packImages.forEach((id, hash) -> {
         ifPresentOrCompute(
             pack.images(),
             (i) -> i.id(pack.packId()).equals(id),
             (image) -> image.setLastAccess(now),
-            () -> new ImageCacheData(id.resource(), hash, now)
-        );
+            () -> new ImageCacheData(id.resource(), hash, now));
       });
     });
 
@@ -337,8 +345,7 @@ public class CacheManager {
             usages,
             (usage) -> usage.serverId().equals(serverId),
             (usage) -> usage.setLastAccess(now),
-            () -> new HashCacheData(serverId, now)
-        );
+            () -> new HashCacheData(serverId, now));
       });
     });
 
@@ -452,14 +459,13 @@ public class CacheManager {
       Collection<T> collection,
       Predicate<T> predicate,
       Consumer<T> ifPresent,
-      Supplier<T> compute
-  ) {
+      Supplier<T> compute) {
     collection.stream().filter(predicate).findAny().ifPresentOrElse(ifPresent, () -> collection.add(compute.get()));
   }
 
   private record CacheData(int version,
-                           HashMap<UUID, ServerCacheData> byServer,
-                           HashMap<String, ArrayList<HashCacheData>> byHash) {
+      HashMap<UUID, ServerCacheData> byServer,
+      HashMap<String, ArrayList<HashCacheData>> byHash) {
     public static final String NBT_VERSION = "Version";
     public static final String NBT_BY_SERVER = "ByServer";
     public static final String NBT_BY_HASH = "ByHash";
@@ -472,8 +478,8 @@ public class CacheManager {
         Codec.unboundedMap(Codec.STRING, Codec.list(HashCacheData.CODEC).xmap(ArrayList::new, Function.identity()))
             .xmap(HashMap::new, Function.identity())
             .fieldOf(NBT_BY_HASH)
-            .forGetter(CacheData::byHash)
-    ).apply(instance, CacheData::new));
+            .forGetter(CacheData::byHash))
+        .apply(instance, CacheData::new));
 
     public static CacheData fromNbt(NbtCompound nbt) {
       return CODEC.parse(NbtOps.INSTANCE, nbt).getPartialOrThrow();
@@ -490,8 +496,7 @@ public class CacheManager {
     public static final Codec<HashCacheData> CODEC = RecordCodecBuilder.create((instance) -> instance.group(
         Uuids.INT_STREAM_CODEC.fieldOf(
             NBT_ID).forGetter(HashCacheData::serverId),
-        Codec.LONG.fieldOf(NBT_LAST_ACCESS).forGetter(HashCacheData::lastAccess)
-    ).apply(instance, HashCacheData::new));
+        Codec.LONG.fieldOf(NBT_LAST_ACCESS).forGetter(HashCacheData::lastAccess)).apply(instance, HashCacheData::new));
 
     private final UUID serverId;
     private long lastAccess;
@@ -543,8 +548,8 @@ public class CacheManager {
             .xmap(ArrayList::new, Function.identity())
             .fieldOf(NBT_PACKS)
             .forGetter(ServerCacheData::packs),
-        Codec.LONG.fieldOf(NBT_LAST_ACCESS).forGetter(ServerCacheData::lastAccess)
-    ).apply(instance, ServerCacheData::new));
+        Codec.LONG.fieldOf(NBT_LAST_ACCESS).forGetter(ServerCacheData::lastAccess))
+        .apply(instance, ServerCacheData::new));
 
     private final UUID serverId;
     private final String combinedHash;
@@ -589,7 +594,7 @@ public class CacheManager {
       }
       var that = (ServerCacheData) obj;
       return Objects.equals(this.serverId, that.serverId) && Objects.equals(this.combinedHash, that.combinedHash) &&
-             Objects.equals(this.packs, that.packs) && this.lastAccess == that.lastAccess;
+          Objects.equals(this.packs, that.packs) && this.lastAccess == that.lastAccess;
     }
 
     @Override
@@ -607,8 +612,8 @@ public class CacheManager {
         Codec.list(ImageCacheData.CODEC)
             .xmap(ArrayList::new, Function.identity())
             .fieldOf(NBT_IMAGES)
-            .forGetter(PackCacheData::images)
-    ).apply(instance, PackCacheData::new));
+            .forGetter(PackCacheData::images))
+        .apply(instance, PackCacheData::new));
 
     public static PackCacheData empty(String packId) {
       return new PackCacheData(packId, new ArrayList<>());
@@ -622,8 +627,8 @@ public class CacheManager {
     public static final Codec<ImageCacheData> CODEC = RecordCodecBuilder.create((instance) -> instance.group(
         Codec.STRING.fieldOf(NBT_ID).forGetter(ImageCacheData::id),
         Codec.STRING.fieldOf(NBT_HASH).forGetter(ImageCacheData::hash),
-        Codec.LONG.fieldOf(NBT_LAST_ACCESS).forGetter(ImageCacheData::lastAccess)
-    ).apply(instance, ImageCacheData::new));
+        Codec.LONG.fieldOf(NBT_LAST_ACCESS).forGetter(ImageCacheData::lastAccess))
+        .apply(instance, ImageCacheData::new));
 
     private final String id;
     private final String hash;
@@ -666,7 +671,7 @@ public class CacheManager {
       }
       var that = (ImageCacheData) obj;
       return Objects.equals(this.id, that.id) && Objects.equals(this.hash, that.hash) &&
-             this.lastAccess == that.lastAccess;
+          this.lastAccess == that.lastAccess;
     }
 
     @Override

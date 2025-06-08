@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.jetbrains.annotations.NotNull;
 
+import me.roundaround.custompaintings.resource.file.Image;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.linear.LinearLayoutWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
 import me.roundaround.custompaintings.roundalib.client.gui.util.IntRect;
@@ -98,15 +99,15 @@ public class PaintingsTab extends PackEditorTab {
         layout.add(new DrawableWidget() {
           @Override
           public void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
-            PackData.HashedImage hashed = Entry.this.painting.image();
+            Image image = Entry.this.painting.image();
 
             int width = this.getWidth();
             int height = this.getHeight();
             int x = this.getX();
             int y = this.getY();
 
-            int imageWidth = hashed.image == null ? 32 : hashed.image.width();
-            int imageHeight = hashed.image == null ? 32 : hashed.image.height();
+            int imageWidth = image == null ? 32 : image.width();
+            int imageHeight = image == null ? 32 : image.height();
 
             float scale = Math.min((float) width / imageWidth, (float) height / imageHeight);
             int scaledWidth = Math.round(scale * imageWidth);
@@ -120,7 +121,7 @@ public class PaintingsTab extends PackEditorTab {
 
             context.drawTexture(
                 RenderLayer::getGuiTextured,
-                State.getImageTextureId(hashed),
+                State.getImageTextureId(image),
                 bounds.left(),
                 bounds.top(),
                 0,

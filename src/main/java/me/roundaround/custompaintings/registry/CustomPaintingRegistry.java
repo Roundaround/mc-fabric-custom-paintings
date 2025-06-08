@@ -1,8 +1,15 @@
 package me.roundaround.custompaintings.registry;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import me.roundaround.custompaintings.entity.decoration.painting.MigrationData;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.resource.file.Image;
 import me.roundaround.custompaintings.util.CustomId;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.registry.DynamicRegistryManager;
@@ -11,14 +18,12 @@ import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.registry.tag.PaintingVariantTags;
 import net.minecraft.util.Identifier;
 
-import java.util.*;
-
 public abstract class CustomPaintingRegistry {
   protected final LinkedHashMap<String, PackData> packsMap = new LinkedHashMap<>();
   protected final ArrayList<PackData> packsList = new ArrayList<>();
   protected final HashMap<CustomId, PaintingData> paintings = new HashMap<>();
   protected final HashMap<CustomId, MigrationData> migrations = new HashMap<>();
-  protected final ImageStore images = new ImageStore();
+  protected final HashMap<CustomId, Image> images = new HashMap<>();
 
   protected String combinedImageHash = "";
 

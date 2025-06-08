@@ -14,7 +14,7 @@ public record PackData(
     String id,
     String name,
     String description,
-    HashedImage icon,
+    Image icon,
     @NotNull List<Painting> paintings) {
   public PackData() {
     this(UUID.randomUUID(), "", "", "", null, List.of());
@@ -35,7 +35,7 @@ public record PackData(
         id,
         name,
         description,
-        new HashedImage(icon),
+        icon,
         paintings == null ? List.of() : paintings);
   }
 
@@ -60,53 +60,13 @@ public record PackData(
     return Objects.hash(this.id, this.name, this.description, this.icon, this.paintings);
   }
 
-  public static class HashedImage {
-    public final Image image;
-    public final String hash;
-
-    public HashedImage(Image image) {
-      this.image = image;
-      this.hash = image == null ? "" : image.getHash();
-    }
-
-    public boolean equals(HashedImage other) {
-      if (!this.hash.equals(other.hash)) {
-        return false;
-      }
-
-      if (this.image == null && other.image == null) {
-        return true;
-      }
-
-      if (this.image == null || other.image == null) {
-        return false;
-      }
-
-      return this.image.width() == other.image.width()
-          && this.image.height() == other.image.height();
-    }
-
-    @Override
-    public boolean equals(Object other) {
-      if (this == other) {
-        return true;
-      }
-      return other instanceof HashedImage && this.equals((HashedImage) other);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(this.image, this.hash);
-    }
-  }
-
   public record Painting(
       String id,
       String name,
       String artist,
       int blockWidth,
       int blockHeight,
-      HashedImage image) {
+      Image image) {
     public Painting() {
       this("", "", "", 16, 16, null);
     }

@@ -5,6 +5,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.function.Function;
 
 import javax.imageio.ImageIO;
@@ -17,12 +18,12 @@ import me.roundaround.custompaintings.CustomPaintingsMod;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.network.codec.PacketCodec;
 
-public record Image(Color[] pixels, int width, int height) {
+public record Image(Color[] pixels, int width, int height, String hash) {
   public static final PacketCodec<ByteBuf, Image> PACKET_CODEC = PacketCodec.of(
       Image::writeToByteBuf, Image::fromByteBuf);
 
   public static Image empty() {
-    return new Image(new Color[0], 0, 0);
+    return new Image(new Color[0], 0, 0, "");
   }
 
   public static Image fromBytes(byte[] bytes, int width, int height) {
@@ -35,7 +36,7 @@ public record Image(Color[] pixels, int width, int height) {
       int ref = i * 4;
       pixels[i] = new Color(bytes[ref], bytes[ref + 1], bytes[ref + 2], bytes[ref + 3]);
     }
-    return new Image(pixels, width, height);
+    return new Image(pixels, width, height, getHash(bytes));
   }
 
   public static Image read(BufferedImage image) {
@@ -52,7 +53,7 @@ public record Image(Color[] pixels, int width, int height) {
       }
     }
 
-    return new Image(pixels, width, height);
+    return new Image(pixels, width, height, getHash(pixels));
   }
 
   public static Image read(InputStream stream) throws IOException {
@@ -66,6 +67,22 @@ public record Image(Color[] pixels, int width, int height) {
 
   public static Image read(byte[] bytes) throws IOException {
     return read(new ByteArrayInputStream(bytes));
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (!(obj instanceof Image image)) {
+      return false;
+    }
+    return this.hash.equals(image.hash) && this.width == image.width && this.height == image.height;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(this.hash, this.width, this.height);
   }
 
   public BufferedImage toBufferedImage() {
@@ -89,14 +106,7 @@ public record Image(Color[] pixels, int width, int height) {
   }
 
   public byte[] getBytes() {
-    byte[] bytes = new byte[this.getSize()];
-    for (int i = 0; i < this.pixels.length; i++) {
-      bytes[i * 4] = this.pixels[i].r;
-      bytes[i * 4 + 1] = this.pixels[i].g;
-      bytes[i * 4 + 2] = this.pixels[i].b;
-      bytes[i * 4 + 3] = this.pixels[i].a;
-    }
-    return bytes;
+    return getBytes(this.pixels);
   }
 
   public int getSize() {
@@ -105,15 +115,6 @@ public record Image(Color[] pixels, int width, int height) {
 
   public ByteSource getByteSource() {
     return ByteSource.wrap(this.getBytes());
-  }
-
-  public String getHash() {
-    try {
-      return this.getByteSource().hash(Hashing.sha256()).toString();
-    } catch (IOException e) {
-      CustomPaintingsMod.LOGGER.warn("Exception raised while generating hash.", e);
-      return "";
-    }
   }
 
   public boolean isEmpty() {
@@ -143,6 +144,30 @@ public record Image(Color[] pixels, int width, int height) {
 
   private static int getIndex(int height, int x, int y) {
     return (x * height + y);
+  }
+
+  private static byte[] getBytes(Color[] pixels) {
+    byte[] bytes = new byte[pixels.length * 4];
+    for (int i = 0; i < pixels.length; i++) {
+      bytes[i * 4] = pixels[i].r;
+      bytes[i * 4 + 1] = pixels[i].g;
+      bytes[i * 4 + 2] = pixels[i].b;
+      bytes[i * 4 + 3] = pixels[i].a;
+    }
+    return bytes;
+  }
+
+  private static String getHash(byte[] bytes) {
+    try {
+      return ByteSource.wrap(bytes).hash(Hashing.sha256()).toString();
+    } catch (IOException e) {
+      CustomPaintingsMod.LOGGER.warn("Exception raised while generating hash.", e);
+      return "";
+    }
+  }
+
+  private static String getHash(Color[] pixels) {
+    return getHash(getBytes(pixels));
   }
 
   public void writeToByteBuf(ByteBuf buf) {

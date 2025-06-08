@@ -10,9 +10,9 @@ import java.util.UUID;
 
 import org.jetbrains.annotations.NotNull;
 
-import me.roundaround.custompaintings.client.gui.screen.editor.PackData.HashedImage;
 import me.roundaround.custompaintings.client.gui.screen.editor.PackData.Painting;
 import me.roundaround.custompaintings.generated.Constants;
+import me.roundaround.custompaintings.resource.file.Image;
 import me.roundaround.custompaintings.roundalib.util.Observable;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.texture.MissingSprite;
@@ -32,7 +32,7 @@ public class State implements AutoCloseable {
       Observable.of(""));
   public final Observable<String> description = this.addObservable(
       Observable.of(""));
-  public final Observable<HashedImage> icon = this.addObservable(
+  public final Observable<Image> icon = this.addObservable(
       Observable.of(null));
   public final Observable<List<Painting>> paintings = this.addObservable(
       Observable.of(List.of()));
@@ -45,7 +45,7 @@ public class State implements AutoCloseable {
   public final Observable<Boolean> dirty;
 
   private final Observable<PackData> lastSaved;
-  private final Observable<List<HashedImage>> images;
+  private final Observable<List<Image>> images;
   private final HashMap<Identifier, NativeImage> nativeImages = new HashMap<>();
 
   public State(@NotNull PackData pack) {
@@ -92,7 +92,7 @@ public class State implements AutoCloseable {
     this.images = this.addObservable(
         Observable.computed(this.icon, this.paintings,
             (icon, paintings) -> {
-              List<HashedImage> images = new ArrayList<>();
+              List<Image> images = new ArrayList<>();
               if (icon != null) {
                 images.add(icon);
               }
@@ -104,20 +104,20 @@ public class State implements AutoCloseable {
       TextureManager manager = MinecraftClient.getInstance().getTextureManager();
 
       HashSet<Identifier> keys = new HashSet<>();
-      images.forEach((hashed) -> {
-        if (hashed.image == null || hashed.image.isEmpty()) {
+      images.forEach((image) -> {
+        if (image == null || image.isEmpty()) {
           return;
         }
 
-        Identifier key = getImageTextureId(hashed);
+        Identifier key = getImageTextureId(image);
         keys.add(key);
         if (this.nativeImages.containsKey(key)) {
           return;
         }
 
-        NativeImage image = hashed.image.toNativeImage();
-        this.nativeImages.put(key, image);
-        manager.registerTexture(key, new NativeImageBackedTexture(() -> hashed.hash, image));
+        NativeImage nativeImage = image.toNativeImage();
+        this.nativeImages.put(key, nativeImage);
+        manager.registerTexture(key, new NativeImageBackedTexture(() -> image.hash(), nativeImage));
       });
 
       Set.copyOf(this.nativeImages.entrySet()).forEach((entry) -> {
@@ -153,11 +153,11 @@ public class State implements AutoCloseable {
     return observable;
   }
 
-  public static Identifier getImageTextureId(HashedImage hashed) {
-    if (hashed.image == null || hashed.image.isEmpty()) {
+  public static Identifier getImageTextureId(Image image) {
+    if (image == null || image.isEmpty()) {
       return MissingSprite.getMissingSpriteId();
     }
-    String path = hashed.image.width() + "_" + hashed.image.height() + "_" + hashed.hash;
+    String path = image.width() + "_" + image.height() + "_" + image.hash();
     return Identifier.of(Constants.MOD_ID, path);
   }
 }

@@ -213,7 +213,7 @@ public class ZeroScreen extends Screen {
             painting.artist(),
             pixelWidth,
             pixelHeight,
-            new PackData.HashedImage(image)));
+            image));
       }
 
       for (Map.Entry<CustomId, Image> entry : images.entrySet()) {
@@ -229,7 +229,7 @@ public class ZeroScreen extends Screen {
             "",
             pixelWidth,
             pixelHeight,
-            new PackData.HashedImage(image)));
+            image));
       }
 
       return new PackData(
