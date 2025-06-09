@@ -17,6 +17,7 @@ import me.roundaround.custompaintings.roundalib.client.gui.icon.BuiltinIcon;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.linear.LinearLayoutWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.util.Axis;
 import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
+import me.roundaround.custompaintings.roundalib.client.gui.widget.EmptyWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.FlowListWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.IconButtonWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.ParentElementEntryListWidget;
@@ -301,21 +302,17 @@ public class PaintingsTab extends PackEditorTab {
             .defaultOffAxisContentAlignCenter()
             .mainAxisContentAlignCenter();
 
-        this.imageButton = new ImageButtonWidget(
-            Text.translatable("custompaintings.editor.editor.paintings.image"),
-            (button) -> this.imageCallback.accept(this.paintingIndex),
-            (image) -> State.getImageTextureId(image),
-            this.painting.image());
-        this.indexLabel = LabelWidget.builder(this.textRenderer, Text.of(String.format("%d", this.index + 1)))
-            .hideBackground()
-            .showShadow()
-            .build();
+        this.imageButton = this.layout.add(
+            new ImageButtonWidget(
+                Text.translatable("custompaintings.editor.editor.paintings.image"),
+                (button) -> this.imageCallback.accept(this.paintingIndex),
+                (image) -> State.getImageTextureId(image),
+                this.painting.image()),
+            (parent, self) -> {
+              self.setDimensions(this.getContentHeight(), this.getContentHeight());
+            });
 
-        this.layout.add(IconButtonWidget.builder(BuiltinIcon.SLIDERS_18, Constants.MOD_ID)
-            .vanillaSize()
-            .messageAndTooltip(Text.translatable("custompaintings.editor.editor.paintings.edit"))
-            .onPress((button) -> this.editCallback.accept(this.paintingIndex))
-            .build());
+        this.layout.add(new EmptyWidget());
 
         LinearLayoutWidget textSection = LinearLayoutWidget.vertical()
             .spacing(1)
@@ -332,30 +329,36 @@ public class PaintingsTab extends PackEditorTab {
           self.setWidth(parent.getUnusedSpace(self));
         });
 
-        this.layout.add(this.imageButton, (parent, self) -> {
-          self.setDimensions(this.getContentHeight(), this.getContentHeight());
-        });
+        this.layout.add(IconButtonWidget.builder(BuiltinIcon.SLIDERS_18, Constants.MOD_ID)
+            .vanillaSize()
+            .messageAndTooltip(Text.translatable("custompaintings.editor.editor.paintings.edit"))
+            .onPress((button) -> this.editCallback.accept(this.paintingIndex))
+            .build());
+
+        this.layout.add(new EmptyWidget());
+
+        this.indexLabel = this.layout
+            .add(LabelWidget.builder(this.textRenderer, Text.of(String.format("%d", this.index + 1)))
+                .hideBackground()
+                .showShadow()
+                .alignTextRight()
+                .build());
 
         LinearLayoutWidget moveControls = LinearLayoutWidget.vertical()
             .spacing(GuiUtil.PADDING / 2);
-
         this.moveUpButton = moveControls.add(IconButtonWidget.builder(BuiltinIcon.UP_9, Constants.MOD_ID)
             .small()
             .messageAndTooltip(Text.translatable("custompaintings.editor.editor.paintings.up"))
             .onPress((button) -> this.moveUpCallback.accept(this.paintingIndex))
             .build());
         this.moveUpButton.active = this.paintingIndex > 0;
-
         this.moveDownButton = moveControls.add(IconButtonWidget.builder(BuiltinIcon.DOWN_9, Constants.MOD_ID)
             .small()
             .messageAndTooltip(Text.translatable("custompaintings.editor.editor.paintings.down"))
             .onPress((button) -> this.moveDownCallback.accept(this.paintingIndex))
             .build());
         this.moveDownButton.active = this.paintingIndex < totalCount - 1;
-
         this.layout.add(moveControls);
-
-        this.layout.add(this.indexLabel);
 
         this.addLayout(this.layout, (self) -> {
           self.setPositionAndDimensions(
