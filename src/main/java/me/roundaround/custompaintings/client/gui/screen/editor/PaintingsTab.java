@@ -23,10 +23,8 @@ import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.Label
 import me.roundaround.custompaintings.roundalib.util.Observable;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.render.RenderLayer;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
 
@@ -67,8 +65,7 @@ public class PaintingsTab extends PackEditorTab {
         LinearLayoutWidget
             .horizontal()
             .spacing(GuiUtil.PADDING)
-            .defaultOffAxisContentAlignCenter()
-            .padding(GuiUtil.PADDING, GuiUtil.PADDING, 0, GuiUtil.PADDING),
+            .defaultOffAxisContentAlignCenter(),
         (parent, self) -> {
           self.setDimensions(listColumn.getWidth(), BUTTON_HEIGHT + GuiUtil.PADDING);
         });
@@ -187,21 +184,6 @@ public class PaintingsTab extends PackEditorTab {
               totalCount);
         }
       });
-    }
-
-    @Override
-    protected void renderListBorders(DrawContext context) {
-      context.drawTexture(
-          RenderLayer::getGuiTextured,
-          Textures.borderTop(this.client),
-          this.getX(),
-          this.getY() - 2,
-          0,
-          0,
-          this.getWidth(),
-          2,
-          32,
-          2);
     }
 
     @Override
