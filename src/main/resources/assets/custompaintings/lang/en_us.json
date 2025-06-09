@@ -154,6 +154,7 @@
   "custompaintings.editor.editor.paintings.blocks": "Blocks:",
   "custompaintings.editor.editor.paintings.blocks.value": "%dW x %dH",
   "custompaintings.editor.editor.paintings.edit": "Edit",
+  "custompaintings.editor.editor.paintings.image": "View/edit image",
   "custompaintings.editor.editor.paintings.up": "Move up",
   "custompaintings.editor.editor.paintings.down": "Move down",
   "custompaintings.editor.editor.migrations.title": "Migrations",

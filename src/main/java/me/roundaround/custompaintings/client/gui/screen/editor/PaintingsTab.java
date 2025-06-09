@@ -302,6 +302,7 @@ public class PaintingsTab extends PackEditorTab {
             .mainAxisContentAlignCenter();
 
         this.imageButton = new ImageButtonWidget(
+            Text.translatable("custompaintings.editor.editor.paintings.image"),
             (button) -> this.imageCallback.accept(this.paintingIndex),
             (image) -> State.getImageTextureId(image),
             this.painting.image());

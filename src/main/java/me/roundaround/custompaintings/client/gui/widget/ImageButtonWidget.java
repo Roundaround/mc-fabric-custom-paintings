@@ -1,13 +1,15 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
+import java.util.Objects;
 import java.util.function.Function;
 
 import me.roundaround.custompaintings.resource.file.Image;
 import me.roundaround.custompaintings.roundalib.client.gui.util.IntRect;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.render.RenderLayer;
-import net.minecraft.screen.ScreenTexts;
+import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
 import net.minecraft.util.Identifier;
 
@@ -20,18 +22,23 @@ public class ImageButtonWidget extends ButtonWidget {
   protected boolean inBatchUpdate = false;
 
   public ImageButtonWidget(
+      Text message,
       ButtonWidget.PressAction pressAction,
       Function<Image, Identifier> getTextureId,
       Image image) {
-    this(pressAction, getTextureId, image, true);
+    this(message, pressAction, getTextureId, image, true);
   }
 
   public ImageButtonWidget(
+      Text message,
       ButtonWidget.PressAction pressAction,
       Function<Image, Identifier> getTextureId,
       Image image,
       boolean immediatelyCalculateBounds) {
-    super(0, 0, 0, 0, ScreenTexts.EMPTY, pressAction, DEFAULT_NARRATION_SUPPLIER);
+    super(0, 0, 0, 0, message, pressAction, DEFAULT_NARRATION_SUPPLIER);
+    if (message != null && !Objects.equals(message, Text.empty())) {
+      this.setTooltip(Tooltip.of(message));
+    }
     this.getTextureId = getTextureId;
     this.image = image;
     this.imageWidth = image == null ? 32 : image.width();
