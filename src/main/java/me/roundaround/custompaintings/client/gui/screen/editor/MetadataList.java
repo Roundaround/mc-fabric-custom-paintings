@@ -13,18 +13,24 @@ import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.Label
 import me.roundaround.custompaintings.roundalib.util.Observable;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
 
 public class MetadataList extends ParentElementEntryListWidget<MetadataList.Entry> {
-  public MetadataList(MinecraftClient client, LinearLayoutWidget layout) {
-    super(client, layout.getX(), layout.getY(), layout.getWidth(), layout.getHeight());
-    this.setContentPadding(2 * GuiUtil.PADDING);
+  public MetadataList(MinecraftClient client, int width, int height) {
+    super(client, 0, 0, width, height);
+    this.setContentPadding(GuiUtil.PADDING);
   }
 
   @Override
-  protected int getPreferredContentWidth() {
-    return VANILLA_LIST_WIDTH_L;
+  protected void renderListBackground(DrawContext context) {
+    // Disable background
+  }
+
+  @Override
+  protected void renderListBorders(DrawContext context) {
+    // Disable borders
   }
 
   static class Entry extends ParentElementEntryListWidget.Entry {
@@ -67,7 +73,7 @@ public class MetadataList extends ParentElementEntryListWidget<MetadataList.Entr
           .hideBackground()
           .showShadow()
           .build(), (parent, self) -> {
-            self.setDimensions(this.getLabelWidth(parent), this.getContentHeight());
+            self.setDimensions(parent.getUnusedSpace(self), this.getContentHeight());
           });
 
       this.field = layout.add(
@@ -120,13 +126,6 @@ public class MetadataList extends ParentElementEntryListWidget<MetadataList.Entr
 
     public TextFieldWidget getField() {
       return this.field;
-    }
-
-    private int getLabelWidth(LinearLayoutWidget layout) {
-      return layout.getWidth()
-          - 2 * layout.getSpacing()
-          - this.getControlWidth(layout)
-          - IconButtonWidget.SIZE_V;
     }
 
     private int getControlWidth(LinearLayoutWidget layout) {

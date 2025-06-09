@@ -40,7 +40,8 @@ public class PaintingsTab extends PackEditorTab {
     super(client, state, Text.translatable("custompaintings.editor.editor.paintings.title"));
 
     this.layout.flowAxis(Axis.HORIZONTAL)
-        .spacing(GuiUtil.PADDING);
+        .spacing(GuiUtil.PADDING)
+        .padding(GuiUtil.PADDING);
 
     LinearLayoutWidget sidePanel = LinearLayoutWidget.vertical()
         .spacing(GuiUtil.PADDING);
@@ -54,7 +55,7 @@ public class PaintingsTab extends PackEditorTab {
     });
 
     this.layout.add(sidePanel, (parent, self) -> {
-      self.setDimensions(this.getPanelWidth(layout), parent.getHeight());
+      self.setDimensions(this.getPanelWidth(layout), parent.getInnerHeight());
     });
 
     LinearLayoutWidget listColumn = LinearLayoutWidget.vertical()
@@ -89,24 +90,24 @@ public class PaintingsTab extends PackEditorTab {
 
     this.paintingList = listColumn.add(new PaintingList(
         this.client,
-        listColumn.getWidth(),
-        listColumn.getHeight(),
+        listColumn.getInnerWidth(),
+        listColumn.getInnerHeight(),
         this.state.paintings),
         (parent, self) -> {
-          self.setDimensions(parent.getWidth(), parent.getUnusedSpace(self));
+          self.setDimensions(parent.getInnerWidth(), parent.getUnusedSpace(self));
         });
 
     this.layout.add(listColumn, (parent, self) -> {
       self.setDimensions(
-          parent.getWidth() - parent.getSpacing() - sidePanel.getWidth(),
-          parent.getHeight());
+          parent.getUnusedSpace(self),
+          parent.getInnerHeight());
     });
 
     this.layout.refreshPositions();
   }
 
   private int getPanelWidth(LinearLayoutWidget layout) {
-    return Math.max(PANEL_MIN_WIDTH, Math.round(layout.getWidth() * 0.3f));
+    return Math.max(PANEL_MIN_WIDTH, Math.round(layout.getInnerWidth() * 0.3f));
   }
 
   private void onSearchBoxChanged(String text) {
@@ -135,6 +136,7 @@ public class PaintingsTab extends PackEditorTab {
         Observable<List<PackData.Painting>> observable) {
       super(client, 0, 0, width, height);
       this.setContentPadding(GuiUtil.PADDING);
+      this.setRowSpacing(GuiUtil.PADDING / 2);
 
       this.paintings = observable;
 
@@ -184,11 +186,6 @@ public class PaintingsTab extends PackEditorTab {
               totalCount);
         }
       });
-    }
-
-    @Override
-    protected int getPreferredContentWidth() {
-      return VANILLA_LIST_WIDTH_L;
     }
 
     public void setSearch(String search) {

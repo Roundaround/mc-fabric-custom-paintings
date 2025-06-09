@@ -46,10 +46,10 @@ public abstract class PackEditorTab implements Tab {
   @Override
   public void refreshGrid(ScreenRect tabArea) {
     this.layout.setPositionAndDimensions(
-        tabArea.getLeft() + GuiUtil.PADDING,
-        tabArea.getTop() + GuiUtil.PADDING,
-        tabArea.width() - 2 * GuiUtil.PADDING,
-        tabArea.height() - 2 * GuiUtil.PADDING);
+        tabArea.getLeft(),
+        tabArea.getTop(),
+        tabArea.width(),
+        tabArea.height());
     this.layout.refreshPositions();
   }
 
