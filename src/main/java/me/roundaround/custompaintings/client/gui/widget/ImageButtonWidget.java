@@ -1,4 +1,6 @@
-package me.roundaround.custompaintings.client.gui.screen.editor;
+package me.roundaround.custompaintings.client.gui.widget;
+
+import java.util.function.Function;
 
 import me.roundaround.custompaintings.resource.file.Image;
 import me.roundaround.custompaintings.roundalib.client.gui.util.IntRect;
@@ -7,20 +9,30 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.util.Colors;
+import net.minecraft.util.Identifier;
 
 public class ImageButtonWidget extends ButtonWidget {
+  protected final Function<Image, Identifier> getTextureId;
   protected Image image;
   protected int imageWidth;
   protected int imageHeight;
   protected IntRect imageBounds = IntRect.zero();
   protected boolean inBatchUpdate = false;
 
-  public ImageButtonWidget(ButtonWidget.PressAction pressAction, Image image) {
-    this(pressAction, image, true);
+  public ImageButtonWidget(
+      ButtonWidget.PressAction pressAction,
+      Function<Image, Identifier> getTextureId,
+      Image image) {
+    this(pressAction, getTextureId, image, true);
   }
 
-  public ImageButtonWidget(ButtonWidget.PressAction pressAction, Image image, boolean immediatelyCalculateBounds) {
+  public ImageButtonWidget(
+      ButtonWidget.PressAction pressAction,
+      Function<Image, Identifier> getTextureId,
+      Image image,
+      boolean immediatelyCalculateBounds) {
     super(0, 0, 0, 0, ScreenTexts.EMPTY, pressAction, DEFAULT_NARRATION_SUPPLIER);
+    this.getTextureId = getTextureId;
     this.image = image;
     this.imageWidth = image == null ? 32 : image.width();
     this.imageHeight = image == null ? 32 : image.height();
@@ -116,7 +128,7 @@ public class ImageButtonWidget extends ButtonWidget {
         this.hovered || this.isFocused() ? Colors.WHITE : Colors.BLACK);
     context.drawTexture(
         RenderLayer::getGuiTextured,
-        State.getImageTextureId(this.image),
+        this.getTextureId.apply(this.image),
         this.imageBounds.left(),
         this.imageBounds.top(),
         0,

@@ -11,6 +11,7 @@ import java.util.stream.Stream;
 import org.jetbrains.annotations.NotNull;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.client.gui.widget.ImageButtonWidget;
 import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.roundalib.client.gui.icon.BuiltinIcon;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.linear.LinearLayoutWidget;
@@ -302,6 +303,7 @@ public class PaintingsTab extends PackEditorTab {
 
         this.imageButton = new ImageButtonWidget(
             (button) -> this.imageCallback.accept(this.paintingIndex),
+            (image) -> State.getImageTextureId(image),
             this.painting.image());
         this.indexLabel = LabelWidget.builder(this.textRenderer, Text.of(String.format("%d", this.index + 1)))
             .hideBackground()
