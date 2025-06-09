@@ -148,6 +148,50 @@ public class State implements AutoCloseable {
     return this.lastSaved.get();
   }
 
+  public void setImage(int paintingIndex, Image image) {
+    List<PackData.Painting> paintings = this.paintings.get();
+    if (paintingIndex < 0 || paintingIndex >= paintings.size()) {
+      return;
+    }
+
+    paintings.set(paintingIndex, paintings.get(paintingIndex).withImage(image));
+    this.paintings.set(paintings);
+  }
+
+  public void movePaintingUp(int paintingIndex) {
+    List<PackData.Painting> srcPaintings = this.paintings.get();
+    if (paintingIndex <= 0 || paintingIndex >= srcPaintings.size()) {
+      return;
+    }
+
+    List<PackData.Painting> paintings = new ArrayList<>(srcPaintings);
+
+    PackData.Painting painting = paintings.get(paintingIndex);
+    PackData.Painting previousPainting = paintings.get(paintingIndex - 1);
+
+    paintings.set(paintingIndex, previousPainting);
+    paintings.set(paintingIndex - 1, painting);
+
+    this.paintings.set(paintings);
+  }
+
+  public void movePaintingDown(int paintingIndex) {
+    List<PackData.Painting> srcPaintings = this.paintings.get();
+    if (paintingIndex < 0 || paintingIndex >= srcPaintings.size() - 1) {
+      return;
+    }
+
+    List<PackData.Painting> paintings = new ArrayList<>(srcPaintings);
+
+    PackData.Painting painting = paintings.get(paintingIndex);
+    PackData.Painting nextPainting = paintings.get(paintingIndex + 1);
+
+    paintings.set(paintingIndex, nextPainting);
+    paintings.set(paintingIndex + 1, painting);
+
+    this.paintings.set(paintings);
+  }
+
   private <T> Observable<T> addObservable(Observable<T> observable) {
     this.observables.add(observable);
     return observable;

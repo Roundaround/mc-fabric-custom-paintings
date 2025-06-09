@@ -22,8 +22,14 @@ import net.minecraft.text.Text;
 public class MetadataTab extends PackEditorTab {
   private final int MIN_WIDTH = 240;
 
-  public MetadataTab(@NotNull MinecraftClient client, @NotNull State state) {
-    super(client, state, Text.translatable("custompaintings.editor.editor.metadata.title"));
+  public MetadataTab(
+      @NotNull MinecraftClient client,
+      @NotNull State state,
+      @NotNull EditorScreen screen) {
+    super(client,
+        state,
+        screen,
+        Text.translatable("custompaintings.editor.editor.metadata.title"));
 
     MetadataList list = this.layout.add(new MetadataList(
         this.client,

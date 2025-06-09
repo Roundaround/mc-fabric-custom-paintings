@@ -80,6 +80,16 @@ public record PackData(
           && Objects.equals(this.image, other.image);
     }
 
+    public Painting withImage(Image image) {
+      return new Painting(
+          this.id,
+          this.name,
+          this.artist,
+          this.blockWidth,
+          this.blockHeight,
+          image);
+    }
+
     @Override
     public boolean equals(Object other) {
       if (this == other) {

@@ -18,6 +18,7 @@ public abstract class PackEditorTab implements Tab {
 
   protected final @NotNull MinecraftClient client;
   protected final @NotNull State state;
+  protected final @NotNull EditorScreen screen;
   protected final @NotNull Text title;
   protected final LinearLayoutWidget layout = new LinearLayoutWidget(Axis.VERTICAL)
       .mainAxisContentAlignStart()
@@ -27,9 +28,11 @@ public abstract class PackEditorTab implements Tab {
   protected PackEditorTab(
       @NotNull MinecraftClient client,
       @NotNull State state,
+      @NotNull EditorScreen screen,
       @NotNull Text title) {
     this.client = client;
     this.state = state;
+    this.screen = screen;
     this.title = title;
   }
 

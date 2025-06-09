@@ -39,6 +39,10 @@ public record Image(Color[] pixels, int width, int height, String hash) {
     return new Image(pixels, width, height, getHash(bytes));
   }
 
+  public static Image fromPixels(Color[] pixels, int width, int height) {
+    return new Image(pixels, width, height, getHash(pixels));
+  }
+
   public static Image read(BufferedImage image) {
     int width = image.getWidth();
     int height = image.getHeight();
@@ -199,6 +203,10 @@ public record Image(Color[] pixels, int width, int height, String hash) {
 
     public int getABGR() {
       return getAsInt(this.a, this.b, this.g, this.r);
+    }
+
+    public Color invert() {
+      return new Color(255 - this.r, 255 - this.g, 255 - this.b, this.a);
     }
 
     private static int getAsInt(byte first, byte second, byte third, byte fourth) {

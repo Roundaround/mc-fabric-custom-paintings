@@ -38,8 +38,15 @@ public class PaintingsTab extends PackEditorTab {
   private final TextFieldWidget searchBox;
   private final PaintingList paintingList;
 
-  public PaintingsTab(@NotNull MinecraftClient client, @NotNull State state) {
-    super(client, state, Text.translatable("custompaintings.editor.editor.paintings.title"));
+  public PaintingsTab(
+      @NotNull MinecraftClient client,
+      @NotNull State state,
+      @NotNull EditorScreen screen) {
+    super(
+        client,
+        state,
+        screen,
+        Text.translatable("custompaintings.editor.editor.paintings.title"));
 
     this.layout.flowAxis(Axis.HORIZONTAL)
         .spacing(GuiUtil.PADDING)
@@ -94,7 +101,11 @@ public class PaintingsTab extends PackEditorTab {
         this.client,
         listColumn.getInnerWidth(),
         listColumn.getInnerHeight(),
-        this.state.paintings),
+        this.state.paintings,
+        this::editInfo,
+        this::editImage,
+        this.state::movePaintingUp,
+        this.state::movePaintingDown),
         (parent, self) -> {
           self.setDimensions(parent.getInnerWidth(), parent.getUnusedSpace(self));
         });
@@ -120,6 +131,14 @@ public class PaintingsTab extends PackEditorTab {
     this.searchBox.setText("");
   }
 
+  private void editInfo(int paintingIndex) {
+    CustomPaintingsMod.LOGGER.info("Editing info for painting {}", paintingIndex);
+  }
+
+  private void editImage(int paintingIndex) {
+    CustomPaintingsMod.LOGGER.info("Editing image for painting {}", paintingIndex);
+  }
+
   record FilteredState(
       String search,
       int totalCount,
@@ -135,7 +154,11 @@ public class PaintingsTab extends PackEditorTab {
         MinecraftClient client,
         int width,
         int height,
-        Observable<List<PackData.Painting>> observable) {
+        Observable<List<PackData.Painting>> observable,
+        Consumer<Integer> editCallback,
+        Consumer<Integer> imageCallback,
+        Consumer<Integer> moveUpCallback,
+        Consumer<Integer> moveDownCallback) {
       super(client, 0, 0, width, height);
       this.setContentPadding(GuiUtil.PADDING);
       this.setRowSpacing(GuiUtil.PADDING / 2);
@@ -160,10 +183,10 @@ public class PaintingsTab extends PackEditorTab {
           for (int i = this.getEntryCount(); i < filteredCount; i++) {
             this.addEntry(Entry.factory(
                 this.client.textRenderer,
-                this::image,
-                this::edit,
-                this::moveUp,
-                this::moveDown,
+                imageCallback,
+                editCallback,
+                moveUpCallback,
+                moveDownCallback,
                 filtered.get(i),
                 indexMap.get(i),
                 totalCount));
@@ -207,48 +230,6 @@ public class PaintingsTab extends PackEditorTab {
 
     private String sanitize(String text) {
       return text.toLowerCase().replace(" ", "");
-    }
-
-    private void image(int paintingIndex) {
-      CustomPaintingsMod.LOGGER.info("Editing image {}", paintingIndex);
-    }
-
-    private void edit(int paintingIndex) {
-      CustomPaintingsMod.LOGGER.info("Editing painting {}", paintingIndex);
-    }
-
-    private void moveUp(int paintingIndex) {
-      List<PackData.Painting> srcPaintings = this.paintings.get();
-      if (paintingIndex <= 0 || paintingIndex >= srcPaintings.size()) {
-        return;
-      }
-
-      List<PackData.Painting> paintings = new ArrayList<>(srcPaintings);
-
-      PackData.Painting painting = paintings.get(paintingIndex);
-      PackData.Painting previousPainting = paintings.get(paintingIndex - 1);
-
-      paintings.set(paintingIndex, previousPainting);
-      paintings.set(paintingIndex - 1, painting);
-
-      this.paintings.set(paintings);
-    }
-
-    private void moveDown(int paintingIndex) {
-      List<PackData.Painting> srcPaintings = this.paintings.get();
-      if (paintingIndex < 0 || paintingIndex >= srcPaintings.size() - 1) {
-        return;
-      }
-
-      List<PackData.Painting> paintings = new ArrayList<>(srcPaintings);
-
-      PackData.Painting painting = paintings.get(paintingIndex);
-      PackData.Painting nextPainting = paintings.get(paintingIndex + 1);
-
-      paintings.set(paintingIndex, nextPainting);
-      paintings.set(paintingIndex + 1, painting);
-
-      this.paintings.set(paintings);
     }
 
     static class Entry extends ParentElementEntryListWidget.Entry {

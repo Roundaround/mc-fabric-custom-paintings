@@ -34,17 +34,24 @@ public class EditorScreen extends BaseScreen {
       @NotNull ScreenParent parent,
       @NotNull MinecraftClient client,
       @NotNull PackData pack) {
+    this(parent, client, new State(pack));
+  }
+
+  private EditorScreen(
+      @NotNull ScreenParent parent,
+      @NotNull MinecraftClient client,
+      @NotNull State state) {
     super(Text.translatable("custompaintings.editor.editor.title"), parent, client);
-    this.state = new State(pack);
+    this.state = state;
   }
 
   @Override
   protected void init() {
     this.tabNavigation = TabNavigationWidget.builder(this.tabManager, this.width)
         .tabs(
-            new MetadataTab(this.client, this.state),
-            new PaintingsTab(this.client, this.state),
-            new MigrationsTab(this.client, this.state))
+            new MetadataTab(this.client, this.state, this),
+            new PaintingsTab(this.client, this.state, this),
+            new MigrationsTab(this.client, this.state, this))
         .build();
     this.addDrawableChild(this.tabNavigation);
 

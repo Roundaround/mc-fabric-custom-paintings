@@ -7,8 +7,14 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
 
 public class MigrationsTab extends PackEditorTab {
-  public MigrationsTab(@NotNull MinecraftClient client, @NotNull State state) {
-    super(client, state, Text.translatable("custompaintings.editor.editor.migrations.title"));
+  public MigrationsTab(
+      @NotNull MinecraftClient client,
+      @NotNull State state,
+      @NotNull EditorScreen screen) {
+    super(client,
+        state,
+        screen,
+        Text.translatable("custompaintings.editor.editor.migrations.title"));
 
     this.layout.add(
         LabelWidget.builder(this.client.textRenderer, Text.of("Migrations"))
