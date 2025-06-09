@@ -2,10 +2,10 @@ package me.roundaround.custompaintings.client.gui.screen.editor;
 
 import org.jetbrains.annotations.NotNull;
 
-import me.roundaround.custompaintings.client.gui.screen.Parent;
-import me.roundaround.custompaintings.client.gui.screen.Screen;
 import me.roundaround.custompaintings.client.gui.widget.VersionStamp;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
+import me.roundaround.custompaintings.roundalib.client.gui.screen.BaseScreen;
+import me.roundaround.custompaintings.roundalib.client.gui.screen.ScreenParent;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.ScreenRect;
@@ -18,7 +18,7 @@ import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
-public class EditorScreen extends Screen {
+public class EditorScreen extends BaseScreen {
   private static final Identifier TAB_HEADER_BACKGROUND_TEXTURE = Identifier
       .ofVanilla("textures/gui/tab_header_background.png");
 
@@ -31,7 +31,7 @@ public class EditorScreen extends Screen {
   private State state;
 
   public EditorScreen(
-      @NotNull Parent parent,
+      @NotNull ScreenParent parent,
       @NotNull MinecraftClient client,
       @NotNull PackData pack) {
     super(Text.translatable("custompaintings.editor.editor.title"), parent, client);
@@ -87,7 +87,7 @@ public class EditorScreen extends Screen {
   public void render(DrawContext context, int mouseX, int mouseY, float deltaTicks) {
     super.render(context, mouseX, mouseY, deltaTicks);
     context.drawTexture(
-        RenderLayer::getGuiTextured, Screen.FOOTER_SEPARATOR_TEXTURE, 0,
+        RenderLayer::getGuiTextured, FOOTER_SEPARATOR_TEXTURE, 0,
         this.height - this.layout.getFooterHeight(), 0, 0, this.width, 2, 32, 2);
   }
 

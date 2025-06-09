@@ -5,10 +5,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import me.roundaround.custompaintings.client.gui.screen.Parent;
 import me.roundaround.custompaintings.client.gui.screen.editor.ZeroScreen;
 import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.roundalib.client.gui.icon.BuiltinIcon;
+import me.roundaround.custompaintings.roundalib.client.gui.screen.ScreenParent;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.IconButtonWidget;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.screen.Screen;
@@ -28,7 +28,7 @@ public abstract class TitleScreenMixin extends Screen {
         .vanillaSize()
         .messageAndTooltip(Text.of("Pack Editor"))
         .onPress((button) -> {
-          this.client.setScreen(new ZeroScreen(new Parent(this), this.client));
+          this.client.setScreen(new ZeroScreen(new ScreenParent(this), this.client));
         })
         .build());
   }

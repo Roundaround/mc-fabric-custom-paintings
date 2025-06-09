@@ -16,8 +16,6 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import org.jetbrains.annotations.NotNull;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import me.roundaround.custompaintings.client.gui.screen.Parent;
-import me.roundaround.custompaintings.client.gui.screen.Screen;
 import me.roundaround.custompaintings.client.gui.widget.VersionStamp;
 import me.roundaround.custompaintings.resource.file.Image;
 import me.roundaround.custompaintings.resource.file.Metadata;
@@ -25,6 +23,8 @@ import me.roundaround.custompaintings.resource.file.PackReader;
 import me.roundaround.custompaintings.resource.file.Painting;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.linear.LinearLayoutWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
+import me.roundaround.custompaintings.roundalib.client.gui.screen.BaseScreen;
+import me.roundaround.custompaintings.roundalib.client.gui.screen.ScreenParent;
 import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.FlowListWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.ParentElementEntryListWidget;
@@ -37,12 +37,12 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 
-public class ZeroScreen extends Screen {
+public class ZeroScreen extends BaseScreen {
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
   private final AtomicReference<JFileChooser> fileChooser = new AtomicReference<>(null);
 
   public ZeroScreen(
-      @NotNull Parent parent,
+      @NotNull ScreenParent parent,
       @NotNull MinecraftClient client) {
     super(Text.translatable("custompaintings.editor.zero.title"), parent, client);
   }
@@ -140,7 +140,7 @@ public class ZeroScreen extends Screen {
   }
 
   private void navigateToEditor(PackData packData) {
-    this.client.setScreen(new EditorScreen(new Parent(this), this.client, packData));
+    this.client.setScreen(new EditorScreen(new ScreenParent(this), this.client, packData));
   }
 
   private void newPack(ButtonWidget button) {

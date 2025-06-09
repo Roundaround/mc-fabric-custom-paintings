@@ -8,15 +8,18 @@ import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
+import me.roundaround.custompaintings.roundalib.client.gui.screen.BaseScreen;
 import me.roundaround.custompaintings.roundalib.client.gui.screen.ConfigScreen;
+import me.roundaround.custompaintings.roundalib.client.gui.screen.ScreenParent;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Util;
 
-public class MainMenuScreen extends Screen implements PacksLoadedListener {
+public class MainMenuScreen extends BaseScreen implements PacksLoadedListener {
   private static final int BUTTON_HEIGHT = ButtonWidget.DEFAULT_HEIGHT;
   private static final int BUTTON_WIDTH = ButtonWidget.field_49479;
 
@@ -24,8 +27,11 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
 
   private LoadingButtonWidget reloadButton;
 
-  public MainMenuScreen(net.minecraft.client.gui.screen.Screen parent) {
-    super(Text.translatable("custompaintings.main.title"), new Parent(parent), MinecraftClient.getInstance());
+  public MainMenuScreen(Screen parent) {
+    super(
+        Text.translatable("custompaintings.main.title"),
+        new ScreenParent(parent),
+        MinecraftClient.getInstance());
   }
 
   @Override
@@ -121,7 +127,7 @@ public class MainMenuScreen extends Screen implements PacksLoadedListener {
   }
 
   private void navigateEditor(ButtonWidget button) {
-    this.client.setScreen(new ZeroScreen(new Parent(this), this.client));
+    this.client.setScreen(new ZeroScreen(new ScreenParent(this), this.client));
   }
 
   private void navigateCache(ButtonWidget button) {
