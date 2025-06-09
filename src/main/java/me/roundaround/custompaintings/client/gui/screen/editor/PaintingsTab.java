@@ -11,6 +11,7 @@ import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.roundalib.client.gui.icon.BuiltinIcon;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.linear.LinearLayoutWidget;
+import me.roundaround.custompaintings.roundalib.client.gui.util.Axis;
 import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.FlowListWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.IconButtonWidget;
@@ -25,23 +26,44 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
 
 public class PaintingsTab extends PackEditorTab {
+  private static final int PANEL_MIN_WIDTH = 140;
+
+  private final LabelWidget countLabel;
 
   public PaintingsTab(@NotNull MinecraftClient client, @NotNull State state) {
     super(client, state, Text.translatable("custompaintings.editor.editor.paintings.title"));
+
+    this.layout.flowAxis(Axis.HORIZONTAL)
+        .spacing(GuiUtil.PADDING);
+
+    LinearLayoutWidget sidePanel = LinearLayoutWidget.vertical()
+        .spacing(GuiUtil.PADDING);
+
+    this.countLabel = sidePanel.add(LabelWidget.builder(this.client.textRenderer, Text.of("0"))
+        .hideBackground()
+        .showShadow()
+        .build());
+    this.state.paintings.subscribe((paintings) -> {
+      this.countLabel.setText(Text.of(String.format("%d", paintings.size())));
+    });
+
+    this.layout.add(sidePanel, (parent, self) -> {
+      self.setDimensions(this.getPanelWidth(layout), parent.getHeight());
+    });
 
     this.layout.add(new PaintingList(
         this.client,
         this.layout,
         this.state.paintings),
         (parent, self) -> {
-          self.setDimensionsAndPosition(
-              parent.getWidth(),
-              parent.getHeight(),
-              parent.getX(),
-              parent.getY());
+          self.setDimensions(parent.getWidth() - this.getPanelWidth(parent) - parent.getSpacing(), parent.getHeight());
         });
 
     this.layout.refreshPositions();
+  }
+
+  private int getPanelWidth(LinearLayoutWidget layout) {
+    return Math.max(PANEL_MIN_WIDTH, Math.round(layout.getWidth() * 0.3f));
   }
 
   static class PaintingList extends ParentElementEntryListWidget<PaintingList.Entry> {
