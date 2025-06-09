@@ -1,6 +1,9 @@
 package me.roundaround.custompaintings.client.gui.screen.editor;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -33,6 +36,7 @@ public class PaintingsTab extends PackEditorTab {
 
   private final LabelWidget countLabel;
   private final TextFieldWidget searchBox;
+  private final PaintingList paintingList;
 
   public PaintingsTab(@NotNull MinecraftClient client, @NotNull State state) {
     super(client, state, Text.translatable("custompaintings.editor.editor.paintings.title"));
@@ -86,7 +90,7 @@ public class PaintingsTab extends PackEditorTab {
         .onPress(this::clearSearch)
         .build());
 
-    listColumn.add(new PaintingList(
+    this.paintingList = listColumn.add(new PaintingList(
         this.client,
         listColumn.getWidth(),
         listColumn.getHeight(),
@@ -109,15 +113,24 @@ public class PaintingsTab extends PackEditorTab {
   }
 
   private void onSearchBoxChanged(String text) {
-    // TODO: Implement search
-    CustomPaintingsMod.LOGGER.info("Searching for {}", text);
+    this.paintingList.setSearch(text);
   }
 
   private void clearSearch(ButtonWidget button) {
     this.searchBox.setText("");
   }
 
+  record FilteredState(
+      String search,
+      int totalCount,
+      List<PackData.Painting> filtered,
+      Map<Integer, Integer> indexMap) {
+  }
+
   static class PaintingList extends ParentElementEntryListWidget<PaintingList.Entry> {
+    private final Observable<List<PackData.Painting>> paintings;
+    private final Observable<String> search = Observable.of("");
+
     public PaintingList(
         MinecraftClient client,
         int width,
@@ -126,33 +139,52 @@ public class PaintingsTab extends PackEditorTab {
       super(client, 0, 0, width, height);
       this.setContentPadding(GuiUtil.PADDING);
 
-      observable.subscribe((paintings) -> {
-        int count = paintings.size();
+      this.paintings = observable;
 
-        if (count > this.getEntryCount()) {
-          for (int i = this.getEntryCount(); i < paintings.size(); i++) {
+      Observable.subscribeToAll(this.search, this.paintings, (search, paintings) -> {
+        int totalCount = paintings.size();
+        List<PackData.Painting> filtered = new ArrayList<>();
+        Map<Integer, Integer> indexMap = new HashMap<>();
+
+        for (int paintingIdx = 0; paintingIdx < paintings.size(); paintingIdx++) {
+          PackData.Painting painting = paintings.get(paintingIdx);
+          if (this.matches(search, painting)) {
+            indexMap.put(filtered.size(), paintingIdx);
+            filtered.add(painting);
+          }
+        }
+
+        int filteredCount = filtered.size();
+        if (filteredCount > this.getEntryCount()) {
+          for (int i = this.getEntryCount(); i < filteredCount; i++) {
             this.addEntry(Entry.factory(
                 this.client.textRenderer,
                 this::image,
                 this::edit,
                 this::moveUp,
                 this::moveDown,
-                paintings.get(i),
-                count));
+                filtered.get(i),
+                indexMap.get(i),
+                totalCount));
           }
         } else {
-          for (int i = this.getEntryCount(); i > count; i--) {
+          for (int i = this.getEntryCount(); i > filteredCount; i--) {
             this.removeEntry();
           }
         }
 
-        int maxCountWidth = IntStream.range(1, count)
+        // TODO: Handle filtered count == 0
+
+        int maxIndexWidth = IntStream.range(1, totalCount)
             .map((i) -> this.client.textRenderer.getWidth(Text.of(String.format("%d", i))))
             .max()
             .orElse(1);
-        for (int i = 0; i < count; i++) {
-          this.getEntry(i).setPainting(paintings.get(i));
-          this.getEntry(i).setTotalCount(count, maxCountWidth);
+        for (int i = 0; i < this.getEntryCount(); i++) {
+          this.getEntry(i).setData(
+              filtered.get(i),
+              indexMap.get(i),
+              maxIndexWidth,
+              totalCount);
         }
       });
     }
@@ -177,36 +209,65 @@ public class PaintingsTab extends PackEditorTab {
       return VANILLA_LIST_WIDTH_L;
     }
 
-    private void image(int index) {
-      CustomPaintingsMod.LOGGER.info("Editing image {}", index);
+    public void setSearch(String search) {
+      this.search.set(search);
     }
 
-    private void edit(int index) {
-      CustomPaintingsMod.LOGGER.info("Editing painting {}", index);
+    private boolean matches(String search, PackData.Painting painting) {
+      String query = this.sanitize(search);
+      if (query.isBlank()) {
+        return true;
+      }
+
+      return Stream.of(painting.id(), painting.name(), painting.artist())
+          .map(this::sanitize)
+          .anyMatch((value) -> value.contains(query));
     }
 
-    private void moveUp(int index) {
-      if (index <= 0 || index >= this.getEntryCount()) {
+    private String sanitize(String text) {
+      return text.toLowerCase().replace(" ", "");
+    }
+
+    private void image(int paintingIndex) {
+      CustomPaintingsMod.LOGGER.info("Editing image {}", paintingIndex);
+    }
+
+    private void edit(int paintingIndex) {
+      CustomPaintingsMod.LOGGER.info("Editing painting {}", paintingIndex);
+    }
+
+    private void moveUp(int paintingIndex) {
+      List<PackData.Painting> srcPaintings = this.paintings.get();
+      if (paintingIndex <= 0 || paintingIndex >= srcPaintings.size()) {
         return;
       }
 
-      PackData.Painting painting = this.getEntry(index).getPainting();
-      PackData.Painting previousPainting = this.getEntry(index - 1).getPainting();
+      List<PackData.Painting> paintings = new ArrayList<>(srcPaintings);
 
-      this.getEntry(index).setPainting(previousPainting);
-      this.getEntry(index - 1).setPainting(painting);
+      PackData.Painting painting = paintings.get(paintingIndex);
+      PackData.Painting previousPainting = paintings.get(paintingIndex - 1);
+
+      paintings.set(paintingIndex, previousPainting);
+      paintings.set(paintingIndex - 1, painting);
+
+      this.paintings.set(paintings);
     }
 
-    private void moveDown(int index) {
-      if (index < 0 || index >= this.getEntryCount() - 1) {
+    private void moveDown(int paintingIndex) {
+      List<PackData.Painting> srcPaintings = this.paintings.get();
+      if (paintingIndex < 0 || paintingIndex >= srcPaintings.size() - 1) {
         return;
       }
 
-      PackData.Painting painting = this.getEntry(index).getPainting();
-      PackData.Painting nextPainting = this.getEntry(index + 1).getPainting();
+      List<PackData.Painting> paintings = new ArrayList<>(srcPaintings);
 
-      this.getEntry(index).setPainting(nextPainting);
-      this.getEntry(index + 1).setPainting(painting);
+      PackData.Painting painting = paintings.get(paintingIndex);
+      PackData.Painting nextPainting = paintings.get(paintingIndex + 1);
+
+      paintings.set(paintingIndex, nextPainting);
+      paintings.set(paintingIndex + 1, painting);
+
+      this.paintings.set(paintings);
     }
 
     static class Entry extends ParentElementEntryListWidget.Entry {
@@ -226,10 +287,12 @@ public class PaintingsTab extends PackEditorTab {
       private final LabelWidget artistLabel;
       private final LabelWidget blocksLabel;
       private final ImageButtonWidget imageButton;
+      private final IconButtonWidget moveUpButton;
       private final IconButtonWidget moveDownButton;
       private final LabelWidget indexLabel;
 
       private PackData.Painting painting;
+      private int paintingIndex;
 
       public Entry(
           TextRenderer textRenderer,
@@ -242,6 +305,7 @@ public class PaintingsTab extends PackEditorTab {
           Consumer<Integer> moveUpCallback,
           Consumer<Integer> moveDownCallback,
           PackData.Painting painting,
+          int paintingIndex,
           int totalCount) {
         super(index, left, top, width, textRenderer.fontHeight * 4 + 3);
         this.textRenderer = textRenderer;
@@ -250,6 +314,7 @@ public class PaintingsTab extends PackEditorTab {
         this.moveUpCallback = moveUpCallback;
         this.moveDownCallback = moveDownCallback;
         this.painting = painting;
+        this.paintingIndex = paintingIndex;
 
         this.layout = LinearLayoutWidget.horizontal()
             .spacing(GuiUtil.PADDING)
@@ -257,7 +322,7 @@ public class PaintingsTab extends PackEditorTab {
             .mainAxisContentAlignCenter();
 
         this.imageButton = new ImageButtonWidget(
-            (button) -> this.imageCallback.accept(index),
+            (button) -> this.imageCallback.accept(this.paintingIndex),
             this.painting.image());
         this.indexLabel = LabelWidget.builder(this.textRenderer, Text.of(String.format("%d", this.index + 1)))
             .hideBackground()
@@ -267,7 +332,7 @@ public class PaintingsTab extends PackEditorTab {
         this.layout.add(IconButtonWidget.builder(BuiltinIcon.SLIDERS_18, Constants.MOD_ID)
             .vanillaSize()
             .messageAndTooltip(Text.translatable("custompaintings.editor.editor.paintings.edit"))
-            .onPress((button) -> this.editCallback.accept(index))
+            .onPress((button) -> this.editCallback.accept(this.paintingIndex))
             .build());
 
         LinearLayoutWidget textSection = LinearLayoutWidget.vertical()
@@ -292,19 +357,19 @@ public class PaintingsTab extends PackEditorTab {
         LinearLayoutWidget moveControls = LinearLayoutWidget.vertical()
             .spacing(GuiUtil.PADDING / 2);
 
-        IconButtonWidget moveUpButton = moveControls.add(IconButtonWidget.builder(BuiltinIcon.UP_9, Constants.MOD_ID)
+        this.moveUpButton = moveControls.add(IconButtonWidget.builder(BuiltinIcon.UP_9, Constants.MOD_ID)
             .small()
             .messageAndTooltip(Text.translatable("custompaintings.editor.editor.paintings.up"))
-            .onPress((button) -> this.moveUpCallback.accept(index))
+            .onPress((button) -> this.moveUpCallback.accept(this.paintingIndex))
             .build());
-        moveUpButton.active = index > 0;
+        this.moveUpButton.active = this.paintingIndex > 0;
 
         this.moveDownButton = moveControls.add(IconButtonWidget.builder(BuiltinIcon.DOWN_9, Constants.MOD_ID)
             .small()
             .messageAndTooltip(Text.translatable("custompaintings.editor.editor.paintings.down"))
-            .onPress((button) -> this.moveDownCallback.accept(index))
+            .onPress((button) -> this.moveDownCallback.accept(this.paintingIndex))
             .build());
-        this.moveDownButton.active = index < totalCount - 1;
+        this.moveDownButton.active = this.paintingIndex < totalCount - 1;
 
         this.layout.add(moveControls);
 
@@ -364,27 +429,31 @@ public class PaintingsTab extends PackEditorTab {
             this.painting.blockHeight());
       }
 
-      public void setPainting(PackData.Painting painting) {
+      public void setData(
+          PackData.Painting painting,
+          int paintingIndex,
+          int indexWidth,
+          int totalCount) {
         this.painting = painting;
+        this.paintingIndex = paintingIndex;
+
         this.idLabel.setText(Text.of(this.painting.id()));
         this.nameLabel.setText(Text.of(this.painting.name()));
         this.artistLabel.setText(Text.of(this.painting.artist()));
         this.blocksLabel.setText(Text.of(this.getBlocksText()));
         this.imageButton.setImage(this.painting.image());
+        this.moveUpButton.active = this.paintingIndex > 0;
+        this.moveDownButton.active = this.paintingIndex < totalCount - 1;
+        this.indexLabel.batchUpdates(() -> {
+          this.indexLabel.setText(Text.of(String.format("%d", this.paintingIndex + 1)));
+          this.indexLabel.setWidth(indexWidth);
+        });
 
         this.refreshPositions();
       }
 
       public PackData.Painting getPainting() {
         return this.painting;
-      }
-
-      public void setTotalCount(int totalCount, int maxWidth) {
-        this.moveDownButton.active = this.index < totalCount - 1;
-        this.indexLabel.batchUpdates(() -> {
-          this.indexLabel.setText(Text.of(String.format("%d", this.index + 1)));
-          this.indexLabel.setWidth(maxWidth);
-        });
       }
 
       public static FlowListWidget.EntryFactory<Entry> factory(
@@ -394,6 +463,7 @@ public class PaintingsTab extends PackEditorTab {
           Consumer<Integer> moveUpCallback,
           Consumer<Integer> moveDownCallback,
           PackData.Painting painting,
+          int paintingIndex,
           int totalCount) {
         return (index, left, top, width) -> new Entry(
             textRenderer,
@@ -406,6 +476,7 @@ public class PaintingsTab extends PackEditorTab {
             moveUpCallback,
             moveDownCallback,
             painting,
+            paintingIndex,
             totalCount);
       }
     }
