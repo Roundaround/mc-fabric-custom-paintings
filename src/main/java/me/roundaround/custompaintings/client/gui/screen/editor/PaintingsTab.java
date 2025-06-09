@@ -21,14 +21,18 @@ import me.roundaround.custompaintings.roundalib.util.Observable;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.widget.Widget;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.render.RenderLayer;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
 
 public class PaintingsTab extends PackEditorTab {
   private static final int PANEL_MIN_WIDTH = 140;
+  private static final int BUTTON_HEIGHT = 20;
 
   private final LabelWidget countLabel;
+  private final TextFieldWidget searchBox;
 
   public PaintingsTab(@NotNull MinecraftClient client, @NotNull State state) {
     super(client, state, Text.translatable("custompaintings.editor.editor.paintings.title"));
@@ -51,13 +55,51 @@ public class PaintingsTab extends PackEditorTab {
       self.setDimensions(this.getPanelWidth(layout), parent.getHeight());
     });
 
-    this.layout.add(new PaintingList(
+    LinearLayoutWidget listColumn = LinearLayoutWidget.vertical()
+        .defaultOffAxisContentAlignCenter()
+        .spacing(GuiUtil.PADDING);
+
+    LinearLayoutWidget searchRow = listColumn.add(
+        LinearLayoutWidget
+            .horizontal()
+            .spacing(GuiUtil.PADDING)
+            .defaultOffAxisContentAlignCenter()
+            .padding(GuiUtil.PADDING, GuiUtil.PADDING, 0, GuiUtil.PADDING),
+        (parent, self) -> {
+          self.setDimensions(listColumn.getWidth(), BUTTON_HEIGHT + GuiUtil.PADDING);
+        });
+
+    this.searchBox = searchRow.add(
+        new TextFieldWidget(
+            this.client.textRenderer,
+            0,
+            BUTTON_HEIGHT,
+            Text.translatable("custompaintings.editor.editor.paintings.search")),
+        (parent, self) -> {
+          self.setWidth(parent.getUnusedSpace(self));
+        });
+    this.searchBox.setChangedListener(this::onSearchBoxChanged);
+
+    searchRow.add(IconButtonWidget.builder(BuiltinIcon.CLOSE_13, CustomPaintingsMod.MOD_ID)
+        .medium()
+        .messageAndTooltip(Text.translatable("custompaintings.editor.editor.paintings.clear"))
+        .onPress(this::clearSearch)
+        .build());
+
+    listColumn.add(new PaintingList(
         this.client,
-        this.layout,
+        listColumn.getWidth(),
+        listColumn.getHeight(),
         this.state.paintings),
         (parent, self) -> {
-          self.setDimensions(parent.getWidth() - this.getPanelWidth(parent) - parent.getSpacing(), parent.getHeight());
+          self.setDimensions(parent.getWidth(), parent.getUnusedSpace(self));
         });
+
+    this.layout.add(listColumn, (parent, self) -> {
+      self.setDimensions(
+          parent.getWidth() - parent.getSpacing() - sidePanel.getWidth(),
+          parent.getHeight());
+    });
 
     this.layout.refreshPositions();
   }
@@ -66,10 +108,22 @@ public class PaintingsTab extends PackEditorTab {
     return Math.max(PANEL_MIN_WIDTH, Math.round(layout.getWidth() * 0.3f));
   }
 
+  private void onSearchBoxChanged(String text) {
+    // TODO: Implement search
+    CustomPaintingsMod.LOGGER.info("Searching for {}", text);
+  }
+
+  private void clearSearch(ButtonWidget button) {
+    this.searchBox.setText("");
+  }
+
   static class PaintingList extends ParentElementEntryListWidget<PaintingList.Entry> {
-    public PaintingList(MinecraftClient client, LinearLayoutWidget layout,
+    public PaintingList(
+        MinecraftClient client,
+        int width,
+        int height,
         Observable<List<PackData.Painting>> observable) {
-      super(client, layout.getX(), layout.getY(), layout.getWidth(), layout.getHeight());
+      super(client, 0, 0, width, height);
       this.setContentPadding(GuiUtil.PADDING);
 
       observable.subscribe((paintings) -> {
@@ -104,13 +158,18 @@ public class PaintingsTab extends PackEditorTab {
     }
 
     @Override
-    protected void renderListBackground(DrawContext context) {
-      // Disable background
-    }
-
-    @Override
     protected void renderListBorders(DrawContext context) {
-      // Disable borders
+      context.drawTexture(
+          RenderLayer::getGuiTextured,
+          Textures.borderTop(this.client),
+          this.getX(),
+          this.getY() - 2,
+          0,
+          0,
+          this.getWidth(),
+          2,
+          32,
+          2);
     }
 
     @Override
@@ -223,14 +282,7 @@ public class PaintingsTab extends PackEditorTab {
         this.artistLabel = this.textLine(textSection, headerWidth, LINE_ARTIST, this.painting.artist());
         this.blocksLabel = this.textLine(textSection, headerWidth, LINE_BLOCKS, this.getBlocksText());
         this.layout.add(textSection, (parent, self) -> {
-          int textSectionWidth = this.getContentWidth();
-          textSectionWidth -= (parent.getChildren().size() - 1) * parent.getSpacing();
-          for (Widget widget : parent.getChildren()) {
-            if (widget != self) {
-              textSectionWidth -= widget.getWidth();
-            }
-          }
-          self.setWidth(textSectionWidth);
+          self.setWidth(parent.getUnusedSpace(self));
         });
 
         this.layout.add(this.imageButton, (parent, self) -> {

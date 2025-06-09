@@ -146,6 +146,8 @@
   "custompaintings.editor.editor.revert": "Revert",
   "custompaintings.editor.editor.metadata.title": "Metadata",
   "custompaintings.editor.editor.paintings.title": "Paintings",
+  "custompaintings.editor.editor.paintings.search": "Search for a painting",
+  "custompaintings.editor.editor.paintings.clear": "Clear search",
   "custompaintings.editor.editor.paintings.id": "ID:",
   "custompaintings.editor.editor.paintings.name": "Name:",
   "custompaintings.editor.editor.paintings.artist": "Artist:",
