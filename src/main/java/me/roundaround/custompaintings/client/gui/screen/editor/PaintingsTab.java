@@ -22,7 +22,8 @@ import me.roundaround.custompaintings.roundalib.client.gui.widget.FlowListWidget
 import me.roundaround.custompaintings.roundalib.client.gui.widget.IconButtonWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.ParentElementEntryListWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.LabelWidget;
-import me.roundaround.custompaintings.roundalib.util.Observable;
+import me.roundaround.custompaintings.roundalib.observable.Observable;
+import me.roundaround.custompaintings.roundalib.observable.Subject;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -147,14 +148,14 @@ public class PaintingsTab extends PackEditorTab {
   }
 
   static class PaintingList extends ParentElementEntryListWidget<PaintingList.Entry> {
-    private final Observable<List<PackData.Painting>> paintings;
-    private final Observable<String> search = Observable.of("");
+    private final Subject<List<PackData.Painting>> paintings;
+    private final Subject<String> search = Subject.of("");
 
     public PaintingList(
         MinecraftClient client,
         int width,
         int height,
-        Observable<List<PackData.Painting>> observable,
+        Subject<List<PackData.Painting>> observable,
         Consumer<Integer> editCallback,
         Consumer<Integer> imageCallback,
         Consumer<Integer> moveUpCallback,
@@ -165,7 +166,7 @@ public class PaintingsTab extends PackEditorTab {
 
       this.paintings = observable;
 
-      Observable.subscribeToAll(this.search, this.paintings, (search, paintings) -> {
+      Observable.subscribeAll(this.search, this.paintings, (search, paintings) -> {
         int totalCount = paintings.size();
         List<PackData.Painting> filtered = new ArrayList<>();
         Map<Integer, Integer> indexMap = new HashMap<>();

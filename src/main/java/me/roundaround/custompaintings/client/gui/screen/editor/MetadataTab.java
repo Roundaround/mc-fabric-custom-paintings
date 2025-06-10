@@ -12,7 +12,8 @@ import me.roundaround.custompaintings.roundalib.client.gui.widget.FlowListWidget
 import me.roundaround.custompaintings.roundalib.client.gui.widget.IconButtonWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.ParentElementEntryListWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.LabelWidget;
-import me.roundaround.custompaintings.roundalib.util.Observable;
+import me.roundaround.custompaintings.roundalib.observable.Observable;
+import me.roundaround.custompaintings.roundalib.observable.Subject;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -108,7 +109,7 @@ public class MetadataTab extends PackEditorTab {
           int y,
           int width,
           String id,
-          Observable<String> valueObservable,
+          Subject<String> valueObservable,
           Observable<Boolean> dirtyObservable,
           Supplier<String> getLastSaved,
           int maxLength) {
@@ -188,7 +189,7 @@ public class MetadataTab extends PackEditorTab {
       public static FlowListWidget.EntryFactory<TextFieldEntry> factory(
           TextRenderer textRenderer,
           String id,
-          Observable<String> valueObservable,
+          Subject<String> valueObservable,
           Observable<Boolean> dirtyObservable,
           Supplier<String> getLastSaved) {
         return factory(textRenderer, id, valueObservable, dirtyObservable, getLastSaved, 32);
@@ -197,7 +198,7 @@ public class MetadataTab extends PackEditorTab {
       public static FlowListWidget.EntryFactory<TextFieldEntry> factory(
           TextRenderer textRenderer,
           String id,
-          Observable<String> valueObservable,
+          Subject<String> valueObservable,
           Observable<Boolean> dirtyObservable,
           Supplier<String> getLastSaved,
           int maxLength) {

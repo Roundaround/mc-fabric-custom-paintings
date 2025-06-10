@@ -1,5 +1,7 @@
 package me.roundaround.custompaintings.client.gui.screen.editor;
 
+import java.util.function.Supplier;
+
 import org.jetbrains.annotations.NotNull;
 
 import me.roundaround.custompaintings.client.gui.widget.VersionStamp;
@@ -114,6 +116,10 @@ public class EditorScreen extends BaseScreen {
   public void close() {
     this.state.close();
     super.close();
+  }
+
+  public Supplier<EditorScreen> getRecreateSupplier() {
+    return () -> new EditorScreen(this.parent, this.client, this.state.clone());
   }
 
   private Text getDoneButtonMessage(boolean dirty) {

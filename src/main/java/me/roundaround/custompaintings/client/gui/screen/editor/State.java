@@ -13,7 +13,9 @@ import org.jetbrains.annotations.NotNull;
 import me.roundaround.custompaintings.client.gui.screen.editor.PackData.Painting;
 import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.resource.file.Image;
-import me.roundaround.custompaintings.roundalib.util.Observable;
+import me.roundaround.custompaintings.roundalib.observable.Computed;
+import me.roundaround.custompaintings.roundalib.observable.Observable;
+import me.roundaround.custompaintings.roundalib.observable.Subject;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.texture.MissingSprite;
 import net.minecraft.client.texture.NativeImage;
@@ -24,18 +26,18 @@ import net.minecraft.util.Identifier;
 public class State implements AutoCloseable {
   private final List<Observable<?>> observables = new ArrayList<>();
 
-  public final Observable<UUID> uuid = this.addObservable(
-      Observable.of(null));
-  public final Observable<String> id = this.addObservable(
-      Observable.of(""));
-  public final Observable<String> name = this.addObservable(
-      Observable.of(""));
-  public final Observable<String> description = this.addObservable(
-      Observable.of(""));
-  public final Observable<Image> icon = this.addObservable(
-      Observable.of(null));
-  public final Observable<List<Painting>> paintings = this.addObservable(
-      Observable.of(List.of()));
+  public final Subject<UUID> uuid = this.addObservable(
+      Subject.of(null));
+  public final Subject<String> id = this.addObservable(
+      Subject.of(""));
+  public final Subject<String> name = this.addObservable(
+      Subject.of(""));
+  public final Subject<String> description = this.addObservable(
+      Subject.of(""));
+  public final Subject<Image> icon = this.addObservable(
+      Subject.of(null));
+  public final Subject<List<Painting>> paintings = this.addObservable(
+      Subject.of(List.of()));
 
   public final Observable<Boolean> idDirty;
   public final Observable<Boolean> nameDirty;
@@ -44,11 +46,15 @@ public class State implements AutoCloseable {
   public final Observable<Boolean> paintingsDirty;
   public final Observable<Boolean> dirty;
 
-  private final Observable<PackData> lastSaved;
+  private final Subject<PackData> lastSaved;
   private final Observable<List<Image>> images;
   private final HashMap<Identifier, NativeImage> nativeImages = new HashMap<>();
 
   public State(@NotNull PackData pack) {
+    this(pack, pack);
+  }
+
+  public State(@NotNull PackData pack, @NotNull PackData lastSavedPack) {
     this.uuid.set(pack.uuid());
     this.id.set(pack.id());
     this.name.set(pack.name());
@@ -57,27 +63,26 @@ public class State implements AutoCloseable {
     this.paintings.set(pack.paintings());
 
     this.lastSaved = this.addObservable(
-        Observable.of(pack));
+        Subject.of(lastSavedPack));
 
     this.idDirty = this.addObservable(
-        Observable.computed(this.id, this.lastSaved,
+        Computed.of(this.id, this.lastSaved,
             (id, lastSaved) -> !Objects.equals(id, lastSaved.id())));
     this.nameDirty = this.addObservable(
-        Observable.computed(this.name, this.lastSaved,
+        Computed.of(this.name, this.lastSaved,
             (name, lastSaved) -> !Objects.equals(name, lastSaved.name())));
     this.descriptionDirty = this.addObservable(
-        Observable.computed(this.description,
-            this.lastSaved,
+        Computed.of(this.description, this.lastSaved,
             (description, lastSaved) -> !Objects.equals(description, lastSaved.description())));
     this.iconDirty = this.addObservable(
-        Observable.computed(this.icon, this.lastSaved,
+        Computed.of(this.icon, this.lastSaved,
             (icon, lastSaved) -> !Objects.equals(icon, lastSaved.icon())));
     this.paintingsDirty = this.addObservable(
-        Observable.computed(this.paintings, this.lastSaved,
+        Computed.of(this.paintings, this.lastSaved,
             (paintings, lastSaved) -> !paintings.equals(lastSaved.paintings())));
 
     this.dirty = this.addObservable(
-        Observable.computed(
+        Computed.of(
             this.idDirty,
             this.nameDirty,
             this.descriptionDirty,
@@ -90,7 +95,7 @@ public class State implements AutoCloseable {
                 || paintingsDirty));
 
     this.images = this.addObservable(
-        Observable.computed(this.icon, this.paintings,
+        Computed.of(this.icon, this.paintings,
             (icon, paintings) -> {
               List<Image> images = new ArrayList<>();
               if (icon != null) {
@@ -132,9 +137,7 @@ public class State implements AutoCloseable {
 
   @Override
   public void close() {
-    for (Observable<?> observable : this.observables) {
-      observable.clear();
-    }
+    this.observables.forEach(Observable::close);
     this.observables.clear();
 
     this.nativeImages.forEach((key, image) -> {
@@ -142,6 +145,20 @@ public class State implements AutoCloseable {
       image.close();
     });
     this.nativeImages.clear();
+  }
+
+  public State clone() {
+    return new State(this.getPack(), this.getLastSaved());
+  }
+
+  public PackData getPack() {
+    return new PackData(
+        this.uuid.get(),
+        this.id.get(),
+        this.name.get(),
+        this.description.get(),
+        this.icon.get(),
+        List.copyOf(this.paintings.get()));
   }
 
   public PackData getLastSaved() {
@@ -192,7 +209,7 @@ public class State implements AutoCloseable {
     this.paintings.set(paintings);
   }
 
-  private <T> Observable<T> addObservable(Observable<T> observable) {
+  private <O extends Observable<T>, T> O addObservable(O observable) {
     this.observables.add(observable);
     return observable;
   }
