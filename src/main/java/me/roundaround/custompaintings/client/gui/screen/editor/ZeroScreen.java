@@ -16,6 +16,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import org.jetbrains.annotations.NotNull;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.client.gui.screen.editor.pack.PackScreen;
 import me.roundaround.custompaintings.client.gui.widget.VersionStamp;
 import me.roundaround.custompaintings.resource.file.Image;
 import me.roundaround.custompaintings.resource.file.Metadata;
@@ -139,7 +140,7 @@ public class ZeroScreen extends BaseScreen {
   }
 
   private void navigateToEditor(PackData packData) {
-    this.client.setScreen(new EditorScreen(new ScreenParent(this), this.client, packData));
+    this.client.setScreen(new PackScreen(new ScreenParent(this), this.client, packData));
   }
 
   private void newPack(ButtonWidget button) {

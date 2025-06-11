@@ -1,4 +1,4 @@
-package me.roundaround.custompaintings.client.gui.screen.editor;
+package me.roundaround.custompaintings.client.gui.screen.editor.pack;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -6,11 +6,11 @@ import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.Label
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
 
-public class MigrationsTab extends PackEditorTab {
+public class MigrationsTab extends PackTab {
   public MigrationsTab(
       @NotNull MinecraftClient client,
       @NotNull State state,
-      @NotNull EditorScreen screen) {
+      @NotNull PackScreen screen) {
     super(client,
         state,
         screen,

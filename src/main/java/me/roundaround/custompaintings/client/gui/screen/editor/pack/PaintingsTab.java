@@ -1,4 +1,4 @@
-package me.roundaround.custompaintings.client.gui.screen.editor;
+package me.roundaround.custompaintings.client.gui.screen.editor.pack;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,6 +11,8 @@ import java.util.stream.Stream;
 import org.jetbrains.annotations.NotNull;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.client.gui.screen.editor.PackData;
+import me.roundaround.custompaintings.client.gui.screen.editor.image.ImageScreen;
 import me.roundaround.custompaintings.client.gui.widget.ImageButtonWidget;
 import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.roundalib.client.gui.icon.BuiltinIcon;
@@ -33,7 +35,7 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
 
-public class PaintingsTab extends PackEditorTab {
+public class PaintingsTab extends PackTab {
   private static final int PANEL_MIN_WIDTH = 140;
   private static final int BUTTON_HEIGHT = 20;
 
@@ -44,7 +46,7 @@ public class PaintingsTab extends PackEditorTab {
   public PaintingsTab(
       @NotNull MinecraftClient client,
       @NotNull State state,
-      @NotNull EditorScreen screen) {
+      @NotNull PackScreen screen) {
     super(
         client,
         state,
@@ -147,7 +149,7 @@ public class PaintingsTab extends PackEditorTab {
 
     this.client.setScreen(new ImageScreen(
         Text.of("Edit image"),
-        new ScreenParent(() -> new EditorScreen(
+        new ScreenParent(() -> new PackScreen(
             this.screen.getParent(),
             this.client,
             this.state)),

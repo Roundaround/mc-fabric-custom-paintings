@@ -1,4 +1,4 @@
-package me.roundaround.custompaintings.client.gui.screen.editor;
+package me.roundaround.custompaintings.client.gui.screen.editor.pack;
 
 import java.util.ArrayList;
 import java.util.function.Consumer;
@@ -15,12 +15,12 @@ import net.minecraft.client.gui.tab.Tab;
 import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.text.Text;
 
-public abstract class PackEditorTab implements Tab {
+public abstract class PackTab implements Tab {
   protected static final int PREFERRED_WIDTH = 300;
 
   protected final @NotNull MinecraftClient client;
   protected final @NotNull State state;
-  protected final @NotNull EditorScreen screen;
+  protected final @NotNull PackScreen screen;
   protected final @NotNull Text title;
   protected final LinearLayoutWidget layout = new LinearLayoutWidget(Axis.VERTICAL)
       .mainAxisContentAlignStart()
@@ -28,10 +28,10 @@ public abstract class PackEditorTab implements Tab {
       .spacing(0);
   protected final ArrayList<Subscription> subscriptions = new ArrayList<>();
 
-  protected PackEditorTab(
+  protected PackTab(
       @NotNull MinecraftClient client,
       @NotNull State state,
-      @NotNull EditorScreen screen,
+      @NotNull PackScreen screen,
       @NotNull Text title) {
     this.client = client;
     this.state = state;

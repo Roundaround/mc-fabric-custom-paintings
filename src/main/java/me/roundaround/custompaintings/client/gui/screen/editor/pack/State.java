@@ -1,4 +1,4 @@
-package me.roundaround.custompaintings.client.gui.screen.editor;
+package me.roundaround.custompaintings.client.gui.screen.editor.pack;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,6 +11,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.jetbrains.annotations.NotNull;
 
+import me.roundaround.custompaintings.client.gui.screen.editor.PackData;
 import me.roundaround.custompaintings.client.gui.screen.editor.PackData.Painting;
 import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.resource.file.Image;

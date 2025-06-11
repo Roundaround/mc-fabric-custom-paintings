@@ -1,7 +1,8 @@
-package me.roundaround.custompaintings.client.gui.screen.editor;
+package me.roundaround.custompaintings.client.gui.screen.editor.pack;
 
 import org.jetbrains.annotations.NotNull;
 
+import me.roundaround.custompaintings.client.gui.screen.editor.PackData;
 import me.roundaround.custompaintings.client.gui.widget.VersionStamp;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.screen.BaseScreen;
@@ -18,7 +19,7 @@ import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
-public class EditorScreen extends BaseScreen {
+public class PackScreen extends BaseScreen {
   private static final Identifier TAB_HEADER_BACKGROUND_TEXTURE = Identifier
       .ofVanilla("textures/gui/tab_header_background.png");
 
@@ -30,14 +31,14 @@ public class EditorScreen extends BaseScreen {
   private TabNavigationWidget tabNavigation;
   private State state;
 
-  public EditorScreen(
+  public PackScreen(
       @NotNull ScreenParent parent,
       @NotNull MinecraftClient client,
       @NotNull PackData pack) {
     this(parent, client, new State(pack));
   }
 
-  public EditorScreen(
+  public PackScreen(
       @NotNull ScreenParent parent,
       @NotNull MinecraftClient client,
       @NotNull State state) {

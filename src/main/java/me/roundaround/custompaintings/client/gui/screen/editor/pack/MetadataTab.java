@@ -1,4 +1,4 @@
-package me.roundaround.custompaintings.client.gui.screen.editor;
+package me.roundaround.custompaintings.client.gui.screen.editor.pack;
 
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -22,13 +22,13 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
 
-public class MetadataTab extends PackEditorTab {
+public class MetadataTab extends PackTab {
   private final int MIN_WIDTH = 240;
 
   public MetadataTab(
       @NotNull MinecraftClient client,
       @NotNull State state,
-      @NotNull EditorScreen screen) {
+      @NotNull PackScreen screen) {
     super(client,
         state,
         screen,
