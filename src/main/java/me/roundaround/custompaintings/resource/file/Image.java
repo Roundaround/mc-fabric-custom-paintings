@@ -133,6 +133,14 @@ public record Image(Color[] pixels, int width, int height, String hash) {
     return this.getColorInt(x, y, Color::getABGR);
   }
 
+  public Image invert() {
+    Color[] pixels = new Color[this.pixels.length];
+    for (int i = 0; i < this.pixels.length; i++) {
+      pixels[i] = this.pixels[i].invert();
+    }
+    return new Image(pixels, this.width, this.height, getHash(pixels));
+  }
+
   private int getColorInt(int x, int y, Function<Color, Integer> supplier) {
     int index = this.getIndex(x, y);
     Color pixel = this.pixels[index];

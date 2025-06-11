@@ -121,7 +121,6 @@ public class ZeroScreen extends BaseScreen {
       }
       return null;
     });
-    super.removed();
   }
 
   @Override

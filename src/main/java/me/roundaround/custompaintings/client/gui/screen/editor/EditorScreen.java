@@ -1,7 +1,5 @@
 package me.roundaround.custompaintings.client.gui.screen.editor;
 
-import java.util.function.Supplier;
-
 import org.jetbrains.annotations.NotNull;
 
 import me.roundaround.custompaintings.client.gui.widget.VersionStamp;
@@ -39,7 +37,7 @@ public class EditorScreen extends BaseScreen {
     this(parent, client, new State(pack));
   }
 
-  private EditorScreen(
+  public EditorScreen(
       @NotNull ScreenParent parent,
       @NotNull MinecraftClient client,
       @NotNull State state) {
@@ -118,8 +116,8 @@ public class EditorScreen extends BaseScreen {
     super.close();
   }
 
-  public Supplier<EditorScreen> getRecreateSupplier() {
-    return () -> new EditorScreen(this.parent, this.client, this.state.clone());
+  public ScreenParent getParent() {
+    return this.parent;
   }
 
   private Text getDoneButtonMessage(boolean dirty) {

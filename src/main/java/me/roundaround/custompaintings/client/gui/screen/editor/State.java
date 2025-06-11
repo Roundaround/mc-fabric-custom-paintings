@@ -5,8 +5,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -18,9 +19,7 @@ import me.roundaround.custompaintings.roundalib.observable.Observable;
 import me.roundaround.custompaintings.roundalib.observable.Subject;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.texture.MissingSprite;
-import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
-import net.minecraft.client.texture.TextureManager;
 import net.minecraft.util.Identifier;
 
 public class State implements AutoCloseable {
@@ -48,7 +47,6 @@ public class State implements AutoCloseable {
 
   private final Subject<PackData> lastSaved;
   private final Observable<List<Image>> images;
-  private final HashMap<Identifier, NativeImage> nativeImages = new HashMap<>();
 
   public State(@NotNull PackData pack) {
     this(pack, pack);
@@ -105,31 +103,20 @@ public class State implements AutoCloseable {
               return images;
             }));
 
-    this.images.subscribe((images) -> {
-      TextureManager manager = MinecraftClient.getInstance().getTextureManager();
+    this.images.pairwise().subscribe((t) -> {
+      HashSet<Identifier> used = new HashSet<>();
 
-      HashSet<Identifier> keys = new HashSet<>();
-      images.forEach((image) -> {
-        if (image == null || image.isEmpty()) {
-          return;
-        }
+      List<Image> prevImages = t.t1();
+      List<Image> currImages = t.t2();
 
-        Identifier key = getImageTextureId(image);
-        keys.add(key);
-        if (this.nativeImages.containsKey(key)) {
-          return;
-        }
-
-        NativeImage nativeImage = image.toNativeImage();
-        this.nativeImages.put(key, nativeImage);
-        manager.registerTexture(key, new NativeImageBackedTexture(() -> image.hash(), nativeImage));
+      currImages.forEach((image) -> {
+        used.add(TextureManager.registerTexture(image));
       });
 
-      Set.copyOf(this.nativeImages.entrySet()).forEach((entry) -> {
-        if (!keys.contains(entry.getKey())) {
-          manager.destroyTexture(entry.getKey());
-          entry.getValue().close();
-          this.nativeImages.remove(entry.getKey());
+      prevImages.forEach((image) -> {
+        Identifier key = TextureManager.getImageTextureId(image);
+        if (!used.contains(key)) {
+          TextureManager.disposeTexture(key);
         }
       });
     });
@@ -140,11 +127,9 @@ public class State implements AutoCloseable {
     this.observables.forEach(Observable::close);
     this.observables.clear();
 
-    this.nativeImages.forEach((key, image) -> {
-      MinecraftClient.getInstance().getTextureManager().destroyTexture(key);
-      image.close();
+    this.images.get().forEach((image) -> {
+      TextureManager.disposeTexture(image);
     });
-    this.nativeImages.clear();
   }
 
   public State clone() {
@@ -166,11 +151,12 @@ public class State implements AutoCloseable {
   }
 
   public void setImage(int paintingIndex, Image image) {
-    List<PackData.Painting> paintings = this.paintings.get();
-    if (paintingIndex < 0 || paintingIndex >= paintings.size()) {
+    List<PackData.Painting> srcPaintings = this.paintings.get();
+    if (paintingIndex < 0 || paintingIndex >= srcPaintings.size()) {
       return;
     }
 
+    List<PackData.Painting> paintings = new ArrayList<>(srcPaintings);
     paintings.set(paintingIndex, paintings.get(paintingIndex).withImage(image));
     this.paintings.set(paintings);
   }
@@ -215,10 +201,60 @@ public class State implements AutoCloseable {
   }
 
   public static Identifier getImageTextureId(Image image) {
-    if (image == null || image.isEmpty()) {
-      return MissingSprite.getMissingSpriteId();
+    return TextureManager.getImageTextureId(image);
+  }
+
+  private static class TextureManager {
+    private static final Lock lock = new ReentrantLock();
+    private static final HashMap<Identifier, Integer> refCounts = new HashMap<>();
+    private static final HashMap<Identifier, NativeImageBackedTexture> textures = new HashMap<>();
+
+    public static Identifier getImageTextureId(Image image) {
+      if (image == null || image.isEmpty()) {
+        return MissingSprite.getMissingSpriteId();
+      }
+      String path = image.width() + "_" + image.height() + "_" + image.hash();
+      return Identifier.of(Constants.MOD_ID, path);
     }
-    String path = image.width() + "_" + image.height() + "_" + image.hash();
-    return Identifier.of(Constants.MOD_ID, path);
+
+    public static Identifier registerTexture(Image image) {
+      if (image == null || image.isEmpty()) {
+        return MissingSprite.getMissingSpriteId();
+      }
+
+      Identifier key = getImageTextureId(image);
+      lock.lock();
+      try {
+        int refCount = refCounts.merge(key, 1, Integer::sum);
+        if (refCount == 1) {
+          NativeImageBackedTexture texture = new NativeImageBackedTexture(() -> image.hash(), image.toNativeImage());
+          textures.put(key, texture);
+          MinecraftClient.getInstance().getTextureManager().registerTexture(key, texture);
+        }
+      } finally {
+        lock.unlock();
+      }
+      return key;
+    }
+
+    public static void disposeTexture(Image image) {
+      if (image == null || image.isEmpty()) {
+        return;
+      }
+      disposeTexture(getImageTextureId(image));
+    }
+
+    public static void disposeTexture(Identifier key) {
+      lock.lock();
+      try {
+        int refCount = refCounts.merge(key, -1, Integer::sum);
+        if (refCount <= 0) {
+          MinecraftClient.getInstance().getTextureManager().destroyTexture(key);
+          textures.remove(key).close();
+        }
+      } finally {
+        lock.unlock();
+      }
+    }
   }
 }

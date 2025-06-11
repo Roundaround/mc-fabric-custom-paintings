@@ -1,5 +1,6 @@
 package me.roundaround.custompaintings.client.gui.screen.editor;
 
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.jetbrains.annotations.NotNull;
@@ -14,6 +15,7 @@ import me.roundaround.custompaintings.roundalib.client.gui.widget.ParentElementE
 import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.LabelWidget;
 import me.roundaround.custompaintings.roundalib.observable.Observable;
 import me.roundaround.custompaintings.roundalib.observable.Subject;
+import me.roundaround.custompaintings.roundalib.observable.Subscription;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -49,19 +51,22 @@ public class MetadataTab extends PackEditorTab {
         "id",
         this.state.id,
         this.state.idDirty,
-        () -> this.state.getLastSaved().id()));
+        () -> this.state.getLastSaved().id(),
+        this.subscriptions::add));
     list.addEntry(MetadataList.TextFieldEntry.factory(
         this.client.textRenderer,
         "name",
         this.state.name,
         this.state.nameDirty,
-        () -> this.state.getLastSaved().name()));
+        () -> this.state.getLastSaved().name(),
+        this.subscriptions::add));
     list.addEntry(MetadataList.TextFieldEntry.factory(
         this.client.textRenderer,
         "description",
         this.state.description,
         this.state.descriptionDirty,
         () -> this.state.getLastSaved().description(),
+        this.subscriptions::add,
         255));
 
     this.layout.refreshPositions();
@@ -112,6 +117,7 @@ public class MetadataTab extends PackEditorTab {
           Subject<String> valueObservable,
           Observable<Boolean> dirtyObservable,
           Supplier<String> getLastSaved,
+          Consumer<Subscription> addSubscription,
           int maxLength) {
         super(textRenderer, index, x, y, width, HEIGHT);
 
@@ -145,7 +151,7 @@ public class MetadataTab extends PackEditorTab {
         // TODO: If the initial value is too long show a warning tooltip
 
         this.field.setChangedListener(valueObservable::set);
-        valueObservable.subscribe((value) -> {
+        addSubscription.accept(valueObservable.subscribe((value) -> {
           String text = this.field.getText();
           if (!text.equals(value)) {
             this.field.setText(value);
@@ -153,7 +159,7 @@ public class MetadataTab extends PackEditorTab {
             this.field.setSelectionStart(0);
             this.field.setSelectionEnd(0);
           }
-        });
+        }));
 
         IconButtonWidget resetButton = layout.add(IconButtonWidget.builder(BuiltinIcon.UNDO_18, Constants.MOD_ID)
             .vanillaSize()
@@ -166,7 +172,7 @@ public class MetadataTab extends PackEditorTab {
               this.field.setText(value);
             })
             .build());
-        dirtyObservable.subscribe((dirty) -> resetButton.active = dirty);
+        addSubscription.accept(dirtyObservable.subscribe((dirty) -> resetButton.active = dirty));
 
         this.addLayout(layout, (self) -> {
           self.setPositionAndDimensions(
@@ -191,8 +197,9 @@ public class MetadataTab extends PackEditorTab {
           String id,
           Subject<String> valueObservable,
           Observable<Boolean> dirtyObservable,
-          Supplier<String> getLastSaved) {
-        return factory(textRenderer, id, valueObservable, dirtyObservable, getLastSaved, 32);
+          Supplier<String> getLastSaved,
+          Consumer<Subscription> addSubscription) {
+        return factory(textRenderer, id, valueObservable, dirtyObservable, getLastSaved, addSubscription, 32);
       }
 
       public static FlowListWidget.EntryFactory<TextFieldEntry> factory(
@@ -201,6 +208,7 @@ public class MetadataTab extends PackEditorTab {
           Subject<String> valueObservable,
           Observable<Boolean> dirtyObservable,
           Supplier<String> getLastSaved,
+          Consumer<Subscription> addSubscription,
           int maxLength) {
         return (index, left, top, width) -> new TextFieldEntry(
             textRenderer,
@@ -212,6 +220,7 @@ public class MetadataTab extends PackEditorTab {
             valueObservable,
             dirtyObservable,
             getLastSaved,
+            addSubscription,
             maxLength);
       }
     }

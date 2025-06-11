@@ -15,6 +15,7 @@ import me.roundaround.custompaintings.client.gui.widget.ImageButtonWidget;
 import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.roundalib.client.gui.icon.BuiltinIcon;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.linear.LinearLayoutWidget;
+import me.roundaround.custompaintings.roundalib.client.gui.screen.ScreenParent;
 import me.roundaround.custompaintings.roundalib.client.gui.util.Axis;
 import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.EmptyWidget;
@@ -24,6 +25,7 @@ import me.roundaround.custompaintings.roundalib.client.gui.widget.ParentElementE
 import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.LabelWidget;
 import me.roundaround.custompaintings.roundalib.observable.Observable;
 import me.roundaround.custompaintings.roundalib.observable.Subject;
+import me.roundaround.custompaintings.roundalib.observable.Subscription;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -60,9 +62,9 @@ public class PaintingsTab extends PackEditorTab {
         .hideBackground()
         .showShadow()
         .build());
-    this.state.paintings.subscribe((paintings) -> {
+    this.subscriptions.add(this.state.paintings.subscribe((paintings) -> {
       this.countLabel.setText(Text.of(String.format("%d", paintings.size())));
-    });
+    }));
 
     this.layout.add(sidePanel, (parent, self) -> {
       self.setDimensions(this.getPanelWidth(layout), parent.getInnerHeight());
@@ -106,7 +108,8 @@ public class PaintingsTab extends PackEditorTab {
         this::editInfo,
         this::editImage,
         this.state::movePaintingUp,
-        this.state::movePaintingDown),
+        this.state::movePaintingDown,
+        this.subscriptions::add),
         (parent, self) -> {
           self.setDimensions(parent.getInnerWidth(), parent.getUnusedSpace(self));
         });
@@ -137,7 +140,22 @@ public class PaintingsTab extends PackEditorTab {
   }
 
   private void editImage(int paintingIndex) {
-    CustomPaintingsMod.LOGGER.info("Editing image for painting {}", paintingIndex);
+    List<PackData.Painting> paintings = this.state.paintings.get();
+    if (paintingIndex < 0 || paintingIndex >= paintings.size()) {
+      return;
+    }
+
+    this.client.setScreen(new ImageScreen(
+        Text.of("Edit image"),
+        new ScreenParent(() -> new EditorScreen(
+            this.screen.getParent(),
+            this.client,
+            this.state)),
+        this.client,
+        paintings.get(paintingIndex).image(),
+        (image) -> {
+          this.state.setImage(paintingIndex, image);
+        }));
   }
 
   record FilteredState(
@@ -159,14 +177,15 @@ public class PaintingsTab extends PackEditorTab {
         Consumer<Integer> editCallback,
         Consumer<Integer> imageCallback,
         Consumer<Integer> moveUpCallback,
-        Consumer<Integer> moveDownCallback) {
+        Consumer<Integer> moveDownCallback,
+        Consumer<Subscription> addSubscription) {
       super(client, 0, 0, width, height);
       this.setContentPadding(GuiUtil.PADDING);
       this.setRowSpacing(GuiUtil.PADDING / 2);
 
       this.paintings = observable;
 
-      Observable.subscribeAll(this.search, this.paintings, (search, paintings) -> {
+      addSubscription.accept(Observable.subscribeAll(this.search, this.paintings, (search, paintings) -> {
         int totalCount = paintings.size();
         List<PackData.Painting> filtered = new ArrayList<>();
         Map<Integer, Integer> indexMap = new HashMap<>();
@@ -211,7 +230,7 @@ public class PaintingsTab extends PackEditorTab {
               maxIndexWidth,
               totalCount);
         }
-      });
+      }));
     }
 
     public void setSearch(String search) {

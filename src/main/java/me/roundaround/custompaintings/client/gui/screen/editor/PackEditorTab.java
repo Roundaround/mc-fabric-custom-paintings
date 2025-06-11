@@ -1,5 +1,6 @@
 package me.roundaround.custompaintings.client.gui.screen.editor;
 
+import java.util.ArrayList;
 import java.util.function.Consumer;
 
 import org.jetbrains.annotations.NotNull;
@@ -7,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.linear.LinearLayoutWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.util.Axis;
 import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
+import me.roundaround.custompaintings.roundalib.observable.Subscription;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.ScreenRect;
 import net.minecraft.client.gui.tab.Tab;
@@ -24,6 +26,7 @@ public abstract class PackEditorTab implements Tab {
       .mainAxisContentAlignStart()
       .defaultOffAxisContentAlignCenter()
       .spacing(0);
+  protected final ArrayList<Subscription> subscriptions = new ArrayList<>();
 
   protected PackEditorTab(
       @NotNull MinecraftClient client,
@@ -58,5 +61,17 @@ public abstract class PackEditorTab implements Tab {
 
   protected int getContentWidth() {
     return Math.min(PREFERRED_WIDTH, this.layout.getWidth() - 2 * GuiUtil.PADDING);
+  }
+
+  public void clearSubscriptions() {
+    this.subscriptions.forEach(Subscription::close);
+    this.subscriptions.clear();
+  }
+
+  public void beforeLoad() {
+  }
+
+  public void beforeUnload() {
+    this.clearSubscriptions();
   }
 }
