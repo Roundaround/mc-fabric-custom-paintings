@@ -12,7 +12,7 @@ import org.jetbrains.annotations.NotNull;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.gui.screen.editor.PackData;
-import me.roundaround.custompaintings.client.gui.screen.editor.image.ImageScreen;
+import me.roundaround.custompaintings.client.gui.screen.editor.painting.PaintingScreen;
 import me.roundaround.custompaintings.client.gui.widget.ImageButtonWidget;
 import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.roundalib.client.gui.icon.BuiltinIcon;
@@ -147,16 +147,16 @@ public class PaintingsTab extends PackTab {
       return;
     }
 
-    this.client.setScreen(new ImageScreen(
+    this.client.setScreen(new PaintingScreen(
         Text.of("Edit image"),
         new ScreenParent(() -> new PackScreen(
             this.screen.getParent(),
             this.client,
             this.state)),
         this.client,
-        paintings.get(paintingIndex).image(),
-        (image) -> {
-          this.state.setImage(paintingIndex, image);
+        paintings.get(paintingIndex),
+        (painting) -> {
+          this.state.setPainting(paintingIndex, painting);
         }));
   }
 

@@ -1,4 +1,4 @@
-package me.roundaround.custompaintings.client.gui.screen.editor.image;
+package me.roundaround.custompaintings.client.gui.screen.editor.painting;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -17,28 +17,19 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
 
-public class OperationsTab extends ImageTab {
-  private final List<Image.Operation> operations;
-  private final Image originalImage;
-  private final Consumer<Image> modifyImage;
+public class ImageTab extends PaintingTab {
   private final OperationList operationList;
 
-  public OperationsTab(
+  public ImageTab(
       MinecraftClient client,
-      List<Image.Operation> operations,
-      Image originalImage,
-      Consumer<Image> modifyImage) {
+      State state) {
     // TODO: i18n
-    super(client, Text.of("Operations"));
-
-    this.operations = operations;
-    this.originalImage = originalImage;
-    this.modifyImage = modifyImage;
+    super(client, state, Text.of("Image"));
 
     this.layout.add(
         ButtonWidget.builder(
             Text.of("Invert"),
-            (b) -> this.addOperation(Image.Operation.invert()))
+            (b) -> this.state.addOperation(Image.Operation.invert()))
             .build(),
         (parent, self) -> {
           self.setWidth(Math.min(parent.getInnerWidth(), ButtonWidget.DEFAULT_WIDTH_SMALL));
@@ -49,26 +40,15 @@ public class OperationsTab extends ImageTab {
             this.client,
             this.layout.getInnerWidth(),
             this.layout.getUnusedSpace(null),
-            this::removeOperation,
-            operations),
+            this.state::removeOperation,
+            this.state.operations.get()),
         (parent, self) -> {
           self.setDimensions(parent.getInnerWidth(), parent.getUnusedSpace(self));
         });
-  }
 
-  private void addOperation(Image.Operation operation) {
-    this.operations.add(operation);
-    this.operationList.addOperation(operation);
-    this.modifyImage.accept(this.originalImage.apply(this.operations));
-  }
-
-  private void removeOperation(int index) {
-    if (index < 0 || index >= this.operations.size()) {
-      return;
-    }
-    this.operations.remove(index);
-    this.operationList.removeAndReflow(this.operations);
-    this.modifyImage.accept(this.originalImage.apply(this.operations));
+    this.state.operations.subscribe((operations) -> {
+      this.operationList.setOperations(operations);
+    });
   }
 
   private static class OperationList extends ParentElementEntryListWidget<OperationList.Entry> {
@@ -88,16 +68,18 @@ public class OperationsTab extends ImageTab {
       }
     }
 
-    public void removeAndReflow(List<Image.Operation> operations) {
-      this.removeEntry();
-      // TODO: Do I need better checks here?
-      for (int i = 0; i < Math.min(operations.size(), this.getEntryCount()); i++) {
+    public void setOperations(List<Image.Operation> operations) {
+      while (this.getEntryCount() > operations.size()) {
+        this.removeEntry();
+      }
+      while (this.getEntryCount() < operations.size()) {
+        this.addEntry(
+            Entry.factory(this.client.textRenderer, this.onDeletePress, operations.get(this.getEntryCount())));
+      }
+
+      for (int i = 0; i < operations.size(); i++) {
         this.getEntry(i).setOperation(operations.get(i));
       }
-    }
-
-    public void addOperation(Image.Operation operation) {
-      this.addEntry(Entry.factory(this.client.textRenderer, this.onDeletePress, operation));
     }
 
     static class Entry extends ParentElementEntryListWidget.Entry {

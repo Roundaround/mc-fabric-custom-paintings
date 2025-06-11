@@ -24,7 +24,7 @@ import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.util.Identifier;
 
 public class State implements AutoCloseable {
-  private final List<Observable<?>> observables = new ArrayList<>();
+  private final ArrayList<Observable<?>> observables = new ArrayList<>();
 
   public final Subject<UUID> uuid = this.addObservable(
       Subject.of(null));
@@ -151,14 +151,14 @@ public class State implements AutoCloseable {
     return this.lastSaved.get();
   }
 
-  public void setImage(int paintingIndex, Image image) {
+  public void setPainting(int paintingIndex, PackData.Painting painting) {
     List<PackData.Painting> srcPaintings = this.paintings.get();
     if (paintingIndex < 0 || paintingIndex >= srcPaintings.size()) {
       return;
     }
 
     List<PackData.Painting> paintings = new ArrayList<>(srcPaintings);
-    paintings.set(paintingIndex, paintings.get(paintingIndex).withImage(image));
+    paintings.set(paintingIndex, painting);
     this.paintings.set(paintings);
   }
 

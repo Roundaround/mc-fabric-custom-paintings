@@ -1,4 +1,4 @@
-package me.roundaround.custompaintings.client.gui.screen.editor.image;
+package me.roundaround.custompaintings.client.gui.screen.editor.painting;
 
 import java.util.function.Consumer;
 
@@ -11,17 +11,19 @@ import net.minecraft.client.gui.tab.Tab;
 import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.text.Text;
 
-public abstract class ImageTab implements Tab {
+public abstract class PaintingTab implements Tab {
   protected final MinecraftClient client;
   protected final TextRenderer textRenderer;
+  protected final State state;
   protected final Text title;
   protected final LinearLayoutWidget layout = LinearLayoutWidget.vertical()
       .spacing(GuiUtil.PADDING)
       .padding(GuiUtil.PADDING);
 
-  public ImageTab(MinecraftClient client, Text title) {
+  public PaintingTab(MinecraftClient client, State state, Text title) {
     this.client = client;
     this.textRenderer = client.textRenderer;
+    this.state = state;
     this.title = title;
   }
 

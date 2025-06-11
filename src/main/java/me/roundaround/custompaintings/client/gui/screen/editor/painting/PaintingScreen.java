@@ -1,10 +1,10 @@
-package me.roundaround.custompaintings.client.gui.screen.editor.image;
+package me.roundaround.custompaintings.client.gui.screen.editor.painting;
 
-import java.util.ArrayList;
 import java.util.function.Consumer;
 
 import org.jetbrains.annotations.NotNull;
 
+import me.roundaround.custompaintings.client.gui.screen.editor.PackData;
 import me.roundaround.custompaintings.client.gui.widget.ImageDisplayWidget;
 import me.roundaround.custompaintings.client.gui.widget.VersionStamp;
 import me.roundaround.custompaintings.generated.Constants;
@@ -29,7 +29,7 @@ import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
-public class ImageScreen extends BaseScreen {
+public class PaintingScreen extends BaseScreen {
   private static final int PANEL_MIN_WIDTH = 140;
   private static final Identifier TEXTURE_ID = Identifier.of(Constants.MOD_ID, "image_editor");
   private static final Identifier TAB_HEADER_BACKGROUND_TEXTURE = Identifier
@@ -39,37 +39,36 @@ public class ImageScreen extends BaseScreen {
   private final TabManager tabManager = new TabManager(
       (element) -> this.addDrawableChild(element),
       (child) -> this.remove(child));
-  private final ArrayList<Image.Operation> operations = new ArrayList<>();
-  private final Consumer<Image> saveCallback;
+  private final Consumer<PackData.Painting> saveCallback;
+  private final State state;
   private final NativeImageBackedTexture texture;
 
-  private Image image;
   private TabNavigationWidget tabNavigation;
   private InfoTab infoTab;
-  private OperationsTab operationsTab;
+  private ImageTab imageTab;
   private FillerWidget tabAreaPlaceholder;
   private ImageDisplayWidget imageDisplay;
 
-  public ImageScreen(
+  public PaintingScreen(
       @NotNull Text title,
       @NotNull ScreenParent parent,
       @NotNull MinecraftClient client,
-      Image image,
-      Consumer<Image> saveCallback) {
+      PackData.Painting painting,
+      Consumer<PackData.Painting> saveCallback) {
     super(title, parent, client);
     this.saveCallback = saveCallback;
-    this.image = image;
 
-    this.texture = new NativeImageBackedTexture(() -> "Image Editor", this.getNativeImage());
+    this.state = new State(painting);
+    this.texture = new NativeImageBackedTexture(() -> "Image Editor", getNativeImage(painting.image()));
     this.client.getTextureManager().registerTexture(TEXTURE_ID, texture);
   }
 
   @Override
   public void init() {
-    this.infoTab = new InfoTab(this.client, this.image, this::setImage);
-    this.operationsTab = new OperationsTab(this.client, this.operations, this.image, this::setImage);
+    this.infoTab = new InfoTab(this.client, this.state);
+    this.imageTab = new ImageTab(this.client, this.state);
     this.tabNavigation = TabNavigationWidget.builder(this.tabManager, this.width)
-        .tabs(this.infoTab, this.operationsTab)
+        .tabs(this.infoTab, this.imageTab)
         .build();
     this.addDrawableChild(this.tabNavigation);
 
@@ -83,7 +82,7 @@ public class ImageScreen extends BaseScreen {
     });
 
     this.imageDisplay = this.layout.addBody(
-        new ImageDisplayWidget((image) -> TEXTURE_ID, this.image),
+        new ImageDisplayWidget((image) -> TEXTURE_ID, this.state.image.get()),
         (parent, self) -> {
           self.setDimensions(parent.getUnusedSpace(self), parent.getInnerHeight());
         });
@@ -91,7 +90,7 @@ public class ImageScreen extends BaseScreen {
     this.layout.addFooter(ButtonWidget.builder(
         ScreenTexts.DONE,
         (b) -> {
-          this.saveCallback.accept(this.image);
+          this.saveCallback.accept(this.state.getPainting());
           this.close();
         })
         .build());
@@ -108,6 +107,8 @@ public class ImageScreen extends BaseScreen {
     });
     this.tabNavigation.selectTab(0, false);
     this.refreshWidgetPositions();
+
+    this.state.image.subscribe(this::setImage);
   }
 
   @Override
@@ -162,18 +163,16 @@ public class ImageScreen extends BaseScreen {
   }
 
   private void setImage(Image image) {
-    this.image = image;
-    this.texture.setImage(this.getNativeImage());
+    this.texture.setImage(getNativeImage(image));
     this.texture.upload();
     this.imageDisplay.setImage(image);
-    this.infoTab.onImageChange(image);
     this.refreshWidgetPositions();
   }
 
-  private NativeImage getNativeImage() {
-    if (this.image == null) {
+  private static NativeImage getNativeImage(Image image) {
+    if (image == null) {
       return Image.empty().toNativeImage();
     }
-    return this.image.toNativeImage();
+    return image.toNativeImage();
   }
 }
