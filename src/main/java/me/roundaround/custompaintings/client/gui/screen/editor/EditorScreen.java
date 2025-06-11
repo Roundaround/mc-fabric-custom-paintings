@@ -82,12 +82,15 @@ public class EditorScreen extends BaseScreen {
     this.tabNavigation.init();
 
     int headerFooterHeight = this.tabNavigation.getNavigationFocus().getBottom();
-    ScreenRect tabArea = new ScreenRect(0, headerFooterHeight, this.width,
+    this.layout.setHeaderHeight(headerFooterHeight);
+
+    this.layout.refreshPositions();
+    ScreenRect tabArea = new ScreenRect(
+        0,
+        headerFooterHeight,
+        this.width,
         this.height - this.layout.getFooterHeight() - headerFooterHeight);
     this.tabManager.setTabArea(tabArea);
-
-    this.layout.setHeaderHeight(headerFooterHeight);
-    this.layout.refreshPositions();
   }
 
   @Override
