@@ -17,6 +17,7 @@ import io.netty.buffer.ByteBuf;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.network.codec.PacketCodec;
+import net.minecraft.text.Text;
 
 public record Image(Color[] pixels, int width, int height, String hash) {
   public static final PacketCodec<ByteBuf, Image> PACKET_CODEC = PacketCodec.of(
@@ -133,12 +134,20 @@ public record Image(Color[] pixels, int width, int height, String hash) {
     return this.getColorInt(x, y, Color::getABGR);
   }
 
-  public Image invert() {
-    Color[] pixels = new Color[this.pixels.length];
-    for (int i = 0; i < this.pixels.length; i++) {
-      pixels[i] = this.pixels[i].invert();
+  public Image apply(Operation... operations) {
+    Hashless hashless = Hashless.fromImage(this);
+    for (Operation operation : operations) {
+      hashless = operation.apply(hashless);
     }
-    return new Image(pixels, this.width, this.height, getHash(pixels));
+    return hashless.toImage();
+  }
+
+  public Image apply(Iterable<Operation> operations) {
+    Hashless hashless = Hashless.fromImage(this);
+    for (Operation operation : operations) {
+      hashless = operation.apply(hashless);
+    }
+    return hashless.toImage();
   }
 
   private int getColorInt(int x, int y, Function<Color, Integer> supplier) {
@@ -219,6 +228,41 @@ public record Image(Color[] pixels, int width, int height, String hash) {
 
     private static int getAsInt(byte first, byte second, byte third, byte fourth) {
       return ((first & 0xFF) << 24) | ((second & 0xFF) << 16) | ((third & 0xFF) << 8) | (fourth & 0xFF);
+    }
+  }
+
+  public record Hashless(Color[] pixels, int width, int height) {
+    public Image toImage() {
+      return new Image(this.pixels, this.width, this.height, getHash(this.pixels));
+    }
+
+    public static Hashless fromImage(Image image) {
+      return new Hashless(image.pixels, image.width, image.height);
+    }
+  }
+
+  public interface Operation {
+    Text getName();
+
+    Hashless apply(Hashless image);
+
+    static Operation invert() {
+      return new Operation() {
+        @Override
+        public Text getName() {
+          // TODO: i18n
+          return Text.of("Invert");
+        }
+
+        @Override
+        public Hashless apply(Hashless source) {
+          Color[] pixels = new Color[source.pixels.length];
+          for (int i = 0; i < source.pixels.length; i++) {
+            pixels[i] = source.pixels[i].invert();
+          }
+          return new Hashless(pixels, source.width, source.height);
+        }
+      };
     }
   }
 }

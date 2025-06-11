@@ -120,7 +120,7 @@ public class ImageButtonWidget extends ButtonWidget {
 
   @Override
   public boolean isMouseOver(double mouseX, double mouseY) {
-    return this.active && this.visible && this.imageBounds.contains(mouseX, mouseY);
+    return this.visible && this.imageBounds.contains(mouseX, mouseY);
   }
 
   @Override
@@ -132,7 +132,7 @@ public class ImageButtonWidget extends ButtonWidget {
         this.imageBounds.top() - 1,
         this.imageBounds.right() + 1,
         this.imageBounds.bottom() + 1,
-        this.hovered || this.isFocused() ? Colors.WHITE : Colors.BLACK);
+        this.active && (this.hovered || this.isFocused()) ? Colors.WHITE : Colors.BLACK);
     context.drawTexture(
         RenderLayer::getGuiTextured,
         this.getTextureId.apply(this.image),
