@@ -190,7 +190,7 @@ public class PaintingScreen extends BaseScreen {
               scaledHeight);
           this.imageBounds = this.frameBounds
               .toFloatRect()
-              .reduce(showBackground ? this.pixelsPerBlock : 2);
+              .reduce(showBackground ? this.pixelsPerBlock : 1);
 
           this.layout.refreshPositions();
         });
