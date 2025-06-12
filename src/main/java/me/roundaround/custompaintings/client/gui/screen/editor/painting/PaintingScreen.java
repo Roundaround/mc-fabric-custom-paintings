@@ -100,7 +100,7 @@ public class PaintingScreen extends BaseScreen {
 
     LinearLayoutWidget imageRegion = this.layout.addBody(
         LinearLayoutWidget.vertical()
-            .spacing(GuiUtil.PADDING / 2)
+            .spacing(GuiUtil.PADDING)
             .defaultOffAxisContentAlignCenter(),
         (parent, self) -> {
           self.setDimensions(parent.getUnusedSpace(self), parent.getInnerHeight());
@@ -199,7 +199,7 @@ public class PaintingScreen extends BaseScreen {
               scaledHeight);
           this.imageBounds = this.frameBounds
               .toFloatRect()
-              .reduce(showBackground ? this.pixelsPerBlock : 1);
+              .reduce(showBackground ? this.pixelsPerBlock : 0);
 
           this.layout.refreshPositions();
         });
@@ -257,6 +257,12 @@ public class PaintingScreen extends BaseScreen {
           true);
       return;
     }
+
+    GuiUtil.drawBorder(
+        context,
+        this.frameBounds,
+        Colors.BLACK,
+        true);
 
     for (int x = 0; x < this.state.blockWidth.get() + 2; x++) {
       for (int y = 0; y < this.state.blockHeight.get() + 2; y++) {
