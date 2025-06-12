@@ -38,3 +38,6 @@ remappedSrc/
 
 # Ignore Gradle build output directory
 build
+
+# Affinity Photo lock files
+*~lock~

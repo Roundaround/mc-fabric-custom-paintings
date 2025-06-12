@@ -32,6 +32,7 @@ import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
+import net.minecraft.util.Colors;
 import net.minecraft.util.Identifier;
 
 public class PaintingScreen extends BaseScreen {
@@ -39,6 +40,7 @@ public class PaintingScreen extends BaseScreen {
   private static final Identifier IMAGE_TEXTURE = Identifier.of(Constants.MOD_ID, "image_editor");
   private static final Identifier TAB_HEADER_BACKGROUND_TEXTURE = Identifier
       .ofVanilla("textures/gui/tab_header_background.png");
+  private static final Identifier SHADOW_TEXTURE = Identifier.of(Constants.MOD_ID, "shadow_8px");
 
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
   private final TabManager tabManager = new TabManager(
@@ -188,7 +190,7 @@ public class PaintingScreen extends BaseScreen {
               scaledHeight);
           this.imageBounds = this.frameBounds
               .toFloatRect()
-              .reduce(showBackground ? this.pixelsPerBlock : 0);
+              .reduce(showBackground ? this.pixelsPerBlock : 2);
 
           this.layout.refreshPositions();
         });
@@ -239,6 +241,11 @@ public class PaintingScreen extends BaseScreen {
     super.renderBackground(context, mouseX, mouseY, deltaTicks);
 
     if (!this.showBackground.get()) {
+      GuiUtil.drawBorder(
+          context,
+          this.imageBounds,
+          Colors.BLACK,
+          true);
       return;
     }
 
@@ -256,6 +263,20 @@ public class PaintingScreen extends BaseScreen {
             posY + this.pixelsPerBlock);
       }
     }
+
+    float shadowSize = 2 * this.pixelsPerBlock / 16; // 2 "block pixels"
+    GuiUtil.drawSpriteNineSliced(
+        context,
+        RenderLayer::getGuiTextured,
+        SHADOW_TEXTURE,
+        this.imageBounds.left() - shadowSize,
+        this.imageBounds.top() - shadowSize,
+        this.imageBounds.getWidth() + shadowSize * 2,
+        this.imageBounds.getHeight() + shadowSize * 2,
+        32,
+        32,
+        GuiUtil.genColorInt(1f, 1f, 1f, 0.3f),
+        8);
   }
 
   @Override
