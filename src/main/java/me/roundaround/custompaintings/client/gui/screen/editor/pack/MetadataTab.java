@@ -23,7 +23,7 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
 
 public class MetadataTab extends PackTab {
-  private final int MIN_WIDTH = 240;
+  private static final int MIN_WIDTH = 240;
 
   public MetadataTab(
       @NotNull MinecraftClient client,
@@ -127,12 +127,14 @@ public class MetadataTab extends PackTab {
             .spacing(GuiUtil.PADDING)
             .defaultOffAxisContentAlignCenter();
 
-        layout.add(LabelWidget.builder(this.textRenderer, label)
-            .alignTextLeft()
-            .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
-            .hideBackground()
-            .showShadow()
-            .build(), (parent, self) -> {
+        layout.add(
+            LabelWidget.builder(this.textRenderer, label)
+                .alignTextLeft()
+                .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
+                .hideBackground()
+                .showShadow()
+                .build(),
+            (parent, self) -> {
               self.setDimensions(parent.getUnusedSpace(self), this.getContentHeight());
             });
 
