@@ -8,6 +8,7 @@ import me.roundaround.custompaintings.client.gui.screen.editor.PackData;
 import me.roundaround.custompaintings.client.gui.widget.VersionStamp;
 import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.resource.file.Image;
+import me.roundaround.custompaintings.roundalib.client.gui.icon.BuiltinIcon;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.FillerWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.linear.LinearLayoutWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
@@ -17,6 +18,7 @@ import me.roundaround.custompaintings.roundalib.client.gui.util.Axis;
 import me.roundaround.custompaintings.roundalib.client.gui.util.FloatRect;
 import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
 import me.roundaround.custompaintings.roundalib.client.gui.util.IntRect;
+import me.roundaround.custompaintings.roundalib.client.gui.widget.IconButtonWidget;
 import me.roundaround.custompaintings.roundalib.observable.Observable;
 import me.roundaround.custompaintings.roundalib.observable.Subject;
 import net.minecraft.client.MinecraftClient;
@@ -37,8 +39,6 @@ public class PaintingScreen extends BaseScreen {
   private static final Identifier IMAGE_TEXTURE = Identifier.of(Constants.MOD_ID, "image_editor");
   private static final Identifier TAB_HEADER_BACKGROUND_TEXTURE = Identifier
       .ofVanilla("textures/gui/tab_header_background.png");
-  private static final Identifier DARK_OAK_TEXTURE = Identifier
-      .ofVanilla("textures/block/dark_oak_planks.png");
 
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
   private final TabManager tabManager = new TabManager(
@@ -48,6 +48,7 @@ public class PaintingScreen extends BaseScreen {
   private final State state;
   private final NativeImageBackedTexture texture;
   private final Subject<IntRect> imageRegionBounds = Subject.of(null);
+  private final Subject<Boolean> showBackground = Subject.of(true);
 
   private TabNavigationWidget tabNavigation;
   private InfoTab infoTab;
@@ -56,6 +57,7 @@ public class PaintingScreen extends BaseScreen {
   private IntRect frameBounds;
   private float pixelsPerBlock;
   private FloatRect imageBounds;
+  private Background background = Background.DARK_OAK;
 
   public PaintingScreen(
       @NotNull Text title,
@@ -89,10 +91,46 @@ public class PaintingScreen extends BaseScreen {
       self.setDimensions(this.getPanelWidth(parent), parent.getInnerHeight());
     });
 
-    this.layout.addBody(FillerWidget.empty(), (parent, self) -> {
-      self.setDimensions(parent.getUnusedSpace(self), parent.getInnerHeight());
+    LinearLayoutWidget imageRegion = this.layout.addBody(
+        LinearLayoutWidget.vertical()
+            .spacing(GuiUtil.PADDING / 2)
+            .defaultOffAxisContentAlignCenter(),
+        (parent, self) -> {
+          self.setDimensions(parent.getUnusedSpace(self), parent.getInnerHeight());
+        });
+
+    imageRegion.add(FillerWidget.empty(), (parent, self) -> {
+      self.setDimensions(parent.getInnerWidth(), parent.getUnusedSpace(self));
       this.imageRegionBounds.set(IntRect.fromWidget(self));
     });
+
+    LinearLayoutWidget buttonRow = LinearLayoutWidget.horizontal()
+        .spacing(GuiUtil.PADDING);
+
+    // TODO: Better icon + i18n
+    IconButtonWidget changeBackgroundButton = buttonRow.add(
+        IconButtonWidget.builder(BuiltinIcon.ROTATE_18, Constants.MOD_ID)
+            .vanillaSize()
+            .messageAndTooltip(Text.of("Change background texture"))
+            .onPress((button) -> {
+              this.background = this.background.next();
+            })
+            .build());
+    this.showBackground.subscribe((showBackground) -> {
+      changeBackgroundButton.active = showBackground;
+    });
+
+    // TODO: Better icon (or actual checkbox?) + i18n
+    buttonRow.add(
+        IconButtonWidget.builder(BuiltinIcon.CHECKMARK_18, Constants.MOD_ID)
+            .vanillaSize()
+            .messageAndTooltip(Text.of("Toggle background"))
+            .onPress((button) -> {
+              this.showBackground.update((showBackground) -> !showBackground);
+            })
+            .build());
+
+    imageRegion.add(buttonRow);
 
     this.layout.addFooter(ButtonWidget.builder(
         ScreenTexts.DONE,
@@ -125,15 +163,16 @@ public class PaintingScreen extends BaseScreen {
         this.imageRegionBounds,
         this.state.blockWidth,
         this.state.blockHeight,
-        (region, width, height) -> {
+        this.showBackground,
+        (region, width, height, showBackground) -> {
           if (region == null) {
             return;
           }
 
           int regionWidth = region.getWidth();
           int regionHeight = region.getHeight();
-          int blockWidth = width + 2;
-          int blockHeight = height + 2;
+          int blockWidth = width + (showBackground ? 2 : 0);
+          int blockHeight = height + (showBackground ? 2 : 0);
 
           float scale = Math.min(
               (float) regionWidth / blockWidth,
@@ -141,14 +180,16 @@ public class PaintingScreen extends BaseScreen {
           int scaledWidth = Math.round(scale * blockWidth);
           int scaledHeight = Math.round(scale * blockHeight);
 
+          this.pixelsPerBlock = (float) scaledWidth / blockWidth;
           this.frameBounds = IntRect.byDimensions(
               region.left() + (regionWidth - scaledWidth) / 2,
               region.top() + (regionHeight - scaledHeight) / 2,
               scaledWidth,
               scaledHeight);
+          this.imageBounds = this.frameBounds
+              .toFloatRect()
+              .reduce(showBackground ? this.pixelsPerBlock : 0);
 
-          this.pixelsPerBlock = (float) scaledWidth / blockWidth;
-          this.imageBounds = this.frameBounds.toFloatRect().reduce(this.pixelsPerBlock);
           this.layout.refreshPositions();
         });
   }
@@ -197,6 +238,10 @@ public class PaintingScreen extends BaseScreen {
   public void renderBackground(DrawContext context, int mouseX, int mouseY, float deltaTicks) {
     super.renderBackground(context, mouseX, mouseY, deltaTicks);
 
+    if (!this.showBackground.get()) {
+      return;
+    }
+
     for (int x = 0; x < this.state.blockWidth.get() + 2; x++) {
       for (int y = 0; y < this.state.blockHeight.get() + 2; y++) {
         float posX = this.frameBounds.left() + (x * this.pixelsPerBlock);
@@ -204,7 +249,7 @@ public class PaintingScreen extends BaseScreen {
         GuiUtil.drawTexturedQuad(
             context,
             RenderLayer::getGuiTextured,
-            DARK_OAK_TEXTURE,
+            this.background.get(),
             posX,
             posX + this.pixelsPerBlock,
             posY,
@@ -239,5 +284,25 @@ public class PaintingScreen extends BaseScreen {
       return Image.empty().toNativeImage();
     }
     return image.toNativeImage();
+  }
+
+  private enum Background {
+    DARK_OAK(Identifier.ofVanilla("textures/block/dark_oak_planks.png")),
+    DEEPSLATE(Identifier.ofVanilla("textures/block/deepslate_bricks.png")),
+    QUARTZ(Identifier.ofVanilla("textures/block/quartz_block_side.png"));
+
+    private Identifier id;
+
+    Background(Identifier id) {
+      this.id = id;
+    }
+
+    public Identifier get() {
+      return this.id;
+    }
+
+    public Background next() {
+      return values()[(this.ordinal() + 1) % values().length];
+    }
   }
 }
