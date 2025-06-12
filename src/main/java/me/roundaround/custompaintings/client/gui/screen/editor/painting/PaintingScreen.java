@@ -273,18 +273,32 @@ public class PaintingScreen extends BaseScreen {
       }
     }
 
-    float shadowSize = 2 * this.pixelsPerBlock / 16; // 2 "block pixels"
+    float shadow1Size = 2f * this.pixelsPerBlock / 16; // 2 "block pixels"
     GuiUtil.drawSpriteNineSliced(
         context,
         RenderLayer::getGuiTextured,
         SHADOW_TEXTURE,
-        this.imageBounds.left() - shadowSize,
-        this.imageBounds.top() - shadowSize,
-        this.imageBounds.getWidth() + shadowSize * 2,
-        this.imageBounds.getHeight() + shadowSize * 2,
+        this.imageBounds.left() - shadow1Size,
+        this.imageBounds.top() - shadow1Size,
+        this.imageBounds.getWidth() + shadow1Size * 2,
+        this.imageBounds.getHeight() + shadow1Size * 2,
         32,
         32,
-        GuiUtil.genColorInt(1f, 1f, 1f, 0.3f),
+        GuiUtil.genColorInt(1f, 1f, 1f, 0.15f),
+        8);
+
+    float shadow2Size = 1.25f * this.pixelsPerBlock / 16; // 1.25 "block pixels"
+    GuiUtil.drawSpriteNineSliced(
+        context,
+        RenderLayer::getGuiTextured,
+        SHADOW_TEXTURE,
+        this.imageBounds.left() - shadow2Size,
+        this.imageBounds.top() - shadow2Size,
+        this.imageBounds.getWidth() + shadow2Size * 2,
+        this.imageBounds.getHeight() + shadow2Size * 2,
+        32,
+        32,
+        GuiUtil.genColorInt(1f, 1f, 1f, 0.15f),
         8);
   }
 
