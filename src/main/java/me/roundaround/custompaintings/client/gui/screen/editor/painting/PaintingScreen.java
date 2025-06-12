@@ -25,6 +25,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.ScreenRect;
 import net.minecraft.client.gui.tab.TabManager;
+import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TabNavigationWidget;
 import net.minecraft.client.render.RenderLayer;
@@ -41,6 +42,10 @@ public class PaintingScreen extends BaseScreen {
   private static final Identifier TAB_HEADER_BACKGROUND_TEXTURE = Identifier
       .ofVanilla("textures/gui/tab_header_background.png");
   private static final Identifier SHADOW_TEXTURE = Identifier.of(Constants.MOD_ID, "shadow_8px");
+  // TODO: i18n
+  private static final Text SHOW_BACKGROUND_TEXT = Text.of("Show background");
+  // TODO: i18n
+  private static final Text HIDE_BACKGROUND_TEXT = Text.of("Hide background");
 
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
   private final TabManager tabManager = new TabManager(
@@ -109,26 +114,30 @@ public class PaintingScreen extends BaseScreen {
     LinearLayoutWidget buttonRow = LinearLayoutWidget.horizontal()
         .spacing(GuiUtil.PADDING);
 
-    // TODO: Better icon (or actual checkbox?) + i18n
-    buttonRow.add(
-        IconButtonWidget.builder(BuiltinIcon.CHECKMARK_18, Constants.MOD_ID)
+    IconButtonWidget showBackgroundButton = buttonRow.add(
+        IconButtonWidget.builder(BuiltinIcon.SHOW_18, Constants.MOD_ID)
             .vanillaSize()
-            .messageAndTooltip(Text.of("Toggle background"))
+            .messageAndTooltip(HIDE_BACKGROUND_TEXT)
             .onPress((button) -> {
               this.showBackground.update((showBackground) -> !showBackground);
             })
             .build());
-
-    // TODO: Better icon + i18n
+    // TODO: i18n
     IconButtonWidget changeBackgroundButton = buttonRow.add(
-        IconButtonWidget.builder(BuiltinIcon.ROTATE_18, Constants.MOD_ID)
+        IconButtonWidget.builder(BuiltinIcon.BRUSH_18, Constants.MOD_ID)
             .vanillaSize()
             .messageAndTooltip(Text.of("Change background texture"))
             .onPress((button) -> {
               this.background = this.background.next();
             })
             .build());
+
     this.showBackground.subscribe((showBackground) -> {
+      showBackgroundButton.setTexture(showBackground ? BuiltinIcon.HIDE_18 : BuiltinIcon.SHOW_18, Constants.MOD_ID);
+      Text message = showBackground ? HIDE_BACKGROUND_TEXT : SHOW_BACKGROUND_TEXT;
+      showBackgroundButton.setMessage(message);
+      showBackgroundButton.setTooltip(Tooltip.of(message));
+
       changeBackgroundButton.active = showBackground;
     });
 
