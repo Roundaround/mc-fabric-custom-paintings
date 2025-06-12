@@ -34,7 +34,7 @@ import net.minecraft.util.Identifier;
 
 public class PaintingScreen extends BaseScreen {
   private static final int PANEL_MIN_WIDTH = 140;
-  private static final Identifier TEXTURE_ID = Identifier.of(Constants.MOD_ID, "image_editor");
+  private static final Identifier IMAGE_TEXTURE = Identifier.of(Constants.MOD_ID, "image_editor");
   private static final Identifier TAB_HEADER_BACKGROUND_TEXTURE = Identifier
       .ofVanilla("textures/gui/tab_header_background.png");
   private static final Identifier DARK_OAK_TEXTURE = Identifier
@@ -68,7 +68,7 @@ public class PaintingScreen extends BaseScreen {
 
     this.state = new State(painting);
     this.texture = new NativeImageBackedTexture(() -> "Image Editor", getNativeImage(painting.image()));
-    this.client.getTextureManager().registerTexture(TEXTURE_ID, texture);
+    this.client.getTextureManager().registerTexture(IMAGE_TEXTURE, texture);
   }
 
   @Override
@@ -182,7 +182,7 @@ public class PaintingScreen extends BaseScreen {
     GuiUtil.drawTexturedQuad(
         context,
         RenderLayer::getGuiTextured,
-        TEXTURE_ID,
+        IMAGE_TEXTURE,
         this.imageBounds.left(),
         this.imageBounds.right(),
         this.imageBounds.top(),
@@ -227,7 +227,7 @@ public class PaintingScreen extends BaseScreen {
 
   @Override
   public void removed() {
-    this.client.getTextureManager().destroyTexture(TEXTURE_ID);
+    this.client.getTextureManager().destroyTexture(IMAGE_TEXTURE);
   }
 
   private int getPanelWidth(LinearLayoutWidget layout) {
