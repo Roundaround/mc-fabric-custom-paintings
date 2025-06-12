@@ -109,6 +109,16 @@ public class PaintingScreen extends BaseScreen {
     LinearLayoutWidget buttonRow = LinearLayoutWidget.horizontal()
         .spacing(GuiUtil.PADDING);
 
+    // TODO: Better icon (or actual checkbox?) + i18n
+    buttonRow.add(
+        IconButtonWidget.builder(BuiltinIcon.CHECKMARK_18, Constants.MOD_ID)
+            .vanillaSize()
+            .messageAndTooltip(Text.of("Toggle background"))
+            .onPress((button) -> {
+              this.showBackground.update((showBackground) -> !showBackground);
+            })
+            .build());
+
     // TODO: Better icon + i18n
     IconButtonWidget changeBackgroundButton = buttonRow.add(
         IconButtonWidget.builder(BuiltinIcon.ROTATE_18, Constants.MOD_ID)
@@ -121,16 +131,6 @@ public class PaintingScreen extends BaseScreen {
     this.showBackground.subscribe((showBackground) -> {
       changeBackgroundButton.active = showBackground;
     });
-
-    // TODO: Better icon (or actual checkbox?) + i18n
-    buttonRow.add(
-        IconButtonWidget.builder(BuiltinIcon.CHECKMARK_18, Constants.MOD_ID)
-            .vanillaSize()
-            .messageAndTooltip(Text.of("Toggle background"))
-            .onPress((button) -> {
-              this.showBackground.update((showBackground) -> !showBackground);
-            })
-            .build());
 
     imageRegion.add(buttonRow);
 
