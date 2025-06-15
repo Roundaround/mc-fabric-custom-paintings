@@ -48,7 +48,6 @@ import me.roundaround.custompaintings.util.StringUtil;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.data.ItemModels;
 import net.minecraft.client.item.ItemAsset;
-import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.model.LoadedEntityModels;
 import net.minecraft.client.render.item.model.ItemModel;
 import net.minecraft.client.render.model.BakedSimpleModel;
@@ -77,6 +76,8 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 
 public class ClientPaintingRegistry extends CustomPaintingRegistry {
+  public static final Identifier CUSTOM_PAINTING_TEXTURE_ID = Identifier.of(CustomPaintingsMod.MOD_ID, "textures/atlas/paintings.png");
+
   private static final Identifier PAINTING_BACK_ID = Identifier.ofVanilla("back");
   private static final Identifier BACK_TEXTURE_ID = Identifier.ofVanilla("textures/painting/back.png");
   private static final Identifier EARTH_TEXTURE_ID = Identifier.ofVanilla("textures/painting/earth.png");
@@ -104,7 +105,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
 
   private ClientPaintingRegistry(MinecraftClient client) {
     this.client = client;
-    this.atlas = new SpriteAtlasTexture(Identifier.of(CustomPaintingsMod.MOD_ID, "textures/atlas/paintings.png"));
+    this.atlas = new SpriteAtlasTexture(CUSTOM_PAINTING_TEXTURE_ID);
     client.getTextureManager().registerTexture(this.atlas.getId(), this.atlas);
 
     MinecraftClientEvents.CLOSE.register(this::close);
@@ -492,6 +493,8 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     }));
 
     this.atlas.upload(SpriteLoader.fromAtlas(this.atlas).stitch(sprites, 0, Util.getMainWorkerExecutor()));
+
+    this.client.getTextureManager().registerTexture(CUSTOM_PAINTING_TEXTURE_ID, atlas);
 
     this.spriteIds.clear();
     this.spriteIds.addAll(sprites.stream().map(SpriteContents::getId).map(CustomId::from).toList());

@@ -4,9 +4,6 @@ import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.client.option.KeyBindings;
 import me.roundaround.custompaintings.client.registry.CacheManager;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
-import me.roundaround.custompaintings.client.render.item.model.CustomPaintingItemRenderer;
-import me.roundaround.custompaintings.client.render.item.property.bool.PaintingHasCustomDataProperty;
-import me.roundaround.custompaintings.client.render.item.property.select.CustomPaintingSelectProperty;
 import me.roundaround.gradle.api.annotation.Entrypoint;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -29,9 +26,5 @@ public class CustomPaintingsClientMod implements ClientModInitializer {
       ClientPaintingRegistry.getInstance().clear();
       ClientPaintingManager.getInstance().clear();
     });
-
-    PaintingHasCustomDataProperty.register();
-    CustomPaintingSelectProperty.register();
-    CustomPaintingItemRenderer.register();
   }
 }
