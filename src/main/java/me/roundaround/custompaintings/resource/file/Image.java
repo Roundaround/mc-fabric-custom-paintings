@@ -264,5 +264,36 @@ public record Image(Color[] pixels, int width, int height, String hash) {
         }
       };
     }
+
+    static Operation resize(int width, int height) {
+      return new Operation() {
+        @Override
+        public Text getName() {
+          return Text.of("Resize");
+        }
+
+        @Override
+        public Hashless apply(Hashless source) {
+          Color[] pixels = new Color[width * height];
+          for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+              pixels[getIndex(height, x, y)] = resample(source, width, height, x, y);
+            }
+          }
+          return new Hashless(pixels, width, height);
+        }
+
+        private static Color resample(
+            Hashless source,
+            int targetWidth,
+            int targetHeight,
+            int x,
+            int y) {
+          int sourceX = (int) (x * (source.width / (double) targetWidth));
+          int sourceY = (int) (y * (source.height / (double) targetHeight));
+          return source.pixels[getIndex(source.height, sourceX, sourceY)];
+        }
+      };
+    }
   }
 }

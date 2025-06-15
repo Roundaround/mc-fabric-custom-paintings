@@ -4,6 +4,7 @@ import com.mojang.datafixers.Products;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.netty.buffer.ByteBuf;
+import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.util.CustomId;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.network.codec.PacketCodec;
@@ -21,10 +22,9 @@ import java.util.Optional;
 
 public class PaintingData {
   public static final PaintingData EMPTY = new PaintingData(null, 0, 0);
-  public static final Codec<PaintingData> CODEC =
-      RecordCodecBuilder.create((instance) -> mapBaseCodecFields(instance).apply(instance,
-      PaintingData::new
-  ));
+  public static final Codec<PaintingData> CODEC = RecordCodecBuilder
+      .create((instance) -> mapBaseCodecFields(instance).apply(instance,
+          PaintingData::new));
   public static final PacketCodec<ByteBuf, PaintingData> PACKET_CODEC = PacketCodec.tuple(
       CustomId.PACKET_CODEC,
       PaintingData::id,
@@ -40,8 +40,10 @@ public class PaintingData {
       PaintingData::vanilla,
       PacketCodecs.BOOLEAN,
       PaintingData::unknown,
-      PaintingData::new
-  );
+      PaintingData::new);
+  public static final String PACK_NBT_KEY = Constants.MOD_ID + ":pack";
+  public static final String PAINTING_NBT_KEY = Constants.MOD_ID + ":painting";
+
   private final CustomId id;
   private final int width;
   private final int height;
@@ -57,8 +59,7 @@ public class PaintingData {
       @NotNull String name,
       @NotNull String artist,
       boolean vanilla,
-      boolean unknown
-  ) {
+      boolean unknown) {
     assert name != null;
     assert artist != null;
     this.id = id;
@@ -86,8 +87,7 @@ public class PaintingData {
         vanillaVariant.assetId().getPath(),
         "",
         true,
-        false
-    );
+        false);
   }
 
   public PaintingVariant toVariant() {
@@ -96,8 +96,7 @@ public class PaintingData {
         this.height(),
         CustomId.toIdentifier(this.id()),
         Optional.of(this.getNameText()),
-        Optional.of(this.getArtistText())
-    );
+        Optional.of(this.getArtistText()));
   }
 
   public int getScaledWidth() {
@@ -212,6 +211,25 @@ public class PaintingData {
     return lines;
   }
 
+  public MutableText getTooltipNameText() {
+    if (!this.hasName()) {
+      return Text.literal(this.id().resource()).formatted(Formatting.LIGHT_PURPLE);
+    }
+
+    return this.getNameText();
+  }
+
+  public Optional<MutableText> getTooltipArtistText() {
+    if (!this.hasArtist()) {
+      return Optional.empty();
+    }
+    return Optional.of(Text.literal(this.artist()).formatted(Formatting.GRAY));
+  }
+
+  public MutableText getTooltipDimensionsText() {
+    return Text.translatable("painting.dimensions", this.width, this.height);
+  }
+
   public PaintingData setId(CustomId id) {
     return new PaintingData(id, this.width, this.height, this.name, this.artist, this.vanilla, this.unknown);
   }
@@ -252,9 +270,9 @@ public class PaintingData {
     return switch (category) {
       case SIZE -> this.width() != knownData.width() || this.height() != knownData.height();
       case INFO -> !this.name().equals(knownData.name()) || !this.artist().equals(knownData.artist()) ||
-                   this.vanilla() != knownData.vanilla();
+          this.vanilla() != knownData.vanilla();
       case EVERYTHING -> this.width() != knownData.width() || this.height() != knownData.height() ||
-                         !this.name().equals(knownData.name()) || !this.artist().equals(knownData.artist());
+          !this.name().equals(knownData.name()) || !this.artist().equals(knownData.artist());
     };
   }
 
@@ -300,8 +318,8 @@ public class PaintingData {
     }
 
     return this.width == that.width && this.height == that.height && this.vanilla == that.vanilla &&
-           Objects.equals(this.name, that.name) && Objects.equals(this.id, that.id) &&
-           Objects.equals(this.artist, that.artist);
+        Objects.equals(this.name, that.name) && Objects.equals(this.id, that.id) &&
+        Objects.equals(this.artist, that.artist);
   }
 
   @Override
@@ -312,14 +330,12 @@ public class PaintingData {
   @Override
   public String toString() {
     return "PaintingData[" + "id=" + this.id + ", " + "width=" + this.width + ", " + "height=" + this.height + ", " +
-           "name=" + this.name + ", " + "artist=" + this.artist + ", " + "vanilla=" + this.vanilla + ", " + "unknown=" +
-           this.unknown + ']';
+        "name=" + this.name + ", " + "artist=" + this.artist + ", " + "vanilla=" + this.vanilla + ", " + "unknown=" +
+        this.unknown + ']';
   }
 
-  public static <T extends PaintingData> Products.P7<RecordCodecBuilder.Mu<T>, CustomId, Integer, Integer, String,
-      String, Boolean, Boolean> mapBaseCodecFields(
-      RecordCodecBuilder.Instance<T> instance
-  ) {
+  public static <T extends PaintingData> Products.P7<RecordCodecBuilder.Mu<T>, CustomId, Integer, Integer, String, String, Boolean, Boolean> mapBaseCodecFields(
+      RecordCodecBuilder.Instance<T> instance) {
     return instance.group(
         CustomId.CODEC.fieldOf("Id").forGetter(PaintingData::id),
         Codec.INT.fieldOf("Width").forGetter(PaintingData::width),
@@ -327,8 +343,7 @@ public class PaintingData {
         Codec.STRING.optionalFieldOf("Name", "").forGetter(PaintingData::name),
         Codec.STRING.optionalFieldOf("Artist", "").forGetter(PaintingData::artist),
         Codec.BOOL.fieldOf("Vanilla").forGetter(PaintingData::vanilla),
-        Codec.BOOL.optionalFieldOf("Unknown", false).forGetter(PaintingData::unknown)
-    );
+        Codec.BOOL.optionalFieldOf("Unknown", false).forGetter(PaintingData::unknown));
   }
 
   public enum MismatchedCategory {

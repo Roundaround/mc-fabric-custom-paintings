@@ -22,6 +22,7 @@ public class CustomPaintingsConfig extends ModConfigImpl implements GameScopedFi
   public BooleanConfigOption cacheImages;
   public IntConfigOption cacheTtl;
   public BooleanConfigOption silenceAllConvertPrompts;
+  public BooleanConfigOption renderArtworkOnItems;
 
   private CustomPaintingsConfig() {
     super(CustomPaintingsMod.MOD_ID, "game");
@@ -30,7 +31,7 @@ public class CustomPaintingsConfig extends ModConfigImpl implements GameScopedFi
   @Override
   protected void registerOptions() {
     this.overrideRenderDistance = this.buildRegistration(BooleanConfigOption.yesNoBuilder(ConfigPath.of(
-            "overrideRenderDistance")).setComment("Override vanilla render distance").setDefaultValue(false).build())
+        "overrideRenderDistance")).setComment("Override vanilla render distance").setDefaultValue(false).build())
         .clientOnly()
         .commit();
 
@@ -57,9 +58,15 @@ public class CustomPaintingsConfig extends ModConfigImpl implements GameScopedFi
         .build()).clientOnly().commit();
 
     this.silenceAllConvertPrompts = this.buildRegistration(BooleanConfigOption.yesNoBuilder(ConfigPath.of(
-            "silenceAllConvertPrompts"))
+        "silenceAllConvertPrompts"))
         .setComment("Silence all legacy pack conversion prompts")
         .setDefaultValue(false)
+        .build()).clientOnly().commit();
+
+    this.renderArtworkOnItems = this.buildRegistration(BooleanConfigOption.yesNoBuilder(ConfigPath.of(
+        "renderArtworkOnItems"))
+        .setComment("Render the artwork on custom painting items")
+        .setDefaultValue(true)
         .build()).clientOnly().commit();
   }
 }

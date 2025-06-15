@@ -1,6 +1,7 @@
 package me.roundaround.custompaintings.client.registry;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,6 +18,9 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.gui.screen.PacksLoadedListener;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
@@ -29,6 +33,8 @@ import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.generated.Constants;
+import me.roundaround.custompaintings.mixin.BakedModelManagerAccessor;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
 import me.roundaround.custompaintings.resource.PackIcons;
 import me.roundaround.custompaintings.resource.ResourceUtil;
@@ -40,6 +46,20 @@ import me.roundaround.custompaintings.roundalib.event.MinecraftClientEvents;
 import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.custompaintings.util.StringUtil;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.data.ItemModels;
+import net.minecraft.client.item.ItemAsset;
+import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.entity.model.LoadedEntityModels;
+import net.minecraft.client.render.item.model.ItemModel;
+import net.minecraft.client.render.model.BakedSimpleModel;
+import net.minecraft.client.render.model.ErrorCollectingSpriteGetter;
+import net.minecraft.client.render.model.MissingModel;
+import net.minecraft.client.render.model.ModelBaker;
+import net.minecraft.client.render.model.ReferencedModelsCollector;
+import net.minecraft.client.render.model.SimpleModel;
+import net.minecraft.client.render.model.UnbakedModel;
+import net.minecraft.client.render.model.json.GeneratedItemModel;
+import net.minecraft.client.render.model.json.JsonUnbakedModel;
 import net.minecraft.client.texture.MissingSprite;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.Sprite;
@@ -47,6 +67,7 @@ import net.minecraft.client.texture.SpriteAtlasTexture;
 import net.minecraft.client.texture.SpriteContents;
 import net.minecraft.client.texture.SpriteDimensions;
 import net.minecraft.client.texture.SpriteLoader;
+import net.minecraft.client.util.SpriteIdentifier;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.registry.DynamicRegistryManager;
@@ -70,6 +91,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   private final HashMap<CustomId, ImageChunkBuilder> imageBuilders = new HashMap<>();
   private final LinkedHashMap<CustomId, CompletableFuture<PaintingData>> pendingDataRequests = new LinkedHashMap<>();
   private final HashMap<CustomId, Boolean> finishedMigrations = new HashMap<>();
+  private final SpriteGetter spriteGetter = new SpriteGetter();
 
   private boolean atlasInitialized = false;
   private boolean packsReceived = false;
@@ -146,12 +168,10 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
       return this.atlas.getSprite(MissingSprite.getMissingSpriteId());
     } catch (IllegalStateException e) {
       // In single player we will (usually) initialize the atlas before the first
-      // render. In multiplayer and potentially
-      // in single player on slower PCs however, first render could come before we
-      // receive the summary packet and
+      // render. In multiplayer and potentially in single player on slower PCs
+      // however, first render could come before we receive the summary packet and
       // initialize the atlas. In those cases, atlas.getSprite throws an exception. If
-      // it does, simply build the sprite
-      // atlas and try again.
+      // it does, simply build the sprite atlas and try again.
       if (!this.atlasInitialized) {
         this.buildSpriteAtlas();
         return this.getMissingSprite();
@@ -451,10 +471,50 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.paintings.values().forEach((painting) -> this.getSpriteContents(painting).ifPresent(sprites::add));
     this.packsMap.keySet().forEach((packId) -> this.getSpriteContents(packId).ifPresent(sprites::add));
 
+    HashMap<Identifier, UnbakedModel> unbakedModels = new HashMap<>();
+    unbakedModels.put(Identifier.ofVanilla("item/generated"), getGeneratedItemModel());
+
+    HashMap<Identifier, ItemAsset> itemAssets = new HashMap<>();
+    this.paintings.values().forEach((painting) -> this.generateItemSprite(painting).ifPresent((sprite) -> {
+      sprites.add(sprite);
+
+      Identifier id = getItemModelId(painting.id());
+
+      JsonObject json = new JsonObject();
+      json.addProperty("parent", "minecraft:item/generated");
+      JsonObject textures = new JsonObject();
+      textures.addProperty("layer0", id.toString());
+      json.add("textures", textures);
+      JsonUnbakedModel unbakedModel = JsonUnbakedModel.deserialize(new StringReader(json.toString()));
+
+      unbakedModels.put(id, unbakedModel);
+      itemAssets.put(id, new ItemAsset(ItemModels.basic(id), ItemAsset.Properties.DEFAULT));
+    }));
+
     this.atlas.upload(SpriteLoader.fromAtlas(this.atlas).stitch(sprites, 0, Util.getMainWorkerExecutor()));
 
     this.spriteIds.clear();
     this.spriteIds.addAll(sprites.stream().map(SpriteContents::getId).map(CustomId::from).toList());
+
+    ReferencedModelsCollector collector = new ReferencedModelsCollector(unbakedModels, MissingModel.create());
+    collector.addSpecialModel(GeneratedItemModel.GENERATED, new GeneratedItemModel());
+    itemAssets.forEach((id, asset) -> collector.resolve(asset.model()));
+    BakedSimpleModel missingModel = collector.getMissingModel();
+    Map<Identifier, BakedSimpleModel> simpleModels = collector.collectModels();
+
+    ModelBaker baker = new ModelBaker(
+        LoadedEntityModels.EMPTY,
+        Map.of(),
+        itemAssets,
+        simpleModels,
+        missingModel);
+
+    baker.bake(this.spriteGetter, Util.getMainWorkerExecutor()).thenAccept((bakedModels) -> {
+      BakedModelManagerAccessor accessor = (BakedModelManagerAccessor) this.client.getBakedModelManager();
+      HashMap<Identifier, ItemModel> itemModels = new HashMap<>(accessor.getBakedItemModels());
+      itemModels.putAll(bakedModels.itemStackModels());
+      accessor.setBakedItemModels(itemModels);
+    });
 
     this.atlasInitialized = true;
 
@@ -539,6 +599,30 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
         ResourceMetadata.NONE));
   }
 
+  private Optional<SpriteContents> generateItemSprite(PaintingData painting) {
+    Image image = this.images.get(painting.id());
+    if (image == null || image.isEmpty()) {
+      return Optional.empty();
+    }
+
+    int maxWidth = 13;
+    int maxHeight = 12;
+    int blockWidth = painting.width();
+    int blockHeight = painting.height();
+
+    double scale = Math.min(maxWidth / (double) blockWidth, maxHeight / (double) blockHeight);
+    int width = (int) (blockWidth * scale);
+    int height = (int) (blockHeight * scale);
+
+    Image resized = image.apply(Image.Operation.resize(width, height));
+
+    return this.getSpriteContents(
+        CustomId.from(getItemModelId(painting.id())),
+        resized,
+        width,
+        height);
+  }
+
   @SuppressWarnings("BooleanMethodIsAlwaysInverted")
   private boolean usingCache() {
     return CustomPaintingsConfig.getInstance().cacheImages.getValue() && !this.client.isInSingleplayer();
@@ -552,5 +636,78 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
       }
     }
     return nativeImage;
+  }
+
+  public static Identifier getItemModelId(CustomId id) {
+    return Identifier.of(Constants.MOD_ID, "item/" + id.pack() + "/" + id.resource());
+  }
+
+  private static UnbakedModel getGeneratedItemModel() {
+    JsonObject json = new JsonObject();
+    json.addProperty("parent", "builtin/generated");
+    json.addProperty("gui_light", "front");
+    JsonObject display = new JsonObject();
+    display.add("ground", genDisplayJsonObject(
+        0, 0, 0,
+        0, 2, 0,
+        0.5f, 0.5f, 0.5f));
+    display.add("head", genDisplayJsonObject(
+        0, 180, 0,
+        0, 13, 7,
+        1, 1, 1));
+    display.add("thirdperson_righthand", genDisplayJsonObject(
+        0, 0, 0,
+        0, 3, 1,
+        0.55f, 0.55f, 0.55f));
+    display.add("firstperson_righthand", genDisplayJsonObject(
+        0, -90, 25,
+        1.13f, 3.2f, 1.13f,
+        0.68f, 0.68f, 0.68f));
+    display.add("fixed", genDisplayJsonObject(
+        0, 180, 0,
+        0, 0, 0,
+        1, 1, 1));
+    json.add("display", display);
+    return JsonUnbakedModel.deserialize(new StringReader(json.toString()));
+  }
+
+  private static JsonObject genDisplayJsonObject(float... values) {
+    if (values.length != 9) {
+      throw new IllegalArgumentException("Values must contain 9 values");
+    }
+
+    JsonArray rotation = new JsonArray();
+    rotation.add(values[0]);
+    rotation.add(values[1]);
+    rotation.add(values[2]);
+
+    JsonArray translation = new JsonArray();
+    translation.add(values[3]);
+    translation.add(values[4]);
+    translation.add(values[5]);
+
+    JsonArray scale = new JsonArray();
+    scale.add(values[6]);
+    scale.add(values[7]);
+    scale.add(values[8]);
+
+    JsonObject display = new JsonObject();
+    display.add("rotation", rotation);
+    display.add("translation", translation);
+    display.add("scale", scale);
+
+    return display;
+  }
+
+  private class SpriteGetter implements ErrorCollectingSpriteGetter {
+    @Override
+    public Sprite get(SpriteIdentifier id, SimpleModel model) {
+      return ClientPaintingRegistry.this.getSprite(CustomId.from(id.getTextureId()));
+    }
+
+    @Override
+    public Sprite getMissing(String name, SimpleModel model) {
+      return ClientPaintingRegistry.this.getMissingSprite();
+    }
   }
 }
