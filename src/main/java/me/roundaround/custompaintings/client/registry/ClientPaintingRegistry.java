@@ -43,8 +43,10 @@ import me.roundaround.custompaintings.resource.file.Image;
 import me.roundaround.custompaintings.resource.file.Metadata;
 import me.roundaround.custompaintings.resource.legacy.LegacyPackConverter;
 import me.roundaround.custompaintings.roundalib.event.MinecraftClientEvents;
+import me.roundaround.custompaintings.roundalib.util.PathAccessor;
 import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.custompaintings.util.StringUtil;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.data.ItemModels;
 import net.minecraft.client.item.ItemAsset;
@@ -72,15 +74,19 @@ import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.registry.DynamicRegistryManager;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.resource.metadata.ResourceMetadata;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
+import net.minecraft.util.math.MathHelper;
 
 public class ClientPaintingRegistry extends CustomPaintingRegistry {
-  public static final Identifier CUSTOM_PAINTING_TEXTURE_ID = Identifier.of(CustomPaintingsMod.MOD_ID, "textures/atlas/paintings.png");
+  public static final Identifier CUSTOM_PAINTING_TEXTURE_ID = Identifier.of(CustomPaintingsMod.MOD_ID,
+      "textures/atlas/paintings.png");
 
   private static final Identifier PAINTING_BACK_ID = Identifier.ofVanilla("back");
   private static final Identifier BACK_TEXTURE_ID = Identifier.ofVanilla("textures/painting/back.png");
   private static final Identifier EARTH_TEXTURE_ID = Identifier.ofVanilla("textures/painting/earth.png");
+  private static final Image HOOK_IMAGE = generateItemHookImage();
 
   private static ClientPaintingRegistry instance = null;
 
@@ -493,11 +499,17 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     }));
 
     this.atlas.upload(SpriteLoader.fromAtlas(this.atlas).stitch(sprites, 0, Util.getMainWorkerExecutor()));
-
-    this.client.getTextureManager().registerTexture(CUSTOM_PAINTING_TEXTURE_ID, atlas);
-
     this.spriteIds.clear();
     this.spriteIds.addAll(sprites.stream().map(SpriteContents::getId).map(CustomId::from).toList());
+
+    if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
+      try {
+        this.atlas.save(CUSTOM_PAINTING_TEXTURE_ID, PathAccessor.getInstance().getGameDir());
+      } catch (IOException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+    }
 
     ReferencedModelsCollector collector = new ReferencedModelsCollector(unbakedModels, MissingModel.create());
     collector.addSpecialModel(GeneratedItemModel.GENERATED, new GeneratedItemModel());
@@ -608,20 +620,57 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
       return Optional.empty();
     }
 
+    int minWidth = 9;
     int maxWidth = 13;
+    int minHeight = 8;
     int maxHeight = 12;
     int blockWidth = painting.width();
     int blockHeight = painting.height();
 
-    double scale = Math.min(maxWidth / (double) blockWidth, maxHeight / (double) blockHeight);
-    int width = (int) (blockWidth * scale);
-    int height = (int) (blockHeight * scale);
+    float scale = Math.min(maxWidth / (float) blockWidth, maxHeight / (float) blockHeight);
+    int width = Math.max(minWidth, MathHelper.floor(blockWidth * scale));
+    int height = Math.max(minHeight, MathHelper.floor(blockHeight * scale));
 
-    Image resized = image.apply(Image.Operation.resize(width, height));
+    int transX = MathHelper.ceil((16 - width) / 2f);
+    int transY = 2 + MathHelper.ceil((13 - height) / 2f);
+
+    Image itemSprite = image.apply(
+        Image.Operation.scale(width, height),
+        Image.Operation.resize(16, 16),
+        Image.Operation.translate(transX, transY),
+        Image.Operation.embed(HOOK_IMAGE, 6, transY - 3),
+        new Image.Operation() {
+          @Override
+          public Text getName() {
+            return Text.of("Shadow");
+          }
+
+          @Override
+          public Image.Hashless apply(Image.Hashless source) {
+            int minX = transX;
+            int maxX = minX + width - 1;
+
+            ArrayList<Image.Color> colors = new ArrayList<>();
+            int sampleY = height - 1 + transY;
+            for (int x = minX; x <= maxX; x++) {
+              Image.Color color = source.getPixel(x, sampleY);
+              if (color.getAlphaFloat() > 0.5f) {
+                colors.add(color.removeAlpha());
+              }
+            }
+            Image.Color shadow = Image.Color.average(colors).darken(0.1f);
+
+            Image.Color[] pixels = source.copyPixels();
+            for (int x = minX; x <= maxX; x++) {
+              pixels[Image.getIndex(source.height(), x, sampleY + 1)] = shadow;
+            }
+            return new Image.Hashless(pixels, source.width(), source.height());
+          }
+        });
 
     return this.getSpriteContents(
         CustomId.from(getItemModelId(painting.id())),
-        resized,
+        itemSprite,
         width,
         height);
   }
@@ -700,6 +749,23 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     display.add("scale", scale);
 
     return display;
+  }
+
+  private static Image generateItemHookImage() {
+    Image.Color[] pixels = new Image.Color[5 * 3];
+    for (int i = 0; i < pixels.length; i++) {
+      pixels[i] = Image.Color.transparent();
+    }
+
+    pixels[Image.getIndex(3, 2, 0)] = new Image.Color(99, 99, 99, 255);
+    pixels[Image.getIndex(3, 1, 1)] = new Image.Color(99, 99, 99, 255);
+    pixels[Image.getIndex(3, 2, 1)] = new Image.Color(53, 53, 53, 255);
+    pixels[Image.getIndex(3, 3, 1)] = new Image.Color(53, 53, 53, 255);
+    pixels[Image.getIndex(3, 0, 2)] = new Image.Color(53, 53, 53, 255);
+    pixels[Image.getIndex(3, 1, 2)] = new Image.Color(53, 53, 53, 255);
+    pixels[Image.getIndex(3, 3, 2)] = new Image.Color(38, 38, 38, 255);
+    pixels[Image.getIndex(3, 4, 2)] = new Image.Color(53, 53, 53, 255);
+    return Image.fromPixels(pixels, 5, 3);
   }
 
   private class SpriteGetter implements ErrorCollectingSpriteGetter {

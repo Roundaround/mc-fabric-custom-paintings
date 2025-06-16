@@ -5,6 +5,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Objects;
 import java.util.function.Function;
 
@@ -134,6 +135,17 @@ public record Image(Color[] pixels, int width, int height, String hash) {
     return this.getColorInt(x, y, Color::getABGR);
   }
 
+  public Color getPixel(int x, int y) {
+    return this.getPixel(x, y, Color.transparent());
+  }
+
+  public Color getPixel(int x, int y, Color empty) {
+    if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
+      return empty;
+    }
+    return this.pixels[getIndex(this.height, x, y)];
+  }
+
   public Image apply(Operation... operations) {
     Hashless hashless = Hashless.fromImage(this);
     for (Operation operation : operations) {
@@ -150,6 +162,10 @@ public record Image(Color[] pixels, int width, int height, String hash) {
     return hashless.toImage();
   }
 
+  public static int getIndex(int height, int x, int y) {
+    return (x * height + y);
+  }
+
   private int getColorInt(int x, int y, Function<Color, Integer> supplier) {
     int index = this.getIndex(x, y);
     Color pixel = this.pixels[index];
@@ -161,10 +177,6 @@ public record Image(Color[] pixels, int width, int height, String hash) {
 
   private int getIndex(int x, int y) {
     return getIndex(this.height, x, y);
-  }
-
-  private static int getIndex(int height, int x, int y) {
-    return (x * height + y);
   }
 
   private static byte[] getBytes(Color[] pixels) {
@@ -205,6 +217,18 @@ public record Image(Color[] pixels, int width, int height, String hash) {
     return fromBytes(bytes, width, height);
   }
 
+  public static Color[] generateEmpty(int width, int height) {
+    return generateEmpty(width * height);
+  }
+
+  public static Color[] generateEmpty(int size) {
+    Color[] pixels = new Color[size];
+    for (int i = 0; i < pixels.length; i++) {
+      pixels[i] = Color.transparent();
+    }
+    return pixels;
+  }
+
   public record Color(byte r, byte g, byte b, byte a) {
     public Color(int r, int g, int b, int a) {
       this((byte) r, (byte) g, (byte) b, (byte) a);
@@ -212,6 +236,14 @@ public record Image(Color[] pixels, int width, int height, String hash) {
 
     public static Color fromARGB(int color) {
       return new Color((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF, (color >> 24) & 0xFF);
+    }
+
+    public static Color transparent() {
+      return new Color(0, 0, 0, 0);
+    }
+
+    public Color copy() {
+      return new Color(this.r, this.g, this.b, this.a);
     }
 
     public int getARGB() {
@@ -226,6 +258,84 @@ public record Image(Color[] pixels, int width, int height, String hash) {
       return new Color(255 - this.r, 255 - this.g, 255 - this.b, this.a);
     }
 
+    public Color darken(float amount) {
+      byte byteAmount = (byte) (amount * 255);
+      return new Color(
+          (byte) Math.max(0, this.r - byteAmount),
+          (byte) Math.max(0, this.g - byteAmount),
+          (byte) Math.max(0, this.b - byteAmount),
+          this.a);
+    }
+
+    public Color removeAlpha() {
+      return new Color(this.r, this.g, this.b, (byte) 255);
+    }
+
+    public boolean isTransparent() {
+      return this.a == 0;
+    }
+
+    public float getRedFloat() {
+      return this.r / 255f;
+    }
+
+    public float getGreenFloat() {
+      return this.g / 255f;
+    }
+
+    public float getBlueFloat() {
+      return this.b / 255f;
+    }
+
+    public float getAlphaFloat() {
+      if (this.a == -1) {
+        return 1f;
+      }
+      return this.a / 255f;
+    }
+
+    public static Color layer(Color top, Color bottom) {
+      if (top.isTransparent()) {
+        return bottom;
+      }
+      if (bottom.isTransparent()) {
+        return top;
+      }
+
+      float topAlpha = top.a / 255f;
+      float bottomAlpha = bottom.a / 255f;
+
+      float alpha = topAlpha + bottomAlpha * (1 - topAlpha);
+
+      return new Color(
+          (byte) (top.r * topAlpha + bottom.r * bottomAlpha * (1 - topAlpha) / alpha),
+          (byte) (top.g * topAlpha + bottom.g * bottomAlpha * (1 - topAlpha) / alpha),
+          (byte) (top.b * topAlpha + bottom.b * bottomAlpha * (1 - topAlpha) / alpha),
+          (byte) alpha);
+    }
+
+    public static Color average(Collection<Color> colors) {
+      if (colors.isEmpty()) {
+        return transparent();
+      }
+
+      long red = 0;
+      long green = 0;
+      long blue = 0;
+      long alpha = 0;
+      for (Color color : colors) {
+        red += color.r;
+        green += color.g;
+        blue += color.b;
+        alpha += color.a;
+      }
+      return new Color(
+          (byte) (red / colors.size()),
+          (byte) (green / colors.size()),
+          (byte) (blue / colors.size()),
+          (byte) (alpha / colors.size()));
+    }
+
     private static int getAsInt(byte first, byte second, byte third, byte fourth) {
       return ((first & 0xFF) << 24) | ((second & 0xFF) << 16) | ((third & 0xFF) << 8) | (fourth & 0xFF);
     }
@@ -238,6 +348,25 @@ public record Image(Color[] pixels, int width, int height, String hash) {
 
     public static Hashless fromImage(Image image) {
       return new Hashless(image.pixels, image.width, image.height);
+    }
+
+    public Color getPixel(int x, int y) {
+      return this.getPixel(x, y, Color.transparent());
+    }
+
+    public Color getPixel(int x, int y, Color empty) {
+      if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
+        return empty;
+      }
+      return this.pixels[getIndex(this.height, x, y)];
+    }
+
+    public Color[] copyPixels() {
+      Color[] colors = new Color[this.pixels.length];
+      for (int i = 0; i < this.pixels.length; i++) {
+        colors[i] = this.pixels[i].copy();
+      }
+      return colors;
     }
   }
 
@@ -265,11 +394,11 @@ public record Image(Color[] pixels, int width, int height, String hash) {
       };
     }
 
-    static Operation resize(int width, int height) {
+    static Operation scale(int width, int height) {
       return new Operation() {
         @Override
         public Text getName() {
-          return Text.of("Resize");
+          return Text.of("Scale");
         }
 
         @Override
@@ -292,6 +421,91 @@ public record Image(Color[] pixels, int width, int height, String hash) {
           int sourceX = (int) (x * (source.width / (double) targetWidth));
           int sourceY = (int) (y * (source.height / (double) targetHeight));
           return source.pixels[getIndex(source.height, sourceX, sourceY)];
+        }
+      };
+    }
+
+    static Operation translate(int x, int y) {
+      return translate(x, y, Color.transparent());
+    }
+
+    static Operation translate(int x, int y, Color empty) {
+      return new Operation() {
+        @Override
+        public Text getName() {
+          return Text.of("Translate");
+        }
+
+        @Override
+        public Hashless apply(Hashless source) {
+          Color[] pixels = new Color[source.pixels.length];
+          for (int cx = 0; cx < source.width; cx++) {
+            for (int cy = 0; cy < source.height; cy++) {
+              pixels[getIndex(source.height, cx, cy)] = source.getPixel(cx - x, cy - y, empty);
+            }
+          }
+          return new Hashless(pixels, source.width, source.height);
+        }
+      };
+    }
+
+    static Operation resize(int width, int height) {
+      return resize(width, height, Color.transparent());
+    }
+
+    static Operation resize(int width, int height, Color empty) {
+      return new Operation() {
+        @Override
+        public Text getName() {
+          return Text.of("Resize");
+        }
+
+        @Override
+        public Hashless apply(Hashless source) {
+          Color[] pixels = new Color[width * height];
+          for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+              pixels[getIndex(height, x, y)] = source.getPixel(x, y, empty);
+            }
+          }
+          return new Hashless(pixels, width, height);
+        }
+      };
+    }
+
+    static Operation embed(Image image, int x, int y) {
+      return embed(image, x, y, false);
+    }
+
+    static Operation embed(Image image, int x, int y, boolean behind) {
+      return new Operation() {
+        @Override
+        public Text getName() {
+          return Text.of("Embed");
+        }
+
+        @Override
+        public Hashless apply(Hashless source) {
+          Color[] pixels = source.copyPixels();
+          for (int ix = 0; ix < image.width; ix++) {
+            int sx = ix + x;
+            if (sx < 0 || sx >= source.width) {
+              continue;
+            }
+
+            for (int iy = 0; iy < image.height; iy++) {
+              int sy = iy + y;
+              if (sy < 0 || sy >= source.height) {
+                continue;
+              }
+
+              Color sourceColor = source.getPixel(sx, sy);
+              Color imageColor = image.getPixel(ix, iy);
+              pixels[getIndex(source.height, sx, sy)] = Color.layer(imageColor, sourceColor);
+            }
+          }
+
+          return new Hashless(pixels, source.width, source.height);
         }
       };
     }
