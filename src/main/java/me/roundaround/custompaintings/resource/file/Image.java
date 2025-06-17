@@ -4,8 +4,10 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
@@ -19,6 +21,8 @@ import me.roundaround.custompaintings.CustomPaintingsMod;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.text.Text;
+import net.minecraft.util.Pair;
+import net.minecraft.util.math.MathHelper;
 
 public record Image(Color[] pixels, int width, int height, String hash) {
   public static final PacketCodec<ByteBuf, Image> PACKET_CODEC = PacketCodec.of(
@@ -255,43 +259,60 @@ public record Image(Color[] pixels, int width, int height, String hash) {
     }
 
     public Color invert() {
-      return new Color(255 - this.r, 255 - this.g, 255 - this.b, this.a);
+      return new Color(
+          255 - this.getRed(),
+          255 - this.getGreen(),
+          255 - this.getBlue(),
+          this.getAlpha());
     }
 
     public Color darken(float amount) {
-      byte byteAmount = (byte) (amount * 255);
+      int intAmount = (int) (amount * 255);
       return new Color(
-          (byte) Math.max(0, this.r - byteAmount),
-          (byte) Math.max(0, this.g - byteAmount),
-          (byte) Math.max(0, this.b - byteAmount),
-          this.a);
+          Math.max(0, this.getRed() - intAmount),
+          Math.max(0, this.getGreen() - intAmount),
+          Math.max(0, this.getBlue() - intAmount),
+          this.getAlpha());
     }
 
     public Color removeAlpha() {
-      return new Color(this.r, this.g, this.b, (byte) 255);
+      return new Color(this.r, this.g, this.b, -1);
     }
 
     public boolean isTransparent() {
       return this.a == 0;
     }
 
+    public int getRed() {
+      return this.r & 0xFF;
+    }
+
+    public int getGreen() {
+      return this.g & 0xFF;
+    }
+
+    public int getBlue() {
+      return this.b & 0xFF;
+    }
+
+    public int getAlpha() {
+      return this.a & 0xFF;
+    }
+
     public float getRedFloat() {
-      return this.r / 255f;
+      return this.getRed() / 255f;
     }
 
     public float getGreenFloat() {
-      return this.g / 255f;
+      return this.getGreen() / 255f;
     }
 
     public float getBlueFloat() {
-      return this.b / 255f;
+      return this.getBlue() / 255f;
     }
 
     public float getAlphaFloat() {
-      if (this.a == -1) {
-        return 1f;
-      }
-      return this.a / 255f;
+      return this.getAlpha() / 255f;
     }
 
     public static Color layer(Color top, Color bottom) {
@@ -302,16 +323,20 @@ public record Image(Color[] pixels, int width, int height, String hash) {
         return top;
       }
 
-      float topAlpha = top.a / 255f;
-      float bottomAlpha = bottom.a / 255f;
+      float topAlpha = top.getAlphaFloat();
+      float bottomAlpha = bottom.getAlphaFloat();
 
       float alpha = topAlpha + bottomAlpha * (1 - topAlpha);
 
       return new Color(
-          (byte) (top.r * topAlpha + bottom.r * bottomAlpha * (1 - topAlpha) / alpha),
-          (byte) (top.g * topAlpha + bottom.g * bottomAlpha * (1 - topAlpha) / alpha),
-          (byte) (top.b * topAlpha + bottom.b * bottomAlpha * (1 - topAlpha) / alpha),
-          (byte) alpha);
+          floatToInt(top.getRed() * topAlpha + bottom.getRed() * bottomAlpha * (1 - topAlpha) / alpha),
+          floatToInt(top.getGreen() * topAlpha + bottom.getGreen() * bottomAlpha * (1 - topAlpha) / alpha),
+          floatToInt(top.getBlue() * topAlpha + bottom.getBlue() * bottomAlpha * (1 - topAlpha) / alpha),
+          floatToInt(alpha));
+    }
+
+    public static Color average(Color... colors) {
+      return average(Arrays.asList(colors));
     }
 
     public static Color average(Collection<Color> colors) {
@@ -324,20 +349,52 @@ public record Image(Color[] pixels, int width, int height, String hash) {
       long blue = 0;
       long alpha = 0;
       for (Color color : colors) {
-        red += color.r;
-        green += color.g;
-        blue += color.b;
-        alpha += color.a;
+        red += color.getRed();
+        green += color.getGreen();
+        blue += color.getBlue();
+        alpha += color.getAlpha();
       }
       return new Color(
-          (byte) (red / colors.size()),
-          (byte) (green / colors.size()),
-          (byte) (blue / colors.size()),
-          (byte) (alpha / colors.size()));
+          Math.round((float) red / colors.size()),
+          Math.round((float) green / colors.size()),
+          Math.round((float) blue / colors.size()),
+          Math.round((float) alpha / colors.size()));
+    }
+
+    public static Color weightedAverage(Collection<Pair<Color, Float>> colors) {
+      if (colors.isEmpty()) {
+        return transparent();
+      }
+
+      float totalWeight = 0;
+
+      float red = 0;
+      float green = 0;
+      float blue = 0;
+      float alpha = 0;
+
+      for (Pair<Color, Float> color : colors) {
+        float weight = color.getRight();
+        totalWeight += weight;
+        red += color.getLeft().getRed() * weight;
+        green += color.getLeft().getGreen() * weight;
+        blue += color.getLeft().getBlue() * weight;
+        alpha += color.getLeft().getAlpha() * weight;
+      }
+
+      return new Color(
+          floatToInt(red / totalWeight),
+          floatToInt(green / totalWeight),
+          floatToInt(blue / totalWeight),
+          floatToInt(alpha / totalWeight));
     }
 
     private static int getAsInt(byte first, byte second, byte third, byte fourth) {
       return ((first & 0xFF) << 24) | ((second & 0xFF) << 16) | ((third & 0xFF) << 8) | (fourth & 0xFF);
+    }
+
+    private static int floatToInt(float value) {
+      return Math.clamp(Math.round(value), 0, 255);
     }
   }
 
@@ -370,6 +427,89 @@ public record Image(Color[] pixels, int width, int height, String hash) {
     }
   }
 
+  @FunctionalInterface
+  public interface Resampler {
+    public static final Resampler NEAREST_NEIGHBOR = (
+        Hashless source,
+        int targetWidth,
+        int targetHeight,
+        int x,
+        int y) -> {
+      int sourceX = Math.round(x * (source.width / (float) targetWidth));
+      int sourceY = Math.round(y * (source.height / (float) targetHeight));
+      return source.pixels[getIndex(source.height, sourceX, sourceY)];
+    };
+
+    public static final Resampler NEAREST_NEIGHBOR_FRAME_PRESERVING = (
+        Hashless source,
+        int targetWidth,
+        int targetHeight,
+        int x,
+        int y) -> {
+      int maxX = targetWidth - 1;
+      int maxY = targetHeight - 1;
+      int maxSourceX = source.width - 1;
+      int maxSourceY = source.height - 1;
+      float cx = maxX / 2f;
+      float cy = maxY / 2f;
+      float sx = x * (maxSourceX / (float) maxX);
+      float sy = y * (maxSourceY / (float) maxY);
+
+      int ix = Math.clamp(x <= cx ? MathHelper.floor(sx) : MathHelper.ceil(sx), 0, maxSourceX);
+      int iy = Math.clamp(y <= cy ? MathHelper.floor(sy) : MathHelper.ceil(sy), 0, maxSourceY);
+
+      return source.pixels[getIndex(source.height, ix, iy)];
+    };
+
+    public static final Resampler BILINEAR = (
+        Hashless source,
+        int targetWidth,
+        int targetHeight,
+        int x,
+        int y) -> {
+      int sampleSizeX = Math.max(1, Math.round(source.width / (float) targetWidth));
+      int sampleSizeY = Math.max(1, Math.round(source.height / (float) targetHeight));
+      int maxDistance = sampleSizeX * sampleSizeX + sampleSizeY * sampleSizeY;
+
+      ArrayList<Pair<Color, Float>> samples = new ArrayList<>();
+      float sx = x * (source.width / (float) targetWidth);
+      float sy = y * (source.height / (float) targetHeight);
+
+      int cx = Math.round(sx);
+      int cy = Math.round(sy);
+
+      for (int dx = -sampleSizeX; dx <= sampleSizeX; dx++) {
+        for (int dy = -sampleSizeY; dy <= sampleSizeY; dy++) {
+          Color sample = source.getPixel(cx + dx, cy + dy);
+          if (!sample.isTransparent()) {
+            samples.add(new Pair<>(sample, (dx * dx + dy * dy) / (float) maxDistance));
+          }
+        }
+      }
+
+      return Color.weightedAverage(samples);
+    };
+
+    public static Resampler combine(float topWeight, Resampler top, Resampler bottom) {
+      return (source, targetWidth, targetHeight, x, y) -> {
+        Color topColor = top.resample(source, targetWidth, targetHeight, x, y);
+        Color bottomColor = bottom.resample(source, targetWidth, targetHeight, x, y);
+
+        return Color.weightedAverage(
+            List.of(
+                new Pair<>(topColor, topWeight),
+                new Pair<>(bottomColor, 1f - topWeight)));
+      };
+    }
+
+    Color resample(
+        Hashless source,
+        int targetWidth,
+        int targetHeight,
+        int x,
+        int y);
+  }
+
   public interface Operation {
     Text getName();
 
@@ -395,6 +535,10 @@ public record Image(Color[] pixels, int width, int height, String hash) {
     }
 
     static Operation scale(int width, int height) {
+      return scale(width, height, Resampler.BILINEAR);
+    }
+
+    static Operation scale(int width, int height, Resampler resampler) {
       return new Operation() {
         @Override
         public Text getName() {
@@ -406,21 +550,10 @@ public record Image(Color[] pixels, int width, int height, String hash) {
           Color[] pixels = new Color[width * height];
           for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
-              pixels[getIndex(height, x, y)] = resample(source, width, height, x, y);
+              pixels[getIndex(height, x, y)] = resampler.resample(source, width, height, x, y);
             }
           }
           return new Hashless(pixels, width, height);
-        }
-
-        private static Color resample(
-            Hashless source,
-            int targetWidth,
-            int targetHeight,
-            int x,
-            int y) {
-          int sourceX = (int) (x * (source.width / (double) targetWidth));
-          int sourceY = (int) (y * (source.height / (double) targetHeight));
-          return source.pixels[getIndex(source.height, sourceX, sourceY)];
         }
       };
     }

@@ -631,14 +631,18 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     int width = Math.max(minWidth, MathHelper.floor(blockWidth * scale));
     int height = Math.max(minHeight, MathHelper.floor(blockHeight * scale));
 
-    int transX = MathHelper.ceil((16 - width) / 2f);
-    int transY = 2 + MathHelper.ceil((13 - height) / 2f);
+    int tx = MathHelper.ceil((16 - width) / 2f);
+    int ty = 2 + MathHelper.ceil((13 - height) / 2f);
 
     Image itemSprite = image.apply(
-        Image.Operation.scale(width, height),
+        Image.Operation.scale(width, height,
+            Image.Resampler.combine(
+                0.2f,
+                Image.Resampler.BILINEAR,
+                Image.Resampler.NEAREST_NEIGHBOR_FRAME_PRESERVING)),
         Image.Operation.resize(16, 16),
-        Image.Operation.translate(transX, transY),
-        Image.Operation.embed(HOOK_IMAGE, 6, transY - 3),
+        Image.Operation.translate(tx, ty),
+        Image.Operation.embed(HOOK_IMAGE, 6, ty - 3),
         new Image.Operation() {
           @Override
           public Text getName() {
@@ -647,11 +651,11 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
 
           @Override
           public Image.Hashless apply(Image.Hashless source) {
-            int minX = transX;
+            int minX = tx;
             int maxX = minX + width - 1;
 
             ArrayList<Image.Color> colors = new ArrayList<>();
-            int sampleY = height - 1 + transY;
+            int sampleY = height - 1 + ty;
             for (int x = minX; x <= maxX; x++) {
               Image.Color color = source.getPixel(x, sampleY);
               if (color.getAlphaFloat() > 0.5f) {
