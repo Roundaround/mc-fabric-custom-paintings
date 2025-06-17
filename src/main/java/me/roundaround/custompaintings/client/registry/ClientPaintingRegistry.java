@@ -662,7 +662,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
                 colors.add(color.removeAlpha());
               }
             }
-            Image.Color shadow = Image.Color.average(colors).darken(0.1f);
+            Image.Color shadow = Image.Color.average(colors).darken(0.15f);
 
             Image.Color[] pixels = source.copyPixels();
             for (int x = minX; x <= maxX; x++) {
