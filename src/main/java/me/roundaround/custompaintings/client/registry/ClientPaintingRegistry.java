@@ -29,7 +29,6 @@ import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
 import me.roundaround.custompaintings.resource.PackIcons;
 import me.roundaround.custompaintings.resource.ResourceUtil;
@@ -565,10 +564,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   @SuppressWarnings("BooleanMethodIsAlwaysInverted")
   private boolean usingCache() {
     return CustomPaintingsConfig.getInstance().cacheImages.getValue() && !this.client.isInSingleplayer();
-  }
-
-  public static Identifier getItemModelId(CustomId id) {
-    return Identifier.of(Constants.MOD_ID, "item/" + id.pack() + "/" + id.resource());
   }
 
   private class SpriteGetter implements ErrorCollectingSpriteGetter {

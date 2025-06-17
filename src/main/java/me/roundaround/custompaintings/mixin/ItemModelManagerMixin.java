@@ -11,6 +11,7 @@ import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.sugar.Local;
 
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
+import me.roundaround.custompaintings.client.registry.ItemManager;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.util.CustomId;
@@ -62,6 +63,6 @@ public abstract class ItemModelManagerMixin {
       return original;
     }
 
-    return ClientPaintingRegistry.getItemModelId(data.id());
+    return ItemManager.getItemModelId(data.id());
   }
 }
