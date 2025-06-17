@@ -71,6 +71,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   private static ClientPaintingRegistry instance = null;
 
   private final MinecraftClient client;
+  private final ItemManager itemManager;
   private final SpriteAtlasTexture atlas;
   private final HashSet<CustomId> spriteIds = new HashSet<>();
   private final HashMap<CustomId, Image> cachedImages = new HashMap<>();
@@ -91,6 +92,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
 
   private ClientPaintingRegistry(MinecraftClient client) {
     this.client = client;
+    this.itemManager = ItemManager.getInstance();
     this.atlas = new SpriteAtlasTexture(CUSTOM_PAINTING_TEXTURE_ID);
     client.getTextureManager().registerTexture(this.atlas.getId(), this.atlas);
 
@@ -435,7 +437,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.buildSpriteAtlas();
     this.cacheNewImages();
     CustomPaintingsMod.LOGGER.info(
-        "Painting images downloaded and sprite atlas refreshed in {}s",
+        "Painting images downloaded and sprite atlas refreshed in {}",
         StringUtil.formatDuration(Util.getMeasuringTimeMs() - this.waitingForImagesTimer));
 
     this.imagesExpected = 0;
@@ -447,7 +449,23 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   private void buildSpriteAtlas() {
     this.images.keySet().removeIf((id) -> !this.isValidImageId(id));
 
+    List<SpriteContents> sprites = this.compileSprites();
+    this.updateAtlas(sprites);
+    this.itemManager.bakeModels(
+        this.spriteGetter,
+        this.paintings,
+        Util.getMainWorkerExecutor()).join();
+
+    this.atlasInitialized = true;
+
+    if (this.client.currentScreen instanceof PacksLoadedListener screen) {
+      screen.onPackTexturesInitialized();
+    }
+  }
+
+  private List<SpriteContents> compileSprites() {
     List<SpriteContents> sprites = new ArrayList<>();
+
     sprites.add(MissingSprite.createSpriteContents());
     sprites.add(BasicTextureSprite.fetch(this.client, PAINTING_BACK_ID, BACK_TEXTURE_ID));
     sprites.add(VanillaIconSprite.create(this.client, PackIcons.MINECRAFT_ICON_ID.toIdentifier(), "vanilla"));
@@ -455,33 +473,28 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
         this.client,
         PackIcons.MINECRAFT_HIDDEN_ICON_ID.toIdentifier(),
         EARTH_TEXTURE_ID));
+
     this.paintings.values().forEach((painting) -> this.getSpriteContents(painting).ifPresent(sprites::add));
     this.packsMap.keySet().forEach((packId) -> this.getSpriteContents(packId).ifPresent(sprites::add));
 
-    ItemManager itemManager = ItemManager.getInstance();
-    this.paintings.values().forEach((painting) -> {
-      itemManager.generateSprite(painting, this.images.get(painting.id())).ifPresent(sprites::add);
-    });
+    this.itemManager.generateSprites(this.paintings.values(), this.images::get, sprites::add);
 
+    return sprites;
+  }
+
+  private void updateAtlas(List<SpriteContents> sprites) {
     this.atlas.upload(SpriteLoader.fromAtlas(this.atlas).stitch(sprites, 0, Util.getMainWorkerExecutor()));
     this.spriteIds.clear();
     this.spriteIds.addAll(sprites.stream().map(SpriteContents::getId).map(CustomId::from).toList());
 
     if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
-      try {
-        this.atlas.save(CUSTOM_PAINTING_TEXTURE_ID, PathAccessor.getInstance().getGameDir());
-      } catch (IOException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
-    }
-
-    itemManager.bakeModels(this.spriteGetter, this.paintings);
-
-    this.atlasInitialized = true;
-
-    if (this.client.currentScreen instanceof PacksLoadedListener screen) {
-      screen.onPackTexturesInitialized();
+      CompletableFuture.runAsync(() -> {
+        try {
+          this.atlas.save(CUSTOM_PAINTING_TEXTURE_ID, PathAccessor.getInstance().getGameDir());
+        } catch (IOException e) {
+          CustomPaintingsMod.LOGGER.warn(e);
+        }
+      }, Util.getIoWorkerExecutor());
     }
   }
 

@@ -2,13 +2,19 @@ package me.roundaround.custompaintings.client.registry;
 
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.mixin.BakedModelManagerAccessor;
@@ -33,7 +39,6 @@ import net.minecraft.client.texture.SpriteDimensions;
 import net.minecraft.resource.metadata.ResourceMetadata;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
 
 public final class ItemManager {
@@ -42,6 +47,19 @@ public final class ItemManager {
   private static ItemManager instance = null;
 
   private final MinecraftClient client;
+
+  public void generateSprites(
+      Collection<PaintingData> paintings,
+      Function<CustomId, Image> imageSupplier,
+      Consumer<SpriteContents> addSprite) {
+    if (!CustomPaintingsConfig.getInstance().renderArtworkOnItems.getPendingValue()) {
+      return;
+    }
+
+    paintings.forEach((painting) -> {
+      this.generateSprite(painting, imageSupplier.apply(painting.id())).ifPresent(addSprite);
+    });
+  }
 
   public Optional<SpriteContents> generateSprite(PaintingData painting, Image image) {
     int minWidth = 9;
@@ -103,7 +121,10 @@ public final class ItemManager {
         height);
   }
 
-  public void bakeModels(ErrorCollectingSpriteGetter spriteGetter, HashMap<CustomId, PaintingData> paintings) {
+  public CompletableFuture<Void> bakeModels(
+      ErrorCollectingSpriteGetter spriteGetter,
+      HashMap<CustomId, PaintingData> paintings,
+      Executor executor) {
     HashMap<Identifier, UnbakedModel> unbakedModels = new HashMap<>();
     unbakedModels.put(Identifier.ofVanilla("item/generated"), getGeneratedItemModel());
 
@@ -135,7 +156,7 @@ public final class ItemManager {
         simpleModels,
         missingModel);
 
-    baker.bake(spriteGetter, Util.getMainWorkerExecutor()).thenAccept((bakedModels) -> {
+    return baker.bake(spriteGetter, executor).thenAccept((bakedModels) -> {
       BakedModelManagerAccessor accessor = (BakedModelManagerAccessor) this.client.getBakedModelManager();
       HashMap<Identifier, ItemModel> itemModels = new HashMap<>(accessor.getBakedItemModels());
       itemModels.putAll(bakedModels.itemStackModels());
@@ -157,7 +178,7 @@ public final class ItemManager {
 
   public static ItemManager getInstance() {
     if (instance == null) {
-      instance = new ItemManager();
+      instance = new ItemManager(MinecraftClient.getInstance());
     }
     return instance;
   }
@@ -240,7 +261,7 @@ public final class ItemManager {
     return display;
   }
 
-  private ItemManager() {
-    this.client = MinecraftClient.getInstance();
+  private ItemManager(MinecraftClient client) {
+    this.client = client;
   }
 }
