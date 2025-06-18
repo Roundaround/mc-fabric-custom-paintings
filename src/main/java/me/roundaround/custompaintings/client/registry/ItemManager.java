@@ -66,6 +66,8 @@ public final class ItemManager {
 
   private static ItemManager instance = null;
 
+  // TODO: Create new sprite atlas dedicated to item sprites
+
   private final MinecraftClient client;
 
   private ItemManager(MinecraftClient client) {
@@ -80,10 +82,14 @@ public final class ItemManager {
       return;
     }
 
+    // TODO: paintings.forEach -> loadOrScheduleGeneration
+    // TODO: loadResults.forEach -> if (loadedFromCache) -> set lastAccess
+    // TODO: loadResults.forEach -> wait for all futures, then batch add sprites and rebuild sprite atlas/models
+
     if (!CustomPaintingsConfig.getInstance().cacheImages.getPendingValue()) {
       paintings.forEach((painting) -> {
         Image baseImage = imageSupplier.apply(painting.id());
-        if (baseImage == null || baseImage.isEmpty()) {
+        if (isEmpty(baseImage)) {
           addSprite.accept(this.getPlaceholderSprite(painting.id()));
           return;
         }
@@ -108,7 +114,7 @@ public final class ItemManager {
 
     paintings.forEach((painting) -> {
       Image baseImage = images.get(painting.id());
-      if (baseImage == null || baseImage.isEmpty()) {
+      if (isEmpty(baseImage)) {
         addSprite.accept(this.getPlaceholderSprite(painting.id()));
         return;
       }
@@ -186,8 +192,71 @@ public final class ItemManager {
     });
   }
 
+  private LoadResult loadOrScheduleGeneration(PaintingData painting, Image baseImage) {
+    if (!CustomPaintingsConfig.getInstance().cacheImages.getPendingValue()) {
+      SpriteContents sprite = this.getPlaceholderSprite(painting.id());
+
+      CompletableFuture<SpriteContents> generation = isEmpty(baseImage)
+          ? null
+          : CompletableFuture.supplyAsync(() -> {
+            // TODO: Wire up image generation
+            return sprite;
+          }, Util.getIoWorkerExecutor());
+
+      return new LoadResult(
+          sprite,
+          false,
+          generation);
+    }
+
+    if (isEmpty(baseImage)) {
+      return new LoadResult(
+          this.getPlaceholderSprite(painting.id()),
+          false,
+          CompletableFuture.supplyAsync(() -> {
+            // TODO: Wire up image generation
+            // TODO: Save generated image back to cache
+            return null;
+          }, Util.getIoWorkerExecutor()));
+    }
+
+    CacheData data = this.loadCacheData();
+    final long expired = Util.getEpochTimeMs() - getTtlMs();
+
+    String baseHash = baseImage.hash();
+    CacheFile file = data.hashes().get(baseHash);
+
+    if (file == null || file.isExpired(expired)) {
+      return new LoadResult(
+          this.getPlaceholderSprite(painting.id()),
+          false,
+          CompletableFuture.supplyAsync(() -> {
+            // TODO: Wire up image generation
+            // TODO: Save generated image back to cache
+            return null;
+          }, Util.getIoWorkerExecutor()));
+    }
+
+    Image image = loadImage(getCacheDir(), file.hash());
+    if (isEmpty(image)) {
+      return new LoadResult(
+          this.getPlaceholderSprite(painting.id()),
+          false,
+          CompletableFuture.supplyAsync(() -> {
+            // TODO: Wire up image generation
+            // TODO: Save generated image back to cache
+            return null;
+          }, Util.getIoWorkerExecutor()));
+    }
+
+    return new LoadResult(
+        this.getSpriteContents(painting, image).orElse(null),
+        true,
+        null);
+  }
+
   private Image generateImage(PaintingData painting, Image baseImage) {
-    if (baseImage == null || baseImage.isEmpty()) {
+    if (isEmpty(baseImage)) {
       return Image.empty();
     }
 
@@ -256,7 +325,7 @@ public final class ItemManager {
   }
 
   private Optional<SpriteContents> getSpriteContents(CustomId id, Image image) {
-    if (image == null || image.isEmpty()) {
+    if (isEmpty(image)) {
       return Optional.empty();
     }
     NativeImage nativeImage = image.toNativeImage();
@@ -520,6 +589,10 @@ public final class ItemManager {
     }
   }
 
+  private static boolean isEmpty(Image image) {
+    return image == null || image.isEmpty();
+  }
+
   private record CacheData(
       int version,
       HashMap<String, CacheFile> hashes) {
@@ -598,5 +671,11 @@ public final class ItemManager {
     public int hashCode() {
       return Objects.hash(this.hash, this.lastAccess);
     }
+  }
+
+  private record LoadResult(
+      SpriteContents sprite,
+      boolean loadedFromCache,
+      CompletableFuture<SpriteContents> generation) {
   }
 }
