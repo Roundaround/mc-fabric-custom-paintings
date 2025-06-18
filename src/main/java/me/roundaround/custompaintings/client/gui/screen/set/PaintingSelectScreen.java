@@ -1,6 +1,5 @@
 package me.roundaround.custompaintings.client.gui.screen.set;
 
-import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.widget.PaintingListWidget;
 import me.roundaround.custompaintings.client.gui.widget.PaintingSpriteWidget;
