@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.generated.Constants;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
@@ -61,7 +62,7 @@ public class ServerInfo {
   public static void init(LevelStorage.Session session) {
     Path savePath = session.getWorldDirectory(World.OVERWORLD)
         .resolve("data")
-        .resolve(CustomPaintingsMod.MOD_ID + "_server" + ".dat");
+        .resolve(Constants.MOD_ID + "_server" + ".dat");
 
     try {
       load(savePath).ifSuccess((data) -> {

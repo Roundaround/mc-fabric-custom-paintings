@@ -1,6 +1,6 @@
 package me.roundaround.custompaintings.config;
 
-import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.roundalib.config.ConfigPath;
 import me.roundaround.custompaintings.roundalib.config.manage.ModConfigImpl;
 import me.roundaround.custompaintings.roundalib.config.manage.store.WorldScopedFileStore;
@@ -24,7 +24,7 @@ public class CustomPaintingsPerWorldConfig extends ModConfigImpl implements Worl
   public BooleanConfigOption silenceConvertPrompt;
 
   private CustomPaintingsPerWorldConfig() {
-    super(CustomPaintingsMod.MOD_ID, "world");
+    super(Constants.MOD_ID, "world");
   }
 
   @Override

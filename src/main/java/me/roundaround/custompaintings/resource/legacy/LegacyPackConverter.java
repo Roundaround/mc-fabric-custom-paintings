@@ -25,6 +25,7 @@ import javax.imageio.ImageIO;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.texture.LoadingSprite;
+import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.resource.MigrationResource;
 import me.roundaround.custompaintings.resource.PackIcons;
 import me.roundaround.custompaintings.resource.PackResource;
@@ -100,7 +101,7 @@ public class LegacyPackConverter {
 
   public Path getWorldOutDir() {
     try {
-      Path path = PathAccessor.getInstance().getPerWorldModDir(CustomPaintingsMod.MOD_ID);
+      Path path = PathAccessor.getInstance().getPerWorldModDir(Constants.MOD_ID);
       if (Files.notExists(path)) {
         Files.createDirectories(path);
       }
@@ -122,7 +123,7 @@ public class LegacyPackConverter {
       Path path = FabricLoader.getInstance()
           .getGameDir()
           .resolve("data")
-          .resolve(CustomPaintingsMod.MOD_ID)
+          .resolve(Constants.MOD_ID)
           .resolve("converted");
       if (Files.notExists(path)) {
         Files.createDirectories(path);
@@ -244,7 +245,7 @@ public class LegacyPackConverter {
   private void uploadIconsSpriteAtlas(
       MinecraftClient client, Collection<Metadata> metas) {
     this.atlas = new SpriteAtlasTexture(
-        Identifier.of(CustomPaintingsMod.MOD_ID, "textures/atlas/legacy_pack_icons.png"));
+        Identifier.of(Constants.MOD_ID, "textures/atlas/legacy_pack_icons.png"));
     client.getTextureManager().registerTexture(this.atlas.getId(), this.atlas);
 
     List<SpriteContents> spriteContents = new ArrayList<>();

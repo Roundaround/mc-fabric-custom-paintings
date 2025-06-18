@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import me.roundaround.custompaintings.command.CustomPaintingsCommand;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
+import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.resource.PackResource;
 import me.roundaround.custompaintings.resource.file.json.CustomPaintingsJson;
@@ -30,15 +31,14 @@ import org.apache.logging.log4j.Logger;
 
 @Entrypoint(Entrypoint.MAIN)
 public final class CustomPaintingsMod implements ModInitializer {
-  public static final String MOD_ID = "custompaintings";
-  public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
+  public static final Logger LOGGER = LogManager.getLogger(Constants.MOD_ID);
   public static final Gson GSON = new GsonBuilder().setPrettyPrinting()
       .registerTypeAdapter(CustomPaintingsJson.class, new CustomPaintingsJson.TypeAdapter())
       .registerTypeAdapter(LegacyCustomPaintingsJson.class, new LegacyCustomPaintingsJson.TypeAdapter())
       .registerTypeAdapter(PackResource.class, new PackResource.TypeAdapter())
       .create();
-  public static final String MSG_CMD_IGNORE = CustomPaintingsMod.MOD_ID + ":" + "ignore";
-  public static final String MSG_CMD_OPEN_CONVERT_SCREEN = CustomPaintingsMod.MOD_ID + ":" + "openConvertScreen";
+  public static final String MSG_CMD_IGNORE = Constants.MOD_ID + ":" + "ignore";
+  public static final String MSG_CMD_OPEN_CONVERT_SCREEN = Constants.MOD_ID + ":" + "openConvertScreen";
 
   @Override
   public void onInitialize() {

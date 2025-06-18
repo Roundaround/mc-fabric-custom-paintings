@@ -1,6 +1,6 @@
 package me.roundaround.custompaintings.config;
 
-import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.roundalib.config.ConfigPath;
 import me.roundaround.custompaintings.roundalib.config.manage.ModConfigImpl;
 import me.roundaround.custompaintings.roundalib.config.manage.store.GameScopedFileStore;
@@ -25,7 +25,7 @@ public class CustomPaintingsConfig extends ModConfigImpl implements GameScopedFi
   public BooleanConfigOption renderArtworkOnItems;
 
   private CustomPaintingsConfig() {
-    super(CustomPaintingsMod.MOD_ID, "game");
+    super(Constants.MOD_ID, "game");
   }
 
   @Override

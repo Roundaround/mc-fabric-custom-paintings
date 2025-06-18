@@ -13,6 +13,7 @@ import java.util.function.Consumer;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
+import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.registry.CustomPaintingRegistry;
 import me.roundaround.custompaintings.resource.PackIcons;
 import me.roundaround.custompaintings.resource.ResourceUtil;
@@ -157,7 +158,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
 
   private LoadResult loadPaintingPacks() {
     CustomPaintingsMod.LOGGER.info("Loading painting packs");
-    Path packsDir = PathAccessor.getInstance().getPerWorldModDir(CustomPaintingsMod.MOD_ID);
+    Path packsDir = PathAccessor.getInstance().getPerWorldModDir(Constants.MOD_ID);
 
     if (packsDir == null || Files.notExists(packsDir)) {
       CustomPaintingsMod.LOGGER.info("Unable to locate packs directory, skipping");

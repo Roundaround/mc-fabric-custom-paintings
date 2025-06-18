@@ -6,6 +6,7 @@ import me.roundaround.custompaintings.client.gui.widget.PaintingListWidget;
 import me.roundaround.custompaintings.client.gui.widget.PaintingSpriteWidget;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.roundalib.client.gui.icon.BuiltinIcon;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.FillerWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.linear.LinearLayoutWidget;
@@ -67,7 +68,7 @@ public class PaintingSelectScreen extends BaseSetPaintingScreen implements Paint
     );
     this.searchBox.setChangedListener(this::onSearchBoxChanged);
 
-    searchRow.add(IconButtonWidget.builder(BuiltinIcon.FILTER_18, CustomPaintingsMod.MOD_ID)
+    searchRow.add(IconButtonWidget.builder(BuiltinIcon.FILTER_18, Constants.MOD_ID)
         .vanillaSize()
         .messageAndTooltip(Text.translatable("custompaintings.painting.filter"))
         .onPress(this::filterButtonPressed)
@@ -110,7 +111,7 @@ public class PaintingSelectScreen extends BaseSetPaintingScreen implements Paint
         .spacing(GuiUtil.PADDING)
         .defaultOffAxisContentAlignCenter();
 
-    this.prevButton = controlsRow.add(IconButtonWidget.builder(BuiltinIcon.PREV_18, CustomPaintingsMod.MOD_ID)
+    this.prevButton = controlsRow.add(IconButtonWidget.builder(BuiltinIcon.PREV_18, Constants.MOD_ID)
         .vanillaSize()
         .messageAndTooltip(Text.translatable("custompaintings.painting.previous"))
         .onPress((button) -> this.state.setPreviousPainting())
@@ -128,7 +129,7 @@ public class PaintingSelectScreen extends BaseSetPaintingScreen implements Paint
         }
     );
 
-    this.nextButton = controlsRow.add(IconButtonWidget.builder(BuiltinIcon.NEXT_18, CustomPaintingsMod.MOD_ID)
+    this.nextButton = controlsRow.add(IconButtonWidget.builder(BuiltinIcon.NEXT_18, Constants.MOD_ID)
         .vanillaSize()
         .messageAndTooltip(Text.translatable("custompaintings.painting.next"))
         .onPress((button) -> this.state.setNextPainting())

@@ -8,6 +8,7 @@ import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.client.toast.CustomSystemToasts;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
+import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.resource.PackIcons;
 import me.roundaround.custompaintings.resource.ResourceUtil;
 import me.roundaround.custompaintings.util.StringUtil;
@@ -156,7 +157,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
       return;
     }
 
-    Path packsDirectory = PathAccessor.getInstance().getPerWorldModDir(CustomPaintingsMod.MOD_ID);
+    Path packsDirectory = PathAccessor.getInstance().getPerWorldModDir(Constants.MOD_ID);
     String packList = packPaths.stream().map(Path::getFileName).map(Path::toString).collect(Collectors.joining(", "));
 
     this.client.setScreen(new ConfirmScreen((confirmed) -> {
@@ -288,7 +289,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
       return;
     }
 
-    Path path = PathAccessor.getInstance().getPerWorldModDir(CustomPaintingsMod.MOD_ID);
+    Path path = PathAccessor.getInstance().getPerWorldModDir(Constants.MOD_ID);
     this.ensurePacksDirExists(path);
     Util.getOperatingSystem().open(path.toUri());
   }

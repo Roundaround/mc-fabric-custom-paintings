@@ -1,6 +1,6 @@
 package me.roundaround.custompaintings.server;
 
-import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.server.network.ImagePacketQueue;
 import me.roundaround.gradle.api.annotation.Entrypoint;
 import net.fabricmc.api.DedicatedServerModInitializer;
@@ -22,7 +22,7 @@ public class CustomPaintingsServerMod implements DedicatedServerModInitializer {
     });
 
     homepage = FabricLoader.getInstance()
-        .getModContainer(CustomPaintingsMod.MOD_ID)
+        .getModContainer(Constants.MOD_ID)
         .flatMap((container) -> container.getMetadata().getContact().get("homepage"))
         .filter(str -> !str.isBlank())
         .orElse(null);

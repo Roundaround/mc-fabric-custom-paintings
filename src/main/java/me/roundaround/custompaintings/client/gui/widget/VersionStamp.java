@@ -1,6 +1,6 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
-import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.LabelWidget;
@@ -13,7 +13,7 @@ public class VersionStamp {
   }
 
   public static LabelWidget create(TextRenderer textRenderer, ThreeSectionLayoutWidget layout) {
-    return FabricLoader.getInstance().getModContainer(CustomPaintingsMod.MOD_ID).map((mod) -> {
+    return FabricLoader.getInstance().getModContainer(Constants.MOD_ID).map((mod) -> {
       Text version = Text.of("v" + mod.getMetadata().getVersion().getFriendlyString());
       return layout.addNonPositioned(LabelWidget.builder(textRenderer, version)
           .hideBackground()

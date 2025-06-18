@@ -32,9 +32,10 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
+import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.resource.file.Image;
+import me.roundaround.custompaintings.roundalib.util.PathAccessor;
 import me.roundaround.custompaintings.util.CustomId;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtOps;
@@ -273,7 +274,7 @@ public class CacheManager {
   }
 
   private static Path getCacheDir() {
-    return FabricLoader.getInstance().getGameDir().resolve("data").resolve(CustomPaintingsMod.MOD_ID).resolve("cache");
+    return PathAccessor.getInstance().getGameDir().resolve("data").resolve(Constants.MOD_ID).resolve("cache");
   }
 
   private static Path getDataFile(Path cacheDir) {

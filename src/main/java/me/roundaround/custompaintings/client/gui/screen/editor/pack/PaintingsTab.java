@@ -96,7 +96,7 @@ public class PaintingsTab extends PackTab {
         });
     this.searchBox.setChangedListener(this::onSearchBoxChanged);
 
-    searchRow.add(IconButtonWidget.builder(BuiltinIcon.CLOSE_13, CustomPaintingsMod.MOD_ID)
+    searchRow.add(IconButtonWidget.builder(BuiltinIcon.CLOSE_13, Constants.MOD_ID)
         .medium()
         .messageAndTooltip(Text.translatable("custompaintings.editor.editor.paintings.clear"))
         .onPress(this::clearSearch)

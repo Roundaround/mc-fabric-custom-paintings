@@ -1,12 +1,12 @@
 package me.roundaround.custompaintings.client.gui.screen;
 
-import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.gui.screen.editor.ZeroScreen;
 import me.roundaround.custompaintings.client.gui.widget.LoadingButtonWidget;
 import me.roundaround.custompaintings.client.gui.widget.VersionStamp;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
+import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.screen.BaseScreen;
 import me.roundaround.custompaintings.roundalib.client.gui.screen.ConfigScreen;
@@ -121,7 +121,7 @@ public class MainMenuScreen extends BaseScreen implements PacksLoadedListener {
   private void navigateConfig(ButtonWidget button) {
     this.client.setScreen(new ConfigScreen(
         this,
-        CustomPaintingsMod.MOD_ID,
+        Constants.MOD_ID,
         CustomPaintingsConfig.getInstance(),
         CustomPaintingsPerWorldConfig.getInstance()));
   }
