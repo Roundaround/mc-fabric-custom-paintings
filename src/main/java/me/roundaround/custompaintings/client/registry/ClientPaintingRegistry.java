@@ -38,10 +38,8 @@ import me.roundaround.custompaintings.resource.file.Image;
 import me.roundaround.custompaintings.resource.file.Metadata;
 import me.roundaround.custompaintings.resource.legacy.LegacyPackConverter;
 import me.roundaround.custompaintings.roundalib.event.MinecraftClientEvents;
-import me.roundaround.custompaintings.roundalib.util.PathAccessor;
 import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.custompaintings.util.StringUtil;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.model.ErrorCollectingSpriteGetter;
 import net.minecraft.client.render.model.SimpleModel;
@@ -487,16 +485,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.atlas.upload(SpriteLoader.fromAtlas(this.atlas).stitch(sprites, 0, Util.getMainWorkerExecutor()));
     this.spriteIds.clear();
     this.spriteIds.addAll(sprites.stream().map(SpriteContents::getId).map(CustomId::from).toList());
-
-    if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
-      CompletableFuture.runAsync(() -> {
-        try {
-          this.atlas.save(CUSTOM_PAINTING_TEXTURE_ID, PathAccessor.getInstance().getGameDir());
-        } catch (IOException e) {
-          CustomPaintingsMod.LOGGER.warn(e);
-        }
-      }, Util.getIoWorkerExecutor());
-    }
   }
 
   private void copyInCachedImageData(Set<CustomId> invalidatedIds) {
