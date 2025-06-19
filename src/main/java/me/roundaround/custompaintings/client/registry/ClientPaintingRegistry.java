@@ -41,8 +41,6 @@ import me.roundaround.custompaintings.roundalib.event.MinecraftClientEvents;
 import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.custompaintings.util.StringUtil;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.model.ErrorCollectingSpriteGetter;
-import net.minecraft.client.render.model.SimpleModel;
 import net.minecraft.client.texture.MissingSprite;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.Sprite;
@@ -50,7 +48,6 @@ import net.minecraft.client.texture.SpriteAtlasTexture;
 import net.minecraft.client.texture.SpriteContents;
 import net.minecraft.client.texture.SpriteDimensions;
 import net.minecraft.client.texture.SpriteLoader;
-import net.minecraft.client.util.SpriteIdentifier;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.registry.DynamicRegistryManager;
@@ -78,7 +75,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   private final HashMap<CustomId, ImageChunkBuilder> imageBuilders = new HashMap<>();
   private final LinkedHashMap<CustomId, CompletableFuture<PaintingData>> pendingDataRequests = new LinkedHashMap<>();
   private final HashMap<CustomId, Boolean> finishedMigrations = new HashMap<>();
-  private final SpriteGetter spriteGetter = new SpriteGetter();
 
   private boolean atlasInitialized = false;
   private boolean packsReceived = false;
@@ -93,9 +89,13 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.client = client;
     this.itemManager = ItemManager.getInstance();
     this.atlas = new SpriteAtlasTexture(CUSTOM_PAINTING_TEXTURE_ID);
-    client.getTextureManager().registerTexture(this.atlas.getId(), this.atlas);
+    this.client.getTextureManager().registerTexture(this.atlas.getId(), this.atlas);
 
-    MinecraftClientEvents.CLOSE.register(this::close);
+    MinecraftClientEvents.CLOSE.register((c) -> {
+      if (c == this.client) {
+        this.close();
+      }
+    });
   }
 
   public static ClientPaintingRegistry getInstance() {
@@ -401,7 +401,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     return future;
   }
 
-  private void close(MinecraftClient client) {
+  private void close() {
     this.clear();
   }
 
@@ -448,21 +448,6 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   private void buildSpriteAtlas() {
     this.images.keySet().removeIf((id) -> !this.isValidImageId(id));
 
-    List<SpriteContents> sprites = this.compileSprites();
-    this.updateAtlas(sprites);
-    this.itemManager.bakeModels(
-        this.spriteGetter,
-        this.paintings,
-        Util.getMainWorkerExecutor()).join();
-
-    this.atlasInitialized = true;
-
-    if (this.client.currentScreen instanceof PacksLoadedListener screen) {
-      screen.onPackTexturesInitialized();
-    }
-  }
-
-  private List<SpriteContents> compileSprites() {
     List<SpriteContents> sprites = new ArrayList<>();
 
     sprites.add(MissingSprite.createSpriteContents());
@@ -476,15 +461,17 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.paintings.values().forEach((painting) -> this.getSpriteContents(painting).ifPresent(sprites::add));
     this.packsMap.keySet().forEach((packId) -> this.getSpriteContents(packId).ifPresent(sprites::add));
 
-    this.itemManager.generateSprites(this.paintings.values(), this.images::get, sprites::add);
-
-    return sprites;
-  }
-
-  private void updateAtlas(List<SpriteContents> sprites) {
     this.atlas.upload(SpriteLoader.fromAtlas(this.atlas).stitch(sprites, 0, Util.getMainWorkerExecutor()));
     this.spriteIds.clear();
     this.spriteIds.addAll(sprites.stream().map(SpriteContents::getId).map(CustomId::from).toList());
+
+    this.itemManager.build(this.paintings.values(), this.images::get);
+
+    this.atlasInitialized = true;
+
+    if (this.client.currentScreen instanceof PacksLoadedListener screen) {
+      screen.onPackTexturesInitialized();
+    }
   }
 
   private void copyInCachedImageData(Set<CustomId> invalidatedIds) {
@@ -566,17 +553,5 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   @SuppressWarnings("BooleanMethodIsAlwaysInverted")
   private boolean usingCache() {
     return CustomPaintingsConfig.getInstance().cacheImages.getValue() && !this.client.isInSingleplayer();
-  }
-
-  private class SpriteGetter implements ErrorCollectingSpriteGetter {
-    @Override
-    public Sprite get(SpriteIdentifier id, SimpleModel model) {
-      return ClientPaintingRegistry.this.getSprite(CustomId.from(id.getTextureId()));
-    }
-
-    @Override
-    public Sprite getMissing(String name, SimpleModel model) {
-      return ClientPaintingRegistry.this.getMissingSprite();
-    }
   }
 }

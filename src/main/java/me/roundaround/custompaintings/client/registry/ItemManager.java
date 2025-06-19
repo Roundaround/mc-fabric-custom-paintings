@@ -12,13 +12,14 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-import java.util.function.Consumer;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.imageio.ImageIO;
+
+import org.jetbrains.annotations.Nullable;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -32,6 +33,7 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.mixin.BakedModelManagerAccessor;
 import me.roundaround.custompaintings.resource.file.Image;
+import me.roundaround.custompaintings.roundalib.event.MinecraftClientEvents;
 import me.roundaround.custompaintings.roundalib.util.PathAccessor;
 import me.roundaround.custompaintings.util.CustomId;
 import net.minecraft.client.MinecraftClient;
@@ -44,12 +46,18 @@ import net.minecraft.client.render.model.ErrorCollectingSpriteGetter;
 import net.minecraft.client.render.model.MissingModel;
 import net.minecraft.client.render.model.ModelBaker;
 import net.minecraft.client.render.model.ReferencedModelsCollector;
+import net.minecraft.client.render.model.SimpleModel;
 import net.minecraft.client.render.model.UnbakedModel;
 import net.minecraft.client.render.model.json.GeneratedItemModel;
 import net.minecraft.client.render.model.json.JsonUnbakedModel;
+import net.minecraft.client.texture.MissingSprite;
 import net.minecraft.client.texture.NativeImage;
+import net.minecraft.client.texture.Sprite;
+import net.minecraft.client.texture.SpriteAtlasTexture;
 import net.minecraft.client.texture.SpriteContents;
 import net.minecraft.client.texture.SpriteDimensions;
+import net.minecraft.client.texture.SpriteLoader;
+import net.minecraft.client.util.SpriteIdentifier;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtOps;
@@ -61,103 +69,241 @@ import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
 
 public final class ItemManager {
+  public static final Identifier PAINTING_ITEM_TEXTURE_ID = Identifier.of(Constants.MOD_ID,
+      "textures/atlas/items.png");
+
   private static final Image HOOK_IMAGE = generateItemHookImage();
-  private static final Identifier VANILLA_SPRITE = Identifier.ofVanilla("textures/item/painting.png");
+  private static final Identifier VANILLA_TEXTURE = Identifier.ofVanilla("textures/item/painting.png");
+  private static final Identifier VANILLA_ID = Identifier.of(Constants.MOD_ID, "item/painting");
 
   private static ItemManager instance = null;
 
-  // TODO: Create new sprite atlas dedicated to item sprites
-
   private final MinecraftClient client;
+  private final SpriteAtlasTexture atlas;
+  private final HashSet<CustomId> spriteIds = new HashSet<>();
+  private final ArrayList<CompletableFuture<GeneratedImage>> generateFutures = new ArrayList<>();
+  private final HashMap<CustomId, Image> generated = new HashMap<>();
+  private final HashSet<CustomId> usesVanilla = new HashSet<>();
+  private final ArrayList<PaintingData> paintings = new ArrayList<>();
+  private final SpriteGetter spriteGetter = new SpriteGetter();
+
+  private boolean atlasInitialized = false;
+  private Function<CustomId, Image> baseImageSupplier = ItemManager::emptyBaseImageSupplier;
+  private AtomicReference<CompletableFuture<Void>> buildFuture = new AtomicReference<>();
 
   private ItemManager(MinecraftClient client) {
     this.client = client;
-  }
+    this.atlas = new SpriteAtlasTexture(PAINTING_ITEM_TEXTURE_ID);
+    this.client.getTextureManager().registerTexture(this.atlas.getId(), this.atlas);
 
-  public void generateSprites(
-      Collection<PaintingData> paintings,
-      Function<CustomId, Image> imageSupplier,
-      Consumer<SpriteContents> addSprite) {
-    if (!CustomPaintingsConfig.getInstance().renderArtworkOnItems.getPendingValue()) {
-      return;
-    }
-
-    // TODO: paintings.forEach -> loadOrScheduleGeneration
-    // TODO: loadResults.forEach -> if (loadedFromCache) -> set lastAccess
-    // TODO: loadResults.forEach -> wait for all futures, then batch add sprites and rebuild sprite atlas/models
-
-    if (!CustomPaintingsConfig.getInstance().cacheImages.getPendingValue()) {
-      paintings.forEach((painting) -> {
-        Image baseImage = imageSupplier.apply(painting.id());
-        if (isEmpty(baseImage)) {
-          addSprite.accept(this.getPlaceholderSprite(painting.id()));
-          return;
-        }
-        Image image = this.generateImage(painting, baseImage);
-        this.getSpriteContents(painting, image).ifPresent(addSprite);
-      });
-      return;
-    }
-
-    HashMap<CustomId, Image> images = new HashMap<>();
-    paintings.forEach((painting) -> {
-      Image image = imageSupplier.apply(painting.id());
-      if (image != null) {
-        images.put(painting.id(), image);
+    MinecraftClientEvents.CLOSE.register((c) -> {
+      if (c == this.client) {
+        this.close();
       }
     });
+  }
+
+  public Identifier getAtlasId() {
+    return this.atlas.getId();
+  }
+
+  public Sprite getMissingSprite() {
+    try {
+      return this.atlas.getSprite(MissingSprite.getMissingSpriteId());
+    } catch (IllegalStateException e) {
+      // In single player we will (usually) initialize the atlas before the first
+      // render. In multiplayer and potentially in single player on slower PCs
+      // however, first render could come before we receive the summary packet and
+      // initialize the atlas. In those cases, atlas.getSprite throws an exception. If
+      // it does, simply build the sprite atlas and try again.
+      if (!this.atlasInitialized) {
+        this.build();
+        return this.getMissingSprite();
+      } else {
+        throw new RuntimeException(e);
+      }
+    }
+  }
+
+  public Sprite getVanillaSprite() {
+    try {
+      return this.atlas.getSprite(VANILLA_ID);
+    } catch (IllegalStateException e) {
+      // See comment in getMissingSprite about atlas initialization
+      if (!this.atlasInitialized) {
+        this.build();
+        return this.getVanillaSprite();
+      } else {
+        throw new RuntimeException(e);
+      }
+    }
+  }
+
+  public Sprite getSprite(PaintingData painting) {
+    return this.getSprite(painting.id());
+  }
+
+  public Sprite getSprite(CustomId paintingId) {
+    return this.getItemSprite(getItemId(paintingId));
+  }
+
+  public Sprite getSprite(Identifier textureId) {
+    return this.getItemSprite(CustomId.from(textureId));
+  }
+
+  public void build(
+      Collection<PaintingData> paintings,
+      Function<CustomId, Image> imageSupplier) {
+    this.paintings.clear();
+    this.paintings.addAll(paintings);
+    this.baseImageSupplier = imageSupplier;
+    this.build();
+  }
+
+  public void close() {
+    CompletableFuture<Void> future = this.buildFuture.getAndSet(null);
+    if (future != null) {
+      future.cancel(false);
+    }
+
+    this.atlas.clear();
+    this.spriteIds.clear();
+    this.generateFutures.clear();
+    this.generated.clear();
+    this.paintings.clear();
+    this.atlasInitialized = false;
+    this.baseImageSupplier = ItemManager::emptyBaseImageSupplier;
+  }
+
+  private Sprite getItemSprite(CustomId id) {
+    if (this.usesVanilla.contains(id)) {
+      return this.getVanillaSprite();
+    }
+    if (!this.spriteIds.contains(id)) {
+      CustomPaintingsMod.LOGGER.warn("Sprite not found for {}", id);
+      return this.getMissingSprite();
+    }
+    return this.atlas.getSprite(id.toIdentifier());
+  }
+
+  private void build() {
+    ArrayList<SpriteContents> sprites = new ArrayList<>();
+    sprites.add(MissingSprite.createSpriteContents());
+    sprites.add(BasicTextureSprite.fetch(this.client, VANILLA_ID, VANILLA_TEXTURE));
+
+    HashSet<String> loadededHashes = new HashSet<>();
+    HashMap<CustomId, CompletableFuture<GeneratedImage>> generateFutures = new HashMap<>();
 
     CacheData data = this.loadCacheData();
-    final long expired = Util.getEpochTimeMs() - getTtlMs();
-    HashSet<String> loadedHashes = new HashSet<>();
-    HashMap<String, Image> generatedImages = new HashMap<>();
+    final long now = Util.getEpochTimeMs();
+    final long expired = now - getTtlMs();
 
-    paintings.forEach((painting) -> {
-      Image baseImage = images.get(painting.id());
-      if (isEmpty(baseImage)) {
-        addSprite.accept(this.getPlaceholderSprite(painting.id()));
+    this.paintings.forEach((painting) -> {
+      CustomId paintingId = painting.id();
+      CustomId itemId = CustomId.from(getItemModelId(paintingId));
+      Image generatedImage = this.generated.get(itemId);
+      if (generatedImage != null) {
+        this.getSpriteContents(painting, generatedImage).ifPresent(sprites::add);
         return;
       }
 
-      String baseHash = baseImage.hash();
-      Image image = null;
-      CacheFile file = data.hashes().get(baseHash);
-
-      if (file == null || file.isExpired(expired)) {
-        image = this.generateImage(painting, baseImage);
-        generatedImages.put(baseHash, image);
-      } else {
-        image = loadImage(getCacheDir(), file.hash());
-        if (image.isEmpty()) {
-          image = this.generateImage(painting, baseImage);
-          generatedImages.put(baseHash, image);
-        } else {
-          loadedHashes.add(baseHash);
-        }
+      Image baseImage = this.baseImageSupplier.apply(paintingId);
+      if (isEmpty(baseImage)) {
+        this.usesVanilla.add(itemId);
+        return;
       }
 
-      this.getSpriteContents(painting, image).ifPresent(addSprite);
+      LoadResult result = this.loadOrScheduleGeneration(data, expired, painting, baseImage);
+      if (result.sprite != null) {
+        sprites.add(result.sprite);
+      } else {
+        this.usesVanilla.add(itemId);
+      }
+      if (result.generateFuture != null) {
+        generateFutures.put(itemId, result.generateFuture);
+      }
     });
 
-    // TODO: Add some kind of mutex/lock
-    CompletableFuture.runAsync(() -> {
-      try {
-        this.saveToFile(loadedHashes, generatedImages);
-      } catch (IOException e) {
-        CustomPaintingsMod.LOGGER.warn("Failed to save item image cache", e);
+    for (String hash : loadededHashes) {
+      CacheFile file = data.hashes().get(hash);
+      if (file == null || file.isExpired(expired)) {
+        continue;
       }
-    }, Util.getIoWorkerExecutor());
+      file.setLastAccess(now);
+    }
+
+    this.saveCacheData(data);
+
+    this.atlas.upload(SpriteLoader.fromAtlas(this.atlas).stitch(sprites, 0, Util.getMainWorkerExecutor()));
+    this.spriteIds.clear();
+    this.spriteIds.addAll(sprites.stream().map(SpriteContents::getId).map(CustomId::from).toList());
+
+    this.bakeModels();
+
+    this.atlasInitialized = true;
+
+    if (generateFutures.isEmpty()) {
+      return;
+    }
+
+    // TODO: Sprites/models are not being updated after image generation completes
+    this.buildFuture.updateAndGet((previousFuture) -> {
+      if (previousFuture != null) {
+        previousFuture.cancel(false);
+      }
+
+      return CompletableFuture.allOf(generateFutures.values().toArray(CompletableFuture[]::new))
+          .thenRunAsync(() -> {
+            HashMap<CustomId, GeneratedImage> generated = new HashMap<>();
+            generateFutures.forEach((id, future) -> {
+              generated.put(id, future.join());
+            });
+
+            this.onGenerationCompleted(generated);
+          }, this.client);
+    });
   }
 
-  public CompletableFuture<Void> bakeModels(
-      ErrorCollectingSpriteGetter spriteGetter,
-      HashMap<CustomId, PaintingData> paintings,
-      Executor executor) {
+  private LoadResult loadOrScheduleGeneration(
+      CacheData data,
+      long expired,
+      PaintingData painting,
+      Image baseImage) {
+    Supplier<LoadResult> generate = () -> new LoadResult(
+        null,
+        false,
+        CompletableFuture.supplyAsync(
+            () -> this.generateImage(painting, baseImage),
+            Util.getMainWorkerExecutor()));
+
+    if (!CustomPaintingsConfig.getInstance().cacheImages.getPendingValue()) {
+      return generate.get();
+    }
+
+    String baseHash = baseImage.hash();
+    CacheFile file = data.hashes().get(baseHash);
+
+    if (file == null || file.isExpired(expired)) {
+      return generate.get();
+    }
+
+    Image image = loadImage(getCacheDir(), file.hash());
+    if (isEmpty(image)) {
+      return generate.get();
+    }
+
+    return new LoadResult(
+        this.getSpriteContents(painting, image).orElse(null),
+        true,
+        null);
+  }
+
+  private void bakeModels() {
     HashMap<Identifier, UnbakedModel> unbakedModels = new HashMap<>();
     unbakedModels.put(Identifier.ofVanilla("item/generated"), getGeneratedItemModel());
 
     HashMap<Identifier, ItemAsset> itemAssets = new HashMap<>();
-    paintings.values().forEach((painting) -> {
+    this.paintings.forEach((painting) -> {
       Identifier id = getItemModelId(painting.id());
 
       JsonObject json = new JsonObject();
@@ -184,80 +330,70 @@ public final class ItemManager {
         simpleModels,
         missingModel);
 
-    return baker.bake(spriteGetter, executor).thenAccept((bakedModels) -> {
+    baker.bake(this.spriteGetter, Util.getMainWorkerExecutor()).thenAccept((bakedModels) -> {
       BakedModelManagerAccessor accessor = (BakedModelManagerAccessor) this.client.getBakedModelManager();
       HashMap<Identifier, ItemModel> itemModels = new HashMap<>(accessor.getBakedItemModels());
       itemModels.putAll(bakedModels.itemStackModels());
       accessor.setBakedItemModels(itemModels);
-    });
+    }).join();
   }
 
-  private LoadResult loadOrScheduleGeneration(PaintingData painting, Image baseImage) {
-    if (!CustomPaintingsConfig.getInstance().cacheImages.getPendingValue()) {
-      SpriteContents sprite = this.getPlaceholderSprite(painting.id());
-
-      CompletableFuture<SpriteContents> generation = isEmpty(baseImage)
-          ? null
-          : CompletableFuture.supplyAsync(() -> {
-            // TODO: Wire up image generation
-            return sprite;
-          }, Util.getIoWorkerExecutor());
-
-      return new LoadResult(
-          sprite,
-          false,
-          generation);
-    }
-
-    if (isEmpty(baseImage)) {
-      return new LoadResult(
-          this.getPlaceholderSprite(painting.id()),
-          false,
-          CompletableFuture.supplyAsync(() -> {
-            // TODO: Wire up image generation
-            // TODO: Save generated image back to cache
-            return null;
-          }, Util.getIoWorkerExecutor()));
-    }
-
+  private void onGenerationCompleted(Map<CustomId, GeneratedImage> generated) {
     CacheData data = this.loadCacheData();
-    final long expired = Util.getEpochTimeMs() - getTtlMs();
+    final long now = Util.getEpochTimeMs();
+    Path cacheDir = getCacheDir();
 
-    String baseHash = baseImage.hash();
-    CacheFile file = data.hashes().get(baseHash);
+    try {
+      if (Files.notExists(cacheDir)) {
+        Files.createDirectories(cacheDir);
+      }
+    } catch (IOException e) {
+      CustomPaintingsMod.LOGGER.warn("Failed to create cache directory", e);
 
-    if (file == null || file.isExpired(expired)) {
-      return new LoadResult(
-          this.getPlaceholderSprite(painting.id()),
-          false,
-          CompletableFuture.supplyAsync(() -> {
-            // TODO: Wire up image generation
-            // TODO: Save generated image back to cache
-            return null;
-          }, Util.getIoWorkerExecutor()));
+      generated.forEach((id, generatedImage) -> {
+        String baseHash = generatedImage.baseHash();
+        Image image = generatedImage.image();
+        if (baseHash == null || isEmpty(image)) {
+          return;
+        }
+        this.generated.put(id, image);
+      });
+
+      this.build();
+      this.generated.clear();
+      return;
     }
 
-    Image image = loadImage(getCacheDir(), file.hash());
-    if (isEmpty(image)) {
-      return new LoadResult(
-          this.getPlaceholderSprite(painting.id()),
-          false,
-          CompletableFuture.supplyAsync(() -> {
-            // TODO: Wire up image generation
-            // TODO: Save generated image back to cache
-            return null;
-          }, Util.getIoWorkerExecutor()));
-    }
+    HashSet<CustomId> noLongerVanilla = new HashSet<>();
+    generated.forEach((id, generatedImage) -> {
+      String baseHash = generatedImage.baseHash();
+      Image image = generatedImage.image();
+      if (baseHash == null || isEmpty(image)) {
+        return;
+      }
 
-    return new LoadResult(
-        this.getSpriteContents(painting, image).orElse(null),
-        true,
-        null);
+      String hash = image.hash();
+      this.generated.put(id, image);
+      data.hashes().put(baseHash, new CacheFile(hash, now));
+
+      try {
+        ImageIO.write(image.toBufferedImage(), "png", cacheDir.resolve(hash + ".png").toFile());
+      } catch (IOException e) {
+        CustomPaintingsMod.LOGGER.warn("Failed to save item image to cache: {}", hash, e);
+      }
+
+      noLongerVanilla.add(id);
+    });
+
+    this.saveCacheData(data);
+    this.build();
+
+    this.usesVanilla.removeAll(noLongerVanilla);
   }
 
-  private Image generateImage(PaintingData painting, Image baseImage) {
+  private GeneratedImage generateImage(PaintingData painting, Image baseImage) {
     if (isEmpty(baseImage)) {
-      return Image.empty();
+      return new GeneratedImage(painting.id(), null, Image.empty());
     }
 
     int minWidth = 9;
@@ -274,7 +410,7 @@ public final class ItemManager {
     int tx = MathHelper.ceil((16 - width) / 2f);
     int ty = 2 + MathHelper.ceil((13 - height) / 2f);
 
-    return baseImage.apply(
+    Image image = baseImage.apply(
         Image.Operation.scale(width, height,
             Image.Resampler.combine(
                 0.2f,
@@ -311,17 +447,12 @@ public final class ItemManager {
             return new Image.Hashless(pixels, source.width(), source.height());
           }
         });
-  }
 
-  private SpriteContents getPlaceholderSprite(CustomId id) {
-    return BasicTextureSprite.fetch(
-        this.client,
-        getItemModelId(id),
-        VANILLA_SPRITE);
+    return new GeneratedImage(painting.id(), baseImage.hash(), image);
   }
 
   private Optional<SpriteContents> getSpriteContents(PaintingData painting, Image image) {
-    return this.getSpriteContents(CustomId.from(getItemModelId(painting.id())), image);
+    return this.getSpriteContents(getItemId(painting.id()), image);
   }
 
   private Optional<SpriteContents> getSpriteContents(CustomId id, Image image) {
@@ -337,6 +468,8 @@ public final class ItemManager {
   }
 
   private CacheData loadCacheData() {
+    // TODO: Some kind of mutex/lock
+
     Path dataFile = getDataFile(getCacheDir());
 
     if (Files.notExists(dataFile) || !Files.isRegularFile(dataFile)) {
@@ -354,49 +487,20 @@ public final class ItemManager {
     return CacheData.fromNbt(nbt);
   }
 
-  private void saveToFile(Set<String> touched, Map<String, Image> generated) throws IOException {
-    final long now = Util.getEpochTimeMs();
+  private void saveCacheData(CacheData data) {
+    // TODO: Some kind of mutex/lock
 
-    Path cacheDir = getCacheDir();
-    if (Files.notExists(cacheDir)) {
-      Files.createDirectories(cacheDir);
+    try {
+      Path cacheDir = getCacheDir();
+      if (Files.notExists(cacheDir)) {
+        Files.createDirectories(cacheDir);
+      }
+
+      Path dataFile = getDataFile(cacheDir);
+      NbtIo.writeCompressed(data.toNbt(), dataFile);
+    } catch (IOException e) {
+      CustomPaintingsMod.LOGGER.warn("Failed to save item image cache data", e);
     }
-
-    Path dataFile = getDataFile(cacheDir);
-    NbtCompound nbt;
-    if (Files.notExists(dataFile)) {
-      nbt = new NbtCompound();
-    } else {
-      try {
-        nbt = NbtIo.readCompressed(dataFile, NbtSizeTracker.ofUnlimitedBytes());
-      } catch (IOException e) {
-        CustomPaintingsMod.LOGGER.warn("Failed to read existing item image cache data before writing");
-        nbt = new NbtCompound();
-      }
-    }
-
-    CacheData data = CacheData.fromNbt(nbt);
-    touched.forEach((baseHash) -> {
-      CacheFile file = data.hashes().get(baseHash);
-      if (file == null) {
-        return;
-      }
-      file.setLastAccess(now);
-    });
-    generated.forEach((baseHash, image) -> {
-      String hash = image.hash();
-      data.hashes().put(baseHash, new CacheFile(hash, now));
-
-      try {
-        ImageIO.write(image.toBufferedImage(), "png", cacheDir.resolve(hash + ".png").toFile());
-      } catch (IOException e) {
-        CustomPaintingsMod.LOGGER.warn("Failed to save item image to cache: {}", hash, e);
-      }
-    });
-
-    NbtIo.writeCompressed(data.toNbt(), dataFile);
-
-    CompletableFuture.runAsync(() -> trimExpired(data), Util.getIoWorkerExecutor());
   }
 
   public static ItemManager getInstance() {
@@ -428,6 +532,10 @@ public final class ItemManager {
             // TODO: Handle exception
           }
         }, Util.getIoWorkerExecutor());
+  }
+
+  private static CustomId getItemId(CustomId paintingId) {
+    return CustomId.from(getItemModelId(paintingId));
   }
 
   private static Image generateItemHookImage() {
@@ -593,6 +701,10 @@ public final class ItemManager {
     return image == null || image.isEmpty();
   }
 
+  private static Image emptyBaseImageSupplier(CustomId id) {
+    return Image.empty();
+  }
+
   private record CacheData(
       int version,
       HashMap<String, CacheFile> hashes) {
@@ -674,8 +786,26 @@ public final class ItemManager {
   }
 
   private record LoadResult(
-      SpriteContents sprite,
+      @Nullable SpriteContents sprite,
       boolean loadedFromCache,
-      CompletableFuture<SpriteContents> generation) {
+      @Nullable CompletableFuture<GeneratedImage> generateFuture) {
+  }
+
+  private record GeneratedImage(
+      CustomId paintingId,
+      String baseHash,
+      Image image) {
+  }
+
+  private class SpriteGetter implements ErrorCollectingSpriteGetter {
+    @Override
+    public Sprite get(SpriteIdentifier id, SimpleModel model) {
+      return ItemManager.this.getSprite(id.getTextureId());
+    }
+
+    @Override
+    public Sprite getMissing(String name, SimpleModel model) {
+      return ItemManager.this.getMissingSprite();
+    }
   }
 }

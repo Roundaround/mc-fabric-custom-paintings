@@ -9,6 +9,7 @@ import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
+import me.roundaround.custompaintings.client.registry.ItemManager;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.util.CustomId;
@@ -24,7 +25,7 @@ import net.minecraft.nbt.NbtCompound;
 public abstract class RenderLayersMixin {
   @Unique
   private static final RenderLayer CUSTOM_ITEM_LAYER = RenderLayer
-      .getItemEntityTranslucentCull(ClientPaintingRegistry.CUSTOM_PAINTING_TEXTURE_ID);
+      .getItemEntityTranslucentCull(ItemManager.PAINTING_ITEM_TEXTURE_ID);
 
   @WrapMethod(method = "getItemLayer")
   private static RenderLayer wrapGetItemLayer(ItemStack stack, Operation<RenderLayer> original) {
