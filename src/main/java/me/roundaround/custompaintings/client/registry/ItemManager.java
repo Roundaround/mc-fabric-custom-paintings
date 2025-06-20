@@ -28,6 +28,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import me.roundaround.custompaintings.CustomPaintingsMod;
+import me.roundaround.custompaintings.client.render.model.ItemModelBaker;
 import me.roundaround.custompaintings.client.texture.BasicTextureSprite;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
@@ -40,12 +41,10 @@ import me.roundaround.custompaintings.util.CustomId;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.data.ItemModels;
 import net.minecraft.client.item.ItemAsset;
-import net.minecraft.client.render.entity.model.LoadedEntityModels;
 import net.minecraft.client.render.item.model.ItemModel;
 import net.minecraft.client.render.model.BakedSimpleModel;
 import net.minecraft.client.render.model.ErrorCollectingSpriteGetter;
 import net.minecraft.client.render.model.MissingModel;
-import net.minecraft.client.render.model.ModelBaker;
 import net.minecraft.client.render.model.ReferencedModelsCollector;
 import net.minecraft.client.render.model.SimpleModel;
 import net.minecraft.client.render.model.UnbakedModel;
@@ -239,20 +238,12 @@ public final class ItemManager {
 
     this.bakeModels();
 
-    try {
-      this.atlas.save(PAINTING_ITEM_TEXTURE_ID, PathAccessor.getInstance().getGameDir());
-    } catch (IOException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-
     this.atlasInitialized = true;
 
     if (generateFutures.isEmpty()) {
       return;
     }
 
-    // TODO: Sprites/models are not being updated after image generation completes
     this.buildFuture.updateAndGet((previousFuture) -> {
       if (previousFuture != null) {
         previousFuture.cancel(false);
@@ -326,19 +317,13 @@ public final class ItemManager {
     BakedSimpleModel missingModel = collector.getMissingModel();
     Map<Identifier, BakedSimpleModel> simpleModels = collector.collectModels();
 
-    ModelBaker baker = new ModelBaker(
-        LoadedEntityModels.EMPTY,
-        Map.of(),
-        itemAssets,
-        simpleModels,
-        missingModel);
+    ItemModelBaker baker = new ItemModelBaker(itemAssets, simpleModels, missingModel);
+    Map<Identifier, ItemModel> bakedModels = baker.bake(this.spriteGetter);
 
-    baker.bake(this.spriteGetter, Util.getMainWorkerExecutor()).thenAccept((bakedModels) -> {
-      BakedModelManagerAccessor accessor = (BakedModelManagerAccessor) this.client.getBakedModelManager();
-      HashMap<Identifier, ItemModel> itemModels = new HashMap<>(accessor.getBakedItemModels());
-      itemModels.putAll(bakedModels.itemStackModels());
-      accessor.setBakedItemModels(itemModels);
-    }).join();
+    BakedModelManagerAccessor accessor = (BakedModelManagerAccessor) this.client.getBakedModelManager();
+    HashMap<Identifier, ItemModel> itemModels = new HashMap<>(accessor.getBakedItemModels());
+    itemModels.putAll(bakedModels);
+    accessor.setBakedItemModels(itemModels);
   }
 
   private void onGenerationCompleted(List<GeneratedImage> generated) {

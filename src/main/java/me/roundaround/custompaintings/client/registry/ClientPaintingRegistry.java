@@ -465,7 +465,10 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.spriteIds.clear();
     this.spriteIds.addAll(sprites.stream().map(SpriteContents::getId).map(CustomId::from).toList());
 
+    long start = Util.getMeasuringTimeMs();
     this.itemManager.build(this.paintings.values(), this.images::get);
+    CustomPaintingsMod.LOGGER.info("Item manager build took {}",
+        StringUtil.formatDuration(Util.getMeasuringTimeMs() - start));
 
     this.atlasInitialized = true;
 
