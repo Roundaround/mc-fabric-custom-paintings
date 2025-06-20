@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -81,7 +82,6 @@ public final class ItemManager {
   private final MinecraftClient client;
   private final SpriteAtlasTexture atlas;
   private final HashSet<CustomId> spriteIds = new HashSet<>();
-  private final ArrayList<CompletableFuture<GeneratedImage>> generateFutures = new ArrayList<>();
   private final HashMap<CustomId, Image> generated = new HashMap<>();
   private final HashSet<CustomId> usesVanilla = new HashSet<>();
   private final ArrayList<PaintingData> paintings = new ArrayList<>();
@@ -168,7 +168,6 @@ public final class ItemManager {
 
     this.atlas.clear();
     this.spriteIds.clear();
-    this.generateFutures.clear();
     this.generated.clear();
     this.paintings.clear();
     this.atlasInitialized = false;
@@ -192,7 +191,7 @@ public final class ItemManager {
     sprites.add(BasicTextureSprite.fetch(this.client, VANILLA_ID, VANILLA_TEXTURE));
 
     HashSet<String> loadededHashes = new HashSet<>();
-    HashMap<CustomId, CompletableFuture<GeneratedImage>> generateFutures = new HashMap<>();
+    ArrayList<CompletableFuture<GeneratedImage>> generateFutures = new ArrayList<>();
 
     CacheData data = this.loadCacheData();
     final long now = Util.getEpochTimeMs();
@@ -220,7 +219,7 @@ public final class ItemManager {
         this.usesVanilla.add(itemId);
       }
       if (result.generateFuture != null) {
-        generateFutures.put(itemId, result.generateFuture);
+        generateFutures.add(result.generateFuture);
       }
     });
 
@@ -240,6 +239,13 @@ public final class ItemManager {
 
     this.bakeModels();
 
+    try {
+      this.atlas.save(PAINTING_ITEM_TEXTURE_ID, PathAccessor.getInstance().getGameDir());
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+
     this.atlasInitialized = true;
 
     if (generateFutures.isEmpty()) {
@@ -252,14 +258,11 @@ public final class ItemManager {
         previousFuture.cancel(false);
       }
 
-      return CompletableFuture.allOf(generateFutures.values().toArray(CompletableFuture[]::new))
+      return CompletableFuture.allOf(generateFutures.toArray(CompletableFuture[]::new))
           .thenRunAsync(() -> {
-            HashMap<CustomId, GeneratedImage> generated = new HashMap<>();
-            generateFutures.forEach((id, future) -> {
-              generated.put(id, future.join());
-            });
-
-            this.onGenerationCompleted(generated);
+            this.onGenerationCompleted(generateFutures.stream()
+                .map(CompletableFuture::join)
+                .toList());
           }, this.client);
     });
   }
@@ -338,7 +341,7 @@ public final class ItemManager {
     }).join();
   }
 
-  private void onGenerationCompleted(Map<CustomId, GeneratedImage> generated) {
+  private void onGenerationCompleted(List<GeneratedImage> generated) {
     CacheData data = this.loadCacheData();
     final long now = Util.getEpochTimeMs();
     Path cacheDir = getCacheDir();
@@ -350,13 +353,13 @@ public final class ItemManager {
     } catch (IOException e) {
       CustomPaintingsMod.LOGGER.warn("Failed to create cache directory", e);
 
-      generated.forEach((id, generatedImage) -> {
+      generated.forEach((generatedImage) -> {
         String baseHash = generatedImage.baseHash();
         Image image = generatedImage.image();
         if (baseHash == null || isEmpty(image)) {
           return;
         }
-        this.generated.put(id, image);
+        this.generated.put(generatedImage.paintingId(), generatedImage.image());
       });
 
       this.build();
@@ -364,14 +367,14 @@ public final class ItemManager {
       return;
     }
 
-    HashSet<CustomId> noLongerVanilla = new HashSet<>();
-    generated.forEach((id, generatedImage) -> {
+    generated.forEach((generatedImage) -> {
       String baseHash = generatedImage.baseHash();
       Image image = generatedImage.image();
       if (baseHash == null || isEmpty(image)) {
         return;
       }
 
+      CustomId id = getItemId(generatedImage.paintingId());
       String hash = image.hash();
       this.generated.put(id, image);
       data.hashes().put(baseHash, new CacheFile(hash, now));
@@ -382,13 +385,11 @@ public final class ItemManager {
         CustomPaintingsMod.LOGGER.warn("Failed to save item image to cache: {}", hash, e);
       }
 
-      noLongerVanilla.add(id);
+      this.usesVanilla.remove(id);
     });
 
     this.saveCacheData(data);
     this.build();
-
-    this.usesVanilla.removeAll(noLongerVanilla);
   }
 
   private GeneratedImage generateImage(PaintingData painting, Image baseImage) {
