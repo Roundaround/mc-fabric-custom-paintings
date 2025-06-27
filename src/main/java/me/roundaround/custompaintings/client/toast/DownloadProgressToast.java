@@ -2,8 +2,8 @@ package me.roundaround.custompaintings.client.toast;
 
 import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.toast.Toast;
 import net.minecraft.client.toast.ToastManager;
 import net.minecraft.text.Text;
@@ -82,7 +82,7 @@ public class DownloadProgressToast implements Toast {
 
   @Override
   public void draw(DrawContext context, TextRenderer textRenderer, long time) {
-    context.drawGuiTexture(RenderLayer::getGuiTextured, TEXTURE, 0, 0, this.getWidth(), this.getHeight());
+    context.drawGuiTexture(RenderPipelines.GUI_TEXTURED, TEXTURE, 0, 0, this.getWidth(), this.getHeight());
     this.drawText(context, textRenderer);
     this.drawProgressBar(context, time);
   }
@@ -122,8 +122,7 @@ public class DownloadProgressToast implements Toast {
 
   private Text getDescription() {
     return Text.translatable("custompaintings.toasts.download.body", this.imagesReceived, this.imagesExpected,
-        Math.clamp(Math.round(100f * this.progress), 0, 100)
-    );
+        Math.clamp(Math.round(100f * this.progress), 0, 100));
   }
 
   public record Type() {
