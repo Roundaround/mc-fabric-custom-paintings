@@ -172,7 +172,7 @@ public class ServerPaintingManager extends PersistentState {
   public static void syncAllDataForAllPlayers(MinecraftServer server) {
     server.getPlayerManager()
         .getPlayerList()
-        .forEach((player) -> player.getServerWorld().custompaintings$getPaintingManager().syncAllDataForPlayer(player));
+        .forEach((player) -> player.getWorld().custompaintings$getPaintingManager().syncAllDataForPlayer(player));
   }
 
   public static void runMigration(ServerPlayerEntity sourcePlayer, CustomId migrationId) {

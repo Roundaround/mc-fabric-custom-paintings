@@ -131,13 +131,13 @@ public final class ServerNetworking {
   }
 
   private static void handleHashes(Networking.HashesC2S payload, ServerPlayNetworking.Context context) {
-    context.player().server.execute(() -> {
+    context.server().execute(() -> {
       ServerPaintingRegistry.getInstance().checkPlayerHashes(context.player(), payload.hashes());
     });
   }
 
   private static void handleReload(Networking.ReloadC2S payload, ServerPlayNetworking.Context context) {
-    context.player().server.execute(() -> {
+    context.server().execute(() -> {
       if (!context.player().hasPermissionLevel(3)) {
         return;
       }
@@ -153,9 +153,9 @@ public final class ServerNetworking {
   }
 
   private static void handleSetPainting(Networking.SetPaintingC2S payload, ServerPlayNetworking.Context context) {
-    context.player().server.execute(() -> {
+    context.server().execute(() -> {
       ServerPlayerEntity player = context.player();
-      ServerWorld world = player.getServerWorld();
+      ServerWorld world = player.getWorld();
       Entity entity = world.getEntityById(payload.paintingId());
       if (!(entity instanceof PaintingEntity painting)) {
         return;
@@ -190,7 +190,7 @@ public final class ServerNetworking {
   }
 
   private static void handleRunMigration(Networking.RunMigrationC2S payload, ServerPlayNetworking.Context context) {
-    context.player().server.execute(() -> {
+    context.server().execute(() -> {
       ServerPaintingManager.runMigration(context.player(), payload.id());
     });
   }

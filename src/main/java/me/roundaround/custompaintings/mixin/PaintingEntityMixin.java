@@ -8,10 +8,9 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.decoration.AbstractDecorationEntity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.storage.ReadView;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
@@ -27,7 +26,7 @@ import java.util.UUID;
 @Mixin(PaintingEntity.class)
 public abstract class PaintingEntityMixin extends AbstractDecorationEntity implements PaintingEntityExtensions {
   @Unique
-  private PaintingData data = PaintingData.EMPTY;
+  private PaintingData data = null;
 
   @Unique
   private UUID editor = null;
@@ -51,7 +50,7 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
 
   @Override
   public void custompaintings$setData(PaintingData data) {
-    boolean changed = !this.data.equals(data);
+    boolean changed = !this.custompaintings$getData().equals(data);
     this.data = data;
     if (changed) {
       this.updateAttachmentPosition();
@@ -60,12 +59,15 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
 
   @Override
   public PaintingData custompaintings$getData() {
+    if (this.data == null) {
+      this.data = PaintingData.EMPTY;
+    }
     return this.data;
   }
 
   @Override
   public void custompaintings$setVariant(CustomId id) {
-    this.getEntityWorld()
+    this.getWorld()
         .getRegistryManager()
         .getOrThrow(RegistryKeys.PAINTING_VARIANT)
         .streamEntries()
@@ -92,12 +94,9 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
     this.data = PaintingData.EMPTY;
   }
 
-  @Inject(method = "readCustomDataFromNbt", at = @At(value = "HEAD"))
-  private void readCustomDataFromNbt(NbtCompound nbt, CallbackInfo info) {
-    nbt.getCompound("PaintingData").ifPresent((dataRoot) -> {
-      PaintingData.CODEC.decode(NbtOps.INSTANCE, dataRoot)
-          .ifSuccess((result) -> this.custompaintings$setData(result.getFirst()));
-    });
+  @Inject(method = "readCustomData", at = @At(value = "HEAD"))
+  private void readCustomDataFromNbt(ReadView view, CallbackInfo info) {
+    view.read("PaintingData", PaintingData.CODEC).ifPresent(this::custompaintings$setData);
   }
 
   @ModifyExpressionValue(

@@ -1,5 +1,15 @@
 package me.roundaround.custompaintings.client.gui.screen;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.gui.widget.LoadingButtonWidget;
 import me.roundaround.custompaintings.client.gui.widget.SpriteWidget;
@@ -11,44 +21,34 @@ import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.resource.PackIcons;
 import me.roundaround.custompaintings.resource.ResourceUtil;
-import me.roundaround.custompaintings.util.StringUtil;
-import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.FillerWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.linear.LinearLayoutWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.util.Alignment;
 import me.roundaround.custompaintings.roundalib.client.gui.util.Axis;
+import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
 import me.roundaround.custompaintings.roundalib.client.gui.util.Spacing;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.FlowListWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.NarratableEntryListWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.DrawableWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.LabelWidget;
 import me.roundaround.custompaintings.roundalib.util.PathAccessor;
+import me.roundaround.custompaintings.util.StringUtil;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ConfirmScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.Widget;
-import net.minecraft.client.render.RenderLayer;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 public class PacksScreen extends Screen implements PacksLoadedListener {
   private static final Text TITLE_MANAGE = Text.translatable("custompaintings.packs.manage");
@@ -94,29 +94,27 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
     this.layout.addHeader(this.textRenderer, this.title);
     if (inSinglePlayer) {
       this.layout.addHeader(this.textRenderer,
-          Text.translatable("custompaintings.packs.drop").formatted(Formatting.GRAY)
-      );
+          Text.translatable("custompaintings.packs.drop").formatted(Formatting.GRAY));
     }
 
     if (this.editMode) {
       this.layout.getBody().flowAxis(Axis.HORIZONTAL).spacing(30);
       this.inactiveList = this.layout.addBody(
           new PackList(this.client, LIST_WIDTH, this.layout.getBodyHeight(), LIST_INACTIVE, SELECT_TEXTURE,
-              SELECT_HIGHLIGHTED_TEXTURE, this::activatePack, this.inactivePacks
-          ), (parent, self) -> {
+              SELECT_HIGHLIGHTED_TEXTURE, this::activatePack, this.inactivePacks),
+          (parent, self) -> {
             self.setDimensions(LIST_WIDTH, parent.getHeight());
           });
       this.activeList = this.layout.addBody(
           new PackList(this.client, LIST_WIDTH, this.layout.getBodyHeight(), LIST_ACTIVE, UNSELECT_TEXTURE,
-              UNSELECT_HIGHLIGHTED_TEXTURE, this::deactivatePack, this.activePacks
-          ), (parent, self) -> {
+              UNSELECT_HIGHLIGHTED_TEXTURE, this::deactivatePack, this.activePacks),
+          (parent, self) -> {
             self.setDimensions(LIST_WIDTH, parent.getHeight());
           });
 
       this.reloadButton = this.layout.addFooter(
           new LoadingButtonWidget(0, 0, BUTTON_WIDTH, BUTTON_HEIGHT, Text.of("Reload Packs"),
-              (b) -> this.reloadPacks()
-          ));
+              (b) -> this.reloadPacks()));
 
       ButtonWidget openDirButton = this.layout.addFooter(
           ButtonWidget.builder(Text.translatable("custompaintings.packs.open"), (b) -> this.openPackDir())
@@ -319,8 +317,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
         Identifier buttonTexture,
         Identifier highlightedButtonTexture,
         Consumer<PackData> transferAction,
-        Collection<PackData> packs
-    ) {
+        Collection<PackData> packs) {
       super(client, 0, 0, width, height);
 
       this.title = title;
@@ -337,8 +334,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
     }
 
     public PackList(
-        MinecraftClient client, ThreeSectionLayoutWidget layout, Text title, Collection<PackData> packs
-    ) {
+        MinecraftClient client, ThreeSectionLayoutWidget layout, Text title, Collection<PackData> packs) {
       super(client, layout);
 
       this.title = title;
@@ -383,8 +379,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
       for (PackData pack : this.packs) {
         this.addEntry(
             PackEntry.factory(this.client.textRenderer, pack, this.buttonTexture, this.highlightedButtonTexture,
-                this.transferAction
-            ));
+                this.transferAction));
       }
 
       this.refreshPositions();
@@ -416,8 +411,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
           PackData pack,
           Identifier buttonTexture,
           Identifier highlightedButtonTexture,
-          Consumer<PackData> transferAction
-      ) {
+          Consumer<PackData> transferAction) {
         super(index, left, top, width, HEIGHT);
 
         this.pack = pack;
@@ -430,15 +424,13 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
             (self) -> {
               self.setPositionAndDimensions(
                   this.getContentLeft(), this.getContentTop(), this.getContentWidth(), this.getContentHeight());
-            }
-        );
+            });
 
         this.icon = layout.add(
             SpriteWidget.create(ClientPaintingRegistry.getInstance().getSprite(PackIcons.customId(pack.id()))),
             (parent, self) -> {
               self.setDimensions(PACK_ICON_SIZE, PACK_ICON_SIZE);
-            }
-        );
+            });
 
         layout.add(FillerWidget.empty());
 
@@ -456,8 +448,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
             .showShadow()
             .build(), (parent, self) -> self.setWidth(parent.getWidth()));
         textSection.add(LabelWidget.builder(textRenderer,
-                Text.translatable("custompaintings.packs.paintings", pack.paintings().size())
-            )
+            Text.translatable("custompaintings.packs.paintings", pack.paintings().size()))
             .alignTextLeft()
             .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
             .hideBackground()
@@ -496,13 +487,10 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
             }
 
             Identifier buttonTexture = this.isHovered() ? that.highlightedButtonTexture : that.buttonTexture;
-            context.fill(this.getX(), this.getY(), this.getRight(), this.getBottom(), 100, -1601138544);
-            context.getMatrices().push();
-            context.getMatrices().translate(0, 0, 101);
-            context.drawGuiTexture(RenderLayer::getGuiTextured, buttonTexture, this.getX(), this.getY(),
-                this.getWidth(), this.getHeight(), -1
-            );
-            context.getMatrices().pop();
+            context.fill(this.getX(), this.getY(), this.getRight(), this.getBottom(), -1601138544);
+            context.drawGuiTexture(
+                RenderPipelines.GUI_TEXTURED, buttonTexture, this.getX(), this.getY(),
+                this.getWidth(), this.getHeight(), -1);
           }
 
           @Override
@@ -522,8 +510,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
           PackData pack,
           Identifier buttonTexture,
           Identifier highlightedButtonTexture,
-          Consumer<PackData> transferAction
-      ) {
+          Consumer<PackData> transferAction) {
         return (index, left, top, width) -> new PackEntry(
             index, left, top, width, textRenderer, pack, buttonTexture, highlightedButtonTexture, transferAction);
       }
@@ -538,8 +525,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
         super.refreshPositions();
         if (this.button != null) {
           this.button.setDimensionsAndPosition(this.icon.getWidth(), this.icon.getHeight(), this.icon.getX(),
-              this.icon.getY()
-          );
+              this.icon.getY());
         }
       }
 
