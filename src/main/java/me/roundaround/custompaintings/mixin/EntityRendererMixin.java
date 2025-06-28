@@ -63,6 +63,11 @@ public abstract class EntityRendererMixin {
     }
 
     List<Text> label = state.custompaintings$getLabel();
+    if (label == null) {
+      original.call(rawState, text, matrixStack, vertexConsumers, light);
+      return;
+    }
+
     PaintingData data = state.custompaintings$getData();
     TextRenderer textRenderer = this.getTextRenderer();
 
