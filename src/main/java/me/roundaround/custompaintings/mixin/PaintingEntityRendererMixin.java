@@ -118,11 +118,15 @@ public abstract class PaintingEntityRendererMixin extends EntityRenderer<Paintin
       return List.of(customName);
     }
 
-    PaintingData paintingData = painting.custompaintings$getData();
-    if (paintingData.hasLabel()) {
-      return paintingData.getLabelAsLines();
+    PaintingData data = painting.custompaintings$getData();
+    if (data.isEmpty()) {
+      return null;
     }
 
-    return List.of(paintingData.getIdText());
+    if (data.hasLabel()) {
+      return data.getLabelAsLines();
+    }
+
+    return List.of(data.getIdText());
   }
 }
