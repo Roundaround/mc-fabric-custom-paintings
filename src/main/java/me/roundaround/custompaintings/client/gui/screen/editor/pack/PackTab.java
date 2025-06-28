@@ -45,6 +45,11 @@ public abstract class PackTab implements Tab {
   }
 
   @Override
+  public Text getNarratedHint() {
+    return Text.empty();
+  }
+
+  @Override
   public void forEachChild(Consumer<ClickableWidget> consumer) {
     this.layout.forEachChild(consumer);
   }

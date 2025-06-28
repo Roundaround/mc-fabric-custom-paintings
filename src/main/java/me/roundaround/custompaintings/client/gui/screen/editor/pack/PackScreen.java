@@ -8,12 +8,12 @@ import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSe
 import me.roundaround.custompaintings.roundalib.client.gui.screen.BaseScreen;
 import me.roundaround.custompaintings.roundalib.client.gui.screen.ScreenParent;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.ScreenRect;
 import net.minecraft.client.gui.tab.TabManager;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TabNavigationWidget;
-import net.minecraft.client.render.RenderLayer;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
@@ -98,14 +98,14 @@ public class PackScreen extends BaseScreen {
   public void render(DrawContext context, int mouseX, int mouseY, float deltaTicks) {
     super.render(context, mouseX, mouseY, deltaTicks);
     context.drawTexture(
-        RenderLayer::getGuiTextured, FOOTER_SEPARATOR_TEXTURE, 0,
+        RenderPipelines.GUI_TEXTURED, FOOTER_SEPARATOR_TEXTURE, 0,
         this.height - this.layout.getFooterHeight(), 0, 0, this.width, 2, 32, 2);
   }
 
   @Override
   protected void renderDarkening(DrawContext context) {
     context.drawTexture(
-        RenderLayer::getGuiTextured,
+        RenderPipelines.GUI_TEXTURED,
         TAB_HEADER_BACKGROUND_TEXTURE,
         0, 0, 0, 0,
         this.width,

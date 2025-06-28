@@ -15,26 +15,26 @@ import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSe
 import me.roundaround.custompaintings.roundalib.client.gui.screen.BaseScreen;
 import me.roundaround.custompaintings.roundalib.client.gui.screen.ScreenParent;
 import me.roundaround.custompaintings.roundalib.client.gui.util.Axis;
-import me.roundaround.custompaintings.roundalib.client.gui.util.FloatRect;
 import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
 import me.roundaround.custompaintings.roundalib.client.gui.util.IntRect;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.IconButtonWidget;
 import me.roundaround.custompaintings.roundalib.observable.Observable;
 import me.roundaround.custompaintings.roundalib.observable.Subject;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.ScreenRect;
 import net.minecraft.client.gui.tab.TabManager;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TabNavigationWidget;
-import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.MathHelper;
 
 public class PaintingScreen extends BaseScreen {
   private static final int PANEL_MIN_WIDTH = 140;
@@ -62,8 +62,8 @@ public class PaintingScreen extends BaseScreen {
   private ImageTab imageTab;
   private FillerWidget tabRegion;
   private IntRect frameBounds;
-  private float pixelsPerBlock;
-  private FloatRect imageBounds;
+  private IntRect imageBounds;
+  private int pixelsPerBlock;
   private Background background = Background.DARK_OAK;
 
   public PaintingScreen(
@@ -185,20 +185,19 @@ public class PaintingScreen extends BaseScreen {
           int blockWidth = width + (showBackground ? 2 : 0);
           int blockHeight = height + (showBackground ? 2 : 0);
 
-          float scale = Math.min(
-              (float) regionWidth / blockWidth,
-              (float) regionHeight / blockHeight);
-          int scaledWidth = Math.round(scale * blockWidth);
-          int scaledHeight = Math.round(scale * blockHeight);
+          this.pixelsPerBlock = Math.min(
+              MathHelper.floor(regionWidth / blockWidth),
+              MathHelper.floor(regionHeight / blockHeight));
 
-          this.pixelsPerBlock = (float) scaledWidth / blockWidth;
+          int scaledWidth = this.pixelsPerBlock * blockWidth;
+          int scaledHeight = this.pixelsPerBlock * blockHeight;
+
           this.frameBounds = IntRect.byDimensions(
               region.left() + (regionWidth - scaledWidth) / 2,
               region.top() + (regionHeight - scaledHeight) / 2,
               scaledWidth,
               scaledHeight);
           this.imageBounds = this.frameBounds
-              .toFloatRect()
               .reduce(showBackground ? this.pixelsPerBlock : 0);
 
           this.layout.refreshPositions();
@@ -233,7 +232,6 @@ public class PaintingScreen extends BaseScreen {
 
     GuiUtil.drawTexturedQuad(
         context,
-        RenderLayer::getGuiTextured,
         IMAGE_TEXTURE,
         this.imageBounds.left(),
         this.imageBounds.right(),
@@ -241,7 +239,7 @@ public class PaintingScreen extends BaseScreen {
         this.imageBounds.bottom());
 
     context.drawTexture(
-        RenderLayer::getGuiTextured, FOOTER_SEPARATOR_TEXTURE, 0,
+        RenderPipelines.GUI_TEXTURED, FOOTER_SEPARATOR_TEXTURE, 0,
         this.height - this.layout.getFooterHeight(), 0, 0, this.width, 2, 32, 2);
   }
 
@@ -266,11 +264,10 @@ public class PaintingScreen extends BaseScreen {
 
     for (int x = 0; x < this.state.blockWidth.get() + 2; x++) {
       for (int y = 0; y < this.state.blockHeight.get() + 2; y++) {
-        float posX = this.frameBounds.left() + (x * this.pixelsPerBlock);
-        float posY = this.frameBounds.top() + (y * this.pixelsPerBlock);
+        int posX = this.frameBounds.left() + (x * this.pixelsPerBlock);
+        int posY = this.frameBounds.top() + (y * this.pixelsPerBlock);
         GuiUtil.drawTexturedQuad(
             context,
-            RenderLayer::getGuiTextured,
             this.background.get(),
             posX,
             posX + this.pixelsPerBlock,
@@ -279,10 +276,10 @@ public class PaintingScreen extends BaseScreen {
       }
     }
 
-    float shadow1Size = 2f * this.pixelsPerBlock / 16; // 2 "block pixels"
+    int shadow1Size = Math.round(2f * this.pixelsPerBlock / 16); // 2 "block pixels"
     GuiUtil.drawSpriteNineSliced(
         context,
-        RenderLayer::getGuiTextured,
+        RenderPipelines.GUI_TEXTURED,
         SHADOW_TEXTURE,
         this.imageBounds.left() - shadow1Size,
         this.imageBounds.top() - shadow1Size,
@@ -293,10 +290,10 @@ public class PaintingScreen extends BaseScreen {
         GuiUtil.genColorInt(1f, 1f, 1f, 0.15f),
         8);
 
-    float shadow2Size = 1.25f * this.pixelsPerBlock / 16; // 1.25 "block pixels"
+    int shadow2Size = Math.round(1.25f * this.pixelsPerBlock / 16); // 1.25 "block pixels"
     GuiUtil.drawSpriteNineSliced(
         context,
-        RenderLayer::getGuiTextured,
+        RenderPipelines.GUI_TEXTURED,
         SHADOW_TEXTURE,
         this.imageBounds.left() - shadow2Size,
         this.imageBounds.top() - shadow2Size,
@@ -311,7 +308,7 @@ public class PaintingScreen extends BaseScreen {
   @Override
   protected void renderDarkening(DrawContext context) {
     context.drawTexture(
-        RenderLayer::getGuiTextured,
+        RenderPipelines.GUI_TEXTURED,
         TAB_HEADER_BACKGROUND_TEXTURE,
         0, 0, 0, 0,
         this.width,

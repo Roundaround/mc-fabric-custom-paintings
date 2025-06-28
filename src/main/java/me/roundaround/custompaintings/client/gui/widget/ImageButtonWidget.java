@@ -5,10 +5,10 @@ import java.util.function.Function;
 
 import me.roundaround.custompaintings.resource.file.Image;
 import me.roundaround.custompaintings.roundalib.client.gui.util.IntRect;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.render.RenderLayer;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
 import net.minecraft.util.Identifier;
@@ -134,7 +134,7 @@ public class ImageButtonWidget extends ButtonWidget {
         this.imageBounds.bottom() + 1,
         this.active && (this.hovered || this.isFocused()) ? Colors.WHITE : Colors.BLACK);
     context.drawTexture(
-        RenderLayer::getGuiTextured,
+        RenderPipelines.GUI_TEXTURED,
         this.getTextureId.apply(this.image),
         this.imageBounds.left(),
         this.imageBounds.top(),
