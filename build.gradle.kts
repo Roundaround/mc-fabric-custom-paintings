@@ -8,6 +8,6 @@ roundalib {
   library {
     local = true
     version = "3.2.0"
-    modules.addAll(LibModule.CONFIG_GUI, LibModule.NETWORK)
+    modules.addAll(LibModule.CORE, LibModule.GUI, LibModule.CONFIG, LibModule.CONFIG_GUI, LibModule.NETWORK, LibModule.OBSERVABLES)
   }
 }
