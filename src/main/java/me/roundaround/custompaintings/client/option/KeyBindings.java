@@ -21,7 +21,7 @@ public class KeyBindings {
         "custompaintings.key.openMainMenu",
         InputUtil.Type.KEYSYM,
         GLFW.GLFW_KEY_U,
-        "custompaintings.keyCategory"
+        KeyBinding.MISC_CATEGORY
     ));
 
     MinecraftClientEvents.HANDLE_INPUT.register((client) -> {
