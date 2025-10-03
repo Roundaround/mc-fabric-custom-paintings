@@ -11,6 +11,7 @@ import me.roundaround.custompaintings.resource.PackResource;
 import me.roundaround.custompaintings.resource.file.json.CustomPaintingsJson;
 import me.roundaround.custompaintings.resource.file.json.LegacyCustomPaintingsJson;
 import me.roundaround.custompaintings.roundalib.event.ResourceManagerEvents;
+import me.roundaround.custompaintings.roundalib.observable.Subscription;
 import me.roundaround.custompaintings.server.ServerInfo;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
@@ -19,15 +20,19 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.resource.ResourcePackProfile;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.ActionResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import java.util.List;
 
 @Entrypoint(Entrypoint.MAIN)
 public final class CustomPaintingsMod implements ModInitializer {
@@ -39,6 +44,8 @@ public final class CustomPaintingsMod implements ModInitializer {
       .create();
   public static final String MSG_CMD_IGNORE = Constants.MOD_ID + ":" + "ignore";
   public static final String MSG_CMD_OPEN_CONVERT_SCREEN = Constants.MOD_ID + ":" + "openConvertScreen";
+
+  private static Subscription stonecutterSub = null;
 
   @Override
   public void onInitialize() {
@@ -97,6 +104,31 @@ public final class CustomPaintingsMod implements ModInitializer {
 
       painting.setCustomNameVisible(!painting.isCustomNameVisible());
       return ActionResult.SUCCESS;
+    });
+
+    ServerLifecycleEvents.SERVER_STARTED.register((server) -> {
+      if (stonecutterSub != null) {
+        stonecutterSub.close();
+      }
+      stonecutterSub = CustomPaintingsPerWorldConfig.getInstance().pickPaintingWithStoneCutter.savedValue.cold()
+          .subscribe(() -> {
+            List<String> enabledPacks = server.getDataPackManager()
+                .getEnabledProfiles()
+                .stream()
+                .map(ResourcePackProfile::getId)
+                .toList();
+            server.reloadResources(enabledPacks).exceptionally((throwable) -> {
+              CustomPaintingsMod.LOGGER.warn("Failed to reload data packs after config change", throwable);
+              return null;
+            });
+          });
+    });
+
+    ServerLifecycleEvents.SERVER_STOPPING.register((server) -> {
+      if (stonecutterSub != null) {
+        stonecutterSub.close();
+        stonecutterSub = null;
+      }
     });
   }
 }

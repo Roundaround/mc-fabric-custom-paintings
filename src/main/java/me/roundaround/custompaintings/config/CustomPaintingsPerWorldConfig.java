@@ -22,6 +22,7 @@ public class CustomPaintingsPerWorldConfig extends ModConfigImpl implements Worl
   public IntConfigOption maxPerClientImagePacketsPerSecond;
   public IntConfigOption maxImagePacketSize;
   public BooleanConfigOption silenceConvertPrompt;
+  public BooleanConfigOption pickPaintingWithStoneCutter;
 
   private CustomPaintingsPerWorldConfig() {
     super(Constants.MOD_ID, "world");
@@ -60,5 +61,11 @@ public class CustomPaintingsPerWorldConfig extends ModConfigImpl implements Worl
         .setComment("Silence legacy pack conversion prompts for this world")
         .setDefaultValue(false)
         .build()).singlePlayerOnly().commit();
+
+    this.pickPaintingWithStoneCutter = this.buildRegistration(BooleanConfigOption.yesNoBuilder(ConfigPath.of(
+            "pickPaintingWithStoneCutter"))
+        .setComment("Use the stone cutter to choose specific paintings")
+        .setDefaultValue(true)
+        .build()).serverOrSinglePlayer().commit();
   }
 }
