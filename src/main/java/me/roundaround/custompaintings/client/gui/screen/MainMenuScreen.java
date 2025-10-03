@@ -1,6 +1,5 @@
 package me.roundaround.custompaintings.client.gui.screen;
 
-import me.roundaround.custompaintings.client.gui.screen.editor.ZeroScreen;
 import me.roundaround.custompaintings.client.gui.widget.LoadingButtonWidget;
 import me.roundaround.custompaintings.client.gui.widget.VersionStamp;
 import me.roundaround.custompaintings.client.network.ClientNetworking;
@@ -28,10 +27,7 @@ public class MainMenuScreen extends BaseScreen implements PacksLoadedListener {
   private LoadingButtonWidget reloadButton;
 
   public MainMenuScreen(Screen parent) {
-    super(
-        Text.translatable("custompaintings.main.title"),
-        new ScreenParent(parent),
-        MinecraftClient.getInstance());
+    super(Text.translatable("custompaintings.main.title"), new ScreenParent(parent), MinecraftClient.getInstance());
   }
 
   @Override
@@ -47,16 +43,13 @@ public class MainMenuScreen extends BaseScreen implements PacksLoadedListener {
         .width(BUTTON_WIDTH)
         .build());
 
-    this.layout.addBody(ButtonWidget.builder(Text.translatable("custompaintings.main.editor"), this::navigateEditor)
-        .width(BUTTON_WIDTH)
-        .build());
-
     this.layout.addBody(ButtonWidget.builder(Text.translatable("custompaintings.main.cache"), this::navigateCache)
         .width(BUTTON_WIDTH)
         .build());
 
-    Text packsLabel = canEdit ? Text.translatable("custompaintings.main.packs.manage")
-        : Text.translatable("custompaintings.main.packs.view");
+    Text packsLabel = canEdit ?
+        Text.translatable("custompaintings.main.packs.manage") :
+        Text.translatable("custompaintings.main.packs.view");
     ButtonWidget packsButton = this.layout.addBody(ButtonWidget.builder(packsLabel, this::navigatePacks)
         .width(BUTTON_WIDTH)
         .build());
@@ -67,14 +60,16 @@ public class MainMenuScreen extends BaseScreen implements PacksLoadedListener {
         BUTTON_WIDTH,
         BUTTON_HEIGHT,
         Text.translatable("custompaintings.main.reload"),
-        (b) -> this.reloadPacks()));
+        (b) -> this.reloadPacks()
+    ));
 
     ButtonWidget migrationsButton = this.layout.addBody(ButtonWidget.builder(
         Text.translatable("custompaintings.main.migrate"), this::navigateMigrate).width(BUTTON_WIDTH).build());
 
     ButtonWidget legacyButton = this.layout.addBody(ButtonWidget.builder(
         Text.translatable("custompaintings.main.legacy"),
-        this::navigateConvert).width(BUTTON_WIDTH).build());
+        this::navigateConvert
+    ).width(BUTTON_WIDTH).build());
 
     if (!inWorld) {
       packsButton.active = false;
@@ -123,11 +118,8 @@ public class MainMenuScreen extends BaseScreen implements PacksLoadedListener {
         this,
         Constants.MOD_ID,
         CustomPaintingsConfig.getInstance(),
-        CustomPaintingsPerWorldConfig.getInstance()));
-  }
-
-  private void navigateEditor(ButtonWidget button) {
-    this.client.setScreen(new ZeroScreen(new ScreenParent(this), this.client));
+        CustomPaintingsPerWorldConfig.getInstance()
+    ));
   }
 
   private void navigateCache(ButtonWidget button) {

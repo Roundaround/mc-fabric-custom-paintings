@@ -26,11 +26,11 @@ public final class PackReader {
   private static final String PACK_MCMETA = "pack.mcmeta";
   private static final String PACK_PNG = "pack.png";
   private static final String ICON_PNG = "icon.png";
-  private static final String LOG_NO_META = "Skipping potential pack \"{}\" with no {} file";
+  private static final String LOG_NO_META = "Skipping potential pack \"%s\" with no %s file";
   private static final String LOG_META_PARSE_FAIL = "Skipping potential pack \"%s\" after failing to parse %s";
   private static final String LOG_MCMETA_PARSE_FAIL = "Failed to parse %s file for %s";
-  private static final String LOG_NO_PAINTINGS = "Skipping potential pack \"{}\" because it contained no paintings";
-  private static final String LOG_NO_ICON = "Missing %s file for pack \"{}\"";
+  private static final String LOG_NO_PAINTINGS = "Skipping potential pack \"%s\" because it contained no paintings";
+  private static final String LOG_NO_ICON = "Missing %s file for pack \"%s\"";
   private static final String LOG_ICON_READ_FAIL = "Failed to read %s file for %s";
 
   public static Metadata readMetadata(Path path) {

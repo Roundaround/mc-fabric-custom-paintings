@@ -159,6 +159,10 @@ public final class ItemManager {
     this.build();
   }
 
+  public void rebuild() {
+    this.build();
+  }
+
   public void close() {
     CompletableFuture<Void> future = this.buildFuture.getAndSet(null);
     if (future != null) {
