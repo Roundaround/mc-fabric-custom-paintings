@@ -155,7 +155,7 @@ public final class ServerNetworking {
   private static void handleSetPainting(Networking.SetPaintingC2S payload, ServerPlayNetworking.Context context) {
     context.server().execute(() -> {
       ServerPlayerEntity player = context.player();
-      ServerWorld world = player.getWorld();
+      ServerWorld world = player.getEntityWorld();
       Entity entity = world.getEntityById(payload.paintingId());
       if (!(entity instanceof PaintingEntity painting)) {
         return;

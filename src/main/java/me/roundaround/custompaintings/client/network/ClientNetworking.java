@@ -122,13 +122,13 @@ public final class ClientNetworking {
 
   private static void handleSetPainting(Networking.SetPaintingS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
-      ClientPaintingManager.getInstance().trySetPaintingData(context.player().getWorld(), payload.assignment());
+      ClientPaintingManager.getInstance().trySetPaintingData(context.player().getEntityWorld(), payload.assignment());
     });
   }
 
   private static void handleSyncAllData(Networking.SyncAllDataS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
-      World world = context.player().getWorld();
+      World world = context.player().getEntityWorld();
       for (PaintingAssignment assignment : payload.assignments()) {
         ClientPaintingManager.getInstance().trySetPaintingData(world, assignment);
       }

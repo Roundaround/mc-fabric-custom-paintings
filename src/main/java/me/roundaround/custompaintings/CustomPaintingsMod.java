@@ -86,7 +86,7 @@ public final class CustomPaintingsMod implements ModInitializer {
     ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
       ServerPlayerEntity player = handler.getPlayer();
       ServerPaintingRegistry.getInstance().sendSummaryToPlayer(player);
-      player.getWorld().custompaintings$getPaintingManager().syncAllDataForPlayer(player);
+      player.getEntityWorld().custompaintings$getPaintingManager().syncAllDataForPlayer(player);
     });
 
     ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, origin, destination) -> {

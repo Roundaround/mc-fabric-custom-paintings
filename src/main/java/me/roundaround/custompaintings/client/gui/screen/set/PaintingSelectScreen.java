@@ -17,6 +17,7 @@ import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.Label
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
@@ -187,10 +188,10 @@ public class PaintingSelectScreen extends BaseSetPaintingScreen implements Paint
   }
 
   @Override
-  public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-    switch (keyCode) {
+  public boolean keyPressed(KeyInput input) {
+    switch (input.getKeycode()) {
       case GLFW.GLFW_KEY_LEFT -> {
-        if (!this.state.hasPaintingsToIterate() || !hasControlDown()) {
+        if (!this.state.hasPaintingsToIterate() || !input.hasCtrl()) {
           break;
         }
         GuiUtil.playClickSound();
@@ -198,7 +199,7 @@ public class PaintingSelectScreen extends BaseSetPaintingScreen implements Paint
         return true;
       }
       case GLFW.GLFW_KEY_RIGHT -> {
-        if (!this.state.hasPaintingsToIterate() || !hasControlDown()) {
+        if (!this.state.hasPaintingsToIterate() || !input.hasCtrl()) {
           break;
         }
         GuiUtil.playClickSound();
@@ -211,8 +212,8 @@ public class PaintingSelectScreen extends BaseSetPaintingScreen implements Paint
         return true;
       }
       case GLFW.GLFW_KEY_F -> {
-        if (hasControlDown()) {
-          if (hasShiftDown()) {
+        if (input.hasCtrl()) {
+          if (input.hasShift()) {
             this.navigate(new FiltersScreen(this.state));
             return true;
           }
@@ -224,7 +225,7 @@ public class PaintingSelectScreen extends BaseSetPaintingScreen implements Paint
       }
     }
 
-    return super.keyPressed(keyCode, scanCode, modifiers);
+    return super.keyPressed(input);
   }
 
   @Override

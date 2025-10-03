@@ -35,12 +35,15 @@ public class ItemModelBaker {
     BakerImpl bakerImpl = new BakerImpl(spriteGetter);
     HashMap<Identifier, ItemModel> itemModels = new HashMap<>();
     this.itemAssets.forEach((id, asset) -> {
+      // TODO: Is null okay for SpriteHolder and PlayerSkinCache? Probably not...
       itemModels.put(
           id,
           asset.model().bake(
               new ItemModel.BakeContext(
                   bakerImpl,
                   LoadedEntityModels.EMPTY,
+                  null,
+                  null,
                   missingItemModel,
                   asset.registrySwapper())));
     });

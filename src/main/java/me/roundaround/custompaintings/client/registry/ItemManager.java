@@ -1,32 +1,9 @@
 package me.roundaround.custompaintings.client.registry;
 
-import java.io.IOException;
-import java.io.StringReader;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
-import javax.imageio.ImageIO;
-
-import org.jetbrains.annotations.Nullable;
-
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.render.model.ItemModelBaker;
 import me.roundaround.custompaintings.client.texture.BasicTextureSprite;
@@ -34,6 +11,7 @@ import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.mixin.BakedModelManagerAccessor;
+import me.roundaround.custompaintings.mixin.SpriteLoaderAccessor;
 import me.roundaround.custompaintings.resource.file.Image;
 import me.roundaround.custompaintings.roundalib.event.MinecraftClientEvents;
 import me.roundaround.custompaintings.roundalib.util.PathAccessor;
@@ -42,35 +20,35 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.data.ItemModels;
 import net.minecraft.client.item.ItemAsset;
 import net.minecraft.client.render.item.model.ItemModel;
-import net.minecraft.client.render.model.BakedSimpleModel;
-import net.minecraft.client.render.model.ErrorCollectingSpriteGetter;
-import net.minecraft.client.render.model.MissingModel;
-import net.minecraft.client.render.model.ReferencedModelsCollector;
-import net.minecraft.client.render.model.SimpleModel;
-import net.minecraft.client.render.model.UnbakedModel;
+import net.minecraft.client.render.model.*;
 import net.minecraft.client.render.model.json.GeneratedItemModel;
 import net.minecraft.client.render.model.json.JsonUnbakedModel;
-import net.minecraft.client.texture.MissingSprite;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.texture.Sprite;
-import net.minecraft.client.texture.SpriteAtlasTexture;
-import net.minecraft.client.texture.SpriteContents;
-import net.minecraft.client.texture.SpriteDimensions;
-import net.minecraft.client.texture.SpriteLoader;
+import net.minecraft.client.texture.*;
 import net.minecraft.client.util.SpriteIdentifier;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.NbtSizeTracker;
-import net.minecraft.resource.metadata.ResourceMetadata;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
+import org.jetbrains.annotations.Nullable;
+
+import javax.imageio.ImageIO;
+import java.io.IOException;
+import java.io.StringReader;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public final class ItemManager {
-  public static final Identifier PAINTING_ITEM_TEXTURE_ID = Identifier.of(Constants.MOD_ID,
-      "textures/atlas/items.png");
+  public static final Identifier PAINTING_ITEM_TEXTURE_ID = Identifier.of(Constants.MOD_ID, "textures/atlas/items.png");
 
   private static final Image HOOK_IMAGE = generateItemHookImage();
   private static final Identifier VANILLA_TEXTURE = Identifier.ofVanilla("textures/item/painting.png");
@@ -150,9 +128,7 @@ public final class ItemManager {
     return this.getItemSprite(CustomId.from(textureId));
   }
 
-  public void build(
-      Collection<PaintingData> paintings,
-      Function<CustomId, Image> imageSupplier) {
+  public void build(Collection<PaintingData> paintings, Function<CustomId, Image> imageSupplier) {
     this.paintings.clear();
     this.paintings.addAll(paintings);
     this.baseImageSupplier = imageSupplier;
@@ -236,7 +212,11 @@ public final class ItemManager {
 
     this.saveCacheData(data);
 
-    this.atlas.upload(SpriteLoader.fromAtlas(this.atlas).stitch(sprites, 0, Util.getMainWorkerExecutor()));
+    this.atlas.upload(((SpriteLoaderAccessor) SpriteLoader.fromAtlas(this.atlas)).invokeStitch(
+        sprites,
+        0,
+        Util.getMainWorkerExecutor()
+    ));
     this.spriteIds.clear();
     this.spriteIds.addAll(sprites.stream().map(SpriteContents::getId).map(CustomId::from).toList());
 
@@ -253,26 +233,20 @@ public final class ItemManager {
         previousFuture.cancel(false);
       }
 
-      return CompletableFuture.allOf(generateFutures.toArray(CompletableFuture[]::new))
-          .thenRunAsync(() -> {
-            this.onGenerationCompleted(generateFutures.stream()
-                .map(CompletableFuture::join)
-                .toList());
-          }, this.client);
+      return CompletableFuture.allOf(generateFutures.toArray(CompletableFuture[]::new)).thenRunAsync(
+          () -> {
+            this.onGenerationCompleted(generateFutures.stream().map(CompletableFuture::join).toList());
+          }, this.client
+      );
     });
   }
 
-  private LoadResult loadOrScheduleGeneration(
-      CacheData data,
-      long expired,
-      PaintingData painting,
-      Image baseImage) {
+  private LoadResult loadOrScheduleGeneration(CacheData data, long expired, PaintingData painting, Image baseImage) {
     Supplier<LoadResult> generate = () -> new LoadResult(
         null,
         false,
-        CompletableFuture.supplyAsync(
-            () -> this.generateImage(painting, baseImage),
-            Util.getMainWorkerExecutor()));
+        CompletableFuture.supplyAsync(() -> this.generateImage(painting, baseImage), Util.getMainWorkerExecutor())
+    );
 
     if (!CustomPaintingsConfig.getInstance().cacheImages.getPendingValue()) {
       return generate.get();
@@ -290,10 +264,7 @@ public final class ItemManager {
       return generate.get();
     }
 
-    return new LoadResult(
-        this.getSpriteContents(painting, image).orElse(null),
-        true,
-        null);
+    return new LoadResult(this.getSpriteContents(painting, image).orElse(null), true, null);
   }
 
   private void bakeModels() {
@@ -401,11 +372,11 @@ public final class ItemManager {
     int ty = 2 + MathHelper.ceil((13 - height) / 2f);
 
     Image image = baseImage.apply(
-        Image.Operation.scale(width, height,
-            Image.Resampler.combine(
-                0.2f,
-                Image.Resampler.BILINEAR,
-                Image.Resampler.NEAREST_NEIGHBOR_FRAME_PRESERVING)),
+        Image.Operation.scale(
+            width,
+            height,
+            Image.Resampler.combine(0.2f, Image.Resampler.BILINEAR, Image.Resampler.NEAREST_NEIGHBOR_FRAME_PRESERVING)
+        ),
         Image.Operation.resize(16, 16),
         Image.Operation.translate(tx, ty),
         Image.Operation.embed(HOOK_IMAGE, 6, ty - 3),
@@ -436,7 +407,8 @@ public final class ItemManager {
             }
             return new Image.Hashless(pixels, source.width(), source.height());
           }
-        });
+        }
+    );
 
     return new GeneratedImage(painting.id(), baseImage.hash(), image);
   }
@@ -453,8 +425,8 @@ public final class ItemManager {
     return Optional.of(new SpriteContents(
         id.toIdentifier(),
         new SpriteDimensions(image.width(), image.height()),
-        nativeImage,
-        ResourceMetadata.NONE));
+        nativeImage
+    ));
   }
 
   private CacheData loadCacheData() {
@@ -521,7 +493,8 @@ public final class ItemManager {
           } catch (Exception ignored) {
             // TODO: Handle exception
           }
-        }, Util.getIoWorkerExecutor());
+        }, Util.getIoWorkerExecutor()
+    );
   }
 
   private static CustomId getItemId(CustomId paintingId) {
@@ -550,26 +523,11 @@ public final class ItemManager {
     json.addProperty("parent", "builtin/generated");
     json.addProperty("gui_light", "front");
     JsonObject display = new JsonObject();
-    display.add("ground", genDisplayJsonObject(
-        0, 0, 0,
-        0, 2, 0,
-        0.5f, 0.5f, 0.5f));
-    display.add("head", genDisplayJsonObject(
-        0, 180, 0,
-        0, 13, 7,
-        1, 1, 1));
-    display.add("thirdperson_righthand", genDisplayJsonObject(
-        0, 0, 0,
-        0, 3, 1,
-        0.55f, 0.55f, 0.55f));
-    display.add("firstperson_righthand", genDisplayJsonObject(
-        0, -90, 25,
-        1.13f, 3.2f, 1.13f,
-        0.68f, 0.68f, 0.68f));
-    display.add("fixed", genDisplayJsonObject(
-        0, 180, 0,
-        0, 0, 0,
-        1, 1, 1));
+    display.add("ground", genDisplayJsonObject(0, 0, 0, 0, 2, 0, 0.5f, 0.5f, 0.5f));
+    display.add("head", genDisplayJsonObject(0, 180, 0, 0, 13, 7, 1, 1, 1));
+    display.add("thirdperson_righthand", genDisplayJsonObject(0, 0, 0, 0, 3, 1, 0.55f, 0.55f, 0.55f));
+    display.add("firstperson_righthand", genDisplayJsonObject(0, -90, 25, 1.13f, 3.2f, 1.13f, 0.68f, 0.68f, 0.68f));
+    display.add("fixed", genDisplayJsonObject(0, 180, 0, 0, 0, 0, 1, 1, 1));
     json.add("display", display);
     return JsonUnbakedModel.deserialize(new StringReader(json.toString()));
   }
@@ -603,7 +561,8 @@ public final class ItemManager {
   }
 
   private static Path getCacheDir() {
-    return PathAccessor.getInstance().getGameDir()
+    return PathAccessor.getInstance()
+        .getGameDir()
         .resolve("data")
         .resolve(Constants.MOD_ID)
         .resolve("cache")
@@ -695,9 +654,7 @@ public final class ItemManager {
     return Image.empty();
   }
 
-  private record CacheData(
-      int version,
-      HashMap<String, CacheFile> hashes) {
+  private record CacheData(int version, HashMap<String, CacheFile> hashes) {
     public static final String NBT_VERSION = "Version";
     public static final String NBT_HASHES = "Hashes";
     public static final Codec<CacheData> CODEC = RecordCodecBuilder.create((instance) -> instance.group(
@@ -705,8 +662,8 @@ public final class ItemManager {
         Codec.unboundedMap(Codec.STRING, CacheFile.CODEC)
             .xmap(HashMap::new, Function.identity())
             .fieldOf(NBT_HASHES)
-            .forGetter(CacheData::hashes))
-        .apply(instance, CacheData::new));
+            .forGetter(CacheData::hashes)
+    ).apply(instance, CacheData::new));
 
     public static CacheData empty() {
       return new CacheData(1, new HashMap<>());
@@ -729,9 +686,10 @@ public final class ItemManager {
     public static final String NBT_HASH = "Hash";
     public static final String NBT_LAST_ACCESS = "LastAccess";
     public static final Codec<CacheFile> CODEC = RecordCodecBuilder.create((instance) -> instance.group(
-        Codec.STRING.fieldOf(NBT_HASH).forGetter(CacheFile::hash),
-        Codec.LONG.fieldOf(NBT_LAST_ACCESS).forGetter(CacheFile::lastAccess))
-        .apply(instance, CacheFile::new));
+        Codec.STRING.fieldOf(
+            NBT_HASH).forGetter(CacheFile::hash),
+        Codec.LONG.fieldOf(NBT_LAST_ACCESS).forGetter(CacheFile::lastAccess)
+    ).apply(instance, CacheFile::new));
 
     private final String hash;
     private long lastAccess;
@@ -775,16 +733,12 @@ public final class ItemManager {
     }
   }
 
-  private record LoadResult(
-      @Nullable SpriteContents sprite,
-      boolean loadedFromCache,
-      @Nullable CompletableFuture<GeneratedImage> generateFuture) {
+  private record LoadResult(@Nullable SpriteContents sprite,
+                            boolean loadedFromCache,
+                            @Nullable CompletableFuture<GeneratedImage> generateFuture) {
   }
 
-  private record GeneratedImage(
-      CustomId paintingId,
-      String baseHash,
-      Image image) {
+  private record GeneratedImage(CustomId paintingId, String baseHash, Image image) {
   }
 
   private class SpriteGetter implements ErrorCollectingSpriteGetter {

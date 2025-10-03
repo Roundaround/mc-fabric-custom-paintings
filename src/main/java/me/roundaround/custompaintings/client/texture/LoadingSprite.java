@@ -8,7 +8,6 @@ import net.minecraft.client.resource.metadata.AnimationResourceMetadata;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.SpriteContents;
 import net.minecraft.client.texture.SpriteDimensions;
-import net.minecraft.resource.metadata.ResourceMetadata;
 import net.minecraft.util.Identifier;
 
 import java.util.List;
@@ -22,8 +21,8 @@ public class LoadingSprite {
 
   public static SpriteContents generate(Identifier id, int width, int height) {
     NativeImage nativeImage = createImage(width, height);
-    ResourceMetadata metadata = generateMetadata(width, height);
-    return new SpriteContents(id, new SpriteDimensions(width, height), nativeImage, metadata);
+    AnimationResourceMetadata metadata = generateAnimationMetadata(width, height);
+    return new SpriteContents(id, new SpriteDimensions(width, height), nativeImage, Optional.of(metadata), List.of());
   }
 
   private static NativeImage createImage(int width, int height) {
@@ -44,15 +43,13 @@ public class LoadingSprite {
     return x < 1 || (y % height) < 1 || x >= width - 1 || (y % height) >= height - 1;
   }
 
-  private static ResourceMetadata generateMetadata(int width, int height) {
-    return new ResourceMetadata.Builder().add(
-        AnimationResourceMetadata.SERIALIZER, generateAnimationMetadata(width, height)).build();
-  }
-
   private static AnimationResourceMetadata generateAnimationMetadata(int width, int height) {
     return new AnimationResourceMetadata(
         Optional.of(List.of(new AnimationFrameResourceMetadata(0), new AnimationFrameResourceMetadata(1))),
-        Optional.of(width), Optional.of(height), 60, true
+        Optional.of(width),
+        Optional.of(height),
+        60,
+        true
     );
   }
 }

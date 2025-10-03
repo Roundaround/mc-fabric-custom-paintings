@@ -21,7 +21,7 @@ public class KeyBindings {
         "custompaintings.key.openMainMenu",
         InputUtil.Type.KEYSYM,
         GLFW.GLFW_KEY_U,
-        KeyBinding.MISC_CATEGORY
+        KeyBinding.Category.MISC
     ));
 
     MinecraftClientEvents.HANDLE_INPUT.register((client) -> {
@@ -30,12 +30,12 @@ public class KeyBindings {
       }
     });
 
-    ScreenInputEvent.EVENT.register((screen, keyCode, scanCode, modifiers) -> {
+    ScreenInputEvent.EVENT.register((screen, input) -> {
       MinecraftClient client = MinecraftClient.getInstance();
       if (client.currentScreen != null && !(client.currentScreen instanceof TitleScreen)) {
         return false;
       }
-      if (openMenu.matchesKey(keyCode, scanCode)) {
+      if (openMenu.matchesKey(input)) {
         client.setScreen(new MainMenuScreen(client.currentScreen));
         return true;
       }

@@ -247,7 +247,7 @@ public class PaintingEditState {
 
   @SuppressWarnings("deprecation")
   public boolean canStay(int width, int height) {
-    World world = Objects.requireNonNull(this.client.player).getWorld();
+    World world = Objects.requireNonNull(this.client.player).getEntityWorld();
     Box boundingBox = this.getBoundingBox(width, height);
 
     if (!world.isSpaceEmpty(boundingBox)) {

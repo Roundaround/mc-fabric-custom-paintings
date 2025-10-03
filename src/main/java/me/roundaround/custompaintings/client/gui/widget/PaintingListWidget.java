@@ -2,20 +2,19 @@ package me.roundaround.custompaintings.client.gui.widget;
 
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.custompaintings.util.CustomId;
-import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
 import me.roundaround.custompaintings.roundalib.client.gui.layout.linear.LinearLayoutWidget;
+import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.NarratableEntryListWidget;
 import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.LabelWidget;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.navigation.NavigationDirection;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.text.Text;
-import net.minecraft.util.Util;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,9 +25,6 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
   private final PaintingEditState state;
   private final Consumer<PaintingData> onPaintingSelect;
   private final Consumer<PaintingData> onPaintingConfirm;
-
-  private CustomId clickedId = null;
-  private long clickedTime = 0L;
 
   public PaintingListWidget(
       MinecraftClient client,
@@ -54,8 +50,16 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
     this.state.updatePaintingList();
 
     for (PaintingData paintingData : this.state.getCurrentPaintings()) {
-      this.addEntry((index, left, top, width) -> new PaintingEntry(index, left, top, width, this.client.textRenderer,
-          paintingData, this.state.canStay(paintingData), this.onPaintingSelect, this.onPaintingConfirm
+      this.addEntry((index, left, top, width) -> new PaintingEntry(
+          index,
+          left,
+          top,
+          width,
+          this.client.textRenderer,
+          paintingData,
+          this.state.canStay(paintingData),
+          this.onPaintingSelect,
+          this.onPaintingConfirm
       ));
     }
 
@@ -97,19 +101,12 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
   }
 
   @Override
-  public boolean mouseClicked(double mouseX, double mouseY, int button) {
-    Entry entry = this.getEntryAtPosition(mouseX, mouseY);
-    if (entry != null) {
-      if (entry.mouseClicked(mouseX, mouseY, button) && entry.getPaintingData().id().equals(this.clickedId) &&
-          Util.getMeasuringTimeMs() - this.clickedTime < 250L) {
-        return entry.mouseDoubleClicked(mouseX, mouseY, button);
-      }
-
-      this.clickedId = entry.getPaintingData().id();
-      this.clickedTime = Util.getMeasuringTimeMs();
+  public boolean mouseClicked(Click click, boolean doubled) {
+    Entry entry = this.getEntryAtPosition(click.x(), click.y());
+    if (entry != null && entry.mouseClicked(click, doubled)) {
+      return true;
     }
-
-    return super.mouseClicked(mouseX, mouseY, button) || entry != null;
+    return super.mouseClicked(click, doubled) || entry != null;
   }
 
   @Override
@@ -133,11 +130,7 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-      return false;
-    }
-
-    public boolean mouseDoubleClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(Click click, boolean doubled) {
       return false;
     }
   }
@@ -205,23 +198,30 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
           LinearLayoutWidget.horizontal().spacing(GuiUtil.PADDING).defaultOffAxisContentAlignCenter(), (self) -> {
             self.setPosition(this.getContentLeft(), this.getContentTop());
             self.setDimensions(this.getContentWidth(), this.getContentHeight());
-          });
+          }
+      );
 
-      layout.add(PaintingSpriteWidget.create(paintingData), (parent, self) -> {
-        self.setDimensions(this.getPaintingWidth(), this.getPaintingHeight());
-        self.setActive(this.canStay);
-      });
+      layout.add(
+          PaintingSpriteWidget.create(paintingData), (parent, self) -> {
+            self.setDimensions(this.getPaintingWidth(), this.getPaintingHeight());
+            self.setActive(this.canStay);
+          }
+      );
 
       LinearLayoutWidget column = LinearLayoutWidget.vertical().spacing(1).mainAxisContentAlignCenter();
       List<Text> infoLines = this.getPaintingData().getInfoLines();
-      infoLines.forEach((line) -> column.add(LabelWidget.builder(textRenderer, line)
-          .alignTextLeft()
-          .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
-          .hideBackground()
-          .showShadow()
-          .build(), (parent, self) -> self.setWidth(parent.getWidth())));
-      layout.add(column,
-          (parent, self) -> self.setDimensions(this.getContentWidth() - GuiUtil.PADDING - this.getPaintingWidth(),
+      infoLines.forEach((line) -> column.add(
+          LabelWidget.builder(textRenderer, line)
+              .alignTextLeft()
+              .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
+              .hideBackground()
+              .showShadow()
+              .build(), (parent, self) -> self.setWidth(parent.getWidth())
+      ));
+      layout.add(
+          column,
+          (parent, self) -> self.setDimensions(
+              this.getContentWidth() - GuiUtil.PADDING - this.getPaintingWidth(),
               this.getContentHeight()
           )
       );
@@ -255,24 +255,21 @@ public class PaintingListWidget extends NarratableEntryListWidget<PaintingListWi
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(Click click, boolean doubled) {
+      if (doubled) {
+        if (this.canStay) {
+          this.onConfirm.accept(this.paintingData);
+          return true;
+        }
+        return false;
+      }
       this.onSelect.accept(this.paintingData);
       return true;
     }
 
     @Override
-    public boolean mouseDoubleClicked(double mouseX, double mouseY, int button) {
-      if (this.canStay) {
-        this.onConfirm.accept(this.paintingData);
-        return true;
-      }
-
-      return false;
-    }
-
-    @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-      if ((keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) && this.canStay) {
+    public boolean keyPressed(KeyInput input) {
+      if (input.isEnter() && this.canStay) {
         GuiUtil.playClickSound();
         this.onConfirm.accept(this.paintingData);
         return true;

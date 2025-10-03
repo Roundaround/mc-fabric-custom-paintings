@@ -10,7 +10,6 @@ import net.minecraft.client.texture.SpriteDimensions;
 import net.minecraft.resource.InputSupplier;
 import net.minecraft.resource.ResourcePack;
 import net.minecraft.resource.ResourcePackProfile;
-import net.minecraft.resource.metadata.ResourceMetadata;
 import net.minecraft.util.Identifier;
 
 import java.io.InputStream;
@@ -33,7 +32,7 @@ public class VanillaIconSprite {
         NativeImage nativeImage = NativeImage.read(inputStream);
         int width = nativeImage.getWidth();
         int height = nativeImage.getHeight();
-        return new SpriteContents(spriteId, new SpriteDimensions(width, height), nativeImage, ResourceMetadata.NONE);
+        return new SpriteContents(spriteId, new SpriteDimensions(width, height), nativeImage);
       }
     } catch (Exception e) {
       return MissingSprite.createSpriteContents();

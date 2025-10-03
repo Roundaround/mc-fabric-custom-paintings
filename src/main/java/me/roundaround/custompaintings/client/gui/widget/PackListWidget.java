@@ -12,9 +12,10 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.Click;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.Collection;
 import java.util.function.Consumer;
@@ -43,12 +44,12 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
   }
 
   @Override
-  public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+  public boolean keyPressed(KeyInput input) {
     Entry hovered = this.getHoveredEntry();
-    if (hovered != null && hovered.keyPressed(keyCode, scanCode, modifiers)) {
+    if (hovered != null && hovered.keyPressed(input)) {
       return true;
     }
-    return super.keyPressed(keyCode, scanCode, modifiers);
+    return super.keyPressed(input);
   }
 
   private EntryFactory<Entry> getEntryFactory(TextRenderer textRenderer, Consumer<String> onSelect, PackData pack) {
@@ -128,20 +129,18 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(Click click, boolean doubled) {
       this.press();
       return true;
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-      return switch (keyCode) {
-        case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> {
-          this.press();
-          yield true;
-        }
-        default -> false;
-      };
+    public boolean keyPressed(KeyInput input) {
+      if (input.isEnter()) {
+        this.press();
+        return true;
+      }
+      return false;
     }
 
     @Override

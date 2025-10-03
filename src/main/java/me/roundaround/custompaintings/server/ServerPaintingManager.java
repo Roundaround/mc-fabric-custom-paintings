@@ -97,7 +97,7 @@ public class ServerPaintingManager extends PersistentState {
     painting.custompaintings$setData(data);
     if (this.setTrackedData(painting.getUuid(), painting.getId(), data) || forceSync) {
       ServerNetworking.sendSetPaintingPacketToAll(
-          (ServerWorld) painting.getWorld(),
+          (ServerWorld) painting.getEntityWorld(),
           PaintingAssignment.from(painting.getId(), data, ServerPaintingRegistry.getInstance()::contains)
       );
     }
@@ -172,7 +172,7 @@ public class ServerPaintingManager extends PersistentState {
   public static void syncAllDataForAllPlayers(MinecraftServer server) {
     server.getPlayerManager()
         .getPlayerList()
-        .forEach((player) -> player.getWorld().custompaintings$getPaintingManager().syncAllDataForPlayer(player));
+        .forEach((player) -> player.getEntityWorld().custompaintings$getPaintingManager().syncAllDataForPlayer(player));
   }
 
   public static void runMigration(ServerPlayerEntity sourcePlayer, CustomId migrationId) {
@@ -183,8 +183,8 @@ public class ServerPaintingManager extends PersistentState {
       return;
     }
 
-    MinecraftServer server = sourcePlayer.getServer();
-    if (server == null || !server.isRunning()) {
+    MinecraftServer server = sourcePlayer.getEntityWorld().getServer();
+    if (!server.isRunning()) {
       return;
     }
 
@@ -196,8 +196,8 @@ public class ServerPaintingManager extends PersistentState {
       return false;
     }
 
-    MinecraftServer server = sourcePlayer.getServer();
-    if (server == null || !server.isRunning()) {
+    MinecraftServer server = sourcePlayer.getEntityWorld().getServer();
+    if (!server.isRunning()) {
       return false;
     }
 

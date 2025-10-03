@@ -67,7 +67,7 @@ public abstract class PaintingEntityMixin extends AbstractDecorationEntity imple
 
   @Override
   public void custompaintings$setVariant(CustomId id) {
-    this.getWorld()
+    this.getEntityWorld()
         .getRegistryManager()
         .getOrThrow(RegistryKeys.PAINTING_VARIANT)
         .streamEntries()
