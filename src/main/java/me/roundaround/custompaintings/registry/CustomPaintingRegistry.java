@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.entity.decoration.painting.MigrationData;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
@@ -25,7 +26,7 @@ public abstract class CustomPaintingRegistry {
   protected final HashMap<CustomId, MigrationData> migrations = new HashMap<>();
   protected final HashMap<CustomId, Image> images = new HashMap<>();
 
-  protected String combinedImageHash = "";
+  protected String combinedImageHash = CustomPaintingsMod.EMPTY_HASH;
 
   protected abstract DynamicRegistryManager getRegistryManager();
 
@@ -81,7 +82,7 @@ public abstract class CustomPaintingRegistry {
     this.paintings.clear();
     this.migrations.clear();
     this.images.clear();
-    this.combinedImageHash = "";
+    this.combinedImageHash = CustomPaintingsMod.EMPTY_HASH;
   }
 
   public void setPacks(HashMap<String, PackData> packsMap) {
