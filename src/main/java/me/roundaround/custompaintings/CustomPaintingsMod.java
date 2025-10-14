@@ -44,6 +44,7 @@ public final class CustomPaintingsMod implements ModInitializer {
       .create();
   public static final String MSG_CMD_IGNORE = Constants.MOD_ID + ":" + "ignore";
   public static final String MSG_CMD_OPEN_CONVERT_SCREEN = Constants.MOD_ID + ":" + "openConvertScreen";
+  public static final String EMPTY_HASH = "$$";
 
   private static Subscription stonecutterSub = null;
 

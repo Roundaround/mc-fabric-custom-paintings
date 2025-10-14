@@ -116,7 +116,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
   public void setImages(HashMap<CustomId, Image> images) {
     this.images.clear();
     this.images.putAll(images);
-    this.combinedImageHash = ResourceUtil.hashImages(images);
+    this.combinedImageHash = images.isEmpty() ? CustomPaintingsMod.EMPTY_HASH : ResourceUtil.hashImages(images);
   }
 
   public void sendSummaryToAll() {
