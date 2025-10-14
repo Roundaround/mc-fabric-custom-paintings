@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
+import me.roundaround.custompaintings.roundalib.config.option.BooleanConfigOption;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.NbtComponent;
@@ -30,7 +31,8 @@ public abstract class ServerRecipeManagerMixin {
   )
   )
   private PreparedRecipes appendPreparedRecipes(Iterable<RecipeEntry<?>> recipes, Operation<PreparedRecipes> original) {
-    if (!CustomPaintingsPerWorldConfig.getInstance().pickPaintingWithStoneCutter.getValue()) {
+    BooleanConfigOption config = CustomPaintingsPerWorldConfig.getInstance().pickPaintingWithStoneCutter;
+    if (config == null || !config.getValue()) {
       return original.call(recipes);
     }
 
