@@ -23,7 +23,7 @@ public abstract class FileAccessor implements Closeable {
   }
 
   public String getPathSeparator() {
-    return File.pathSeparator;
+    return File.separator;
   }
 
   public abstract boolean hasFile(String path);
