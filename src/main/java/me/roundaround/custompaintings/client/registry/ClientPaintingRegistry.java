@@ -33,6 +33,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -461,7 +462,17 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.spriteIds.addAll(sprites.stream().map(SpriteContents::getId).map(CustomId::from).toList());
 
     long start = Util.getMeasuringTimeMs();
-    this.itemManager.build(this.paintings.values(), this.images::get);
+    ArrayList<PaintingData> itemPaintings = new ArrayList<>(this.paintings.values());
+    HashMap<CustomId, Image> itemImages = new HashMap<>(this.images);
+    this.getAllVanilla().forEach((vanilla) -> {
+      Image vanillaImage = loadVanillaPaintingImage(this.client, vanilla);
+      if (vanillaImage == null || vanillaImage.pixels().length == 0) {
+        return;
+      }
+      itemPaintings.add(vanilla);
+      itemImages.put(vanilla.id(), vanillaImage);
+    });
+    this.itemManager.build(itemPaintings, itemImages::get);
     CustomPaintingsMod.LOGGER.info(
         "Item manager build took {}",
         StringUtil.formatDuration(Util.getMeasuringTimeMs() - start)
@@ -522,6 +533,19 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   private boolean isValidImageId(CustomId id) {
     return this.paintings.containsKey(id) ||
            (id.pack().equals(PackIcons.ICON_NAMESPACE) && this.packsMap.containsKey(id.resource()));
+  }
+
+  private static Image loadVanillaPaintingImage(MinecraftClient client, PaintingData painting) {
+    Identifier paintingId = painting.id().toIdentifier();
+    Identifier texturePath = Identifier.of(
+        paintingId.getNamespace(),
+        "textures/painting/" + paintingId.getPath() + ".png"
+    );
+    try (InputStream stream = client.getResourceManager().getResourceOrThrow(texturePath).getInputStream()) {
+      return Image.read(stream);
+    } catch (IOException e) {
+      return null;
+    }
   }
 
   private Optional<SpriteContents> getSpriteContents(PaintingData painting) {

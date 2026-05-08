@@ -5,6 +5,7 @@ import java.util.function.Function;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
@@ -20,9 +21,11 @@ import net.minecraft.client.item.ItemModelManager;
 import net.minecraft.client.render.item.model.ItemModel;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.NbtComponent;
+import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.Identifier;
 
 @Mixin(ItemModelManager.class)
@@ -44,25 +47,39 @@ public abstract class ItemModelManagerMixin {
       return original;
     }
 
-    if (!CustomPaintingsConfig.getInstance().renderArtworkOnItems.getPendingValue()) {
-      return original;
-    }
-
-    NbtCompound nbt = stack.getOrDefault(DataComponentTypes.CUSTOM_DATA, NbtComponent.DEFAULT).copyNbt();
-    if (nbt.isEmpty()) {
-      return original;
-    }
-
-    String paintingId = nbt.getString(PaintingData.PAINTING_NBT_KEY).orElse(null);
+    CustomId paintingId = readPaintingId(stack);
     if (paintingId == null) {
       return original;
     }
 
-    PaintingData data = ClientPaintingRegistry.getInstance().get(CustomId.parse(paintingId));
+    PaintingData data = ClientPaintingRegistry.getInstance().get(paintingId);
     if (data == null || data.isEmpty()) {
       return original;
     }
 
+    CustomPaintingsConfig config = CustomPaintingsConfig.getInstance();
+    boolean enabled = data.vanilla()
+        ? config.renderVanillaArtworkOnItems.getPendingValue()
+        : config.renderArtworkOnItems.getPendingValue();
+    if (!enabled) {
+      return original;
+    }
+
     return ItemManager.getItemModelId(data.id());
+  }
+
+  @Unique
+  private static CustomId readPaintingId(ItemStack stack) {
+    NbtCompound nbt = stack.getOrDefault(DataComponentTypes.CUSTOM_DATA, NbtComponent.DEFAULT).copyNbt();
+    String customNbtId = nbt.isEmpty() ? null : nbt.getString(PaintingData.PAINTING_NBT_KEY).orElse(null);
+    if (customNbtId != null) {
+      return CustomId.parse(customNbtId);
+    }
+
+    RegistryEntry<PaintingVariant> variantEntry = stack.get(DataComponentTypes.PAINTING_VARIANT);
+    if (variantEntry == null) {
+      return null;
+    }
+    return CustomId.from(variantEntry.value().assetId());
   }
 }

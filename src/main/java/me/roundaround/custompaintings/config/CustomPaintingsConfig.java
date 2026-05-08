@@ -23,6 +23,7 @@ public class CustomPaintingsConfig extends ModConfigImpl implements GameScopedFi
   public IntConfigOption cacheTtl;
   public BooleanConfigOption silenceAllConvertPrompts;
   public BooleanConfigOption renderArtworkOnItems;
+  public BooleanConfigOption renderVanillaArtworkOnItems;
 
   private CustomPaintingsConfig() {
     super(Constants.MOD_ID, "game");
@@ -66,6 +67,12 @@ public class CustomPaintingsConfig extends ModConfigImpl implements GameScopedFi
     this.renderArtworkOnItems = this.buildRegistration(BooleanConfigOption.yesNoBuilder(ConfigPath.of(
         "renderArtworkOnItems"))
         .setComment("Render the artwork on custom painting items")
+        .setDefaultValue(true)
+        .build()).clientOnly().commit();
+
+    this.renderVanillaArtworkOnItems = this.buildRegistration(BooleanConfigOption.yesNoBuilder(ConfigPath.of(
+        "renderVanillaArtworkOnItems"))
+        .setComment("Render the artwork on vanilla painting items")
         .setDefaultValue(true)
         .build()).clientOnly().commit();
   }

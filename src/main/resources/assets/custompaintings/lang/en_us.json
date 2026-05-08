@@ -38,6 +38,7 @@
   "custompaintings.cacheTtl.label": "Number of days to retain cached images",
   "custompaintings.silenceAllConvertPrompts.label": "Silence all legacy pack conversion prompts",
   "custompaintings.renderArtworkOnItems.label": "Render the artwork on custom painting items",
+  "custompaintings.renderVanillaArtworkOnItems.label": "Render the artwork on vanilla painting items",
   "custompaintings.throttleImageDownloads.label": "Throttle image transfers to clients",
   "custompaintings.maxImagePacketsPerSecond.label": "Maximum number of image packets per second",
   "custompaintings.maxPerClientImagePacketsPerSecond.label": "Maximum number of image packets per second per client",
