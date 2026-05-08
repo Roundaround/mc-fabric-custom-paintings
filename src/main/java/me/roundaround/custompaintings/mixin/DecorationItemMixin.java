@@ -69,6 +69,9 @@ public abstract class DecorationItemMixin {
 
     PaintingData data = getStackPainting(stack);
     if (data != null && !data.isEmpty()) {
+      if (data.vanilla()) {
+        painting.custompaintings$setVariant(data.id());
+      }
       painting.custompaintings$setData(data);
       return Optional.of(painting);
     }

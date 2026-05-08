@@ -87,7 +87,7 @@ Similar to vanilla paintings, all your custom paintings will show up in the crea
 
 ## Stonecutter recipes
 
-Based on the ["Painting Picker" datapack from Vanilla Tweaks](https://vanillatweaks.net/picker/datapacks/#category-convenience), all the unique items for your custom paintings will also be available as stonecutter recipes! Just pop in the generic/random painting item in the input and you'll be able to craft items bound to a specific painting, that will skip the UI and always place that variant! These recipes are toggleable via the server-side/per-world config.
+Based on the ["Painting Picker" datapack from Vanilla Tweaks](https://vanillatweaks.net/picker/datapacks/#category-convenience), all the unique items for your custom paintings will also be available as stonecutter recipes! Just pop in the generic/random painting item in the input and you'll be able to craft items bound to a specific painting, that will skip the UI and always place that variant! The same applies to vanilla painting variants — drop a generic painting in and pick the exact Kebab, Aztec, etc. you want. The custom-pack and vanilla recipes have their own toggles in the server-side/per-world config.
 
 ## Adding a painting pack to your server
 
@@ -297,6 +297,14 @@ modify these from the same in-game menu as the client-side config.
 
 **Silence legacy pack conversion prompts for this world** (`silenceConvertPrompt`): `true|false` - Same as
 `silenceAllConvertPrompts` from the client-side config, except specific to the current world. Defaults to `false`.
+
+**Use the stone cutter to choose specific paintings** (`pickPaintingWithStoneCutter`): `true|false` - Whether to add
+stonecutter recipes for each painting in the active custom packs, so a generic painting item can be cut into one bound
+to a specific custom painting variant (skipping the picker UI on placement). Defaults to `true`.
+
+**Use the stone cutter to choose specific vanilla paintings** (`pickVanillaPaintingWithStoneCutter`): `true|false` - The
+vanilla counterpart to `pickPaintingWithStoneCutter`: whether to add stonecutter recipes for each placeable vanilla
+painting variant (Kebab, Aztec, etc.). Defaults to `true`.
 
 #### Server-side configuration
 

@@ -45,6 +45,7 @@
   "custompaintings.maxImagePacketSize.label": "Maximum size for each image packet in KB",
   "custompaintings.silenceConvertPrompt.label": "Silence legacy pack conversion prompts for this world",
   "custompaintings.pickPaintingWithStoneCutter.label": "Use the stone cutter to choose specific paintings",
+  "custompaintings.pickVanillaPaintingWithStoneCutter.label": "Use the stone cutter to choose specific vanilla paintings",
   "custompaintings.main.title": "Custom Paintings Main Menu",
   "custompaintings.main.config": "Configuration",
   "custompaintings.main.legacy": "Convert Legacy Packs",

@@ -8,14 +8,19 @@ import me.roundaround.custompaintings.roundalib.config.option.BooleanConfigOptio
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.NbtComponent;
+import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.recipe.*;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.registry.tag.PaintingVariantTags;
 import net.minecraft.util.Identifier;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 
 import java.util.ArrayList;
@@ -23,6 +28,10 @@ import java.util.HashSet;
 
 @Mixin(ServerRecipeManager.class)
 public abstract class ServerRecipeManagerMixin {
+  @Shadow
+  @Final
+  private RegistryWrapper.WrapperLookup registries;
+
   @WrapOperation(
       method = "prepare(Lnet/minecraft/resource/ResourceManager;Lnet/minecraft/util/profiler/Profiler;)" +
                "Lnet/minecraft/recipe/PreparedRecipes;", at = @At(
@@ -31,8 +40,12 @@ public abstract class ServerRecipeManagerMixin {
   )
   )
   private PreparedRecipes appendPreparedRecipes(Iterable<RecipeEntry<?>> recipes, Operation<PreparedRecipes> original) {
-    BooleanConfigOption config = CustomPaintingsPerWorldConfig.getInstance().pickPaintingWithStoneCutter;
-    if (config == null || !config.getValue()) {
+    CustomPaintingsPerWorldConfig config = CustomPaintingsPerWorldConfig.getInstance();
+    BooleanConfigOption customOption = config.pickPaintingWithStoneCutter;
+    BooleanConfigOption vanillaOption = config.pickVanillaPaintingWithStoneCutter;
+    boolean addCustom = customOption != null && customOption.getValue();
+    boolean addVanilla = vanillaOption != null && vanillaOption.getValue();
+    if (!addCustom && !addVanilla) {
       return original.call(recipes);
     }
 
@@ -42,32 +55,66 @@ public abstract class ServerRecipeManagerMixin {
     recipes.forEach(expanded::add);
 
     HashSet<Identifier> added = new HashSet<>();
-    ServerPaintingRegistry.getInstance().getActivePacks().forEach((pack) -> {
-      pack.paintings().forEach((painting) -> {
-        Identifier id = painting.id().toIdentifier();
-        if (added.contains(id)) {
-          return;
-        }
 
-        ItemStack stack = new ItemStack(Items.PAINTING);
+    if (addCustom) {
+      ServerPaintingRegistry.getInstance().getActivePacks().forEach((pack) -> {
+        pack.paintings().forEach((painting) -> {
+          Identifier id = painting.id().toIdentifier();
+          if (added.contains(id)) {
+            return;
+          }
 
-        NbtCompound nbt = new NbtCompound();
-        nbt.putString(PaintingData.PACK_NBT_KEY, pack.name());
-        nbt.putString(PaintingData.PAINTING_NBT_KEY, id.toString());
+          ItemStack stack = new ItemStack(Items.PAINTING);
 
-        stack.apply(
-            DataComponentTypes.CUSTOM_DATA, NbtComponent.DEFAULT, (existing) -> {
-              return NbtComponent.of(existing.copyNbt().copyFrom(nbt));
-            }
-        );
+          NbtCompound nbt = new NbtCompound();
+          nbt.putString(PaintingData.PACK_NBT_KEY, pack.name());
+          nbt.putString(PaintingData.PAINTING_NBT_KEY, id.toString());
 
-        expanded.add(new RecipeEntry<>(
-            RegistryKey.of(RegistryKeys.RECIPE, id),
-            new StonecuttingRecipe("", ingredient, stack)
-        ));
-        added.add(id);
+          stack.apply(
+              DataComponentTypes.CUSTOM_DATA, NbtComponent.DEFAULT, (existing) -> {
+                return NbtComponent.of(existing.copyNbt().copyFrom(nbt));
+              }
+          );
+
+          expanded.add(new RecipeEntry<>(
+              RegistryKey.of(RegistryKeys.RECIPE, id),
+              new StonecuttingRecipe("", ingredient, stack)
+          ));
+          added.add(id);
+        });
       });
-    });
+    }
+
+    if (addVanilla && this.registries != null) {
+      this.registries.getOptional(RegistryKeys.PAINTING_VARIANT).ifPresent((variantLookup) -> {
+        variantLookup.streamEntries()
+            .filter((entry) -> entry.isIn(PaintingVariantTags.PLACEABLE))
+            .forEach((entry) -> {
+              PaintingVariant variant = entry.value();
+              Identifier id = variant.assetId();
+              if (added.contains(id)) {
+                return;
+              }
+
+              ItemStack stack = new ItemStack(Items.PAINTING);
+
+              NbtCompound nbt = new NbtCompound();
+              nbt.putString(PaintingData.PAINTING_NBT_KEY, id.toString());
+
+              stack.apply(
+                  DataComponentTypes.CUSTOM_DATA, NbtComponent.DEFAULT, (existing) -> {
+                    return NbtComponent.of(existing.copyNbt().copyFrom(nbt));
+                  }
+              );
+
+              expanded.add(new RecipeEntry<>(
+                  RegistryKey.of(RegistryKeys.RECIPE, id),
+                  new StonecuttingRecipe("", ingredient, stack)
+              ));
+              added.add(id);
+            });
+      });
+    }
 
     return original.call(expanded);
   }
