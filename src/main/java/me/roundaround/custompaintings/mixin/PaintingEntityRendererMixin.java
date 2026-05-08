@@ -15,7 +15,6 @@ import net.minecraft.client.render.entity.state.PaintingEntityRenderState;
 import net.minecraft.client.texture.Sprite;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
-import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
@@ -58,8 +57,6 @@ public abstract class PaintingEntityRendererMixin extends EntityRenderer<Paintin
   ) {
     renderState.custompaintings$setData(painting.custompaintings$getData());
     renderState.custompaintings$setLabel(this.getMultilineLabel(painting));
-    List<Text> lines = this.getMultilineLabel(painting);
-    renderState.displayName = lines == null ? null : ScreenTexts.joinLines(lines);
   }
 
   @WrapOperation(
