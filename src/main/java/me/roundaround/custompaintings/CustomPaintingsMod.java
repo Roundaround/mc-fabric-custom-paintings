@@ -11,6 +11,7 @@ import me.roundaround.custompaintings.resource.PackResource;
 import me.roundaround.custompaintings.resource.file.json.CustomPaintingsJson;
 import me.roundaround.custompaintings.resource.file.json.LegacyCustomPaintingsJson;
 import me.roundaround.custompaintings.roundalib.event.ResourceManagerEvents;
+import me.roundaround.custompaintings.roundalib.observable.Observer;
 import me.roundaround.custompaintings.roundalib.observable.Subscription;
 import me.roundaround.custompaintings.server.ServerInfo;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
@@ -27,12 +28,14 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.resource.ResourcePackProfile;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.ActionResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Entrypoint(Entrypoint.MAIN)
 public final class CustomPaintingsMod implements ModInitializer {
@@ -45,6 +48,22 @@ public final class CustomPaintingsMod implements ModInitializer {
   public static final String EMPTY_HASH = "$$";
 
   private static Subscription stonecutterSub = null;
+  private static Subscription vanillaStonecutterSub = null;
+
+  public static CompletableFuture<Void> reloadDataPacks(MinecraftServer server) {
+    if (server == null) {
+      return CompletableFuture.completedFuture(null);
+    }
+    List<String> enabledPacks = server.getDataPackManager()
+        .getEnabledProfiles()
+        .stream()
+        .map(ResourcePackProfile::getId)
+        .toList();
+    return server.reloadResources(enabledPacks).exceptionally((throwable) -> {
+      LOGGER.warn("Failed to reload data packs", throwable);
+      return null;
+    });
+  }
 
   @Override
   public void onInitialize() {
@@ -109,24 +128,24 @@ public final class CustomPaintingsMod implements ModInitializer {
       if (stonecutterSub != null) {
         stonecutterSub.close();
       }
+      if (vanillaStonecutterSub != null) {
+        vanillaStonecutterSub.close();
+      }
+      Observer.P0 onChange = () -> reloadDataPacks(server);
       stonecutterSub = CustomPaintingsPerWorldConfig.getInstance().pickPaintingWithStoneCutter.savedValue.cold()
-          .subscribe(() -> {
-            List<String> enabledPacks = server.getDataPackManager()
-                .getEnabledProfiles()
-                .stream()
-                .map(ResourcePackProfile::getId)
-                .toList();
-            server.reloadResources(enabledPacks).exceptionally((throwable) -> {
-              CustomPaintingsMod.LOGGER.warn("Failed to reload data packs after config change", throwable);
-              return null;
-            });
-          });
+          .subscribe(onChange);
+      vanillaStonecutterSub = CustomPaintingsPerWorldConfig.getInstance().pickVanillaPaintingWithStoneCutter.savedValue.cold()
+          .subscribe(onChange);
     });
 
     ServerLifecycleEvents.SERVER_STOPPING.register((server) -> {
       if (stonecutterSub != null) {
         stonecutterSub.close();
         stonecutterSub = null;
+      }
+      if (vanillaStonecutterSub != null) {
+        vanillaStonecutterSub.close();
+        vanillaStonecutterSub = null;
       }
     });
   }

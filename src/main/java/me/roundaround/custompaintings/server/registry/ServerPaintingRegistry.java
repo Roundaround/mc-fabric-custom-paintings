@@ -109,6 +109,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
       this.setPacks(loadResult.packs());
       this.setImages(loadResult.images());
       this.sendSummaryToAll();
+      CustomPaintingsMod.reloadDataPacks(this.server);
       onSucceed.accept(this.server);
     }, this.server);
   }
