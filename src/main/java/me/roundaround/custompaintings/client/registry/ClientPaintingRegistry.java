@@ -37,6 +37,7 @@ import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -464,14 +465,16 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     long start = Util.getMeasuringTimeMs();
     ArrayList<PaintingData> itemPaintings = new ArrayList<>(this.paintings.values());
     HashMap<CustomId, Image> itemImages = new HashMap<>(this.images);
-    this.getAllVanilla().forEach((vanilla) -> {
+    Consumer<PaintingData> addVanillaImage = (vanilla) -> {
       Image vanillaImage = loadVanillaPaintingImage(this.client, vanilla);
       if (vanillaImage == null || vanillaImage.pixels().length == 0) {
         return;
       }
       itemPaintings.add(vanilla);
       itemImages.put(vanilla.id(), vanillaImage);
-    });
+    };
+    this.getAllVanilla().forEach(addVanillaImage);
+    this.getAllVanillaUnplaceable().forEach(addVanillaImage);
     this.itemManager.build(itemPaintings, itemImages::get);
     CustomPaintingsMod.LOGGER.info(
         "Item manager build took {}",

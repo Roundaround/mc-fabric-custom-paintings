@@ -16,7 +16,6 @@ import net.minecraft.recipe.*;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.registry.tag.PaintingVariantTags;
 import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -87,32 +86,30 @@ public abstract class ServerRecipeManagerMixin {
 
     if (addVanilla && this.registries != null) {
       this.registries.getOptional(RegistryKeys.PAINTING_VARIANT).ifPresent((variantLookup) -> {
-        variantLookup.streamEntries()
-            .filter((entry) -> entry.isIn(PaintingVariantTags.PLACEABLE))
-            .forEach((entry) -> {
-              PaintingVariant variant = entry.value();
-              Identifier id = variant.assetId();
-              if (added.contains(id)) {
-                return;
+        variantLookup.streamEntries().forEach((entry) -> {
+          PaintingVariant variant = entry.value();
+          Identifier id = variant.assetId();
+          if (added.contains(id)) {
+            return;
+          }
+
+          ItemStack stack = new ItemStack(Items.PAINTING);
+
+          NbtCompound nbt = new NbtCompound();
+          nbt.putString(PaintingData.PAINTING_NBT_KEY, id.toString());
+
+          stack.apply(
+              DataComponentTypes.CUSTOM_DATA, NbtComponent.DEFAULT, (existing) -> {
+                return NbtComponent.of(existing.copyNbt().copyFrom(nbt));
               }
+          );
 
-              ItemStack stack = new ItemStack(Items.PAINTING);
-
-              NbtCompound nbt = new NbtCompound();
-              nbt.putString(PaintingData.PAINTING_NBT_KEY, id.toString());
-
-              stack.apply(
-                  DataComponentTypes.CUSTOM_DATA, NbtComponent.DEFAULT, (existing) -> {
-                    return NbtComponent.of(existing.copyNbt().copyFrom(nbt));
-                  }
-              );
-
-              expanded.add(new RecipeEntry<>(
-                  RegistryKey.of(RegistryKeys.RECIPE, id),
-                  new StonecuttingRecipe("", ingredient, stack)
-              ));
-              added.add(id);
-            });
+          expanded.add(new RecipeEntry<>(
+              RegistryKey.of(RegistryKeys.RECIPE, id),
+              new StonecuttingRecipe("", ingredient, stack)
+          ));
+          added.add(id);
+        });
       });
     }
 

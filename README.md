@@ -87,7 +87,7 @@ Similar to vanilla paintings, all your custom paintings will show up in the crea
 
 ## Stonecutter recipes
 
-Based on the ["Painting Picker" datapack from Vanilla Tweaks](https://vanillatweaks.net/picker/datapacks/#category-convenience), all the unique items for your custom paintings will also be available as stonecutter recipes! Just pop in the generic/random painting item in the input and you'll be able to craft items bound to a specific painting, that will skip the UI and always place that variant! The same applies to vanilla painting variants — drop a generic painting in and pick the exact Kebab, Aztec, etc. you want. The custom-pack and vanilla recipes have their own toggles in the server-side/per-world config.
+Based on the ["Painting Picker" datapack from Vanilla Tweaks](https://vanillatweaks.net/picker/datapacks/#category-convenience), all the unique items for your custom paintings will also be available as stonecutter recipes! Just pop in the generic/random painting item in the input and you'll be able to craft items bound to a specific painting, that will skip the UI and always place that variant! The same applies to vanilla painting variants — drop a generic painting in and pick the exact Kebab, Aztec, etc. you want, including the otherwise-unplaceable Air, Earth, Fire, and Water elementals. The custom-pack and vanilla recipes have their own toggles in the server-side/per-world config.
 
 ## Adding a painting pack to your server
 
