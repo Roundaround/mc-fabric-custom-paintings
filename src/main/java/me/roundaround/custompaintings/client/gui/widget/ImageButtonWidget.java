@@ -9,7 +9,6 @@ import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
 import net.minecraft.util.Identifier;
 
@@ -22,7 +21,7 @@ public class ImageButtonWidget extends ButtonWidget {
   protected boolean inBatchUpdate = false;
 
   public ImageButtonWidget(
-      Text message,
+      net.minecraft.text.Text message,
       ButtonWidget.PressAction pressAction,
       Function<Image, Identifier> getTextureId,
       Image image) {
@@ -30,13 +29,13 @@ public class ImageButtonWidget extends ButtonWidget {
   }
 
   public ImageButtonWidget(
-      Text message,
+      net.minecraft.text.Text message,
       ButtonWidget.PressAction pressAction,
       Function<Image, Identifier> getTextureId,
       Image image,
       boolean immediatelyCalculateBounds) {
     super(0, 0, 0, 0, message, pressAction, DEFAULT_NARRATION_SUPPLIER);
-    if (message != null && !Objects.equals(message, Text.empty())) {
+    if (message != null && !Objects.equals(message, net.minecraft.text.Text.empty())) {
       this.setTooltip(Tooltip.of(message));
     }
     this.getTextureId = getTextureId;
@@ -124,7 +123,7 @@ public class ImageButtonWidget extends ButtonWidget {
   }
 
   @Override
-  public void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+  public void drawIcon(DrawContext context, int mouseX, int mouseY, float delta) {
     this.hovered = this.hovered && this.imageBounds.contains(mouseX, mouseY);
 
     context.fill(

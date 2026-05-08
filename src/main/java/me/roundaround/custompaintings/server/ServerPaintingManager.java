@@ -10,6 +10,7 @@ import me.roundaround.custompaintings.network.PaintingAssignment;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
 import me.roundaround.custompaintings.util.CustomId;
+import net.minecraft.command.DefaultPermissions;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.server.MinecraftServer;
@@ -192,7 +193,8 @@ public class ServerPaintingManager extends PersistentState {
   }
 
   private static boolean tryRunMigration(ServerPlayerEntity sourcePlayer, CustomId migrationId) {
-    if (sourcePlayer == null || !sourcePlayer.hasPermissionLevel(3) || migrationId == null) {
+    if (sourcePlayer == null || !sourcePlayer.getPermissions().hasPermission(DefaultPermissions.GAMEMASTERS) ||
+        migrationId == null) {
       return false;
     }
 

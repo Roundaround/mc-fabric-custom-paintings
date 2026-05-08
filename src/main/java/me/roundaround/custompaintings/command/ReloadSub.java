@@ -3,6 +3,7 @@ package me.roundaround.custompaintings.command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
+import net.minecraft.command.DefaultPermissions;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
@@ -13,7 +14,7 @@ public class ReloadSub {
 
   public static LiteralArgumentBuilder<ServerCommandSource> build() {
     return CommandManager.literal("reload")
-        .requires((source) -> source.hasPermissionLevel(3))
+        .requires((source) -> source.getPermissions().hasPermission(DefaultPermissions.GAMEMASTERS))
         .executes((context) -> execute(context.getSource()));
   }
 

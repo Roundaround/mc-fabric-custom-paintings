@@ -9,6 +9,7 @@ import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.server.ServerInfo;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
+import net.minecraft.command.DefaultPermissions;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
@@ -19,7 +20,7 @@ public class EnableSub {
 
   public static LiteralArgumentBuilder<ServerCommandSource> build() {
     return CommandManager.literal("enable")
-        .requires((source) -> source.hasPermissionLevel(3))
+        .requires((source) -> source.getPermissions().hasPermission(DefaultPermissions.GAMEMASTERS))
         .then(CommandManager.argument("id", StringArgumentType.word())
             .suggests(new PackIdSuggestionProvider(PackType.DISABLED))
             .executes(EnableSub::execute));

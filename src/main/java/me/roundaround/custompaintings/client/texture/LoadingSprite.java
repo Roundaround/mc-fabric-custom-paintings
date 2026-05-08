@@ -22,7 +22,14 @@ public class LoadingSprite {
   public static SpriteContents generate(Identifier id, int width, int height) {
     NativeImage nativeImage = createImage(width, height);
     AnimationResourceMetadata metadata = generateAnimationMetadata(width, height);
-    return new SpriteContents(id, new SpriteDimensions(width, height), nativeImage, Optional.of(metadata), List.of());
+    return new SpriteContents(
+        id,
+        new SpriteDimensions(width, height),
+        nativeImage,
+        Optional.of(metadata),
+        List.of(),
+        Optional.empty()
+    );
   }
 
   private static NativeImage createImage(int width, int height) {

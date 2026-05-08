@@ -251,7 +251,7 @@ public class LegacyPackConverter {
       this.spriteIds.add(id);
       spriteContents.add(getIconSpriteContents(id.toIdentifier(), meta.icon()));
     });
-    this.atlas.upload(((SpriteLoaderAccessor) SpriteLoader.fromAtlas(this.atlas)).invokeStitch(
+    this.atlas.create(((SpriteLoaderAccessor) SpriteLoader.fromAtlas(this.atlas)).invokeStitch(
         spriteContents,
         0,
         Util.getMainWorkerExecutor()

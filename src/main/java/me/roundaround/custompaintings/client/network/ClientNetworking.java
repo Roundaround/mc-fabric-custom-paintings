@@ -16,6 +16,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.command.DefaultPermissions;
 import net.minecraft.world.World;
 
 import java.util.List;
@@ -48,7 +49,9 @@ public final class ClientNetworking {
   public static void registerReceivers() {
     ClientPlayNetworking.registerGlobalReceiver(Networking.SummaryS2C.ID, ClientNetworking::handleSummary);
     ClientPlayNetworking.registerGlobalReceiver(
-        Networking.DownloadSummaryS2C.ID, ClientNetworking::handleDownloadSummary);
+        Networking.DownloadSummaryS2C.ID,
+        ClientNetworking::handleDownloadSummary
+    );
     ClientPlayNetworking.registerGlobalReceiver(Networking.ImageS2C.ID, ClientNetworking::handleImage);
     ClientPlayNetworking.registerGlobalReceiver(Networking.ImageHeaderS2C.ID, ClientNetworking::handleImageHeader);
     ClientPlayNetworking.registerGlobalReceiver(Networking.ImageChunkS2C.ID, ClientNetworking::handleImageChunk);
@@ -56,7 +59,9 @@ public final class ClientNetworking {
     ClientPlayNetworking.registerGlobalReceiver(Networking.SetPaintingS2C.ID, ClientNetworking::handleSetPainting);
     ClientPlayNetworking.registerGlobalReceiver(Networking.SyncAllDataS2C.ID, ClientNetworking::handleSyncAllData);
     ClientPlayNetworking.registerGlobalReceiver(
-        Networking.MigrationFinishS2C.ID, ClientNetworking::handleMigrationFinish);
+        Networking.MigrationFinishS2C.ID,
+        ClientNetworking::handleMigrationFinish
+    );
     ClientPlayNetworking.registerGlobalReceiver(Networking.OpenMenuS2C.ID, ClientNetworking::handleOpenMenu);
   }
 
@@ -66,19 +71,24 @@ public final class ClientNetworking {
       if (client.isInSingleplayer() && payload.skipped()) {
         CustomSystemToasts.addPackLoadSkipped(client);
       }
-      if (client.player != null && (client.isInSingleplayer() || client.player.hasPermissionLevel(3)) &&
+      if (client.player != null &&
+          (client.isInSingleplayer() || client.player.getPermissions().hasPermission(DefaultPermissions.GAMEMASTERS)) &&
           payload.loadErrorOrSkipCount() > 0) {
         CustomSystemToasts.addPackLoadFailure(client);
       }
       ClientPaintingRegistry.getInstance()
-          .processSummary(payload.packs(), payload.serverId(), payload.combinedImageHash(),
+          .processSummary(
+              payload.packs(),
+              payload.serverId(),
+              payload.combinedImageHash(),
               payload.finishedMigrations()
           );
     });
   }
 
   private static void handleDownloadSummary(
-      Networking.DownloadSummaryS2C payload, ClientPlayNetworking.Context context
+      Networking.DownloadSummaryS2C payload,
+      ClientPlayNetworking.Context context
   ) {
     context.client().execute(() -> {
       ClientPaintingRegistry.getInstance()
@@ -89,7 +99,10 @@ public final class ClientNetworking {
   private static void handleImage(Networking.ImageS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
       CustomPaintingsMod.LOGGER.info(
-          "Received full image for {} ({}).", payload.id(), StringUtil.formatBytes(payload.image().getSize()));
+          "Received full image for {} ({}).",
+          payload.id(),
+          StringUtil.formatBytes(payload.image().getSize())
+      );
       ClientPaintingRegistry.getInstance().setPaintingImage(payload.id(), payload.image());
     });
   }
@@ -104,7 +117,10 @@ public final class ClientNetworking {
 
   private static void handleImageChunk(Networking.ImageChunkS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
-      CustomPaintingsMod.LOGGER.info("Received image chunk #{} for {} ({}).", payload.index(), payload.id(),
+      CustomPaintingsMod.LOGGER.info(
+          "Received image chunk #{} for {} ({}).",
+          payload.index(),
+          payload.id(),
           StringUtil.formatBytes(payload.bytes().length)
       );
       ClientPaintingRegistry.getInstance().setPaintingChunk(payload.id(), payload.index(), payload.bytes());
@@ -114,7 +130,11 @@ public final class ClientNetworking {
   private static void handleEditPainting(Networking.EditPaintingS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
       PaintingEditState state = new PaintingEditState(
-          context.client(), payload.paintingId(), payload.pos(), payload.facing());
+          context.client(),
+          payload.paintingId(),
+          payload.pos(),
+          payload.facing()
+      );
 
       context.client().setScreen(new PackSelectScreen(state));
     });
@@ -136,7 +156,8 @@ public final class ClientNetworking {
   }
 
   private static void handleMigrationFinish(
-      Networking.MigrationFinishS2C payload, ClientPlayNetworking.Context context
+      Networking.MigrationFinishS2C payload,
+      ClientPlayNetworking.Context context
   ) {
     context.client().execute(() -> {
       ClientPaintingRegistry.getInstance().markMigrationFinished(payload.id(), payload.succeeded());
@@ -148,9 +169,7 @@ public final class ClientNetworking {
     });
   }
 
-  private static void handleOpenMenu(
-      Networking.OpenMenuS2C payload, ClientPlayNetworking.Context context
-  ) {
+  private static void handleOpenMenu(Networking.OpenMenuS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
       MinecraftClient client = context.client();
       Screen screen = client.currentScreen;

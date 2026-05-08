@@ -54,7 +54,7 @@ public class PackSelectScreen extends BaseSetPaintingScreen {
     this.state.setCurrentPack(id);
     Objects.requireNonNull(this.client)
         .getSoundManager()
-        .play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1f));
+        .play(PositionedSoundInstance.ui(SoundEvents.UI_BUTTON_CLICK, 1f));
     Objects.requireNonNull(this.client).setScreen(new PaintingSelectScreen(this.state));
   }
 }

@@ -212,7 +212,7 @@ public final class ItemManager {
 
     this.saveCacheData(data);
 
-    this.atlas.upload(((SpriteLoaderAccessor) SpriteLoader.fromAtlas(this.atlas)).invokeStitch(
+    this.atlas.create(((SpriteLoaderAccessor) SpriteLoader.fromAtlas(this.atlas)).invokeStitch(
         sprites,
         0,
         Util.getMainWorkerExecutor()

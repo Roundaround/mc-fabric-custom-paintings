@@ -10,6 +10,7 @@ import me.roundaround.custompaintings.server.ServerPaintingManager;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
 import me.roundaround.custompaintings.util.CustomId;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.command.DefaultPermissions;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.server.MinecraftServer;
@@ -138,7 +139,7 @@ public final class ServerNetworking {
 
   private static void handleReload(Networking.ReloadC2S payload, ServerPlayNetworking.Context context) {
     context.server().execute(() -> {
-      if (!context.player().hasPermissionLevel(3)) {
+      if (!context.player().getPermissions().hasPermission(DefaultPermissions.GAMEMASTERS)) {
         return;
       }
       ServerInfo serverInfo = ServerInfo.getInstance();

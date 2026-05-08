@@ -14,6 +14,8 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.command.DefaultPermissions;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Util;
@@ -34,7 +36,7 @@ public class MainMenuScreen extends BaseScreen implements PacksLoadedListener {
   protected void init() {
     boolean inWorld = this.client.world != null;
     boolean inSinglePlayer = this.client.isInSingleplayer();
-    boolean hasOp = this.client.player != null && this.client.player.hasPermissionLevel(3);
+    boolean hasOp = hasOps(this.client.player);
     boolean canEdit = inSinglePlayer || hasOp;
 
     this.layout.addHeader(this.textRenderer, this.title);
@@ -128,7 +130,7 @@ public class MainMenuScreen extends BaseScreen implements PacksLoadedListener {
 
   private void navigatePacks(ButtonWidget button) {
     boolean inSinglePlayer = this.client.isInSingleplayer();
-    boolean hasOps = this.client.player != null && this.client.player.hasPermissionLevel(3);
+    boolean hasOps = hasOps(this.client.player);
     this.client.setScreen(new PacksScreen(this, inSinglePlayer || hasOps));
   }
 
@@ -145,11 +147,15 @@ public class MainMenuScreen extends BaseScreen implements PacksLoadedListener {
   }
 
   private void reloadPacks() {
-    if (this.client.player == null || this.client.world == null || !this.client.player.hasPermissionLevel(3)) {
+    if (this.client.world == null || !hasOps(this.client.player)) {
       return;
     }
 
     this.reloadButton.setLoading(true);
     Util.getIoWorkerExecutor().execute(ClientNetworking::sendReloadPacket);
+  }
+
+  private static boolean hasOps(ClientPlayerEntity player) {
+    return player != null && player.getPermissions().hasPermission(DefaultPermissions.GAMEMASTERS);
   }
 }

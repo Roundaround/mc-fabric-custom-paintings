@@ -7,7 +7,7 @@ plugins {
 roundalib {
   library {
     local = true
-    version = "3.3.0"
+    version = "3.4.1"
     modules.addAll(LibModule.CORE, LibModule.GUI, LibModule.CONFIG, LibModule.CONFIG_GUI, LibModule.NETWORK, LibModule.OBSERVABLES)
   }
 }

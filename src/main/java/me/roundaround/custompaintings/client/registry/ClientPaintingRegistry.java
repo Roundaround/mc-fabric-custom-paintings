@@ -452,7 +452,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
     this.paintings.values().forEach((painting) -> this.getSpriteContents(painting).ifPresent(sprites::add));
     this.packsMap.keySet().forEach((packId) -> this.getSpriteContents(packId).ifPresent(sprites::add));
 
-    this.atlas.upload(((SpriteLoaderAccessor) SpriteLoader.fromAtlas(this.atlas)).invokeStitch(
+    this.atlas.create(((SpriteLoaderAccessor) SpriteLoader.fromAtlas(this.atlas)).invokeStitch(
         sprites,
         0,
         Util.getMainWorkerExecutor()

@@ -194,9 +194,8 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
 
       this.getter = getter;
 
-      this.button = CyclingButtonWidget.onOffBuilder(trueText, falseText)
+      this.button = CyclingButtonWidget.onOffBuilder(trueText, falseText, this.getter.get())
           .values(List.of(true, false))
-          .initially(this.getter.get())
           .build(this.getControlLeft(), this.getContentTop(), this.getFullControlWidth(), this.getContentHeight(),
               label, (button, value) -> setter.accept(value)
           );
