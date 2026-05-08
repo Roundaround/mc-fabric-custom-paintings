@@ -84,8 +84,8 @@ public class PaintingData {
         CustomId.from(vanillaVariant.assetId()),
         vanillaVariant.width(),
         vanillaVariant.height(),
-        vanillaVariant.assetId().getPath(),
-        "",
+        vanillaVariant.title().isPresent() ? vanillaVariant.assetId().getPath() : "",
+        vanillaVariant.author().isPresent() ? vanillaVariant.assetId().getPath() : "",
         true,
         false);
   }
@@ -122,11 +122,11 @@ public class PaintingData {
   }
 
   public boolean hasName() {
-    return this.vanilla() || !this.name().isEmpty();
+    return !this.name().isEmpty();
   }
 
   public boolean hasArtist() {
-    return this.vanilla() || !this.artist().isEmpty();
+    return !this.artist().isEmpty();
   }
 
   public boolean hasLabel() {
@@ -222,6 +222,9 @@ public class PaintingData {
   public Optional<MutableText> getTooltipArtistText() {
     if (!this.hasArtist()) {
       return Optional.empty();
+    }
+    if (this.vanilla()) {
+      return Optional.of(Text.translatable(this.id().toTranslationKey("painting", "author")).formatted(Formatting.GRAY));
     }
     return Optional.of(Text.literal(this.artist()).formatted(Formatting.GRAY));
   }
