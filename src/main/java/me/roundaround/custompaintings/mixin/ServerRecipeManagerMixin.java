@@ -70,9 +70,9 @@ public abstract class ServerRecipeManagerMixin {
           nbt.putString(PaintingData.PAINTING_NBT_KEY, id.toString());
 
           stack.apply(
-              DataComponentTypes.CUSTOM_DATA, NbtComponent.DEFAULT, (existing) -> {
-                return NbtComponent.of(existing.copyNbt().copyFrom(nbt));
-              }
+              DataComponentTypes.CUSTOM_DATA,
+              NbtComponent.DEFAULT,
+              (existing) -> NbtComponent.of(existing.copyNbt().copyFrom(nbt))
           );
 
           expanded.add(new RecipeEntry<>(
@@ -94,15 +94,7 @@ public abstract class ServerRecipeManagerMixin {
           }
 
           ItemStack stack = new ItemStack(Items.PAINTING);
-
-          NbtCompound nbt = new NbtCompound();
-          nbt.putString(PaintingData.PAINTING_NBT_KEY, id.toString());
-
-          stack.apply(
-              DataComponentTypes.CUSTOM_DATA, NbtComponent.DEFAULT, (existing) -> {
-                return NbtComponent.of(existing.copyNbt().copyFrom(nbt));
-              }
-          );
+          stack.set(DataComponentTypes.PAINTING_VARIANT, entry);
 
           expanded.add(new RecipeEntry<>(
               RegistryKey.of(RegistryKeys.RECIPE, id),

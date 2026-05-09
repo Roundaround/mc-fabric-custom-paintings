@@ -68,6 +68,12 @@ public abstract class DecorationItemMixin {
     PaintingEntity painting = new PaintingEntity(world, pos, facing, placeholderVariant.get());
 
     PaintingData data = getStackPainting(stack);
+    if (data == null) {
+      RegistryEntry<PaintingVariant> variantEntry = stack.get(DataComponentTypes.PAINTING_VARIANT);
+      if (variantEntry != null) {
+        data = ClientPaintingRegistry.getInstance().get(CustomId.from(variantEntry.value().assetId()));
+      }
+    }
     if (data != null && !data.isEmpty()) {
       if (data.vanilla()) {
         painting.custompaintings$setVariant(data.id());
