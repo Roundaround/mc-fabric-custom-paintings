@@ -6,14 +6,18 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.render.command.OrderedRenderCommandQueue;
+import net.minecraft.client.render.entity.EntityRenderManager;
 import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.state.EntityRenderState;
 import net.minecraft.client.render.entity.state.PaintingEntityRenderState;
 import net.minecraft.client.render.state.CameraRenderState;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.RotationAxis;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
@@ -22,7 +26,19 @@ import java.util.List;
 @Mixin(EntityRenderer.class)
 public abstract class EntityRendererMixin {
   @Shadow
+  @Final
+  protected EntityRenderManager dispatcher;
+
+  @Shadow
   public abstract TextRenderer getTextRenderer();
+
+  @WrapMethod(method = "hasLabel")
+  public boolean hasLabelForPaintings(Entity entity, double squaredDistanceToCamera, Operation<Boolean> original) {
+    if (!(entity instanceof PaintingEntity)) {
+      return original.call(entity, squaredDistanceToCamera);
+    }
+    return entity == this.dispatcher.targetedEntity && entity.isCustomNameVisible();
+  }
 
   @WrapMethod(method = "renderLabelIfPresent")
   public void renderLabelIfPresentForPaintings(
@@ -34,6 +50,10 @@ public abstract class EntityRendererMixin {
   ) {
     if (!(rawState instanceof PaintingEntityRenderState state)) {
       original.call(rawState, matrices, queue, cameraState);
+      return;
+    }
+
+    if (state.displayName == null) {
       return;
     }
 
