@@ -258,6 +258,7 @@ public class ClientPaintingRegistry extends CustomPaintingRegistry {
   private void initCacheAndSpriteAtlas(boolean initialLoad, UUID serverId, String serverCombinedImageHash) {
     if (serverCombinedImageHash.equals(CustomPaintingsMod.EMPTY_HASH)) {
       this.clear();
+      this.packsReceived = true;
       this.buildSpriteAtlas();
       return;
     }

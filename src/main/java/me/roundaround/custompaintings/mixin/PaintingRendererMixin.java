@@ -74,7 +74,7 @@ public abstract class PaintingRendererMixin extends EntityRenderer<Painting, Pai
       final PaintingRenderState state
   ) {
     PaintingData data = state.custompaintings$getData();
-    if (data.vanilla()) {
+    if (data.isEmpty() || data.vanilla()) {
       return original.call(instance);
     }
     return ClientPaintingRegistry.getInstance().getAtlasId();
