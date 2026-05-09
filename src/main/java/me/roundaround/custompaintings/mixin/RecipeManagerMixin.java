@@ -7,13 +7,13 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
 import me.roundaround.roundalib.config.option.BooleanConfigOption;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.decoration.painting.PaintingVariant;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.CustomData;
@@ -65,21 +65,18 @@ public abstract class RecipeManagerMixin {
             return;
           }
 
-          ItemStack stack = new ItemStack(Items.PAINTING);
-
           CompoundTag nbt = new CompoundTag();
           nbt.putString(PaintingData.PACK_NBT_KEY, pack.name());
           nbt.putString(PaintingData.PAINTING_NBT_KEY, id.toString());
 
-          stack.update(
-              DataComponents.CUSTOM_DATA, CustomData.EMPTY, (existing) -> {
-                return CustomData.of(existing.copyTag().merge(nbt));
-              }
-          );
+          DataComponentPatch patch = DataComponentPatch.builder()
+              .set(DataComponents.CUSTOM_DATA, CustomData.of(nbt))
+              .build();
+          ItemStackTemplate template = new ItemStackTemplate(Items.PAINTING, patch);
 
           expanded.add(new RecipeHolder<>(
               ResourceKey.create(Registries.RECIPE, id),
-              new StonecutterRecipe(new Recipe.CommonInfo(true), ingredient, ItemStackTemplate.fromNonEmptyStack(stack))
+              new StonecutterRecipe(new Recipe.CommonInfo(true), ingredient, template)
           ));
           added.add(id);
         });
@@ -95,12 +92,14 @@ public abstract class RecipeManagerMixin {
             return;
           }
 
-          ItemStack stack = new ItemStack(Items.PAINTING);
-          stack.set(DataComponents.PAINTING_VARIANT, entry);
+          DataComponentPatch patch = DataComponentPatch.builder()
+              .set(DataComponents.PAINTING_VARIANT, entry)
+              .build();
+          ItemStackTemplate template = new ItemStackTemplate(Items.PAINTING, patch);
 
           expanded.add(new RecipeHolder<>(
               ResourceKey.create(Registries.RECIPE, id),
-              new StonecutterRecipe(new Recipe.CommonInfo(true), ingredient, ItemStackTemplate.fromNonEmptyStack(stack))
+              new StonecutterRecipe(new Recipe.CommonInfo(true), ingredient, template)
           ));
           added.add(id);
         });
