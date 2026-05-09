@@ -73,7 +73,7 @@ public abstract class PaintingEntityRendererMixin extends EntityRenderer<Paintin
       @Local(argsOnly = true) PaintingEntityRenderState renderState
   ) {
     PaintingData data = renderState.custompaintings$getData();
-    if (data.vanilla()) {
+    if (data.isEmpty() || data.vanilla()) {
       return original.call(instance);
     }
     return ClientPaintingRegistry.getInstance().getAtlasId();
