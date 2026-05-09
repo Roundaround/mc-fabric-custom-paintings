@@ -7,11 +7,11 @@ import me.roundaround.custompaintings.command.suggestion.PackIdSuggestionProvide
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
 import me.roundaround.custompaintings.util.StringUtil;
-import net.minecraft.screen.ScreenTexts;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.CommonComponents;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 
@@ -19,42 +19,42 @@ public class InfoSub {
   private InfoSub() {
   }
 
-  public static LiteralArgumentBuilder<ServerCommandSource> build() {
-    return CommandManager.literal("info")
-        .then(CommandManager.argument("id", StringArgumentType.word())
+  public static LiteralArgumentBuilder<CommandSourceStack> build() {
+    return Commands.literal("info")
+        .then(Commands.argument("id", StringArgumentType.word())
             .suggests(new PackIdSuggestionProvider())
             .executes(InfoSub::execute));
   }
 
-  private static int execute(CommandContext<ServerCommandSource> context) {
+  private static int execute(CommandContext<CommandSourceStack> context) {
     String id = StringArgumentType.getString(context, "id");
     PackData pack = ServerPaintingRegistry.getInstance().getPacks().get(id);
     if (pack == null) {
-      context.getSource().sendError(Text.translatable("custompaintings.commands.info.notFound", id));
+      context.getSource().sendFailure(Component.translatable("custompaintings.commands.info.notFound", id));
       return 0;
     }
 
-    ArrayList<Text> lines = new ArrayList<>();
-    lines.add(Text.translatable("custompaintings.commands.info.name", pack.name()));
-    lines.add(Text.translatable("custompaintings.commands.info.id", pack.id()));
+    ArrayList<Component> lines = new ArrayList<>();
+    lines.add(Component.translatable("custompaintings.commands.info.name", pack.name()));
+    lines.add(Component.translatable("custompaintings.commands.info.id", pack.id()));
     if (pack.description().isPresent() && !pack.description().get().isBlank()) {
-      lines.add(Text.translatable("custompaintings.commands.info.description", pack.description().get()));
+      lines.add(Component.translatable("custompaintings.commands.info.description", pack.description().get()));
     }
     if (!pack.paintings().isEmpty()) {
-      lines.add(Text.translatable("custompaintings.commands.info.paintings", pack.paintings().size()));
+      lines.add(Component.translatable("custompaintings.commands.info.paintings", pack.paintings().size()));
     }
     if (!pack.migrations().isEmpty()) {
-      lines.add(Text.translatable("custompaintings.commands.info.migrations", pack.migrations().size()));
+      lines.add(Component.translatable("custompaintings.commands.info.migrations", pack.migrations().size()));
     }
-    lines.add(Text.translatable("custompaintings.commands.info.fileSize", StringUtil.formatBytes(pack.fileSize())));
+    lines.add(Component.translatable("custompaintings.commands.info.fileSize", StringUtil.formatBytes(pack.fileSize())));
 
-    context.getSource().sendFeedback(
+    context.getSource().sendSuccess(
         () -> {
-          MutableText message = Text.empty();
+          MutableComponent message = Component.empty();
           for (int i = 0; i < lines.size(); i++) {
             message.append(lines.get(i));
             if (i < lines.size() - 1) {
-              message.append(ScreenTexts.LINE_BREAK);
+              message.append(CommonComponents.NEW_LINE);
             }
           }
           return message;

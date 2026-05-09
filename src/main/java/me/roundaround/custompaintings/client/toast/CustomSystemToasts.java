@@ -1,42 +1,42 @@
 package me.roundaround.custompaintings.client.toast;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.toast.SystemToast;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.toasts.SystemToast;
+import net.minecraft.network.chat.Component;
 
 public class CustomSystemToasts {
-  public static final SystemToast.Type PACK_DROP_FAILURE = new SystemToast.Type();
-  public static final SystemToast.Type PACK_LOAD_SKIPPED = new SystemToast.Type();
-  public static final SystemToast.Type PACK_LOAD_FAILURE = new SystemToast.Type();
-  public static final SystemToast.Type LEGACY_PACKS_FOUND = new SystemToast.Type();
+  public static final SystemToast.SystemToastId PACK_DROP_FAILURE = new SystemToast.SystemToastId();
+  public static final SystemToast.SystemToastId PACK_LOAD_SKIPPED = new SystemToast.SystemToastId();
+  public static final SystemToast.SystemToastId PACK_LOAD_FAILURE = new SystemToast.SystemToastId();
+  public static final SystemToast.SystemToastId LEGACY_PACKS_FOUND = new SystemToast.SystemToastId();
 
-  public static void addPackCopyFailure(MinecraftClient client, String directory) {
-    SystemToast toast = SystemToast.create(
-        client, PACK_DROP_FAILURE, Text.translatable("custompaintings.toasts.copy.failure.title"), Text.of(directory));
-    client.getToastManager().add(toast);
+  public static void addPackCopyFailure(Minecraft client, String directory) {
+    SystemToast toast = SystemToast.multiline(
+        client, PACK_DROP_FAILURE, Component.translatable("custompaintings.toasts.copy.failure.title"), Component.nullToEmpty(directory));
+    client.getToastManager().addToast(toast);
   }
 
-  public static void addPackLoadSkipped(MinecraftClient client) {
-    SystemToast toast = SystemToast.create(client, PACK_LOAD_SKIPPED,
-        Text.translatable("custompaintings.toasts.load.skipped.title"),
-        Text.translatable("custompaintings.toasts.load.skipped.body")
+  public static void addPackLoadSkipped(Minecraft client) {
+    SystemToast toast = SystemToast.multiline(client, PACK_LOAD_SKIPPED,
+        Component.translatable("custompaintings.toasts.load.skipped.title"),
+        Component.translatable("custompaintings.toasts.load.skipped.body")
     );
-    client.getToastManager().add(toast);
+    client.getToastManager().addToast(toast);
   }
 
-  public static void addPackLoadFailure(MinecraftClient client) {
-    SystemToast toast = SystemToast.create(client, PACK_LOAD_FAILURE,
-        Text.translatable("custompaintings.toasts.load.failure.title"),
-        Text.translatable("custompaintings.toasts.load.failure.body")
+  public static void addPackLoadFailure(Minecraft client) {
+    SystemToast toast = SystemToast.multiline(client, PACK_LOAD_FAILURE,
+        Component.translatable("custompaintings.toasts.load.failure.title"),
+        Component.translatable("custompaintings.toasts.load.failure.body")
     );
-    client.getToastManager().add(toast);
+    client.getToastManager().addToast(toast);
   }
 
-  public static void addLegacyPacksFound(MinecraftClient client, int count) {
-    SystemToast toast = SystemToast.create(client, LEGACY_PACKS_FOUND,
-        Text.translatable("custompaintings.toasts.legacy.title"),
-        Text.translatable("custompaintings.toasts.legacy.body", count)
+  public static void addLegacyPacksFound(Minecraft client, int count) {
+    SystemToast toast = SystemToast.multiline(client, LEGACY_PACKS_FOUND,
+        Component.translatable("custompaintings.toasts.legacy.title"),
+        Component.translatable("custompaintings.toasts.legacy.body", count)
     );
-    client.getToastManager().add(toast);
+    client.getToastManager().addToast(toast);
   }
 }

@@ -1,24 +1,31 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
-import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
-import me.roundaround.custompaintings.roundalib.client.gui.util.IntRect;
-import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.DrawableWidget;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.texture.Sprite;
-import net.minecraft.client.texture.SpriteContents;
-import net.minecraft.util.Colors;
+import me.roundaround.roundalib.client.gui.util.GuiUtil;
+import me.roundaround.roundalib.client.gui.util.IntRect;
+import me.roundaround.roundalib.client.gui.widget.drawable.DrawableWidget;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.texture.SpriteContents;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.util.CommonColors;
 
 public class SpriteWidget extends DrawableWidget {
-  protected Sprite sprite;
+  protected TextureAtlasSprite sprite;
   protected IntRect imageBounds = IntRect.zero();
   protected boolean inBatchUpdate = false;
 
-  protected SpriteWidget(int x, int y, int width, int height, Sprite sprite) {
+  protected SpriteWidget(int x, int y, int width, int height, TextureAtlasSprite sprite) {
     this(x, y, width, height, sprite, true);
   }
 
-  protected SpriteWidget(int x, int y, int width, int height, Sprite sprite, boolean immediatelyCalculateBounds) {
+  protected SpriteWidget(
+      int x,
+      int y,
+      int width,
+      int height,
+      TextureAtlasSprite sprite,
+      boolean immediatelyCalculateBounds
+  ) {
     super(x, y, width, height);
 
     this.sprite = sprite;
@@ -62,12 +69,12 @@ public class SpriteWidget extends DrawableWidget {
   }
 
   @Override
-  public void setDimensions(int width, int height) {
-    super.setDimensions(width, height);
+  public void setSize(int width, int height) {
+    super.setSize(width, height);
     this.calculateBounds();
   }
 
-  public void setSprite(Sprite sprite) {
+  public void setSprite(TextureAtlasSprite sprite) {
     this.sprite = sprite;
     this.calculateBounds();
   }
@@ -86,31 +93,41 @@ public class SpriteWidget extends DrawableWidget {
     int x = this.getX();
     int y = this.getY();
 
-    SpriteContents spriteContents = this.sprite.getContents();
-    int imageWidth = spriteContents.getWidth();
-    int imageHeight = spriteContents.getHeight();
+    SpriteContents spriteContents = this.sprite.contents();
+    int imageWidth = spriteContents.width();
+    int imageHeight = spriteContents.height();
     float scale = Math.min((float) this.getWidth() / imageWidth, (float) this.getHeight() / imageHeight);
     int scaledWidth = Math.round(scale * imageWidth);
     int scaledHeight = Math.round(scale * imageHeight);
 
     this.imageBounds = IntRect.byDimensions(
-        x + (width - scaledWidth) / 2, y + (height - scaledHeight) / 2, scaledWidth, scaledHeight);
+        x + (width - scaledWidth) / 2,
+        y + (height - scaledHeight) / 2,
+        scaledWidth,
+        scaledHeight
+    );
   }
 
   @Override
-  protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
-    this.hovered = this.hovered && this.imageBounds.contains(mouseX, mouseY);
+  protected void extractWidgetRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+    this.isHovered = this.isHovered && this.imageBounds.contains(mouseX, mouseY);
 
-    context.drawSpriteStretched(RenderPipelines.GUI_TEXTURED, this.sprite, this.imageBounds.left(),
-        this.imageBounds.top(), this.imageBounds.getWidth(), this.imageBounds.getHeight(),
-        this.active ? Colors.WHITE : GuiUtil.genColorInt(0.5f, 0.5f, 0.5f, 1f));
+    context.blitSprite(
+        RenderPipelines.GUI_TEXTURED,
+        this.sprite,
+        this.imageBounds.left(),
+        this.imageBounds.top(),
+        this.imageBounds.getWidth(),
+        this.imageBounds.getHeight(),
+        this.active ? CommonColors.WHITE : GuiUtil.genColorInt(0.5f, 0.5f, 0.5f, 1f)
+    );
   }
 
-  public static Builder builder(Sprite sprite) {
+  public static Builder builder(TextureAtlasSprite sprite) {
     return new Builder(sprite);
   }
 
-  public static SpriteWidget create(Sprite sprite) {
+  public static SpriteWidget create(TextureAtlasSprite sprite) {
     return builder(sprite).build();
   }
 
@@ -120,9 +137,9 @@ public class SpriteWidget extends DrawableWidget {
     private int width = 0;
     private int height = 0;
 
-    private final Sprite sprite;
+    private final TextureAtlasSprite sprite;
 
-    private Builder(Sprite sprite) {
+    private Builder(TextureAtlasSprite sprite) {
       this.sprite = sprite;
     }
 

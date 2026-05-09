@@ -11,36 +11,37 @@ import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.resource.PackIcons;
 import me.roundaround.custompaintings.resource.ResourceUtil;
-import me.roundaround.custompaintings.roundalib.client.gui.layout.FillerWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.layout.linear.LinearLayoutWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.util.Alignment;
-import me.roundaround.custompaintings.roundalib.client.gui.util.Axis;
-import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
-import me.roundaround.custompaintings.roundalib.client.gui.util.Spacing;
-import me.roundaround.custompaintings.roundalib.client.gui.widget.FlowListWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.widget.NarratableEntryListWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.DrawableWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.LabelWidget;
-import me.roundaround.custompaintings.roundalib.util.PathAccessor;
 import me.roundaround.custompaintings.util.StringUtil;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ConfirmScreen;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.Widget;
-import net.minecraft.client.input.MouseInput;
-import net.minecraft.screen.ScreenTexts;
-import net.minecraft.text.Text;
-import net.minecraft.util.Colors;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
+import me.roundaround.roundalib.client.gui.layout.FillerWidget;
+import me.roundaround.roundalib.client.gui.layout.linear.LinearLayoutWidget;
+import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
+import me.roundaround.roundalib.client.gui.util.Alignment;
+import me.roundaround.roundalib.client.gui.util.Axis;
+import me.roundaround.roundalib.client.gui.util.GuiUtil;
+import me.roundaround.roundalib.client.gui.util.Spacing;
+import me.roundaround.roundalib.client.gui.widget.FlowListWidget;
+import me.roundaround.roundalib.client.gui.widget.NarratableEntryListWidget;
+import me.roundaround.roundalib.client.gui.widget.drawable.DrawableWidget;
+import me.roundaround.roundalib.client.gui.widget.drawable.LabelWidget;
+import me.roundaround.roundalib.util.PathAccessor;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.layouts.LayoutElement;
+import net.minecraft.client.gui.screens.ConfirmScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.MouseButtonInfo;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.network.chat.CommonComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.CommonColors;
 import net.minecraft.util.Util;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -53,18 +54,18 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class PacksScreen extends Screen implements PacksLoadedListener {
-  private static final Text TITLE_MANAGE = Text.translatable("custompaintings.packs.manage");
-  private static final Text TITLE_VIEW = Text.translatable("custompaintings.packs.view");
-  private static final Text LIST_INACTIVE = Text.translatable("custompaintings.packs.inactive");
-  private static final Text LIST_ACTIVE = Text.translatable("custompaintings.packs.active");
-  private static final int BUTTON_HEIGHT = ButtonWidget.DEFAULT_HEIGHT;
-  private static final int BUTTON_WIDTH = ButtonWidget.DEFAULT_WIDTH_SMALL;
+  private static final Component TITLE_MANAGE = Component.translatable("custompaintings.packs.manage");
+  private static final Component TITLE_VIEW = Component.translatable("custompaintings.packs.view");
+  private static final Component LIST_INACTIVE = Component.translatable("custompaintings.packs.inactive");
+  private static final Component LIST_ACTIVE = Component.translatable("custompaintings.packs.active");
+  private static final int BUTTON_HEIGHT = Button.DEFAULT_HEIGHT;
+  private static final int BUTTON_WIDTH = Button.SMALL_WIDTH;
   private static final int LIST_WIDTH = 200;
-  private static final Identifier SELECT_TEXTURE = Identifier.ofVanilla("transferable_list/select");
-  private static final Identifier SELECT_HIGHLIGHTED_TEXTURE = Identifier.ofVanilla(
+  private static final Identifier SELECT_TEXTURE = Identifier.withDefaultNamespace("transferable_list/select");
+  private static final Identifier SELECT_HIGHLIGHTED_TEXTURE = Identifier.withDefaultNamespace(
       "transferable_list/select_highlighted");
-  private static final Identifier UNSELECT_TEXTURE = Identifier.ofVanilla("transferable_list/unselect");
-  private static final Identifier UNSELECT_HIGHLIGHTED_TEXTURE = Identifier.ofVanilla(
+  private static final Identifier UNSELECT_TEXTURE = Identifier.withDefaultNamespace("transferable_list/unselect");
+  private static final Identifier UNSELECT_HIGHLIGHTED_TEXTURE = Identifier.withDefaultNamespace(
       "transferable_list/unselect_highlighted");
 
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
@@ -87,17 +88,15 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
 
   @Override
   protected void init() {
-    assert this.client != null;
-
     this.resetPacks();
 
-    boolean inSinglePlayer = this.client.isInSingleplayer();
+    boolean inSinglePlayer = this.minecraft.isLocalServer();
 
-    this.layout.addHeader(this.textRenderer, this.title);
+    this.layout.addHeader(this.font, this.title);
     if (inSinglePlayer) {
       this.layout.addHeader(
-          this.textRenderer,
-          Text.translatable("custompaintings.packs.drop").formatted(Formatting.GRAY)
+          this.font,
+          Component.translatable("custompaintings.packs.drop").withStyle(ChatFormatting.GRAY)
       );
     }
 
@@ -105,7 +104,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
       this.layout.getBody().flowAxis(Axis.HORIZONTAL).spacing(30);
       this.inactiveList = this.layout.addBody(
           new PackList(
-              this.client,
+              this.minecraft,
               LIST_WIDTH,
               this.layout.getBodyHeight(),
               LIST_INACTIVE,
@@ -114,12 +113,12 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
               this::activatePack,
               this.inactivePacks
           ), (parent, self) -> {
-            self.setDimensions(LIST_WIDTH, parent.getHeight());
+            self.setSize(LIST_WIDTH, parent.getHeight());
           }
       );
       this.activeList = this.layout.addBody(
           new PackList(
-              this.client,
+              this.minecraft,
               LIST_WIDTH,
               this.layout.getBodyHeight(),
               LIST_ACTIVE,
@@ -128,7 +127,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
               this::deactivatePack,
               this.activePacks
           ), (parent, self) -> {
-            self.setDimensions(LIST_WIDTH, parent.getHeight());
+            self.setSize(LIST_WIDTH, parent.getHeight());
           }
       );
 
@@ -137,38 +136,38 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
           0,
           BUTTON_WIDTH,
           BUTTON_HEIGHT,
-          Text.of("Reload Packs"),
+          Component.nullToEmpty("Reload Packs"),
           (b) -> this.reloadPacks()
       ));
 
-      ButtonWidget openDirButton = this.layout.addFooter(ButtonWidget.builder(
-          Text.translatable("custompaintings.packs.open"), (b) -> this.openPackDir()).width(BUTTON_WIDTH).build());
+      Button openDirButton = this.layout.addFooter(Button.builder(
+          Component.translatable("custompaintings.packs.open"),
+          (b) -> this.openPackDir()
+      ).width(BUTTON_WIDTH).build());
       if (!inSinglePlayer) {
         openDirButton.active = false;
-        openDirButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.packs.open.notInWorld")));
+        openDirButton.setTooltip(Tooltip.create(Component.translatable("custompaintings.packs.open.notInWorld")));
       }
     } else {
-      this.activeList = this.layout.addBody(new PackList(this.client, this.layout, LIST_ACTIVE, this.activePacks));
+      this.activeList = this.layout.addBody(new PackList(this.minecraft, this.layout, LIST_ACTIVE, this.activePacks));
     }
 
-    this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, (b) -> this.close()).width(BUTTON_WIDTH).build());
+    this.layout.addFooter(Button.builder(CommonComponents.GUI_DONE, (b) -> this.onClose()).width(BUTTON_WIDTH).build());
 
-    VersionStamp.create(this.textRenderer, this.layout);
+    VersionStamp.create(this.font, this.layout);
 
-    this.layout.forEachChild(this::addDrawableChild);
-    this.refreshWidgetPositions();
+    this.layout.visitWidgets(this::addRenderableWidget);
+    this.repositionElements();
   }
 
   @Override
-  protected void refreshWidgetPositions() {
-    this.layout.refreshPositions();
+  protected void repositionElements() {
+    this.layout.arrangeElements();
   }
 
   @Override
-  public void onFilesDropped(List<Path> paths) {
-    assert this.client != null;
-
-    if (!this.client.isInSingleplayer()) {
+  public void onFilesDrop(@NotNull List<Path> paths) {
+    if (!this.minecraft.isLocalServer()) {
       return;
     }
 
@@ -181,7 +180,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
     Path packsDirectory = PathAccessor.getInstance().getPerWorldModDir(Constants.MOD_ID);
     String packList = packPaths.stream().map(Path::getFileName).map(Path::toString).collect(Collectors.joining(", "));
 
-    this.client.setScreen(new ConfirmScreen(
+    this.minecraft.setScreen(new ConfirmScreen(
         (confirmed) -> {
           if (confirmed) {
             boolean allSuccessful = true;
@@ -208,25 +207,23 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
             }
 
             if (!allSuccessful) {
-              CustomSystemToasts.addPackCopyFailure(this.client, packsDirectory.toString());
+              CustomSystemToasts.addPackCopyFailure(this.minecraft, packsDirectory.toString());
             }
 
             this.reloadPacks();
           }
 
-          this.client.setScreen(this);
-        }, Text.translatable("custompaintings.packs.copyConfirm"), Text.of(packList)
+          this.minecraft.setScreen(this);
+        }, Component.translatable("custompaintings.packs.copyConfirm"), Component.nullToEmpty(packList)
     ));
   }
 
   @Override
-  public void close() {
-    assert this.client != null;
-
+  public void onClose() {
     if (!this.toActivate.isEmpty() || !this.toDeactivate.isEmpty()) {
       this.reloadPacks();
     }
-    this.client.setScreen(this.parent);
+    this.minecraft.setScreen(this.parent);
   }
 
   @Override
@@ -304,20 +301,19 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
     if (this.reloadButton != null) {
       this.reloadButton.setLoading(true);
     }
-    Util.getIoWorkerExecutor().execute(() -> {
+    Util.ioPool().execute(() -> {
       ClientNetworking.sendReloadPacket(List.copyOf(this.toActivate), List.copyOf(this.toDeactivate));
     });
   }
 
   private void openPackDir() {
-    assert this.client != null;
-    if (!this.client.isInSingleplayer()) {
+    if (!this.minecraft.isLocalServer()) {
       return;
     }
 
     Path path = PathAccessor.getInstance().getPerWorldModDir(Constants.MOD_ID);
     this.ensurePacksDirExists(path);
-    Util.getOperatingSystem().open(path.toUri());
+    Util.getPlatform().openUri(path.toUri());
   }
 
   private void ensurePacksDirExists(Path path) {
@@ -331,17 +327,17 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
   }
 
   private static class PackList extends NarratableEntryListWidget<PackList.Entry> {
-    private final Text title;
+    private final Component title;
     private final Identifier buttonTexture;
     private final Identifier highlightedButtonTexture;
     private final Consumer<PackData> transferAction;
     private final ArrayList<PackData> packs = new ArrayList<>();
 
     public PackList(
-        MinecraftClient client,
+        Minecraft client,
         int width,
         int height,
-        Text title,
+        Component title,
         Identifier buttonTexture,
         Identifier highlightedButtonTexture,
         Consumer<PackData> transferAction,
@@ -356,13 +352,13 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
       this.packs.addAll(packs);
 
       this.setShouldHighlightSelectionDuringHover(true);
-      Spacing padding = this.contentPadding.expand(Spacing.of((int) (client.textRenderer.fontHeight * 1.5f), 0, 0, 0));
+      Spacing padding = this.contentPadding.expand(Spacing.of((int) (client.font.lineHeight * 1.5f), 0, 0, 0));
       this.setContentPadding(padding);
 
       this.init();
     }
 
-    public PackList(MinecraftClient client, ThreeSectionLayoutWidget layout, Text title, Collection<PackData> packs) {
+    public PackList(Minecraft client, ThreeSectionLayoutWidget layout, Component title, Collection<PackData> packs) {
       super(client, layout);
 
       this.title = title;
@@ -374,19 +370,19 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
       this.setShouldHighlightHover(false);
       this.setShouldHighlightSelection(false);
       this.setAlternatingRowShading(true);
-      Spacing padding = this.contentPadding.expand(Spacing.of((int) (client.textRenderer.fontHeight * 1.5f), 0, 0, 0));
+      Spacing padding = this.contentPadding.expand(Spacing.of((int) (client.font.lineHeight * 1.5f), 0, 0, 0));
       this.setContentPadding(padding);
 
       this.init();
     }
 
     @Override
-    protected void renderEntries(DrawContext context, int mouseX, int mouseY, float delta) {
-      TextRenderer textRenderer = this.client.textRenderer;
-      Text tile = Text.empty().append(this.title).formatted(Formatting.UNDERLINE, Formatting.BOLD);
+    protected void renderEntries(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+      Font textRenderer = this.client.font;
+      Component tile = Component.empty().append(this.title).withStyle(ChatFormatting.UNDERLINE, ChatFormatting.BOLD);
       int centerX = this.getX() + this.getWidth() / 2;
-      int posY = (this.getY() + this.getContentTop() - textRenderer.fontHeight) / 2;
-      GuiUtil.drawText(context, textRenderer, tile, centerX, posY, Colors.WHITE, false, 0, Alignment.CENTER);
+      int posY = (this.getY() + this.getContentTop() - textRenderer.lineHeight) / 2;
+      GuiUtil.drawText(context, textRenderer, tile, centerX, posY, CommonColors.WHITE, false, 0, Alignment.CENTER);
 
       super.renderEntries(context, mouseX, mouseY, delta);
     }
@@ -406,7 +402,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
 
       for (PackData pack : this.packs) {
         this.addEntry(PackEntry.factory(
-            this.client.textRenderer,
+            this.client.font,
             pack,
             this.buttonTexture,
             this.highlightedButtonTexture,
@@ -414,7 +410,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
         ));
       }
 
-      this.refreshPositions();
+      this.arrangeElements();
     }
 
     private static abstract class Entry extends NarratableEntryListWidget.Entry {
@@ -439,7 +435,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
           int left,
           int top,
           int width,
-          TextRenderer textRenderer,
+          Font textRenderer,
           PackData pack,
           Identifier buttonTexture,
           Identifier highlightedButtonTexture,
@@ -467,7 +463,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
         this.icon = layout.add(
             SpriteWidget.create(ClientPaintingRegistry.getInstance().getSprite(PackIcons.customId(pack.id()))),
             (parent, self) -> {
-              self.setDimensions(PACK_ICON_SIZE, PACK_ICON_SIZE);
+              self.setSize(PACK_ICON_SIZE, PACK_ICON_SIZE);
             }
         );
 
@@ -475,7 +471,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
 
         LinearLayoutWidget textSection = LinearLayoutWidget.vertical().spacing(GuiUtil.PADDING / 2);
         textSection.add(
-            LabelWidget.builder(textRenderer, Text.of(pack.name()))
+            LabelWidget.builder(textRenderer, Component.nullToEmpty(pack.name()))
                 .alignTextLeft()
                 .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
                 .hideBackground()
@@ -483,7 +479,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
                 .build(), (parent, self) -> self.setWidth(parent.getWidth())
         );
         textSection.add(
-            LabelWidget.builder(textRenderer, Text.literal(pack.id()).formatted(Formatting.GRAY))
+            LabelWidget.builder(textRenderer, Component.literal(pack.id()).withStyle(ChatFormatting.GRAY))
                 .alignTextLeft()
                 .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
                 .hideBackground()
@@ -493,7 +489,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
         textSection.add(
             LabelWidget.builder(
                     textRenderer,
-                    Text.translatable("custompaintings.packs.paintings", pack.paintings().size())
+                    Component.translatable("custompaintings.packs.paintings", pack.paintings().size())
                 )
                 .alignTextLeft()
                 .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
@@ -502,7 +498,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
                 .build(), (parent, self) -> self.setWidth(parent.getWidth())
         );
         textSection.add(
-            LabelWidget.builder(textRenderer, Text.of(StringUtil.formatBytes(pack.fileSize())))
+            LabelWidget.builder(textRenderer, Component.nullToEmpty(StringUtil.formatBytes(pack.fileSize())))
                 .alignTextLeft()
                 .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
                 .hideBackground()
@@ -513,7 +509,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
             textSection, (parent, self) -> {
               int textSectionWidth = this.getContentWidth();
               textSectionWidth -= (parent.getChildren().size() - 1) * parent.getSpacing();
-              for (Widget widget : parent.getChildren()) {
+              for (LayoutElement widget : parent.getChildren()) {
                 if (widget != self) {
                   textSectionWidth -= widget.getWidth();
                 }
@@ -522,7 +518,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
             }
         );
 
-        layout.forEachChild(this::addDrawable);
+        layout.visitWidgets(this::addDrawable);
 
         if (this.transferAction == null) {
           this.button = null;
@@ -531,7 +527,12 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
 
         this.button = this.addDrawable(new DrawableWidget() {
           @Override
-          protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+          protected void extractWidgetRenderState(
+              @NotNull GuiGraphicsExtractor context,
+              int mouseX,
+              int mouseY,
+              float delta
+          ) {
             PackEntry that = PackEntry.this;
             if (!that.isMouseOver(mouseX, mouseY) && !that.isFocused()) {
               return;
@@ -539,7 +540,7 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
 
             Identifier buttonTexture = this.isHovered() ? that.highlightedButtonTexture : that.buttonTexture;
             context.fill(this.getX(), this.getY(), this.getRight(), this.getBottom(), -1601138544);
-            context.drawGuiTexture(
+            context.blitSprite(
                 RenderPipelines.GUI_TEXTURED,
                 buttonTexture,
                 this.getX(),
@@ -551,19 +552,19 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
           }
 
           @Override
-          public void onClick(Click click, boolean doubled) {
+          public void onClick(@NotNull MouseButtonEvent click, boolean doubled) {
             PackEntry.this.transferAction.accept(PackEntry.this.pack);
           }
 
           @Override
-          protected boolean isValidClickButton(MouseInput input) {
+          protected boolean isValidClickButton(MouseButtonInfo input) {
             return input.button() == 0;
           }
         });
       }
 
       public static FlowListWidget.EntryFactory<PackEntry> factory(
-          TextRenderer textRenderer,
+          Font textRenderer,
           PackData pack,
           Identifier buttonTexture,
           Identifier highlightedButtonTexture,
@@ -583,25 +584,20 @@ public class PacksScreen extends Screen implements PacksLoadedListener {
       }
 
       @Override
-      public Text getNarration() {
-        return Text.of(this.pack.name());
+      public Component getNarration() {
+        return Component.nullToEmpty(this.pack.name());
       }
 
       @Override
-      public void refreshPositions() {
-        super.refreshPositions();
+      public void arrangeElements() {
+        super.arrangeElements();
         if (this.button != null) {
-          this.button.setDimensionsAndPosition(
-              this.icon.getWidth(),
-              this.icon.getHeight(),
-              this.icon.getX(),
-              this.icon.getY()
-          );
+          this.button.setRectangle(this.icon.getWidth(), this.icon.getHeight(), this.icon.getX(), this.icon.getY());
         }
       }
 
       @Override
-      public boolean mouseClicked(Click click, boolean doubled) {
+      public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
         if (this.button != null) {
           this.button.mouseClicked(click, doubled);
         }

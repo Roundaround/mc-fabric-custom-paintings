@@ -12,12 +12,12 @@ import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.resource.file.Image;
 import me.roundaround.custompaintings.util.CustomId;
-import net.minecraft.entity.decoration.painting.PaintingVariant;
-import net.minecraft.registry.DynamicRegistryManager;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.registry.tag.PaintingVariantTags;
-import net.minecraft.util.Identifier;
+import net.minecraft.world.entity.decoration.painting.PaintingVariant;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.core.Holder;
+import net.minecraft.tags.PaintingVariantTags;
+import net.minecraft.resources.Identifier;
 
 public abstract class CustomPaintingRegistry {
   protected final LinkedHashMap<String, PackData> packsMap = new LinkedHashMap<>();
@@ -28,7 +28,7 @@ public abstract class CustomPaintingRegistry {
 
   protected String combinedImageHash = CustomPaintingsMod.EMPTY_HASH;
 
-  protected abstract DynamicRegistryManager getRegistryManager();
+  protected abstract RegistryAccess getRegistryManager();
 
   public boolean contains(CustomId id) {
     PaintingData data = this.get(id);
@@ -107,38 +107,38 @@ public abstract class CustomPaintingRegistry {
   }
 
   public List<PaintingData> getAllVanilla() {
-    DynamicRegistryManager registryManager = this.getRegistryManager();
+    RegistryAccess registryManager = this.getRegistryManager();
     if (registryManager == null) {
       return List.of();
     }
 
-    return registryManager.getOrThrow(RegistryKeys.PAINTING_VARIANT)
-        .streamEntries()
-        .filter((entry) -> entry.isIn(PaintingVariantTags.PLACEABLE))
-        .map(RegistryEntry.Reference::value)
+    return registryManager.lookupOrThrow(Registries.PAINTING_VARIANT)
+        .listElements()
+        .filter((entry) -> entry.is(PaintingVariantTags.PLACEABLE))
+        .map(Holder.Reference::value)
         .map(PaintingData::new)
         .toList();
   }
 
   public List<PaintingData> getAllVanillaUnplaceable() {
-    DynamicRegistryManager registryManager = this.getRegistryManager();
+    RegistryAccess registryManager = this.getRegistryManager();
     if (registryManager == null) {
       return List.of();
     }
 
-    return registryManager.getOrThrow(RegistryKeys.PAINTING_VARIANT)
-        .streamEntries()
-        .filter((entry) -> !entry.isIn(PaintingVariantTags.PLACEABLE))
-        .map(RegistryEntry.Reference::value)
+    return registryManager.lookupOrThrow(Registries.PAINTING_VARIANT)
+        .listElements()
+        .filter((entry) -> !entry.is(PaintingVariantTags.PLACEABLE))
+        .map(Holder.Reference::value)
         .map(PaintingData::new)
         .toList();
   }
 
   protected PaintingVariant getVanillaVariant(CustomId id) {
-    DynamicRegistryManager registryManager = this.getRegistryManager();
+    RegistryAccess registryManager = this.getRegistryManager();
     if (registryManager == null) {
       return null;
     }
-    return registryManager.getOrThrow(RegistryKeys.PAINTING_VARIANT).get(id.toIdentifier());
+    return registryManager.lookupOrThrow(Registries.PAINTING_VARIANT).getValue(id.toIdentifier());
   }
 }

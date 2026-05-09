@@ -1,11 +1,12 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
-import net.minecraft.client.font.DrawnTextConsumer;
-import net.minecraft.client.gui.screen.LoadingDisplay;
-import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.ActiveTextCollector;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.LoadingDotsText;
 import net.minecraft.util.Util;
+import org.jetbrains.annotations.NotNull;
 
-public class LoadingButtonWidget extends ButtonWidget.Text {
+public class LoadingButtonWidget extends Button.Plain {
   private boolean loading = false;
 
   public LoadingButtonWidget(
@@ -13,10 +14,10 @@ public class LoadingButtonWidget extends ButtonWidget.Text {
       int y,
       int width,
       int height,
-      net.minecraft.text.Text message,
-      PressAction onPress
+      net.minecraft.network.chat.Component message,
+      OnPress onPress
   ) {
-    super(x, y, width, height, message, onPress, DEFAULT_NARRATION_SUPPLIER);
+    super(x, y, width, height, message, onPress, DEFAULT_NARRATION);
   }
 
   public void setLoading(boolean loading) {
@@ -29,16 +30,13 @@ public class LoadingButtonWidget extends ButtonWidget.Text {
   }
 
   @Override
-  public void drawLabel(DrawnTextConsumer drawer) {
+  public void extractDefaultLabel(@NotNull ActiveTextCollector drawer) {
     if (!this.loading) {
-      super.drawLabel(drawer);
+      super.extractDefaultLabel(drawer);
       return;
     }
 
-    String spinner = LoadingDisplay.get(Util.getMeasuringTimeMs());
-    this.drawTextWithMargin(drawer, net.minecraft.text.Text.literal(spinner), 2);
-    //    int x = this.getX() + (this.getWidth() - textRenderer.getWidth(spinner)) / 2;
-    //    int y = this.getY() + (this.getHeight() - (textRenderer.fontHeight - 1)) / 2;
-    //    context.drawText(textRenderer, spinner, x, y, Colors.WHITE, false);
+    String spinner = LoadingDotsText.get(Util.getMillis());
+    this.extractScrollingStringOverContents(drawer, net.minecraft.network.chat.Component.literal(spinner), 2);
   }
 }

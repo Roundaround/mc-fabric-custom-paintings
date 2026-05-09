@@ -10,27 +10,27 @@ import me.roundaround.custompaintings.network.Networking;
 import me.roundaround.custompaintings.resource.PackResource;
 import me.roundaround.custompaintings.resource.file.json.CustomPaintingsJson;
 import me.roundaround.custompaintings.resource.file.json.LegacyCustomPaintingsJson;
-import me.roundaround.custompaintings.roundalib.event.ResourceManagerEvents;
-import me.roundaround.custompaintings.roundalib.observable.Observer;
-import me.roundaround.custompaintings.roundalib.observable.Subscription;
 import me.roundaround.custompaintings.server.ServerInfo;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
 import me.roundaround.gradle.api.annotation.Entrypoint;
+import me.roundaround.roundalib.event.ResourceManagerEvents;
+import me.roundaround.roundalib.observable.Observer;
+import me.roundaround.roundalib.observable.Subscription;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerEntityLevelChangeEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLevelEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
-import net.minecraft.entity.decoration.painting.PaintingEntity;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.resource.ResourcePackProfile;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.ActionResult;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.packs.repository.Pack;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.decoration.painting.Painting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -54,11 +54,7 @@ public final class CustomPaintingsMod implements ModInitializer {
     if (server == null) {
       return CompletableFuture.completedFuture(null);
     }
-    List<String> enabledPacks = server.getDataPackManager()
-        .getEnabledProfiles()
-        .stream()
-        .map(ResourcePackProfile::getId)
-        .toList();
+    List<String> enabledPacks = server.getPackRepository().getSelectedPacks().stream().map(Pack::getId).toList();
     return server.reloadResources(enabledPacks).exceptionally((throwable) -> {
       LOGGER.warn("Failed to reload data packs", throwable);
       return null;
@@ -81,47 +77,47 @@ public final class CustomPaintingsMod implements ModInitializer {
 
     ResourceManagerEvents.CREATING.register(ServerInfo::init);
 
-    ServerWorldEvents.LOAD.register((server, world) -> {
-      server.getRegistryManager().getOrThrow(RegistryKeys.PAINTING_VARIANT);
+    ServerLevelEvents.LOAD.register((server, world) -> {
+      server.registryAccess().lookupOrThrow(Registries.PAINTING_VARIANT);
       ServerPaintingRegistry.init(server);
       world.custompaintings$getPaintingManager();
     });
 
     ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
-      if (!(entity instanceof PaintingEntity painting)) {
+      if (!(entity instanceof Painting painting)) {
         return;
       }
       world.custompaintings$getPaintingManager().onEntityLoad(painting);
     });
 
     ServerEntityEvents.ENTITY_UNLOAD.register((entity, world) -> {
-      if (!(entity instanceof PaintingEntity painting)) {
+      if (!(entity instanceof Painting painting)) {
         return;
       }
       world.custompaintings$getPaintingManager().onEntityUnload(painting);
     });
 
     ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-      ServerPlayerEntity player = handler.getPlayer();
+      ServerPlayer player = handler.getPlayer();
       ServerPaintingRegistry.getInstance().sendSummaryToPlayer(player);
-      player.getEntityWorld().custompaintings$getPaintingManager().syncAllDataForPlayer(player);
+      player.level().custompaintings$getPaintingManager().syncAllDataForPlayer(player);
     });
 
-    ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, origin, destination) -> {
+    ServerEntityLevelChangeEvents.AFTER_PLAYER_CHANGE_LEVEL.register((player, origin, destination) -> {
       destination.custompaintings$getPaintingManager().syncAllDataForPlayer(player);
     });
 
     UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-      if (!(entity instanceof PaintingEntity painting)) {
-        return ActionResult.PASS;
+      if (!(entity instanceof Painting painting)) {
+        return InteractionResult.PASS;
       }
 
-      if (player.isSpectator() || !player.isSneaking()) {
-        return ActionResult.PASS;
+      if (player.isSpectator() || !player.isShiftKeyDown()) {
+        return InteractionResult.PASS;
       }
 
       painting.setCustomNameVisible(!painting.isCustomNameVisible());
-      return ActionResult.SUCCESS;
+      return InteractionResult.SUCCESS;
     });
 
     ServerLifecycleEvents.SERVER_STARTED.register((server) -> {
@@ -134,7 +130,8 @@ public final class CustomPaintingsMod implements ModInitializer {
       Observer.P0 onChange = () -> reloadDataPacks(server);
       stonecutterSub = CustomPaintingsPerWorldConfig.getInstance().pickPaintingWithStoneCutter.savedValue.cold()
           .subscribe(onChange);
-      vanillaStonecutterSub = CustomPaintingsPerWorldConfig.getInstance().pickVanillaPaintingWithStoneCutter.savedValue.cold()
+      vanillaStonecutterSub =
+          CustomPaintingsPerWorldConfig.getInstance().pickVanillaPaintingWithStoneCutter.savedValue.cold()
           .subscribe(onChange);
     });
 

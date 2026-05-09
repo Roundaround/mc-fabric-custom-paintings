@@ -18,14 +18,14 @@ import com.google.common.io.ByteSource;
 
 import io.netty.buffer.ByteBuf;
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.text.Text;
-import net.minecraft.util.Pair;
-import net.minecraft.util.math.MathHelper;
+import com.mojang.blaze3d.platform.NativeImage;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.Tuple;
+import net.minecraft.util.Mth;
 
 public record Image(Color[] pixels, int width, int height, String hash) {
-  public static final PacketCodec<ByteBuf, Image> PACKET_CODEC = PacketCodec.of(
+  public static final StreamCodec<ByteBuf, Image> PACKET_CODEC = StreamCodec.ofMember(
       Image::writeToByteBuf, Image::fromByteBuf);
 
   public static Image empty() {
@@ -109,7 +109,7 @@ public record Image(Color[] pixels, int width, int height, String hash) {
     NativeImage nativeImage = new NativeImage(this.width(), this.height(), false);
     for (int x = 0; x < this.width(); x++) {
       for (int y = 0; y < this.height(); y++) {
-        nativeImage.setColorArgb(x, y, this.getARGB(x, y));
+        nativeImage.setPixel(x, y, this.getARGB(x, y));
       }
     }
     return nativeImage;
@@ -361,7 +361,7 @@ public record Image(Color[] pixels, int width, int height, String hash) {
           Math.round((float) alpha / colors.size()));
     }
 
-    public static Color weightedAverage(Collection<Pair<Color, Float>> colors) {
+    public static Color weightedAverage(Collection<Tuple<Color, Float>> colors) {
       if (colors.isEmpty()) {
         return transparent();
       }
@@ -373,13 +373,13 @@ public record Image(Color[] pixels, int width, int height, String hash) {
       float blue = 0;
       float alpha = 0;
 
-      for (Pair<Color, Float> color : colors) {
-        float weight = color.getRight();
+      for (Tuple<Color, Float> color : colors) {
+        float weight = color.getB();
         totalWeight += weight;
-        red += color.getLeft().getRed() * weight;
-        green += color.getLeft().getGreen() * weight;
-        blue += color.getLeft().getBlue() * weight;
-        alpha += color.getLeft().getAlpha() * weight;
+        red += color.getA().getRed() * weight;
+        green += color.getA().getGreen() * weight;
+        blue += color.getA().getBlue() * weight;
+        alpha += color.getA().getAlpha() * weight;
       }
 
       return new Color(
@@ -455,8 +455,8 @@ public record Image(Color[] pixels, int width, int height, String hash) {
       float sx = x * (maxSourceX / (float) maxX);
       float sy = y * (maxSourceY / (float) maxY);
 
-      int ix = Math.clamp(x <= cx ? MathHelper.floor(sx) : MathHelper.ceil(sx), 0, maxSourceX);
-      int iy = Math.clamp(y <= cy ? MathHelper.floor(sy) : MathHelper.ceil(sy), 0, maxSourceY);
+      int ix = Math.clamp(x <= cx ? Mth.floor(sx) : Mth.ceil(sx), 0, maxSourceX);
+      int iy = Math.clamp(y <= cy ? Mth.floor(sy) : Mth.ceil(sy), 0, maxSourceY);
 
       return source.pixels[getIndex(source.height, ix, iy)];
     };
@@ -471,7 +471,7 @@ public record Image(Color[] pixels, int width, int height, String hash) {
       int sampleSizeY = Math.max(1, Math.round(source.height / (float) targetHeight));
       int maxDistance = sampleSizeX * sampleSizeX + sampleSizeY * sampleSizeY;
 
-      ArrayList<Pair<Color, Float>> samples = new ArrayList<>();
+      ArrayList<Tuple<Color, Float>> samples = new ArrayList<>();
       float sx = x * (source.width / (float) targetWidth);
       float sy = y * (source.height / (float) targetHeight);
 
@@ -482,7 +482,7 @@ public record Image(Color[] pixels, int width, int height, String hash) {
         for (int dy = -sampleSizeY; dy <= sampleSizeY; dy++) {
           Color sample = source.getPixel(cx + dx, cy + dy);
           if (!sample.isTransparent()) {
-            samples.add(new Pair<>(sample, (dx * dx + dy * dy) / (float) maxDistance));
+            samples.add(new Tuple<>(sample, (dx * dx + dy * dy) / (float) maxDistance));
           }
         }
       }
@@ -497,8 +497,8 @@ public record Image(Color[] pixels, int width, int height, String hash) {
 
         return Color.weightedAverage(
             List.of(
-                new Pair<>(topColor, topWeight),
-                new Pair<>(bottomColor, 1f - topWeight)));
+                new Tuple<>(topColor, topWeight),
+                new Tuple<>(bottomColor, 1f - topWeight)));
       };
     }
 
@@ -511,16 +511,16 @@ public record Image(Color[] pixels, int width, int height, String hash) {
   }
 
   public interface Operation {
-    Text getName();
+    Component getName();
 
     Hashless apply(Hashless image);
 
     static Operation invert() {
       return new Operation() {
         @Override
-        public Text getName() {
+        public Component getName() {
           // TODO: i18n
-          return Text.of("Invert");
+          return Component.nullToEmpty("Invert");
         }
 
         @Override
@@ -541,8 +541,8 @@ public record Image(Color[] pixels, int width, int height, String hash) {
     static Operation scale(int width, int height, Resampler resampler) {
       return new Operation() {
         @Override
-        public Text getName() {
-          return Text.of("Scale");
+        public Component getName() {
+          return Component.nullToEmpty("Scale");
         }
 
         @Override
@@ -565,8 +565,8 @@ public record Image(Color[] pixels, int width, int height, String hash) {
     static Operation translate(int x, int y, Color empty) {
       return new Operation() {
         @Override
-        public Text getName() {
-          return Text.of("Translate");
+        public Component getName() {
+          return Component.nullToEmpty("Translate");
         }
 
         @Override
@@ -589,8 +589,8 @@ public record Image(Color[] pixels, int width, int height, String hash) {
     static Operation resize(int width, int height, Color empty) {
       return new Operation() {
         @Override
-        public Text getName() {
-          return Text.of("Resize");
+        public Component getName() {
+          return Component.nullToEmpty("Resize");
         }
 
         @Override
@@ -613,8 +613,8 @@ public record Image(Color[] pixels, int width, int height, String hash) {
     static Operation embed(Image image, int x, int y, boolean behind) {
       return new Operation() {
         @Override
-        public Text getName() {
-          return Text.of("Embed");
+        public Component getName() {
+          return Component.nullToEmpty("Embed");
         }
 
         @Override

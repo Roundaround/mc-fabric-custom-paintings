@@ -7,11 +7,11 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import me.roundaround.custompaintings.command.argument.PackType;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
-import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.commands.CommandSourceStack;
 
 import java.util.concurrent.CompletableFuture;
 
-public class PackIdSuggestionProvider implements SuggestionProvider<ServerCommandSource> {
+public class PackIdSuggestionProvider implements SuggestionProvider<CommandSourceStack> {
   private final PackType packType;
 
   public PackIdSuggestionProvider() {
@@ -24,7 +24,7 @@ public class PackIdSuggestionProvider implements SuggestionProvider<ServerComman
 
   @Override
   public CompletableFuture<Suggestions> getSuggestions(
-      CommandContext<ServerCommandSource> context, SuggestionsBuilder builder
+      CommandContext<CommandSourceStack> context, SuggestionsBuilder builder
   ) {
     for (PackData pack : this.packType.getPacks(ServerPaintingRegistry.getInstance())) {
       builder.suggest(pack.id());

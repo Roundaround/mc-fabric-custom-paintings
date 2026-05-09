@@ -1,8 +1,8 @@
 package me.roundaround.custompaintings.resource;
 
 import me.roundaround.custompaintings.util.CustomId;
-import me.roundaround.custompaintings.roundalib.client.gui.util.Dimensions;
-import net.minecraft.util.Identifier;
+import me.roundaround.roundalib.client.gui.util.Dimensions;
+import net.minecraft.resources.Identifier;
 
 public class PackIcons {
   public static final String MINECRAFT_PACK_ID = Identifier.DEFAULT_NAMESPACE;

@@ -3,13 +3,21 @@ package me.roundaround.custompaintings.client.render.model;
 import com.google.common.collect.Interner;
 import com.google.common.collect.Interners;
 import me.roundaround.custompaintings.CustomPaintingsMod;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.item.ItemAsset;
-import net.minecraft.client.render.entity.model.LoadedEntityModels;
-import net.minecraft.client.render.item.model.ItemModel;
-import net.minecraft.client.render.model.*;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.model.geom.EntityModelSet;
+import net.minecraft.client.renderer.PlayerSkinRenderCache;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
+import net.minecraft.client.renderer.item.ClientItem;
+import net.minecraft.client.renderer.item.ItemModel;
+import net.minecraft.client.renderer.item.MissingItemModel;
+import net.minecraft.client.resources.model.ModelBaker;
+import net.minecraft.client.resources.model.ModelBakery;
+import net.minecraft.client.resources.model.ResolvedModel;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
+import net.minecraft.client.resources.model.sprite.MaterialBaker;
+import net.minecraft.client.resources.model.sprite.SpriteGetter;
+import net.minecraft.resources.Identifier;
+import org.joml.Matrix4f;
 import org.joml.Vector3fc;
 
 import java.util.HashMap;
@@ -17,85 +25,88 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ItemModelBaker {
-  private final Map<Identifier, ItemAsset> itemAssets;
-  private final Map<Identifier, BakedSimpleModel> simpleModels;
-  private final BakedSimpleModel missingModel;
+  private final Map<Identifier, ClientItem> itemAssets;
+  private final Map<Identifier, ResolvedModel> simpleModels;
+  private final ResolvedModel missingModel;
 
   public ItemModelBaker(
-      Map<Identifier, ItemAsset> itemAssets,
-      Map<Identifier, BakedSimpleModel> simpleModels,
-      BakedSimpleModel missingModel
+      Map<Identifier, ClientItem> itemAssets,
+      Map<Identifier, ResolvedModel> simpleModels,
+      ResolvedModel missingModel
   ) {
     this.itemAssets = itemAssets;
     this.simpleModels = simpleModels;
     this.missingModel = missingModel;
   }
 
-  public Map<Identifier, ItemModel> bake(ErrorCollectingSpriteGetter spriteGetter) {
-    // TODO: Can I replace this?
-    Baker.Vec3fInterner vec3fInterner = new Vec3fInternerImpl();
-    ModelBaker.BlockItemModels blockItemModels = ModelBaker.BlockItemModels.bake(
+  public Map<Identifier, ItemModel> bake(MaterialBaker materialBaker, SpriteGetter spriteGetter) {
+    ModelBaker.Interner interner = new InternerImpl();
+    ModelBakery.MissingModels missingModels = ModelBakery.MissingModels.bake(
         this.missingModel,
-        spriteGetter,
-        vec3fInterner
+        materialBaker,
+        interner
     );
-    ItemModel missingItemModel = ModelBaker.BlockItemModels.bake(this.missingModel, spriteGetter, vec3fInterner).item();
+    MissingItemModel missingItemModel = missingModels.item();
 
-    BakerImpl bakerImpl = new BakerImpl(spriteGetter, vec3fInterner, blockItemModels);
+    BakerImpl bakerImpl = new BakerImpl(materialBaker, interner, missingModels);
+    Minecraft client = Minecraft.getInstance();
+    PlayerSkinRenderCache skinCache = client.playerSkinRenderCache();
+    Matrix4f identity = new Matrix4f();
     HashMap<Identifier, ItemModel> itemModels = new HashMap<>();
     this.itemAssets.forEach((id, asset) -> {
-      // TODO: Is null okay for SpriteHolder and PlayerSkinCache? Probably not...
       itemModels.put(
           id,
-          asset.model()
-              .bake(new ItemModel.BakeContext(
+          asset.model().bake(
+              new ItemModel.BakingContext(
                   bakerImpl,
-                  LoadedEntityModels.EMPTY,
-                  null,
-                  null,
+                  EntityModelSet.EMPTY,
+                  spriteGetter,
+                  skinCache,
                   missingItemModel,
                   asset.registrySwapper()
-              ))
+              ),
+              identity
+          )
       );
     });
 
     return itemModels;
   }
 
-  class BakerImpl implements Baker {
-    private final ErrorCollectingSpriteGetter spriteGetter;
-    private final Baker.Vec3fInterner interner;
-    private final ModelBaker.BlockItemModels blockItemModels;
-    private final Map<ResolvableCacheKey<Object>, Object> cache = new ConcurrentHashMap<>();
+  class BakerImpl implements ModelBaker {
+    private final MaterialBaker materials;
+    private final ModelBaker.Interner interner;
+    private final ModelBakery.MissingModels missingModels;
+    private final Map<SharedOperationKey<Object>, Object> cache = new ConcurrentHashMap<>();
 
     BakerImpl(
-        final ErrorCollectingSpriteGetter spriteGetter,
-        final Baker.Vec3fInterner interner,
-        final ModelBaker.BlockItemModels blockItemModels
+        final MaterialBaker materials,
+        final ModelBaker.Interner interner,
+        final ModelBakery.MissingModels missingModels
     ) {
-      this.spriteGetter = spriteGetter;
+      this.materials = materials;
       this.interner = interner;
-      this.blockItemModels = blockItemModels;
+      this.missingModels = missingModels;
     }
 
     @Override
-    public BlockModelPart getBlockPart() {
-      return this.blockItemModels.blockPart();
+    public BlockStateModelPart missingBlockModelPart() {
+      return this.missingModels.blockPart();
     }
 
     @Override
-    public ErrorCollectingSpriteGetter getSpriteGetter() {
-      return this.spriteGetter;
+    public MaterialBaker materials() {
+      return this.materials;
     }
 
     @Override
-    public Vec3fInterner getVec3fInterner() {
+    public Interner interner() {
       return this.interner;
     }
 
     @Override
-    public BakedSimpleModel getModel(Identifier id) {
-      BakedSimpleModel model = ItemModelBaker.this.simpleModels.get(id);
+    public ResolvedModel getModel(Identifier id) {
+      ResolvedModel model = ItemModelBaker.this.simpleModels.get(id);
       if (model != null) {
         return model;
       }
@@ -106,18 +117,23 @@ public class ItemModelBaker {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> T compute(ResolvableCacheKey<T> key) {
-      return (T) this.cache.computeIfAbsent((ResolvableCacheKey<Object>) key, k -> k.compute(this));
+    public <T> T compute(SharedOperationKey<T> key) {
+      return (T) this.cache.computeIfAbsent((SharedOperationKey<Object>) key, k -> k.compute(this));
     }
   }
 
-  @Environment(EnvType.CLIENT)
-  static class Vec3fInternerImpl implements Baker.Vec3fInterner {
-    private final Interner<Vector3fc> INTERNER = Interners.newStrongInterner();
+  static class InternerImpl implements ModelBaker.Interner {
+    private final Interner<Vector3fc> vectors = Interners.newStrongInterner();
+    private final Interner<BakedQuad.MaterialInfo> materialInfos = Interners.newStrongInterner();
 
     @Override
-    public Vector3fc intern(Vector3fc vec) {
-      return this.INTERNER.intern(vec);
+    public Vector3fc vector(Vector3fc vec) {
+      return this.vectors.intern(vec);
+    }
+
+    @Override
+    public BakedQuad.MaterialInfo materialInfo(BakedQuad.MaterialInfo info) {
+      return this.materialInfos.intern(info);
     }
   }
 }

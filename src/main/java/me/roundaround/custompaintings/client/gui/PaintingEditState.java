@@ -3,18 +3,18 @@ package me.roundaround.custompaintings.client.gui;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import net.minecraft.block.AbstractRedstoneGateBlock;
-import net.minecraft.block.BlockState;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.decoration.AbstractDecorationEntity;
-import net.minecraft.entity.decoration.painting.PaintingEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Direction;
-import net.minecraft.world.World;
+import net.minecraft.world.level.block.DiodeBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.decoration.HangingEntity;
+import net.minecraft.world.entity.decoration.painting.Painting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.Level;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -25,7 +25,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class PaintingEditState {
-  private final MinecraftClient client;
+  private final Minecraft client;
   private final HashMap<String, PackData> allPaintings = new HashMap<>();
   private final HashMap<String, Boolean> canStayHashMap = new HashMap<>();
   private final int paintingId;
@@ -40,10 +40,10 @@ public class PaintingEditState {
 
   private static final Predicate<Entity> DECORATION_PREDICATE = (
       entity
-  ) -> entity instanceof AbstractDecorationEntity;
+  ) -> entity instanceof HangingEntity;
 
   public PaintingEditState(
-      MinecraftClient client, int paintingId, BlockPos blockPos, Direction facing
+      Minecraft client, int paintingId, BlockPos blockPos, Direction facing
   ) {
     this.client = client;
     this.paintingId = paintingId;
@@ -218,16 +218,16 @@ public class PaintingEditState {
   protected void createVanillaPack() {
     String id = Identifier.DEFAULT_NAMESPACE;
     List<PaintingData> paintings = ClientPaintingRegistry.getInstance().getAllVanilla();
-    this.allPaintings.put(id, PackData.virtual(id, Text.translatable("custompaintings.pack.minecraft.name"),
-        Text.translatable("custompaintings.pack.minecraft.name"), paintings
+    this.allPaintings.put(id, PackData.virtual(id, Component.translatable("custompaintings.pack.minecraft.name"),
+        Component.translatable("custompaintings.pack.minecraft.name"), paintings
     ));
   }
 
   protected void createUnplaceableVanillaPack() {
     String id = Identifier.DEFAULT_NAMESPACE + "_unplaceable";
     List<PaintingData> paintings = ClientPaintingRegistry.getInstance().getAllVanillaUnplaceable();
-    this.allPaintings.put(id, PackData.virtual(id, Text.translatable("custompaintings.pack.unplaceable.name"),
-        Text.translatable("custompaintings.pack.unplaceable.name"), paintings
+    this.allPaintings.put(id, PackData.virtual(id, Component.translatable("custompaintings.pack.unplaceable.name"),
+        Component.translatable("custompaintings.pack.unplaceable.name"), paintings
     ));
   }
 
@@ -247,50 +247,50 @@ public class PaintingEditState {
 
   @SuppressWarnings("deprecation")
   public boolean canStay(int width, int height) {
-    World world = Objects.requireNonNull(this.client.player).getEntityWorld();
-    Box boundingBox = this.getBoundingBox(width, height);
+    Level world = Objects.requireNonNull(this.client.player).level();
+    AABB boundingBox = this.getBoundingBox(width, height);
 
-    if (!world.isSpaceEmpty(boundingBox)) {
+    if (!world.noCollision(boundingBox)) {
       return false;
     }
 
     int blocksWidth = Math.max(1, width);
     int blocksHeight = Math.max(1, height);
-    BlockPos pos = this.blockPos.offset(this.facing.getOpposite());
-    Direction direction = this.facing.rotateYCounterclockwise();
-    BlockPos.Mutable mutable = new BlockPos.Mutable();
+    BlockPos pos = this.blockPos.relative(this.facing.getOpposite());
+    Direction direction = this.facing.getCounterClockWise();
+    BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
 
     for (int x = 0; x < blocksWidth; x++) {
       for (int z = 0; z < blocksHeight; z++) {
         mutable.set(pos).move(direction, x - (blocksWidth - 1) / 2).move(Direction.UP, z - (blocksHeight - 1) / 2);
         BlockState blockState = world.getBlockState(mutable);
 
-        if (!blockState.isSolid() && !AbstractRedstoneGateBlock.isRedstoneGate(blockState)) {
+        if (!blockState.isSolid() && !DiodeBlock.isDiode(blockState)) {
           return false;
         }
       }
     }
 
-    Entity entity = world.getEntityById(this.paintingId);
-    PaintingEntity currentPainting = entity instanceof PaintingEntity ? (PaintingEntity) entity : null;
+    Entity entity = world.getEntity(this.paintingId);
+    Painting currentPainting = entity instanceof Painting ? (Painting) entity : null;
 
-    return world.getOtherEntities(currentPainting, boundingBox, DECORATION_PREDICATE).isEmpty();
+    return world.getEntities(currentPainting, boundingBox, DECORATION_PREDICATE).isEmpty();
   }
 
-  private Box getBoundingBox(int width, int height) {
+  private AABB getBoundingBox(int width, int height) {
     // TODO: Rewrite
 
-    double posX = this.blockPos.getX() + 0.5 - this.facing.getOffsetX() * 0.46875 +
-                  this.facing.rotateYCounterclockwise().getOffsetX() * this.offsetForEven(width);
+    double posX = this.blockPos.getX() + 0.5 - this.facing.getStepX() * 0.46875 +
+                  this.facing.getCounterClockWise().getStepX() * this.offsetForEven(width);
     double posY = this.blockPos.getY() + 0.5 + this.offsetForEven(height);
-    double posZ = this.blockPos.getZ() + 0.5 - this.facing.getOffsetZ() * 0.46875 +
-                  this.facing.rotateYCounterclockwise().getOffsetZ() * this.offsetForEven(width);
+    double posZ = this.blockPos.getZ() + 0.5 - this.facing.getStepZ() * 0.46875 +
+                  this.facing.getCounterClockWise().getStepZ() * this.offsetForEven(width);
 
     double sizeX = (this.facing.getAxis() == Direction.Axis.Z ? width : 1) / 32D;
     double sizeY = height / 32D;
     double sizeZ = (this.facing.getAxis() == Direction.Axis.Z ? 1 : width) / 32D;
 
-    return new Box(posX - sizeX, posY - sizeY, posZ - sizeZ, posX + sizeX, posY + sizeY, posZ + sizeZ);
+    return new AABB(posX - sizeX, posY - sizeY, posZ - sizeZ, posX + sizeX, posY + sizeY, posZ + sizeZ);
   }
 
   private double offsetForEven(int size) {

@@ -2,21 +2,21 @@ package me.roundaround.custompaintings.mixin;
 
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.render.command.OrderedRenderCommandQueue;
-import net.minecraft.client.render.entity.EntityRenderManager;
-import net.minecraft.client.render.entity.EntityRenderer;
-import net.minecraft.client.render.entity.state.EntityRenderState;
-import net.minecraft.client.render.entity.state.PaintingEntityRenderState;
-import net.minecraft.client.render.state.CameraRenderState;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.decoration.painting.PaintingEntity;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.RotationAxis;
+import me.roundaround.roundalib.client.gui.util.GuiUtil;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
+import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import net.minecraft.client.renderer.entity.state.PaintingRenderState;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.decoration.painting.Painting;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -27,47 +27,51 @@ import java.util.List;
 public abstract class EntityRendererMixin {
   @Shadow
   @Final
-  protected EntityRenderManager dispatcher;
+  protected EntityRenderDispatcher entityRenderDispatcher;
 
   @Shadow
-  public abstract TextRenderer getTextRenderer();
+  public abstract Font getFont();
 
-  @WrapMethod(method = "hasLabel")
-  public boolean hasLabelForPaintings(Entity entity, double squaredDistanceToCamera, Operation<Boolean> original) {
-    if (!(entity instanceof PaintingEntity)) {
-      return original.call(entity, squaredDistanceToCamera);
+  @WrapMethod(method = "shouldShowName")
+  public boolean shouldShowNameForPaintings(Entity entity, double distanceToCameraSq, Operation<Boolean> original) {
+    if (!(entity instanceof Painting)) {
+      return original.call(entity, distanceToCameraSq);
     }
-    return entity == this.dispatcher.targetedEntity && entity.isCustomNameVisible();
+    return entity == this.entityRenderDispatcher.crosshairPickEntity && entity.isCustomNameVisible();
   }
 
-  @WrapMethod(method = "renderLabelIfPresent")
+  @WrapMethod(
+      method = "submitNameDisplay(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;" +
+               "Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;" +
+               "Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V"
+  )
   public void renderLabelIfPresentForPaintings(
       EntityRenderState rawState,
-      MatrixStack matrices,
-      OrderedRenderCommandQueue queue,
+      PoseStack matrices,
+      SubmitNodeCollector queue,
       CameraRenderState cameraState,
       Operation<Void> original
   ) {
-    if (!(rawState instanceof PaintingEntityRenderState state)) {
+    if (!(rawState instanceof PaintingRenderState state)) {
       original.call(rawState, matrices, queue, cameraState);
       return;
     }
 
-    if (state.displayName == null) {
+    if (state.nameTag == null) {
       return;
     }
 
-    List<Text> label = state.custompaintings$getLabel();
+    List<Component> label = state.custompaintings$getLabel();
     if (label == null || label.isEmpty()) {
       original.call(rawState, matrices, queue, cameraState);
       return;
     }
 
     PaintingData data = state.custompaintings$getData();
-    TextRenderer textRenderer = this.getTextRenderer();
+    Font textRenderer = this.getFont();
 
-    matrices.push();
-    matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180f - state.facing.getPositiveHorizontalDegrees()));
+    matrices.pushPose();
+    matrices.mulPose(Axis.YP.rotationDegrees(180f - state.direction.toYRot()));
     matrices.translate(0f, -data.height() / 2f, -0.125f);
     matrices.scale(-0.025f, -0.025f, 0.025f);
 
@@ -75,10 +79,10 @@ public abstract class EntityRendererMixin {
     int seeThroughColor = GuiUtil.genColorInt(1f, 1f, 1f, 0.75f);
     int bgColor = GuiUtil.BACKGROUND_COLOR;
 
-    float y = -(textRenderer.fontHeight + 3) / 2f;
-    for (Text line : label) {
-      for (OrderedText wrappedLine : textRenderer.wrapLines(line, Integer.MAX_VALUE)) {
-        float x = -textRenderer.getWidth(wrappedLine) / 2f;
+    float y = -(textRenderer.lineHeight + 3) / 2f;
+    for (Component line : label) {
+      for (FormattedCharSequence wrappedLine : textRenderer.split(line, Integer.MAX_VALUE)) {
+        float x = -textRenderer.width(wrappedLine) / 2f;
 
         queue.submitText(
             matrices,
@@ -86,8 +90,8 @@ public abstract class EntityRendererMixin {
             y,
             wrappedLine,
             false,
-            TextRenderer.TextLayerType.SEE_THROUGH,
-            state.light,
+            Font.DisplayMode.SEE_THROUGH,
+            state.lightCoords,
             seeThroughColor,
             bgColor,
             0
@@ -98,17 +102,17 @@ public abstract class EntityRendererMixin {
             y,
             wrappedLine,
             false,
-            TextRenderer.TextLayerType.NORMAL,
-            state.light,
+            Font.DisplayMode.NORMAL,
+            state.lightCoords,
             textColor,
             0,
             0
         );
 
-        y += textRenderer.fontHeight + 1;
+        y += textRenderer.lineHeight + 1;
       }
     }
 
-    matrices.pop();
+    matrices.popPose();
   }
 }

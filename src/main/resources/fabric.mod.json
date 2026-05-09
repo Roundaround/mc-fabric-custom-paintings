@@ -15,14 +15,14 @@
   "license": "MIT",
   "custom": {
     "loom:injected_interfaces": {
-      "net/minecraft/class_10049": [
-        "me/roundaround/custompaintings/client/render/entity/state/PaintingEntityRenderStateExtensions"
+      "net/minecraft/client/renderer/entity/state/PaintingRenderState": [
+        "me/roundaround/custompaintings/client/render/entity/state/PaintingRenderStateExtensions"
       ],
-      "net/minecraft/class_1534": [
-        "me/roundaround/custompaintings/entity/decoration/painting/PaintingEntityExtensions"
+      "net/minecraft/world/entity/decoration/painting/Painting": [
+        "me/roundaround/custompaintings/entity/decoration/painting/PaintingExtensions"
       ],
-      "net/minecraft/class_3218": [
-        "me/roundaround/custompaintings/server/world/ServerWorldExtensions"
+      "net/minecraft/server/level/ServerLevel": [
+        "me/roundaround/custompaintings/server/world/ServerLevelExtensions"
       ]
     }
   }

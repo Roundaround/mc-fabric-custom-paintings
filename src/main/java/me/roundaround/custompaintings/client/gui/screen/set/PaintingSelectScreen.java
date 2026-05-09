@@ -6,23 +6,23 @@ import me.roundaround.custompaintings.client.gui.widget.PaintingSpriteWidget;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.generated.Constants;
-import me.roundaround.custompaintings.roundalib.client.gui.icon.BuiltinIcon;
-import me.roundaround.custompaintings.roundalib.client.gui.layout.FillerWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.layout.linear.LinearLayoutWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.util.Axis;
-import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
-import me.roundaround.custompaintings.roundalib.client.gui.widget.IconButtonWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.LabelWidget;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.screen.ScreenTexts;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.math.Divider;
+import me.roundaround.roundalib.client.gui.icon.BuiltinIcon;
+import me.roundaround.roundalib.client.gui.layout.FillerWidget;
+import me.roundaround.roundalib.client.gui.layout.linear.LinearLayoutWidget;
+import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
+import me.roundaround.roundalib.client.gui.util.Axis;
+import me.roundaround.roundalib.client.gui.util.GuiUtil;
+import me.roundaround.roundalib.client.gui.widget.IconButtonWidget;
+import me.roundaround.roundalib.client.gui.widget.drawable.LabelWidget;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.network.chat.CommonComponents;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
+import com.mojang.math.Divisor;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
@@ -34,14 +34,14 @@ public class PaintingSelectScreen extends BaseSetPaintingScreen implements Paint
 
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
 
-  private TextFieldWidget searchBox;
+  private EditBox searchBox;
   private PaintingListWidget paintingList;
   private LabelWidget infoLabel;
   private PaintingSpriteWidget paintingSprite;
   private IconButtonWidget prevButton;
   private LabelWidget controlsLabel;
   private IconButtonWidget nextButton;
-  private ButtonWidget doneButton;
+  private Button doneButton;
 
   public PaintingSelectScreen(PaintingEditState state) {
     super(getTitleText(state), state);
@@ -49,7 +49,7 @@ public class PaintingSelectScreen extends BaseSetPaintingScreen implements Paint
 
   @Override
   public void init() {
-    this.layout.addHeader(this.textRenderer, this.title);
+    this.layout.addHeader(this.font, this.title);
 
     this.layout.getBody().flowAxis(Axis.HORIZONTAL).spacing(0);
 
@@ -63,21 +63,21 @@ public class PaintingSelectScreen extends BaseSetPaintingScreen implements Paint
     );
 
     this.searchBox = searchRow.add(
-        new TextFieldWidget(this.textRenderer, 0, BUTTON_HEIGHT, Text.translatable("custompaintings.painting.search")),
+        new EditBox(this.font, 0, BUTTON_HEIGHT, Component.translatable("custompaintings.painting.search")),
         (parent, self) -> self.setWidth(parent.getWidth() - parent.getSpacing() - IconButtonWidget.SIZE_V)
     );
-    this.searchBox.setChangedListener(this::onSearchBoxChanged);
+    this.searchBox.setResponder(this::onSearchBoxChanged);
 
     searchRow.add(IconButtonWidget.builder(BuiltinIcon.FILTER_18, Constants.MOD_ID)
         .vanillaSize()
-        .messageAndTooltip(Text.translatable("custompaintings.painting.filter"))
+        .messageAndTooltip(Component.translatable("custompaintings.painting.filter"))
         .onPress(this::filterButtonPressed)
         .build());
 
     this.paintingList = leftPane.add(
-        new PaintingListWidget(this.client, this.state, this::onPaintingListSelect, this::saveSelection),
+        new PaintingListWidget(this.minecraft, this.state, this::onPaintingListSelect, this::saveSelection),
         (parent, self) -> {
-          self.setDimensions(parent.getWidth(), parent.getHeight() - parent.getSpacing() - BUTTON_HEIGHT);
+          self.setSize(parent.getWidth(), parent.getHeight() - parent.getSpacing() - BUTTON_HEIGHT);
         }
     );
 
@@ -86,7 +86,7 @@ public class PaintingSelectScreen extends BaseSetPaintingScreen implements Paint
         .defaultOffAxisContentAlignCenter();
 
     this.infoLabel = rightPane.add(
-        LabelWidget.builder(this.textRenderer, this.getInfoLines())
+        LabelWidget.builder(this.font, this.getInfoLines())
             .alignTextCenterX()
             .alignTextCenterY()
             .hideBackground()
@@ -100,7 +100,7 @@ public class PaintingSelectScreen extends BaseSetPaintingScreen implements Paint
 
     this.paintingSprite = rightPane.add(
         PaintingSpriteWidget.builder(this.state.getCurrentPainting()).border(true).build(), (parent, self) -> {
-          self.setDimensions(
+          self.setSize(
               parent.getWidth() - 2 * GuiUtil.PADDING,
               parent.getHeight() - this.infoLabel.getHeight() - IconButtonWidget.SIZE_V - 2 * parent.getSpacing()
           );
@@ -113,25 +113,25 @@ public class PaintingSelectScreen extends BaseSetPaintingScreen implements Paint
 
     this.prevButton = controlsRow.add(IconButtonWidget.builder(BuiltinIcon.PREV_18, Constants.MOD_ID)
         .vanillaSize()
-        .messageAndTooltip(Text.translatable("custompaintings.painting.previous"))
+        .messageAndTooltip(Component.translatable("custompaintings.painting.previous"))
         .onPress((button) -> this.state.setPreviousPainting())
         .build());
 
     this.controlsLabel = controlsRow.add(
-        LabelWidget.builder(this.textRenderer, this.getControlsText())
+        LabelWidget.builder(this.font, this.getControlsText())
             .alignTextCenterX()
             .alignTextCenterY()
             .hideBackground()
             .showShadow()
             .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
             .build(), (parent, self) -> {
-          self.setDimensions(parent.getWidth() - 2 * (GuiUtil.PADDING + IconButtonWidget.SIZE_V), parent.getHeight());
+          self.setSize(parent.getWidth() - 2 * (GuiUtil.PADDING + IconButtonWidget.SIZE_V), parent.getHeight());
         }
     );
 
     this.nextButton = controlsRow.add(IconButtonWidget.builder(BuiltinIcon.NEXT_18, Constants.MOD_ID)
         .vanillaSize()
-        .messageAndTooltip(Text.translatable("custompaintings.painting.next"))
+        .messageAndTooltip(Component.translatable("custompaintings.painting.next"))
         .onPress((button) -> this.state.setNextPainting())
         .build());
 
@@ -143,43 +143,43 @@ public class PaintingSelectScreen extends BaseSetPaintingScreen implements Paint
 
     this.layout.addBody(
         leftPane, (parent, self) -> {
-          Divider divider = new Divider(parent.getWidth() - 2 * GuiUtil.PADDING, 2);
+          Divisor divider = new Divisor(parent.getWidth() - 2 * GuiUtil.PADDING, 2);
           self.setDimensions(divider.nextInt(), parent.getHeight());
         }
     );
     this.layout.addBody(FillerWidget.ofWidth(2 * GuiUtil.PADDING));
     this.layout.addBody(
         rightPane, (parent, self) -> {
-          Divider divider = new Divider(parent.getWidth() - 2 * GuiUtil.PADDING, 2);
+          Divisor divider = new Divisor(parent.getWidth() - 2 * GuiUtil.PADDING, 2);
           divider.skip(1);
           self.setDimensions(divider.nextInt() - GuiUtil.PADDING, parent.getHeight());
         }
     );
     this.layout.addBody(FillerWidget.ofWidth(GuiUtil.PADDING));
 
-    this.layout.addFooter(ButtonWidget.builder(
-        ScreenTexts.BACK, (button) -> {
-          Objects.requireNonNull(this.client).setScreen(new PackSelectScreen(this.state));
+    this.layout.addFooter(Button.builder(
+        CommonComponents.GUI_BACK, (button) -> {
+          Objects.requireNonNull(this.minecraft).setScreen(new PackSelectScreen(this.state));
         }
     ).build());
-    this.doneButton = this.layout.addFooter(ButtonWidget.builder(
-        ScreenTexts.DONE, (button) -> {
+    this.doneButton = this.layout.addFooter(Button.builder(
+        CommonComponents.GUI_DONE, (button) -> {
           this.saveCurrentSelection();
         }
     ).build());
 
-    this.layout.forEachChild(this::addDrawableChild);
-    this.refreshWidgetPositions();
+    this.layout.visitWidgets(this::addRenderableWidget);
+    this.repositionElements();
 
     this.state.setStateChangedListener(this);
 
-    this.searchBox.setText(this.state.getFilters().getSearch());
+    this.searchBox.setValue(this.state.getFilters().getSearch());
     this.setInitialFocus(this.searchBox);
   }
 
   @Override
-  protected void refreshWidgetPositions() {
-    this.layout.refreshPositions();
+  protected void repositionElements() {
+    this.layout.arrangeElements();
   }
 
   @Override
@@ -188,10 +188,10 @@ public class PaintingSelectScreen extends BaseSetPaintingScreen implements Paint
   }
 
   @Override
-  public boolean keyPressed(KeyInput input) {
-    switch (input.getKeycode()) {
+  public boolean keyPressed(KeyEvent input) {
+    switch (input.input()) {
       case GLFW.GLFW_KEY_LEFT -> {
-        if (!this.state.hasPaintingsToIterate() || !input.hasCtrl()) {
+        if (!this.state.hasPaintingsToIterate() || !input.hasControlDown()) {
           break;
         }
         GuiUtil.playClickSound();
@@ -199,7 +199,7 @@ public class PaintingSelectScreen extends BaseSetPaintingScreen implements Paint
         return true;
       }
       case GLFW.GLFW_KEY_RIGHT -> {
-        if (!this.state.hasPaintingsToIterate() || !input.hasCtrl()) {
+        if (!this.state.hasPaintingsToIterate() || !input.hasControlDown()) {
           break;
         }
         GuiUtil.playClickSound();
@@ -212,8 +212,8 @@ public class PaintingSelectScreen extends BaseSetPaintingScreen implements Paint
         return true;
       }
       case GLFW.GLFW_KEY_F -> {
-        if (input.hasCtrl()) {
-          if (input.hasShift()) {
+        if (input.hasControlDown()) {
+          if (input.hasShiftDown()) {
             this.navigate(new FiltersScreen(this.state));
             return true;
           }
@@ -253,13 +253,13 @@ public class PaintingSelectScreen extends BaseSetPaintingScreen implements Paint
     this.paintingSprite.batchUpdates(() -> {
       this.paintingSprite.setPaintingData(paintingData);
       this.paintingSprite.setActive(canStay);
-      this.paintingSprite.setTooltip(canStay ? null : Tooltip.of(getTooBigText(paintingData)));
+      this.paintingSprite.setTooltip(canStay ? null : Tooltip.create(getTooBigText(paintingData)));
     });
 
     this.controlsLabel.setText(this.getControlsText());
 
     this.doneButton.active = canStay;
-    this.doneButton.setTooltip(canStay ? null : Tooltip.of(getTooBigText(paintingData)));
+    this.doneButton.setTooltip(canStay ? null : Tooltip.create(getTooBigText(paintingData)));
   }
 
   private void onSearchBoxChanged(String text) {
@@ -285,41 +285,41 @@ public class PaintingSelectScreen extends BaseSetPaintingScreen implements Paint
     this.saveSelection(currentPainting);
   }
 
-  private void filterButtonPressed(ButtonWidget button) {
-    Objects.requireNonNull(this.client).setScreen(new FiltersScreen(this.state));
+  private void filterButtonPressed(Button button) {
+    Objects.requireNonNull(this.minecraft).setScreen(new FiltersScreen(this.state));
   }
 
-  private List<Text> getInfoLines() {
+  private List<Component> getInfoLines() {
     PaintingData paintingData = this.state.getCurrentPainting();
 
     if (paintingData.isEmpty()) {
-      return List.of(Text.translatable("custompaintings.painting.none")
-          .setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)));
+      return List.of(Component.translatable("custompaintings.painting.none")
+          .setStyle(Style.EMPTY.withItalic(true).withColor(ChatFormatting.GRAY)));
     }
 
     return paintingData.getInfoLines();
   }
 
-  private Text getControlsText() {
+  private Component getControlsText() {
     if (this.state.getCurrentPainting().isEmpty()) {
-      return Text.empty();
+      return Component.empty();
     }
 
     PackData currentPack = this.state.getCurrentPack();
     int currentPaintingIndex = currentPack.paintings().indexOf(this.state.getCurrentPainting());
-    return Text.translatable(
+    return Component.translatable(
         "custompaintings.painting.number",
         currentPaintingIndex + 1,
         currentPack.paintings().size()
     );
   }
 
-  private static Text getTitleText(PaintingEditState state) {
-    return Text.literal(state.getCurrentPack().name() + " - ")
-        .append(Text.translatable("custompaintings.painting.title"));
+  private static Component getTitleText(PaintingEditState state) {
+    return Component.literal(state.getCurrentPack().name() + " - ")
+        .append(Component.translatable("custompaintings.painting.title"));
   }
 
-  private static Text getTooBigText(PaintingData paintingData) {
-    return Text.translatable("custompaintings.painting.big", paintingData.width(), paintingData.height());
+  private static Component getTooBigText(PaintingData paintingData) {
+    return Component.translatable("custompaintings.painting.big", paintingData.width(), paintingData.height());
   }
 }

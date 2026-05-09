@@ -1,11 +1,11 @@
 package me.roundaround.custompaintings.config;
 
 import me.roundaround.custompaintings.generated.Constants;
-import me.roundaround.custompaintings.roundalib.config.ConfigPath;
-import me.roundaround.custompaintings.roundalib.config.manage.ModConfigImpl;
-import me.roundaround.custompaintings.roundalib.config.manage.store.GameScopedFileStore;
-import me.roundaround.custompaintings.roundalib.config.option.BooleanConfigOption;
-import me.roundaround.custompaintings.roundalib.config.option.IntConfigOption;
+import me.roundaround.roundalib.config.ConfigPath;
+import me.roundaround.roundalib.config.manage.ModConfigImpl;
+import me.roundaround.roundalib.config.manage.store.GameScopedFileStore;
+import me.roundaround.roundalib.config.option.BooleanConfigOption;
+import me.roundaround.roundalib.config.option.IntConfigOption;
 
 public class CustomPaintingsConfig extends ModConfigImpl implements GameScopedFileStore {
   private static CustomPaintingsConfig instance = null;
@@ -32,7 +32,7 @@ public class CustomPaintingsConfig extends ModConfigImpl implements GameScopedFi
   @Override
   protected void registerOptions() {
     this.overrideRenderDistance = this.buildRegistration(BooleanConfigOption.yesNoBuilder(ConfigPath.of(
-        "overrideRenderDistance")).setComment("Override vanilla render distance").setDefaultValue(false).build())
+            "overrideRenderDistance")).setComment("Override vanilla render distance").setDefaultValue(false).build())
         .clientOnly()
         .commit();
 
@@ -59,19 +59,19 @@ public class CustomPaintingsConfig extends ModConfigImpl implements GameScopedFi
         .build()).clientOnly().commit();
 
     this.silenceAllConvertPrompts = this.buildRegistration(BooleanConfigOption.yesNoBuilder(ConfigPath.of(
-        "silenceAllConvertPrompts"))
+            "silenceAllConvertPrompts"))
         .setComment("Silence all legacy pack conversion prompts")
         .setDefaultValue(false)
         .build()).clientOnly().commit();
 
     this.renderArtworkOnItems = this.buildRegistration(BooleanConfigOption.yesNoBuilder(ConfigPath.of(
-        "renderArtworkOnItems"))
+            "renderArtworkOnItems"))
         .setComment("Render the artwork on custom painting items")
         .setDefaultValue(true)
         .build()).clientOnly().commit();
 
     this.renderVanillaArtworkOnItems = this.buildRegistration(BooleanConfigOption.yesNoBuilder(ConfigPath.of(
-        "renderVanillaArtworkOnItems"))
+            "renderVanillaArtworkOnItems"))
         .setComment("Render the artwork on vanilla painting items")
         .setDefaultValue(true)
         .build()).clientOnly().commit();

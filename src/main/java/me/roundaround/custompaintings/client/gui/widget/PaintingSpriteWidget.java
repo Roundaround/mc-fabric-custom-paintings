@@ -2,8 +2,8 @@ package me.roundaround.custompaintings.client.gui.widget;
 
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
-import me.roundaround.custompaintings.roundalib.client.gui.util.IntRect;
-import net.minecraft.client.gui.DrawContext;
+import me.roundaround.roundalib.client.gui.util.IntRect;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 public class PaintingSpriteWidget extends SpriteWidget {
   private PaintingData paintingData;
@@ -50,18 +50,26 @@ public class PaintingSpriteWidget extends SpriteWidget {
     int scaledHeight = this.paintingData.getScaledHeight(width, height);
 
     this.imageBounds = IntRect.byDimensions(
-        x + (width - scaledWidth) / 2, y + (height - scaledHeight) / 2, scaledWidth, scaledHeight);
+        x + (width - scaledWidth) / 2,
+        y + (height - scaledHeight) / 2,
+        scaledWidth,
+        scaledHeight
+    );
   }
 
   @Override
-  protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+  protected void extractWidgetRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
     if (this.border) {
-      context.fill(this.imageBounds.left() - 1, this.imageBounds.top() - 1, this.imageBounds.right() + 1,
-          this.imageBounds.bottom() + 1, 0xFF000000
+      context.fill(
+          this.imageBounds.left() - 1,
+          this.imageBounds.top() - 1,
+          this.imageBounds.right() + 1,
+          this.imageBounds.bottom() + 1,
+          0xFF000000
       );
     }
 
-    super.renderWidget(context, mouseX, mouseY, delta);
+    super.extractWidgetRenderState(context, mouseX, mouseY, delta);
   }
 
   public static Builder builder(PaintingData paintingData) {

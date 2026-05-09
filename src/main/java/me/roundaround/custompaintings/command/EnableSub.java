@@ -9,42 +9,42 @@ import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.server.ServerInfo;
 import me.roundaround.custompaintings.server.ServerPaintingManager;
 import me.roundaround.custompaintings.server.registry.ServerPaintingRegistry;
-import net.minecraft.command.DefaultPermissions;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
+import net.minecraft.server.permissions.Permissions;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.network.chat.Component;
 
 public class EnableSub {
   private EnableSub() {
   }
 
-  public static LiteralArgumentBuilder<ServerCommandSource> build() {
-    return CommandManager.literal("enable")
-        .requires((source) -> source.getPermissions().hasPermission(DefaultPermissions.GAMEMASTERS))
-        .then(CommandManager.argument("id", StringArgumentType.word())
+  public static LiteralArgumentBuilder<CommandSourceStack> build() {
+    return Commands.literal("enable")
+        .requires((source) -> source.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER))
+        .then(Commands.argument("id", StringArgumentType.word())
             .suggests(new PackIdSuggestionProvider(PackType.DISABLED))
             .executes(EnableSub::execute));
   }
 
-  private static int execute(CommandContext<ServerCommandSource> context) {
+  private static int execute(CommandContext<CommandSourceStack> context) {
     String id = StringArgumentType.getString(context, "id");
     PackData pack = ServerPaintingRegistry.getInstance().getPacks().get(id);
     if (pack == null) {
-      context.getSource().sendError(Text.translatable("custompaintings.commands.enable.notFound", id));
+      context.getSource().sendFailure(Component.translatable("custompaintings.commands.enable.notFound", id));
       return 0;
     }
 
     if (ServerInfo.getInstance().markPackEnabled(pack.packFileUid())) {
-      context.getSource().sendFeedback(() -> Text.translatable("custompaintings.commands.enable.enabled", id), true);
+      context.getSource().sendSuccess(() -> Component.translatable("custompaintings.commands.enable.enabled", id), true);
       ServerPaintingRegistry.getInstance().reloadPaintingPacks((server) -> {
         ServerPaintingManager.syncAllDataForAllPlayers(server);
-        context.getSource().sendFeedback(() -> Text.translatable("custompaintings.commands.enable.reloaded"), true);
+        context.getSource().sendSuccess(() -> Component.translatable("custompaintings.commands.enable.reloaded"), true);
       });
       return 1;
     }
 
     context.getSource()
-        .sendFeedback(() -> Text.translatable("custompaintings.commands.enable.alreadyEnabled", id), false);
+        .sendSuccess(() -> Component.translatable("custompaintings.commands.enable.alreadyEnabled", id), false);
     return 0;
   }
 }

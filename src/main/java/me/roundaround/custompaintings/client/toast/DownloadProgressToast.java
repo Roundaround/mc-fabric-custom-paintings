@@ -1,22 +1,23 @@
 package me.roundaround.custompaintings.client.toast;
 
-import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.toast.Toast;
-import net.minecraft.client.toast.ToastManager;
-import net.minecraft.text.Text;
-import net.minecraft.util.Colors;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.MathHelper;
+import me.roundaround.roundalib.client.gui.util.GuiUtil;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.toasts.Toast;
+import net.minecraft.client.gui.components.toasts.ToastManager;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.CommonColors;
+import net.minecraft.util.Mth;
+import org.jetbrains.annotations.NotNull;
 
 public class DownloadProgressToast implements Toast {
   public static final Type TYPE = new Type();
 
   private static final long DURATION = 2000L;
-  private static final Identifier TEXTURE = Identifier.ofVanilla("toast/system");
-  private static final Text TITLE = Text.translatable("custompaintings.toasts.download.title");
+  private static final Identifier TEXTURE = Identifier.withDefaultNamespace("toast/system");
+  private static final Component TITLE = Component.translatable("custompaintings.toasts.download.title");
   private static final int TEXT_LEFT = 18;
   private static final int TITLE_Y = 7;
   private static final int DESCRIPTION_Y = 18;
@@ -32,7 +33,7 @@ public class DownloadProgressToast implements Toast {
   private final int imagesExpected;
   private final int bytesExpected;
 
-  private Text description;
+  private Component description;
   private int imagesReceived = 0;
   private Visibility visibility = Visibility.SHOW;
   private long lastTime;
@@ -48,7 +49,7 @@ public class DownloadProgressToast implements Toast {
 
   public static void add(ToastManager manager, int imagesExpected, int bytesExpected) {
     hide(manager);
-    manager.add(new DownloadProgressToast(imagesExpected, bytesExpected));
+    manager.addToast(new DownloadProgressToast(imagesExpected, bytesExpected));
   }
 
   public static DownloadProgressToast get(ToastManager manager) {
@@ -63,12 +64,14 @@ public class DownloadProgressToast implements Toast {
   }
 
   @Override
-  public Object getType() {
+  @NotNull
+  public Object getToken() {
     return TYPE;
   }
 
   @Override
-  public Visibility getVisibility() {
+  @NotNull
+  public Visibility getWantedVisibility() {
     return this.visibility;
   }
 
@@ -81,22 +84,22 @@ public class DownloadProgressToast implements Toast {
   }
 
   @Override
-  public void draw(DrawContext context, TextRenderer textRenderer, long time) {
-    context.drawGuiTexture(RenderPipelines.GUI_TEXTURED, TEXTURE, 0, 0, this.getWidth(), this.getHeight());
+  public void extractRenderState(GuiGraphicsExtractor context, @NotNull Font textRenderer, long time) {
+    context.blitSprite(RenderPipelines.GUI_TEXTURED, TEXTURE, 0, 0, this.width(), this.height());
     this.drawText(context, textRenderer);
     this.drawProgressBar(context, time);
   }
 
-  private void drawText(DrawContext context, TextRenderer textRenderer) {
-    context.drawText(textRenderer, TITLE, TEXT_LEFT, TITLE_Y, Colors.YELLOW, false);
-    context.drawText(textRenderer, this.description, TEXT_LEFT, DESCRIPTION_Y, Colors.YELLOW, false);
+  private void drawText(GuiGraphicsExtractor context, Font textRenderer) {
+    context.text(textRenderer, TITLE, TEXT_LEFT, TITLE_Y, CommonColors.YELLOW, false);
+    context.text(textRenderer, this.description, TEXT_LEFT, DESCRIPTION_Y, CommonColors.YELLOW, false);
   }
 
-  private void drawProgressBar(DrawContext context, long time) {
-    float lerpedProgress = MathHelper.clampedLerp(this.lastProgress, this.progress, (time - this.lastTime) / 100f);
+  private void drawProgressBar(GuiGraphicsExtractor context, long time) {
+    float lerpedProgress = Mth.clampedLerp(this.lastProgress, this.progress, (time - this.lastTime) / 100f);
     int color = this.progress >= this.lastProgress ? BAR_COLOR_INCREASING : BAR_COLOR_DECREASING;
 
-    context.fill(BAR_LEFT, BAR_TOP, BAR_RIGHT, BAR_BOTTOM, Colors.WHITE);
+    context.fill(BAR_LEFT, BAR_TOP, BAR_RIGHT, BAR_BOTTOM, CommonColors.WHITE);
     context.fill(BAR_LEFT, BAR_TOP, BAR_LEFT + (int) (BAR_WIDTH * lerpedProgress), BAR_BOTTOM, color);
 
     this.lastProgress = lerpedProgress;
@@ -120,9 +123,13 @@ public class DownloadProgressToast implements Toast {
     this.visibility = Visibility.HIDE;
   }
 
-  private Text getDescription() {
-    return Text.translatable("custompaintings.toasts.download.body", this.imagesReceived, this.imagesExpected,
-        Math.clamp(Math.round(100f * this.progress), 0, 100));
+  private Component getDescription() {
+    return Component.translatable(
+        "custompaintings.toasts.download.body",
+        this.imagesReceived,
+        this.imagesExpected,
+        Math.clamp(Math.round(100f * this.progress), 0, 100)
+    );
   }
 
   public record Type() {

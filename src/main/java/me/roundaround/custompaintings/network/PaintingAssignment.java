@@ -2,13 +2,13 @@ package me.roundaround.custompaintings.network;
 
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.util.CustomId;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.network.codec.PacketCodec;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
 
 import java.util.function.Function;
 
 public class PaintingAssignment {
-  public static final PacketCodec<PacketByteBuf, PaintingAssignment> PACKET_CODEC = PacketCodec.of(
+  public static final StreamCodec<FriendlyByteBuf, PaintingAssignment> PACKET_CODEC = StreamCodec.ofMember(
       PaintingAssignment::write,
       PaintingAssignment::read
   );
@@ -48,7 +48,7 @@ public class PaintingAssignment {
     return this.data;
   }
 
-  private static PaintingAssignment read(PacketByteBuf buf) {
+  private static PaintingAssignment read(FriendlyByteBuf buf) {
     int paintingId = buf.readInt();
     CustomId dataId = null;
     PaintingData data = null;
@@ -60,7 +60,7 @@ public class PaintingAssignment {
     return new PaintingAssignment(paintingId, dataId, data);
   }
 
-  private void write(PacketByteBuf buf) {
+  private void write(FriendlyByteBuf buf) {
     buf.writeInt(this.paintingId);
     if (this.dataId != null) {
       buf.writeBoolean(true);

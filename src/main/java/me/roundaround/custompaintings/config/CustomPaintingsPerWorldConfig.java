@@ -1,11 +1,11 @@
 package me.roundaround.custompaintings.config;
 
 import me.roundaround.custompaintings.generated.Constants;
-import me.roundaround.custompaintings.roundalib.config.ConfigPath;
-import me.roundaround.custompaintings.roundalib.config.manage.ModConfigImpl;
-import me.roundaround.custompaintings.roundalib.config.manage.store.WorldScopedFileStore;
-import me.roundaround.custompaintings.roundalib.config.option.BooleanConfigOption;
-import me.roundaround.custompaintings.roundalib.config.option.IntConfigOption;
+import me.roundaround.roundalib.config.ConfigPath;
+import me.roundaround.roundalib.config.manage.ModConfigImpl;
+import me.roundaround.roundalib.config.manage.store.WorldScopedFileStore;
+import me.roundaround.roundalib.config.option.BooleanConfigOption;
+import me.roundaround.roundalib.config.option.IntConfigOption;
 
 public class CustomPaintingsPerWorldConfig extends ModConfigImpl implements WorldScopedFileStore {
   private static CustomPaintingsPerWorldConfig instance = null;

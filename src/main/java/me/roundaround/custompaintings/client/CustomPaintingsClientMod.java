@@ -1,7 +1,7 @@
 package me.roundaround.custompaintings.client;
 
 import me.roundaround.custompaintings.client.network.ClientNetworking;
-import me.roundaround.custompaintings.client.option.KeyBindings;
+import me.roundaround.custompaintings.client.option.KeyMappings;
 import me.roundaround.custompaintings.client.registry.CacheManager;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.client.registry.ItemManager;
@@ -15,7 +15,7 @@ public class CustomPaintingsClientMod implements ClientModInitializer {
   public void onInitializeClient() {
     ClientNetworking.registerReceivers();
 
-    KeyBindings.register();
+    KeyMappings.register();
 
     CacheManager.runBackgroundClean();
     ItemManager.runBackgroundClean();

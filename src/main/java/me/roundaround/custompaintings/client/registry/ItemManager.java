@@ -2,6 +2,7 @@ package me.roundaround.custompaintings.client.registry;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import me.roundaround.custompaintings.CustomPaintingsMod;
@@ -10,29 +11,37 @@ import me.roundaround.custompaintings.client.texture.BasicTextureSprite;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.generated.Constants;
-import me.roundaround.custompaintings.mixin.BakedModelManagerAccessor;
+import me.roundaround.custompaintings.mixin.ModelManagerAccessor;
 import me.roundaround.custompaintings.mixin.SpriteLoaderAccessor;
 import me.roundaround.custompaintings.resource.file.Image;
-import me.roundaround.custompaintings.roundalib.event.MinecraftClientEvents;
-import me.roundaround.custompaintings.roundalib.util.PathAccessor;
 import me.roundaround.custompaintings.util.CustomId;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.data.ItemModels;
-import net.minecraft.client.item.ItemAsset;
-import net.minecraft.client.render.item.model.ItemModel;
-import net.minecraft.client.render.model.*;
-import net.minecraft.client.render.model.json.GeneratedItemModel;
-import net.minecraft.client.render.model.json.JsonUnbakedModel;
-import net.minecraft.client.texture.*;
-import net.minecraft.client.util.SpriteIdentifier;
-import net.minecraft.nbt.NbtCompound;
+import me.roundaround.roundalib.event.MinecraftClientEvents;
+import me.roundaround.roundalib.util.PathAccessor;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.data.models.model.ItemModelUtils;
+import net.minecraft.client.renderer.item.ClientItem;
+import net.minecraft.client.renderer.item.ItemModel;
+import net.minecraft.client.renderer.texture.*;
+import net.minecraft.client.resources.metadata.animation.FrameSize;
+import net.minecraft.client.resources.model.ModelDebugName;
+import net.minecraft.client.resources.model.ModelDiscovery;
+import net.minecraft.client.resources.model.ResolvedModel;
+import net.minecraft.client.resources.model.UnbakedModel;
+import net.minecraft.client.resources.model.cuboid.CuboidModel;
+import net.minecraft.client.resources.model.cuboid.ItemModelGenerator;
+import net.minecraft.client.resources.model.cuboid.MissingCuboidModel;
+import net.minecraft.client.resources.model.sprite.Material;
+import net.minecraft.client.resources.model.sprite.MaterialBaker;
+import net.minecraft.client.resources.model.sprite.SpriteGetter;
+import net.minecraft.client.resources.model.sprite.SpriteId;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.nbt.NbtSizeTracker;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.Mth;
 import net.minecraft.util.Util;
-import net.minecraft.util.math.MathHelper;
 import org.jetbrains.annotations.Nullable;
 
 import javax.imageio.ImageIO;
@@ -48,30 +57,34 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public final class ItemManager {
-  public static final Identifier PAINTING_ITEM_TEXTURE_ID = Identifier.of(Constants.MOD_ID, "textures/atlas/items.png");
+  public static final Identifier PAINTING_ITEM_TEXTURE_ID = Identifier.fromNamespaceAndPath(
+      Constants.MOD_ID,
+      "textures/atlas/items.png"
+  );
 
   private static final Image HOOK_IMAGE = generateItemHookImage();
-  private static final Identifier VANILLA_TEXTURE = Identifier.ofVanilla("textures/item/painting.png");
-  private static final Identifier VANILLA_ID = Identifier.of(Constants.MOD_ID, "item/painting");
+  private static final Identifier VANILLA_TEXTURE = Identifier.withDefaultNamespace("textures/item/painting.png");
+  private static final Identifier VANILLA_ID = Identifier.fromNamespaceAndPath(Constants.MOD_ID, "item/painting");
 
   private static ItemManager instance = null;
 
-  private final MinecraftClient client;
-  private final SpriteAtlasTexture atlas;
+  private final Minecraft client;
+  private final TextureAtlas atlas;
   private final HashSet<CustomId> spriteIds = new HashSet<>();
   private final HashMap<CustomId, Image> generated = new HashMap<>();
   private final HashSet<CustomId> usesVanilla = new HashSet<>();
   private final ArrayList<PaintingData> paintings = new ArrayList<>();
-  private final SpriteGetter spriteGetter = new SpriteGetter();
+  private final MaterialBakerImpl materialBaker = new MaterialBakerImpl();
+  private final SpriteGetterImpl spriteGetter = new SpriteGetterImpl();
 
   private boolean atlasInitialized = false;
   private Function<CustomId, Image> baseImageSupplier = ItemManager::emptyBaseImageSupplier;
   private AtomicReference<CompletableFuture<Void>> buildFuture = new AtomicReference<>();
 
-  private ItemManager(MinecraftClient client) {
+  private ItemManager(Minecraft client) {
     this.client = client;
-    this.atlas = new SpriteAtlasTexture(PAINTING_ITEM_TEXTURE_ID);
-    this.client.getTextureManager().registerTexture(this.atlas.getId(), this.atlas);
+    this.atlas = new TextureAtlas(PAINTING_ITEM_TEXTURE_ID);
+    this.client.getTextureManager().register(this.atlas.location(), this.atlas);
 
     MinecraftClientEvents.CLOSE.register((c) -> {
       if (c == this.client) {
@@ -81,12 +94,12 @@ public final class ItemManager {
   }
 
   public Identifier getAtlasId() {
-    return this.atlas.getId();
+    return this.atlas.location();
   }
 
-  public Sprite getMissingSprite() {
+  public TextureAtlasSprite getMissingSprite() {
     try {
-      return this.atlas.getSprite(MissingSprite.getMissingSpriteId());
+      return this.atlas.getSprite(MissingTextureAtlasSprite.getLocation());
     } catch (IllegalStateException e) {
       // In single player we will (usually) initialize the atlas before the first
       // render. In multiplayer and potentially in single player on slower PCs
@@ -102,7 +115,7 @@ public final class ItemManager {
     }
   }
 
-  public Sprite getVanillaSprite() {
+  public TextureAtlasSprite getVanillaSprite() {
     try {
       return this.atlas.getSprite(VANILLA_ID);
     } catch (IllegalStateException e) {
@@ -116,15 +129,15 @@ public final class ItemManager {
     }
   }
 
-  public Sprite getSprite(PaintingData painting) {
+  public TextureAtlasSprite getSprite(PaintingData painting) {
     return this.getSprite(painting.id());
   }
 
-  public Sprite getSprite(CustomId paintingId) {
+  public TextureAtlasSprite getSprite(CustomId paintingId) {
     return this.getItemSprite(getItemId(paintingId));
   }
 
-  public Sprite getSprite(Identifier textureId) {
+  public TextureAtlasSprite getSprite(Identifier textureId) {
     return this.getItemSprite(CustomId.from(textureId));
   }
 
@@ -145,7 +158,7 @@ public final class ItemManager {
       future.cancel(false);
     }
 
-    this.atlas.clear();
+    this.atlas.clearTextureData();
     this.spriteIds.clear();
     this.generated.clear();
     this.paintings.clear();
@@ -153,7 +166,7 @@ public final class ItemManager {
     this.baseImageSupplier = ItemManager::emptyBaseImageSupplier;
   }
 
-  private Sprite getItemSprite(CustomId id) {
+  private TextureAtlasSprite getItemSprite(CustomId id) {
     if (this.usesVanilla.contains(id)) {
       return this.getVanillaSprite();
     }
@@ -166,14 +179,14 @@ public final class ItemManager {
 
   private void build() {
     ArrayList<SpriteContents> sprites = new ArrayList<>();
-    sprites.add(MissingSprite.createSpriteContents());
+    sprites.add(MissingTextureAtlasSprite.create());
     sprites.add(BasicTextureSprite.fetch(this.client, VANILLA_ID, VANILLA_TEXTURE));
 
     HashSet<String> loadededHashes = new HashSet<>();
     ArrayList<CompletableFuture<GeneratedImage>> generateFutures = new ArrayList<>();
 
     CacheData data = this.loadCacheData();
-    final long now = Util.getEpochTimeMs();
+    final long now = Util.getEpochMillis();
     final long expired = now - getTtlMs();
 
     this.paintings.forEach((painting) -> {
@@ -212,13 +225,13 @@ public final class ItemManager {
 
     this.saveCacheData(data);
 
-    this.atlas.create(((SpriteLoaderAccessor) SpriteLoader.fromAtlas(this.atlas)).invokeStitch(
+    this.atlas.upload(((SpriteLoaderAccessor) SpriteLoader.create(this.atlas)).invokeStitch(
         sprites,
         0,
-        Util.getMainWorkerExecutor()
+        Util.backgroundExecutor()
     ));
     this.spriteIds.clear();
-    this.spriteIds.addAll(sprites.stream().map(SpriteContents::getId).map(CustomId::from).toList());
+    this.spriteIds.addAll(sprites.stream().map(SpriteContents::name).map(CustomId::from).toList());
 
     this.bakeModels();
 
@@ -245,7 +258,7 @@ public final class ItemManager {
     Supplier<LoadResult> generate = () -> new LoadResult(
         null,
         false,
-        CompletableFuture.supplyAsync(() -> this.generateImage(painting, baseImage), Util.getMainWorkerExecutor())
+        CompletableFuture.supplyAsync(() -> this.generateImage(painting, baseImage), Util.backgroundExecutor())
     );
 
     if (!CustomPaintingsConfig.getInstance().cacheImages.getPendingValue()) {
@@ -269,9 +282,9 @@ public final class ItemManager {
 
   private void bakeModels() {
     HashMap<Identifier, UnbakedModel> unbakedModels = new HashMap<>();
-    unbakedModels.put(Identifier.ofVanilla("item/generated"), getGeneratedItemModel());
+    unbakedModels.put(Identifier.withDefaultNamespace("item/generated"), getGeneratedItemModel());
 
-    HashMap<Identifier, ItemAsset> itemAssets = new HashMap<>();
+    HashMap<Identifier, ClientItem> itemAssets = new HashMap<>();
     this.paintings.forEach((painting) -> {
       Identifier id = getItemModelId(painting.id());
 
@@ -280,30 +293,30 @@ public final class ItemManager {
       JsonObject textures = new JsonObject();
       textures.addProperty("layer0", id.toString());
       json.add("textures", textures);
-      JsonUnbakedModel unbakedModel = JsonUnbakedModel.deserialize(new StringReader(json.toString()));
+      CuboidModel unbakedModel = CuboidModel.fromStream(new StringReader(json.toString()));
 
       unbakedModels.put(id, unbakedModel);
-      itemAssets.put(id, new ItemAsset(ItemModels.basic(id), ItemAsset.Properties.DEFAULT));
+      itemAssets.put(id, new ClientItem(ItemModelUtils.plainModel(id), ClientItem.Properties.DEFAULT));
     });
 
-    ReferencedModelsCollector collector = new ReferencedModelsCollector(unbakedModels, MissingModel.create());
-    collector.addSpecialModel(GeneratedItemModel.GENERATED, new GeneratedItemModel());
-    itemAssets.forEach((id, asset) -> collector.resolve(asset.model()));
-    BakedSimpleModel missingModel = collector.getMissingModel();
-    Map<Identifier, BakedSimpleModel> simpleModels = collector.collectModels();
+    ModelDiscovery collector = new ModelDiscovery(unbakedModels, MissingCuboidModel.missingModel());
+    collector.addSpecialModel(ItemModelGenerator.GENERATED_ITEM_MODEL_ID, new ItemModelGenerator());
+    itemAssets.forEach((id, asset) -> collector.addRoot(asset.model()));
+    ResolvedModel missingModel = collector.missingModel();
+    Map<Identifier, ResolvedModel> simpleModels = collector.resolve();
 
     ItemModelBaker baker = new ItemModelBaker(itemAssets, simpleModels, missingModel);
-    Map<Identifier, ItemModel> bakedModels = baker.bake(this.spriteGetter);
+    Map<Identifier, ItemModel> bakedModels = baker.bake(this.materialBaker, this.spriteGetter);
 
-    BakedModelManagerAccessor accessor = (BakedModelManagerAccessor) this.client.getBakedModelManager();
-    HashMap<Identifier, ItemModel> itemModels = new HashMap<>(accessor.getBakedItemModels());
+    ModelManagerAccessor accessor = (ModelManagerAccessor) this.client.getModelManager();
+    HashMap<Identifier, ItemModel> itemModels = new HashMap<>(accessor.getBakedItemStackModels());
     itemModels.putAll(bakedModels);
-    accessor.setBakedItemModels(itemModels);
+    accessor.setBakedItemStackModels(itemModels);
   }
 
   private void onGenerationCompleted(List<GeneratedImage> generated) {
     CacheData data = this.loadCacheData();
-    final long now = Util.getEpochTimeMs();
+    final long now = Util.getEpochMillis();
     Path cacheDir = getCacheDir();
 
     try {
@@ -365,11 +378,11 @@ public final class ItemManager {
     int blockHeight = painting.height();
 
     float scale = Math.min(maxWidth / (float) blockWidth, maxHeight / (float) blockHeight);
-    int width = Math.max(minWidth, MathHelper.floor(blockWidth * scale));
-    int height = Math.max(minHeight, MathHelper.floor(blockHeight * scale));
+    int width = Math.max(minWidth, Mth.floor(blockWidth * scale));
+    int height = Math.max(minHeight, Mth.floor(blockHeight * scale));
 
-    int tx = MathHelper.ceil((16 - width) / 2f);
-    int ty = 2 + MathHelper.ceil((13 - height) / 2f);
+    int tx = Mth.ceil((16 - width) / 2f);
+    int ty = 2 + Mth.ceil((13 - height) / 2f);
 
     Image image = baseImage.apply(
         Image.Operation.scale(
@@ -382,8 +395,8 @@ public final class ItemManager {
         Image.Operation.embed(HOOK_IMAGE, 6, ty - 3),
         new Image.Operation() {
           @Override
-          public Text getName() {
-            return Text.of("Shadow");
+          public Component getName() {
+            return Component.nullToEmpty("Shadow");
           }
 
           @Override
@@ -424,7 +437,7 @@ public final class ItemManager {
     NativeImage nativeImage = image.toNativeImage();
     return Optional.of(new SpriteContents(
         id.toIdentifier(),
-        new SpriteDimensions(image.width(), image.height()),
+        new FrameSize(image.width(), image.height()),
         nativeImage
     ));
   }
@@ -438,9 +451,9 @@ public final class ItemManager {
       return CacheData.empty();
     }
 
-    NbtCompound nbt;
+    CompoundTag nbt;
     try {
-      nbt = NbtIo.readCompressed(dataFile, NbtSizeTracker.ofUnlimitedBytes());
+      nbt = NbtIo.readCompressed(dataFile, NbtAccounter.unlimitedHeap());
     } catch (IOException e) {
       CustomPaintingsMod.LOGGER.warn("Failed to load cache data");
       return CacheData.empty();
@@ -467,13 +480,13 @@ public final class ItemManager {
 
   public static ItemManager getInstance() {
     if (instance == null) {
-      instance = new ItemManager(MinecraftClient.getInstance());
+      instance = new ItemManager(Minecraft.getInstance());
     }
     return instance;
   }
 
   public static Identifier getItemModelId(CustomId id) {
-    return Identifier.of(Constants.MOD_ID, "item/" + id.pack() + "/" + id.resource());
+    return Identifier.fromNamespaceAndPath(Constants.MOD_ID, "item/" + id.pack() + "/" + id.resource());
   }
 
   public static void runBackgroundClean() {
@@ -486,14 +499,14 @@ public final class ItemManager {
               return;
             }
 
-            NbtCompound nbt = NbtIo.readCompressed(dataFile, NbtSizeTracker.ofUnlimitedBytes());
+            CompoundTag nbt = NbtIo.readCompressed(dataFile, NbtAccounter.unlimitedHeap());
             CacheData data = CacheData.fromNbt(nbt);
 
             trimExpired(data);
           } catch (Exception ignored) {
             // TODO: Handle exception
           }
-        }, Util.getIoWorkerExecutor()
+        }, Util.ioPool()
     );
   }
 
@@ -529,7 +542,7 @@ public final class ItemManager {
     display.add("firstperson_righthand", genDisplayJsonObject(0, -90, 25, 1.13f, 3.2f, 1.13f, 0.68f, 0.68f, 0.68f));
     display.add("fixed", genDisplayJsonObject(0, 180, 0, 0, 0, 0, 1, 1, 1));
     json.add("display", display);
-    return JsonUnbakedModel.deserialize(new StringReader(json.toString()));
+    return CuboidModel.fromStream(new StringReader(json.toString()));
   }
 
   private static JsonObject genDisplayJsonObject(float... values) {
@@ -600,7 +613,7 @@ public final class ItemManager {
 
   private static void trimExpired(CacheData data) {
     Path cacheDir = getCacheDir();
-    final long now = Util.getEpochTimeMs();
+    final long now = Util.getEpochMillis();
     final long ttl = getTtlMs();
     final long expired = now - ttl;
 
@@ -669,7 +682,7 @@ public final class ItemManager {
       return new CacheData(1, new HashMap<>());
     }
 
-    public static CacheData fromNbt(NbtCompound nbt) {
+    public static CacheData fromNbt(CompoundTag nbt) {
       try {
         return CODEC.parse(NbtOps.INSTANCE, nbt).getPartialOrThrow();
       } catch (Exception e) {
@@ -677,8 +690,8 @@ public final class ItemManager {
       }
     }
 
-    public NbtCompound toNbt() {
-      return (NbtCompound) CODEC.encodeStart(NbtOps.INSTANCE, this).getOrThrow();
+    public CompoundTag toNbt() {
+      return (CompoundTag) CODEC.encodeStart(NbtOps.INSTANCE, this).getOrThrow();
     }
   }
 
@@ -741,15 +754,22 @@ public final class ItemManager {
   private record GeneratedImage(CustomId paintingId, String baseHash, Image image) {
   }
 
-  private class SpriteGetter implements ErrorCollectingSpriteGetter {
+  private class MaterialBakerImpl implements MaterialBaker {
     @Override
-    public Sprite get(SpriteIdentifier id, SimpleModel model) {
-      return ItemManager.this.getSprite(id.getTextureId());
+    public Material.Baked get(Material material, ModelDebugName model) {
+      return new Material.Baked(ItemManager.this.getSprite(material.sprite()), material.forceTranslucent());
     }
 
     @Override
-    public Sprite getMissing(String name, SimpleModel model) {
-      return ItemManager.this.getMissingSprite();
+    public Material.Baked reportMissingReference(String name, ModelDebugName model) {
+      return new Material.Baked(ItemManager.this.getMissingSprite(), false);
+    }
+  }
+
+  private class SpriteGetterImpl implements SpriteGetter {
+    @Override
+    public TextureAtlasSprite get(SpriteId id) {
+      return ItemManager.this.getSprite(id.texture());
     }
   }
 }

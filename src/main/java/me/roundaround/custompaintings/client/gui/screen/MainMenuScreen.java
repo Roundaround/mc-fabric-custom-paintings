@@ -6,53 +6,53 @@ import me.roundaround.custompaintings.client.network.ClientNetworking;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
 import me.roundaround.custompaintings.generated.Constants;
-import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.screen.BaseScreen;
-import me.roundaround.custompaintings.roundalib.client.gui.screen.ConfigScreen;
-import me.roundaround.custompaintings.roundalib.client.gui.screen.ScreenParent;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.command.DefaultPermissions;
-import net.minecraft.screen.ScreenTexts;
-import net.minecraft.text.Text;
+import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
+import me.roundaround.roundalib.client.gui.screen.BaseScreen;
+import me.roundaround.roundalib.client.gui.screen.ConfigScreen;
+import me.roundaround.roundalib.client.gui.screen.ScreenParent;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.network.chat.CommonComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.permissions.Permissions;
 import net.minecraft.util.Util;
 
 public class MainMenuScreen extends BaseScreen implements PacksLoadedListener {
-  private static final int BUTTON_HEIGHT = ButtonWidget.DEFAULT_HEIGHT;
-  private static final int BUTTON_WIDTH = ButtonWidget.field_49479;
+  private static final int BUTTON_HEIGHT = Button.DEFAULT_HEIGHT;
+  private static final int BUTTON_WIDTH = Button.BIG_WIDTH;
 
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
 
   private LoadingButtonWidget reloadButton;
 
   public MainMenuScreen(Screen parent) {
-    super(Text.translatable("custompaintings.main.title"), new ScreenParent(parent), MinecraftClient.getInstance());
+    super(Component.translatable("custompaintings.main.title"), new ScreenParent(parent), Minecraft.getInstance());
   }
 
   @Override
   protected void init() {
-    boolean inWorld = this.client.world != null;
-    boolean inSinglePlayer = this.client.isInSingleplayer();
-    boolean hasOp = hasOps(this.client.player);
+    boolean inWorld = this.minecraft.level != null;
+    boolean inSinglePlayer = this.minecraft.isLocalServer();
+    boolean hasOp = hasOps(this.minecraft.player);
     boolean canEdit = inSinglePlayer || hasOp;
 
-    this.layout.addHeader(this.textRenderer, this.title);
+    this.layout.addHeader(this.font, this.title);
 
-    this.layout.addBody(ButtonWidget.builder(Text.translatable("custompaintings.main.config"), this::navigateConfig)
+    this.layout.addBody(Button.builder(Component.translatable("custompaintings.main.config"), this::navigateConfig)
         .width(BUTTON_WIDTH)
         .build());
 
-    this.layout.addBody(ButtonWidget.builder(Text.translatable("custompaintings.main.cache"), this::navigateCache)
+    this.layout.addBody(Button.builder(Component.translatable("custompaintings.main.cache"), this::navigateCache)
         .width(BUTTON_WIDTH)
         .build());
 
-    Text packsLabel = canEdit ?
-        Text.translatable("custompaintings.main.packs.manage") :
-        Text.translatable("custompaintings.main.packs.view");
-    ButtonWidget packsButton = this.layout.addBody(ButtonWidget.builder(packsLabel, this::navigatePacks)
+    Component packsLabel = canEdit ?
+        Component.translatable("custompaintings.main.packs.manage") :
+        Component.translatable("custompaintings.main.packs.view");
+    Button packsButton = this.layout.addBody(Button.builder(packsLabel, this::navigatePacks)
         .width(BUTTON_WIDTH)
         .build());
 
@@ -61,51 +61,53 @@ public class MainMenuScreen extends BaseScreen implements PacksLoadedListener {
         0,
         BUTTON_WIDTH,
         BUTTON_HEIGHT,
-        Text.translatable("custompaintings.main.reload"),
+        Component.translatable("custompaintings.main.reload"),
         (b) -> this.reloadPacks()
     ));
 
-    ButtonWidget migrationsButton = this.layout.addBody(ButtonWidget.builder(
-        Text.translatable("custompaintings.main.migrate"), this::navigateMigrate).width(BUTTON_WIDTH).build());
+    Button migrationsButton = this.layout.addBody(Button.builder(
+        Component.translatable("custompaintings.main.migrate"),
+        this::navigateMigrate
+    ).width(BUTTON_WIDTH).build());
 
-    ButtonWidget legacyButton = this.layout.addBody(ButtonWidget.builder(
-        Text.translatable("custompaintings.main.legacy"),
+    Button legacyButton = this.layout.addBody(Button.builder(
+        Component.translatable("custompaintings.main.legacy"),
         this::navigateConvert
     ).width(BUTTON_WIDTH).build());
 
     if (!inWorld) {
       packsButton.active = false;
-      packsButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.packs.notInWorld")));
+      packsButton.setTooltip(Tooltip.create(Component.translatable("custompaintings.main.packs.notInWorld")));
 
       this.reloadButton.active = false;
-      this.reloadButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.reload.notInWorld")));
+      this.reloadButton.setTooltip(Tooltip.create(Component.translatable("custompaintings.main.reload.notInWorld")));
 
       migrationsButton.active = false;
-      migrationsButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.migrate.notInWorld")));
+      migrationsButton.setTooltip(Tooltip.create(Component.translatable("custompaintings.main.migrate.notInWorld")));
     } else if (!canEdit) {
       migrationsButton.active = false;
-      migrationsButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.migrate.notOp")));
+      migrationsButton.setTooltip(Tooltip.create(Component.translatable("custompaintings.main.migrate.notOp")));
 
       this.reloadButton.active = false;
-      this.reloadButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.reload.notOp")));
+      this.reloadButton.setTooltip(Tooltip.create(Component.translatable("custompaintings.main.reload.notOp")));
     }
 
     if (inWorld && !inSinglePlayer) {
       legacyButton.active = false;
-      legacyButton.setTooltip(Tooltip.of(Text.translatable("custompaintings.main.legacy.multiplayer")));
+      legacyButton.setTooltip(Tooltip.create(Component.translatable("custompaintings.main.legacy.multiplayer")));
     }
 
-    this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, (b) -> this.close()).width(BUTTON_WIDTH).build());
+    this.layout.addFooter(Button.builder(CommonComponents.GUI_DONE, (b) -> this.onClose()).width(BUTTON_WIDTH).build());
 
-    VersionStamp.create(this.textRenderer, this.layout);
+    VersionStamp.create(this.font, this.layout);
 
-    this.layout.forEachChild(this::addDrawableChild);
-    this.refreshWidgetPositions();
+    this.layout.visitWidgets(this::addRenderableWidget);
+    this.repositionElements();
   }
 
   @Override
-  protected void refreshWidgetPositions() {
-    this.layout.refreshPositions();
+  protected void repositionElements() {
+    this.layout.arrangeElements();
   }
 
   @Override
@@ -115,8 +117,8 @@ public class MainMenuScreen extends BaseScreen implements PacksLoadedListener {
     }
   }
 
-  private void navigateConfig(ButtonWidget button) {
-    this.client.setScreen(new ConfigScreen(
+  private void navigateConfig(Button button) {
+    this.minecraft.setScreen(new ConfigScreen(
         this,
         Constants.MOD_ID,
         CustomPaintingsConfig.getInstance(),
@@ -124,38 +126,38 @@ public class MainMenuScreen extends BaseScreen implements PacksLoadedListener {
     ));
   }
 
-  private void navigateCache(ButtonWidget button) {
-    this.client.setScreen(new CacheScreen(this));
+  private void navigateCache(Button button) {
+    this.minecraft.setScreen(new CacheScreen(this));
   }
 
-  private void navigatePacks(ButtonWidget button) {
-    boolean inSinglePlayer = this.client.isInSingleplayer();
-    boolean hasOps = hasOps(this.client.player);
-    this.client.setScreen(new PacksScreen(this, inSinglePlayer || hasOps));
+  private void navigatePacks(Button button) {
+    boolean inSinglePlayer = this.minecraft.isLocalServer();
+    boolean hasOps = hasOps(this.minecraft.player);
+    this.minecraft.setScreen(new PacksScreen(this, inSinglePlayer || hasOps));
   }
 
-  private void navigateConvert(ButtonWidget button) {
-    if (this.client.world != null && !this.client.isInSingleplayer()) {
+  private void navigateConvert(Button button) {
+    if (this.minecraft.level != null && !this.minecraft.isLocalServer()) {
       return;
     }
 
-    this.client.setScreen(new LegacyConvertScreen(this.client, this));
+    this.minecraft.setScreen(new LegacyConvertScreen(this.minecraft, this));
   }
 
-  private void navigateMigrate(ButtonWidget button) {
-    this.client.setScreen(new MigrationsScreen(this));
+  private void navigateMigrate(Button button) {
+    this.minecraft.setScreen(new MigrationsScreen(this));
   }
 
   private void reloadPacks() {
-    if (this.client.world == null || !hasOps(this.client.player)) {
+    if (this.minecraft.level == null || !hasOps(this.minecraft.player)) {
       return;
     }
 
     this.reloadButton.setLoading(true);
-    Util.getIoWorkerExecutor().execute(ClientNetworking::sendReloadPacket);
+    Util.ioPool().execute(ClientNetworking::sendReloadPacket);
   }
 
-  private static boolean hasOps(ClientPlayerEntity player) {
-    return player != null && player.getPermissions().hasPermission(DefaultPermissions.GAMEMASTERS);
+  private static boolean hasOps(LocalPlayer player) {
+    return player != null && player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER);
   }
 }

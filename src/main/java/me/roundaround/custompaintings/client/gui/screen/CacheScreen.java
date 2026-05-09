@@ -6,23 +6,23 @@ import me.roundaround.custompaintings.client.registry.CacheManager;
 import me.roundaround.custompaintings.config.CustomPaintingsConfig;
 import me.roundaround.custompaintings.config.CustomPaintingsPerWorldConfig;
 import me.roundaround.custompaintings.generated.Constants;
-import me.roundaround.custompaintings.roundalib.client.gui.layout.linear.LinearLayoutWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.screen.ConfigScreen;
-import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
-import me.roundaround.custompaintings.roundalib.client.gui.widget.FlowListWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.widget.NarratableEntryListWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.LabelWidget;
 import me.roundaround.custompaintings.util.StringUtil;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.LoadingDisplay;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.screen.ScreenTexts;
-import net.minecraft.text.Text;
-import net.minecraft.util.Colors;
+import me.roundaround.roundalib.client.gui.layout.linear.LinearLayoutWidget;
+import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
+import me.roundaround.roundalib.client.gui.screen.ConfigScreen;
+import me.roundaround.roundalib.client.gui.util.GuiUtil;
+import me.roundaround.roundalib.client.gui.widget.FlowListWidget;
+import me.roundaround.roundalib.client.gui.widget.NarratableEntryListWidget;
+import me.roundaround.roundalib.client.gui.widget.drawable.LabelWidget;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.LoadingDotsText;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.CommonComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.CommonColors;
 import net.minecraft.util.Util;
 
 import java.util.List;
@@ -33,56 +33,58 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 public class CacheScreen extends Screen {
-  private static final int BUTTON_WIDTH = ButtonWidget.DEFAULT_WIDTH_SMALL;
-  private static final Text LABEL_SERVERS = Text.translatable("custompaintings.cache.servers");
-  private static final Text LABEL_IMAGES = Text.translatable("custompaintings.cache.images");
-  private static final Text LABEL_SHARED = Text.translatable("custompaintings.cache.shared");
-  private static final Text LABEL_BYTES = Text.translatable("custompaintings.cache.bytes");
+  private static final int BUTTON_WIDTH = Button.SMALL_WIDTH;
+  private static final Component LABEL_SERVERS = Component.translatable("custompaintings.cache.servers");
+  private static final Component LABEL_IMAGES = Component.translatable("custompaintings.cache.images");
+  private static final Component LABEL_SHARED = Component.translatable("custompaintings.cache.shared");
+  private static final Component LABEL_BYTES = Component.translatable("custompaintings.cache.bytes");
 
   private final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
   private final Screen parent;
 
   public CacheScreen(Screen parent) {
-    super(Text.translatable("custompaintings.cache.title"));
+    super(Component.translatable("custompaintings.cache.title"));
     this.parent = parent;
   }
 
   @Override
   protected void init() {
-    assert this.client != null;
+    assert this.minecraft != null;
 
-    this.layout.addHeader(this.textRenderer, this.title);
+    this.layout.addHeader(this.font, this.title);
 
-    StatsList list = this.layout.addBody(new StatsList(this.client, this.layout));
+    StatsList list = this.layout.addBody(new StatsList(this.minecraft, this.layout));
     this.fetchStats(list, CacheManager.getInstance()::getStats);
 
-    this.layout.addFooter(ButtonWidget.builder(
-        Text.translatable("custompaintings.cache.clear"),
-        (b) -> this.clearCache(list)
-    ).width(BUTTON_WIDTH).build());
-    this.layout.addFooter(ButtonWidget.builder(
-            Text.translatable("custompaintings.cache.configure"),
+    this.layout.addFooter(Button.builder(
+            Component.translatable("custompaintings.cache.clear"),
+            (b) -> this.clearCache(list)
+        )
+        .width(BUTTON_WIDTH)
+        .build());
+    this.layout.addFooter(Button.builder(
+            Component.translatable("custompaintings.cache.configure"),
             (b) -> this.navigateConfig()
         )
         .width(BUTTON_WIDTH)
         .build());
-    this.layout.addFooter(ButtonWidget.builder(ScreenTexts.DONE, (b) -> this.close()).width(BUTTON_WIDTH).build());
+    this.layout.addFooter(Button.builder(CommonComponents.GUI_DONE, (b) -> this.onClose()).width(BUTTON_WIDTH).build());
 
-    VersionStamp.create(this.textRenderer, this.layout);
+    VersionStamp.create(this.font, this.layout);
 
-    this.layout.forEachChild(this::addDrawableChild);
-    this.refreshWidgetPositions();
+    this.layout.visitWidgets(this::addRenderableWidget);
+    this.repositionElements();
   }
 
   @Override
-  protected void refreshWidgetPositions() {
-    this.layout.refreshPositions();
+  protected void repositionElements() {
+    this.layout.arrangeElements();
   }
 
   @Override
-  public void close() {
-    assert this.client != null;
-    this.client.setScreen(this.parent);
+  public void onClose() {
+    assert this.minecraft != null;
+    this.minecraft.setScreen(this.parent);
   }
 
   private void clearCache(StatsList list) {
@@ -90,27 +92,25 @@ public class CacheScreen extends Screen {
   }
 
   private void fetchStats(StatsList list, Supplier<CacheManager.CacheStats> supplier) {
-    CompletableFuture.supplyAsync(supplier, Util.getIoWorkerExecutor())
-        .orTimeout(30, TimeUnit.SECONDS)
-        .whenCompleteAsync(
-            (result, exception) -> {
-              if (exception != null || result == null) {
-                if (exception instanceof TimeoutException) {
-                  CustomPaintingsMod.LOGGER.warn("Timeout while loading cache stats:", exception);
-                } else if (exception != null) {
-                  CustomPaintingsMod.LOGGER.warn("Exception raised while loading cache stats:", exception);
-                }
-                list.setError();
-              } else {
-                list.setStats(result.servers(), result.images(), result.shared(), result.bytes());
-              }
-            }, this.client
-        );
+    CompletableFuture.supplyAsync(supplier, Util.ioPool()).orTimeout(30, TimeUnit.SECONDS).whenCompleteAsync(
+        (result, exception) -> {
+          if (exception != null || result == null) {
+            if (exception instanceof TimeoutException) {
+              CustomPaintingsMod.LOGGER.warn("Timeout while loading cache stats:", exception);
+            } else if (exception != null) {
+              CustomPaintingsMod.LOGGER.warn("Exception raised while loading cache stats:", exception);
+            }
+            list.setError();
+          } else {
+            list.setStats(result.servers(), result.images(), result.shared(), result.bytes());
+          }
+        }, this.minecraft
+    );
   }
 
   private void navigateConfig() {
-    assert this.client != null;
-    this.client.setScreen(new ConfigScreen(
+    assert this.minecraft != null;
+    this.minecraft.setScreen(new ConfigScreen(
         this,
         Constants.MOD_ID,
         CustomPaintingsConfig.getInstance(),
@@ -119,39 +119,39 @@ public class CacheScreen extends Screen {
   }
 
   private static class StatsList extends NarratableEntryListWidget<StatsList.Entry> {
-    public StatsList(MinecraftClient client, ThreeSectionLayoutWidget layout) {
+    public StatsList(Minecraft client, ThreeSectionLayoutWidget layout) {
       super(client, layout);
 
       this.setShouldHighlightHover(false);
       this.setShouldHighlightSelection(false);
       this.setAlternatingRowShading(true);
 
-      this.addEntry(LoadingEntry.factory(client.textRenderer));
+      this.addEntry(LoadingEntry.factory(client.font));
     }
 
     public void setError() {
       this.clearEntries();
-      this.addEntry(ErrorEntry.factory(this.client.textRenderer));
-      this.refreshPositions();
+      this.addEntry(ErrorEntry.factory(this.client.font));
+      this.arrangeElements();
     }
 
     public void setStats(int servers, int images, int shared, long bytes) {
       this.clearEntries();
 
-      Text valueServers = Text.of(String.valueOf(servers));
-      Text valueImages = Text.of(String.valueOf(images));
-      Text valueShared = Text.of(String.valueOf(shared));
-      Text valueBytes = Text.of(StringUtil.formatBytes(bytes));
+      Component valueServers = Component.nullToEmpty(String.valueOf(servers));
+      Component valueImages = Component.nullToEmpty(String.valueOf(images));
+      Component valueShared = Component.nullToEmpty(String.valueOf(shared));
+      Component valueBytes = Component.nullToEmpty(StringUtil.formatBytes(bytes));
       int maxValueWidth = Stream.of(valueServers, valueImages, valueBytes)
-          .mapToInt(this.client.textRenderer::getWidth)
+          .mapToInt(this.client.font::width)
           .max()
           .orElse(1);
 
-      this.addEntry(StatEntry.factory(this.client.textRenderer, LABEL_SERVERS, valueServers, maxValueWidth));
-      this.addEntry(StatEntry.factory(this.client.textRenderer, LABEL_IMAGES, valueImages, maxValueWidth));
-      this.addEntry(StatEntry.factory(this.client.textRenderer, LABEL_SHARED, valueShared, maxValueWidth));
-      this.addEntry(StatEntry.factory(this.client.textRenderer, LABEL_BYTES, valueBytes, maxValueWidth));
-      this.refreshPositions();
+      this.addEntry(StatEntry.factory(this.client.font, LABEL_SERVERS, valueServers, maxValueWidth));
+      this.addEntry(StatEntry.factory(this.client.font, LABEL_IMAGES, valueImages, maxValueWidth));
+      this.addEntry(StatEntry.factory(this.client.font, LABEL_SHARED, valueShared, maxValueWidth));
+      this.addEntry(StatEntry.factory(this.client.font, LABEL_BYTES, valueBytes, maxValueWidth));
+      this.arrangeElements();
     }
 
     private abstract static class Entry extends NarratableEntryListWidget.Entry {
@@ -161,44 +161,44 @@ public class CacheScreen extends Screen {
     }
 
     private static class LoadingEntry extends Entry {
-      private static final Text LOADING_TEXT = Text.translatable("custompaintings.cache.loading");
+      private static final Component LOADING_TEXT = Component.translatable("custompaintings.cache.loading");
 
-      private final TextRenderer textRenderer;
+      private final Font textRenderer;
 
-      protected LoadingEntry(int index, int left, int top, int width, TextRenderer textRenderer) {
+      protected LoadingEntry(int index, int left, int top, int width, Font textRenderer) {
         super(index, left, top, width);
         this.textRenderer = textRenderer;
       }
 
-      public static FlowListWidget.EntryFactory<LoadingEntry> factory(TextRenderer textRenderer) {
+      public static FlowListWidget.EntryFactory<LoadingEntry> factory(Font textRenderer) {
         return (index, left, top, width) -> new LoadingEntry(index, left, top, width, textRenderer);
       }
 
       @Override
-      protected void renderContent(DrawContext context, int mouseX, int mouseY, float delta) {
-        int x = this.getContentCenterX() - this.textRenderer.getWidth(LOADING_TEXT) / 2;
-        int y = this.getContentTop() + (this.getContentHeight() - this.textRenderer.fontHeight) / 2;
-        context.drawText(this.textRenderer, LOADING_TEXT, x, y, GuiUtil.LABEL_COLOR, false);
+      protected void renderContent(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        int x = this.getContentCenterX() - this.textRenderer.width(LOADING_TEXT) / 2;
+        int y = this.getContentTop() + (this.getContentHeight() - this.textRenderer.lineHeight) / 2;
+        context.text(this.textRenderer, LOADING_TEXT, x, y, GuiUtil.LABEL_COLOR, false);
 
-        String spinner = LoadingDisplay.get(Util.getMeasuringTimeMs());
-        x = this.getContentCenterX() - this.textRenderer.getWidth(spinner) / 2;
-        y += this.textRenderer.fontHeight;
-        context.drawText(this.textRenderer, spinner, x, y, Colors.GRAY, false);
+        String spinner = LoadingDotsText.get(Util.getMillis());
+        x = this.getContentCenterX() - this.textRenderer.width(spinner) / 2;
+        y += this.textRenderer.lineHeight;
+        context.text(this.textRenderer, spinner, x, y, CommonColors.GRAY, false);
       }
 
       @Override
-      public Text getNarration() {
+      public Component getNarration() {
         return LOADING_TEXT;
       }
     }
 
     private static class ErrorEntry extends Entry {
-      private static final Text MESSAGE_LINE_1 = Text.translatable("custompaintings.cache.error1");
-      private static final Text MESSAGE_LINE_2 = Text.translatable("custompaintings.cache.error2");
+      private static final Component MESSAGE_LINE_1 = Component.translatable("custompaintings.cache.error1");
+      private static final Component MESSAGE_LINE_2 = Component.translatable("custompaintings.cache.error2");
 
       private final LabelWidget label;
 
-      protected ErrorEntry(int index, int left, int top, int width, TextRenderer textRenderer) {
+      protected ErrorEntry(int index, int left, int top, int width, Font textRenderer) {
         super(index, left, top, width);
 
         this.label = LabelWidget.builder(textRenderer, List.of(MESSAGE_LINE_1, MESSAGE_LINE_2))
@@ -210,42 +210,42 @@ public class CacheScreen extends Screen {
             .alignTextCenterY()
             .hideBackground()
             .showShadow()
-            .color(Colors.RED)
+            .color(CommonColors.RED)
             .build();
 
         this.addDrawable(this.label);
       }
 
       @Override
-      public Text getNarration() {
+      public Component getNarration() {
         return this.label.getText();
       }
 
-      public static FlowListWidget.EntryFactory<ErrorEntry> factory(TextRenderer textRenderer) {
+      public static FlowListWidget.EntryFactory<ErrorEntry> factory(Font textRenderer) {
         return (index, left, top, width) -> new ErrorEntry(index, left, top, width, textRenderer);
       }
 
       @Override
-      public void refreshPositions() {
+      public void arrangeElements() {
         this.label.batchUpdates(() -> {
           this.label.setPosition(this.getContentCenterX(), this.getContentCenterY());
-          this.label.setDimensions(this.getContentWidth(), this.getContentHeight());
+          this.label.setSize(this.getContentWidth(), this.getContentHeight());
         });
       }
     }
 
     private static class StatEntry extends Entry {
-      private final Text label;
-      private final Text value;
+      private final Component label;
+      private final Component value;
 
       public StatEntry(
           int index,
           int left,
           int top,
           int width,
-          TextRenderer textRenderer,
-          Text label,
-          Text value,
+          Font textRenderer,
+          Component label,
+          Component value,
           int valueColumnWidth
       ) {
         super(index, left, top, width);
@@ -280,18 +280,18 @@ public class CacheScreen extends Screen {
             .width(valueColumnWidth)
             .build());
 
-        layout.forEachChild(this::addDrawable);
+        layout.visitWidgets(this::addDrawable);
       }
 
       @Override
-      public Text getNarration() {
+      public Component getNarration() {
         return this.label.copy().append(this.value);
       }
 
       public static FlowListWidget.EntryFactory<StatEntry> factory(
-          TextRenderer textRenderer,
-          Text label,
-          Text value,
+          Font textRenderer,
+          Component label,
+          Component value,
           int valueColumnWidth
       ) {
         return (index, left, top, width) -> new StatEntry(

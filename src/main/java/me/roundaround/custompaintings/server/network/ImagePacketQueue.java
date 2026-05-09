@@ -11,8 +11,8 @@ import me.roundaround.custompaintings.util.CustomId;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.network.packet.CustomPayload;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Util;
 
 public class ImagePacketQueue {
@@ -32,7 +32,7 @@ public class ImagePacketQueue {
   private ImagePacketQueue() {
   }
 
-  public void add(ServerPlayerEntity player, HashMap<CustomId, Image> images) {
+  public void add(ServerPlayer player, HashMap<CustomId, Image> images) {
     ArrayDeque<Entry> queue = new ArrayDeque<>();
     Summary summary = images.entrySet()
         .stream()
@@ -51,7 +51,7 @@ public class ImagePacketQueue {
     }
   }
 
-  private Summary add(ArrayDeque<Entry> queue, ServerPlayerEntity player, CustomId id, Image image) {
+  private Summary add(ArrayDeque<Entry> queue, ServerPlayer player, CustomId id, Image image) {
     int maxBytes = CustomPaintingsPerWorldConfig.getInstance().maxImagePacketSize.getValue() * 1024;
     if (!isThrottled() || maxBytes == 0 || image.getSize() <= maxBytes) {
       queue.add(new Entry(player, new Networking.ImageS2C(id, image)));
@@ -92,7 +92,7 @@ public class ImagePacketQueue {
     }
 
     // Remove everything older than 1 second
-    long timestamp = Util.getMeasuringTimeMs();
+    long timestamp = Util.getMillis();
     while (!this.sentTimestamps.isEmpty() && (timestamp - this.sentTimestamps.peekFirst() > 1000)) {
       this.sentTimestamps.pollFirst();
     }
@@ -111,7 +111,7 @@ public class ImagePacketQueue {
       Entry entry = this.queue.poll();
 
       ArrayDeque<Long> sentToPlayer = this.perPlayerSentTimestamps.computeIfAbsent(
-          entry.player().getUuid(), (uuid) -> new ArrayDeque<>());
+          entry.player().getUUID(), (uuid) -> new ArrayDeque<>());
       if (sentToPlayer.size() >= maxPerPlayer) {
         deferred.push(entry);
         continue;
@@ -133,7 +133,7 @@ public class ImagePacketQueue {
     return CustomPaintingsPerWorldConfig.getInstance().throttleImageDownloads.getValue();
   }
 
-  private record Entry(ServerPlayerEntity player, CustomPayload payload) {
+  private record Entry(ServerPlayer player, CustomPacketPayload payload) {
   }
 
   public static class Summary {

@@ -2,12 +2,12 @@ package me.roundaround.custompaintings.client.gui.screen.set;
 
 import me.roundaround.custompaintings.client.gui.PaintingEditState;
 import me.roundaround.custompaintings.client.gui.widget.PackListWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.sound.PositionedSoundInstance;
-import net.minecraft.screen.ScreenTexts;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
+import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.network.chat.CommonComponents;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.network.chat.Component;
 
 import java.util.Objects;
 
@@ -15,7 +15,7 @@ public class PackSelectScreen extends BaseSetPaintingScreen {
   protected final ThreeSectionLayoutWidget layout = new ThreeSectionLayoutWidget(this);
 
   public PackSelectScreen(PaintingEditState state) {
-    super(Text.translatable("custompaintings.pack.title"), state);
+    super(Component.translatable("custompaintings.pack.title"), state);
   }
 
   @Override
@@ -23,38 +23,38 @@ public class PackSelectScreen extends BaseSetPaintingScreen {
     // If we have filters set, then go back to the group select screen, we should clear the filters.
     this.state.getFilters().reset();
 
-    this.layout.addHeader(this.textRenderer, this.title);
+    this.layout.addHeader(this.font, this.title);
 
     PackListWidget groupsListWidget = this.layout.addBody(
-        new PackListWidget(this.client, this.layout, this::selectPack));
+        new PackListWidget(this.minecraft, this.layout, this::selectPack));
     groupsListWidget.setGroups(this.state.getPacks());
 
-    this.layout.addFooter(ButtonWidget.builder(ScreenTexts.CANCEL, this::close).build());
+    this.layout.addFooter(Button.builder(CommonComponents.GUI_CANCEL, this::close).build());
 
-    this.layout.forEachChild(this::addDrawableChild);
-    this.refreshWidgetPositions();
+    this.layout.visitWidgets(this::addRenderableWidget);
+    this.repositionElements();
   }
 
   @Override
-  protected void refreshWidgetPositions() {
-    this.layout.refreshPositions();
+  protected void repositionElements() {
+    this.layout.arrangeElements();
   }
 
   @Override
-  public void close() {
+  public void onClose() {
     this.saveEmpty();
-    super.close();
+    super.onClose();
   }
 
-  protected void close(ButtonWidget button) {
-    this.close();
+  protected void close(Button button) {
+    this.onClose();
   }
 
   protected void selectPack(String id) {
     this.state.setCurrentPack(id);
-    Objects.requireNonNull(this.client)
+    Objects.requireNonNull(this.minecraft)
         .getSoundManager()
-        .play(PositionedSoundInstance.ui(SoundEvents.UI_BUTTON_CLICK, 1f));
-    Objects.requireNonNull(this.client).setScreen(new PaintingSelectScreen(this.state));
+        .play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1f));
+    Objects.requireNonNull(this.minecraft).setScreen(new PaintingSelectScreen(this.state));
   }
 }

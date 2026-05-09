@@ -22,15 +22,15 @@ import me.roundaround.custompaintings.resource.file.Image;
 import me.roundaround.custompaintings.resource.file.Metadata;
 import me.roundaround.custompaintings.resource.file.Pack;
 import me.roundaround.custompaintings.resource.file.PackReader;
-import me.roundaround.custompaintings.roundalib.util.PathAccessor;
+import me.roundaround.roundalib.util.PathAccessor;
 import me.roundaround.custompaintings.server.ServerInfo;
 import me.roundaround.custompaintings.server.network.ImagePacketQueue;
 import me.roundaround.custompaintings.server.network.ServerNetworking;
 import me.roundaround.custompaintings.util.CustomId;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.minecraft.registry.DynamicRegistryManager;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Util;
 
 public class ServerPaintingRegistry extends CustomPaintingRegistry {
@@ -71,8 +71,8 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
   }
 
   @Override
-  protected DynamicRegistryManager getRegistryManager() {
-    return this.server == null ? null : this.server.getRegistryManager();
+  protected RegistryAccess getRegistryManager() {
+    return this.server == null ? null : this.server.registryAccess();
   }
 
   @Override
@@ -104,7 +104,7 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
     }
 
     this.safeMode = false;
-    CompletableFuture.supplyAsync(this::loadPaintingPacks, Util.getIoWorkerExecutor()).thenAcceptAsync((loadResult) -> {
+    CompletableFuture.supplyAsync(this::loadPaintingPacks, Util.ioPool()).thenAcceptAsync((loadResult) -> {
       this.loadErrorOrSkipCount = loadResult.erroredOrSkipped();
       this.setPacks(loadResult.packs());
       this.setImages(loadResult.images());
@@ -125,12 +125,12 @@ public class ServerPaintingRegistry extends CustomPaintingRegistry {
         this.finishedMigrations, this.safeMode, this.loadErrorOrSkipCount);
   }
 
-  public void sendSummaryToPlayer(ServerPlayerEntity player) {
+  public void sendSummaryToPlayer(ServerPlayer player) {
     ServerNetworking.sendSummaryPacket(player, this.packsList, this.combinedImageHash, this.finishedMigrations,
         this.safeMode, this.loadErrorOrSkipCount);
   }
 
-  public void checkPlayerHashes(ServerPlayerEntity player, Map<CustomId, String> hashes) {
+  public void checkPlayerHashes(ServerPlayer player, Map<CustomId, String> hashes) {
     HashMap<CustomId, Image> images = new HashMap<>();
     this.images.forEach((id, image) -> {
       if (image.hash().equals(hashes.get(id))) {

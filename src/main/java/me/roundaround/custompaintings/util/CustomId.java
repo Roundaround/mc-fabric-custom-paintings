@@ -3,10 +3,10 @@ package me.roundaround.custompaintings.util;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.codec.PacketCodecs;
-import net.minecraft.util.Identifier;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
 
 public record CustomId(String pack, String resource) implements Comparable<CustomId> {
   public static final Codec<CustomId> CODEC = Codec.STRING.comapFlatMap(CustomId::validate, CustomId::toString);
-  public static final PacketCodec<ByteBuf, CustomId> PACKET_CODEC = PacketCodecs.STRING.xmap(
+  public static final StreamCodec<ByteBuf, CustomId> PACKET_CODEC = ByteBufCodecs.STRING_UTF8.map(
       CustomId::parse,
       CustomId::toString
   );
@@ -57,7 +57,7 @@ public record CustomId(String pack, String resource) implements Comparable<Custo
   }
 
   public Identifier toIdentifier() {
-    return Identifier.of(this.pack(), this.resource());
+    return Identifier.fromNamespaceAndPath(this.pack(), this.resource());
   }
 
   public String toTranslationKey() {
@@ -72,7 +72,7 @@ public record CustomId(String pack, String resource) implements Comparable<Custo
     return prefix + "." + this.toTranslationKey() + "." + suffix;
   }
 
-  public void write(PacketByteBuf buf) {
+  public void write(FriendlyByteBuf buf) {
     PACKET_CODEC.encode(buf, this);
   }
 
@@ -83,7 +83,7 @@ public record CustomId(String pack, String resource) implements Comparable<Custo
     return id.toIdentifier();
   }
 
-  public static CustomId read(PacketByteBuf buf) {
+  public static CustomId read(FriendlyByteBuf buf) {
     return PACKET_CODEC.decode(buf);
   }
 

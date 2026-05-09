@@ -1,24 +1,24 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
 import me.roundaround.custompaintings.client.gui.FiltersState;
-import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
-import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.widget.IntSliderWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.widget.ParentElementEntryListWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.LabelWidget;
+import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
+import me.roundaround.roundalib.client.gui.util.GuiUtil;
+import me.roundaround.roundalib.client.gui.widget.IntSliderWidget;
+import me.roundaround.roundalib.client.gui.widget.ParentElementEntryListWidget;
+import me.roundaround.roundalib.client.gui.widget.drawable.LabelWidget;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.Element;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.CyclingButtonWidget;
-import net.minecraft.client.gui.widget.SliderWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.screen.ScreenTexts;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.AbstractSliderButton;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.CycleButton;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.network.chat.CommonComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -26,73 +26,133 @@ import java.util.function.Supplier;
 
 @Environment(value = EnvType.CLIENT)
 public class FilterListWidget extends ParentElementEntryListWidget<FilterListWidget.Entry> {
-  public FilterListWidget(
-      FiltersState state, MinecraftClient client, ThreeSectionLayoutWidget layout
-  ) {
+  public FilterListWidget(FiltersState state, Minecraft client, ThreeSectionLayoutWidget layout) {
     super(client, layout);
 
-    this.addEntry((index, left, top, width) -> new SectionTitleEntry(this.client.textRenderer,
-        Text.translatable("custompaintings.filter.section.search"), index, left, top, width
-    ));
-
-    this.addEntry((index, left, top, width) -> new TextFilterEntry(this.client.textRenderer,
-        Text.translatable("custompaintings.filter.any"), state::getSearch, state::setSearch, index, left, top, width
-    ));
-
-    this.addEntry((index, left, top, width) -> new TextFilterEntry(this.client.textRenderer,
-        Text.translatable("custompaintings.filter.name"), state::getNameSearch, state::setNameSearch, index, left, top,
+    this.addEntry((index, left, top, width) -> new SectionTitleEntry(
+        this.client.font,
+        Component.translatable("custompaintings.filter.section.search"),
+        index,
+        left,
+        top,
         width
     ));
 
-    this.addEntry(
-        (index, left, top, width) -> new ToggleFilterEntry(Text.translatable("custompaintings.filter.name.empty"),
-            ScreenTexts.YES, ScreenTexts.NO, state::getNonEmptyNameOnly, state::setNonEmptyNameOnly, index, left, top,
-            width
-        ));
-
-    this.addEntry((index, left, top, width) -> new TextFilterEntry(this.client.textRenderer,
-        Text.translatable("custompaintings.filter.artist"), state::getArtistSearch, state::setArtistSearch, index, left,
-        top, width
+    this.addEntry((index, left, top, width) -> new TextFilterEntry(
+        this.client.font,
+        Component.translatable("custompaintings.filter.any"),
+        state::getSearch,
+        state::setSearch,
+        index,
+        left,
+        top,
+        width
     ));
 
-    this.addEntry(
-        (index, left, top, width) -> new ToggleFilterEntry(Text.translatable("custompaintings.filter.artist.empty"),
-            ScreenTexts.YES, ScreenTexts.NO, state::getNonEmptyArtistOnly, state::setNonEmptyArtistOnly, index, left,
-            top, width
-        ));
-
-    this.addEntry((index, left, top, width) -> new SectionTitleEntry(this.client.textRenderer,
-        Text.translatable("custompaintings.filter.section.size"), index, left, top, width
+    this.addEntry((index, left, top, width) -> new TextFilterEntry(
+        this.client.font,
+        Component.translatable("custompaintings.filter.name"),
+        state::getNameSearch,
+        state::setNameSearch,
+        index,
+        left,
+        top,
+        width
     ));
 
-    this.addEntry(
-        (index, left, top, width) -> new ToggleFilterEntry(Text.translatable("custompaintings.filter.canstay"),
-            ScreenTexts.YES, ScreenTexts.NO, state::getCanStayOnly, state::setCanStayOnly, index, left, top, width
-        ));
+    this.addEntry((index, left, top, width) -> new ToggleFilterEntry(
+        Component.translatable("custompaintings.filter.name.empty"),
+        CommonComponents.GUI_YES,
+        CommonComponents.GUI_NO,
+        state::getNonEmptyNameOnly,
+        state::setNonEmptyNameOnly,
+        index,
+        left,
+        top,
+        width
+    ));
 
-    this.addEntry(
-        (index, left, top, width) -> new SizeRangeEntry(state::getMinWidth, state::getMaxWidth, state::setMinWidth,
-            state::setMaxWidth, "custompaintings.filter.minwidth", "custompaintings.filter.maxwidth", index, left, top,
-            width
-        ));
+    this.addEntry((index, left, top, width) -> new TextFilterEntry(
+        this.client.font,
+        Component.translatable("custompaintings.filter.artist"),
+        state::getArtistSearch,
+        state::setArtistSearch,
+        index,
+        left,
+        top,
+        width
+    ));
 
-    this.addEntry(
-        (index, left, top, width) -> new SizeRangeEntry(state::getMinHeight, state::getMaxHeight, state::setMinHeight,
-            state::setMaxHeight, "custompaintings.filter.minheight", "custompaintings.filter.maxheight", index, left,
-            top, width
-        ));
+    this.addEntry((index, left, top, width) -> new ToggleFilterEntry(
+        Component.translatable("custompaintings.filter.artist.empty"),
+        CommonComponents.GUI_YES,
+        CommonComponents.GUI_NO,
+        state::getNonEmptyArtistOnly,
+        state::setNonEmptyArtistOnly,
+        index,
+        left,
+        top,
+        width
+    ));
+
+    this.addEntry((index, left, top, width) -> new SectionTitleEntry(
+        this.client.font,
+        Component.translatable("custompaintings.filter.section.size"),
+        index,
+        left,
+        top,
+        width
+    ));
+
+    this.addEntry((index, left, top, width) -> new ToggleFilterEntry(
+        Component.translatable("custompaintings.filter.canstay"),
+        CommonComponents.GUI_YES,
+        CommonComponents.GUI_NO,
+        state::getCanStayOnly,
+        state::setCanStayOnly,
+        index,
+        left,
+        top,
+        width
+    ));
+
+    this.addEntry((index, left, top, width) -> new SizeRangeEntry(
+        state::getMinWidth,
+        state::getMaxWidth,
+        state::setMinWidth,
+        state::setMaxWidth,
+        "custompaintings.filter.minwidth",
+        "custompaintings.filter.maxwidth",
+        index,
+        left,
+        top,
+        width
+    ));
+
+    this.addEntry((index, left, top, width) -> new SizeRangeEntry(
+        state::getMinHeight,
+        state::getMaxHeight,
+        state::setMinHeight,
+        state::setMaxHeight,
+        "custompaintings.filter.minheight",
+        "custompaintings.filter.maxheight",
+        index,
+        left,
+        top,
+        width
+    ));
   }
 
   public void updateFilters() {
     this.forEachEntry(Entry::resetToFilterValue);
   }
 
-  public Element getFirstFocusable() {
+  public GuiEventListener getFirstFocusable() {
     return this.children()
         .stream()
         .flatMap((entry) -> entry.children().stream())
-        .filter((element -> element instanceof TextFieldWidget || element instanceof ButtonWidget ||
-                            element instanceof SliderWidget))
+        .filter((element -> element instanceof EditBox || element instanceof Button ||
+                            element instanceof AbstractSliderButton))
         .findFirst()
         .orElse(null);
   }
@@ -139,7 +199,7 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
   public static class SectionTitleEntry extends Entry {
     protected final LabelWidget label;
 
-    public SectionTitleEntry(TextRenderer textRenderer, Text label, int index, int left, int top, int width) {
+    public SectionTitleEntry(Font textRenderer, Component label, int index, int left, int top, int width) {
       super(index, left, top, width, HEIGHT);
 
       this.setForceRowShading(true);
@@ -159,17 +219,23 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
     }
 
     @Override
-    public void refreshPositions() {
+    public void arrangeElements() {
       this.label.batchUpdates(() -> {
         this.label.setPosition(this.getContentLeft(), this.getContentTop());
-        this.label.setDimensions(this.getFullControlWidth(), this.getContentHeight());
+        this.label.setSize(this.getFullControlWidth(), this.getContentHeight());
       });
     }
 
     @Override
-    protected void renderRowShade(DrawContext context) {
-      renderRowShade(context, this.getX(), this.getY() + this.margin.top(), this.getRight(),
-          this.getBottom() - this.margin.bottom(), this.getRowShadeFadeWidth(), this.getRowShadeStrength()
+    protected void renderRowShade(GuiGraphicsExtractor context) {
+      renderRowShade(
+          context,
+          this.getX(),
+          this.getY() + this.margin.top(),
+          this.getRight(),
+          this.getBottom() - this.margin.bottom(),
+          this.getRowShadeFadeWidth(),
+          this.getRowShadeStrength()
       );
     }
   }
@@ -177,12 +243,12 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
   @Environment(value = EnvType.CLIENT)
   public static class ToggleFilterEntry extends Entry {
     private final Supplier<Boolean> getter;
-    private final CyclingButtonWidget<Boolean> button;
+    private final CycleButton<Boolean> button;
 
     public ToggleFilterEntry(
-        Text label,
-        Text trueText,
-        Text falseText,
+        Component label,
+        Component trueText,
+        Component falseText,
         Supplier<Boolean> getter,
         Consumer<Boolean> setter,
         int index,
@@ -194,19 +260,28 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
 
       this.getter = getter;
 
-      this.button = CyclingButtonWidget.onOffBuilder(trueText, falseText, this.getter.get())
-          .values(List.of(true, false))
-          .build(this.getControlLeft(), this.getContentTop(), this.getFullControlWidth(), this.getContentHeight(),
-              label, (button, value) -> setter.accept(value)
+      this.button = CycleButton.booleanBuilder(trueText, falseText, this.getter.get())
+          .withValues(List.of(true, false))
+          .create(
+              this.getControlLeft(),
+              this.getContentTop(),
+              this.getFullControlWidth(),
+              this.getContentHeight(),
+              label,
+              (button, value) -> setter.accept(value)
           );
 
       this.addDrawableChild(this.button);
     }
 
     @Override
-    public void refreshPositions() {
-      this.button.setDimensionsAndPosition(
-          this.getFullControlWidth(), this.getContentHeight(), this.getControlLeft(), this.getContentTop());
+    public void arrangeElements() {
+      this.button.setRectangle(
+          this.getFullControlWidth(),
+          this.getContentHeight(),
+          this.getControlLeft(),
+          this.getContentTop()
+      );
     }
 
     @Override
@@ -219,11 +294,11 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
   public static class TextFilterEntry extends Entry {
     private final Supplier<String> getter;
     private final LabelWidget label;
-    private final TextFieldWidget textField;
+    private final EditBox textField;
 
     public TextFilterEntry(
-        TextRenderer textRenderer,
-        Text label,
+        Font textRenderer,
+        Component label,
         Supplier<String> getter,
         Consumer<String> setter,
         int index,
@@ -247,29 +322,38 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
 
       this.addDrawableChild(this.label);
 
-      this.textField = new TextFieldWidget(textRenderer, this.getRightControlLeft(), this.getContentTop(),
-          this.getHalfControlWidth(), this.getContentHeight(), label
+      this.textField = new EditBox(
+          textRenderer,
+          this.getRightControlLeft(),
+          this.getContentTop(),
+          this.getHalfControlWidth(),
+          this.getContentHeight(),
+          label
       );
-      this.textField.setChangedListener(setter);
-      this.textField.setText(this.getter.get());
+      this.textField.setResponder(setter);
+      this.textField.setValue(this.getter.get());
 
       this.addDrawableChild(this.textField);
     }
 
     @Override
     public void resetToFilterValue() {
-      this.textField.setText(this.getter.get());
+      this.textField.setValue(this.getter.get());
     }
 
     @Override
-    public void refreshPositions() {
+    public void arrangeElements() {
       this.label.batchUpdates(() -> {
         this.label.setPosition(this.getControlLeft(), this.getContentCenterY());
-        this.label.setDimensions(this.getHalfControlWidth(), this.getContentHeight());
+        this.label.setSize(this.getHalfControlWidth(), this.getContentHeight());
       });
 
-      this.textField.setDimensionsAndPosition(
-          this.getHalfControlWidth(), this.getContentHeight(), this.getRightControlLeft(), this.getContentTop());
+      this.textField.setRectangle(
+          this.getHalfControlWidth(),
+          this.getContentHeight(),
+          this.getRightControlLeft(),
+          this.getContentTop()
+      );
     }
   }
 
@@ -301,17 +385,31 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
       this.lowSetter = lowSetter;
       this.highSetter = highSetter;
 
-      this.lowSlider = this.addDrawableChild(
-          new IntSliderWidget(this.getControlLeft(), this.getContentTop(), this.getHalfControlWidth(),
-              this.getContentHeight(), 1, 32, this.lowGetter.get(), this::stepLow, this::onLowSliderChange,
-              (value) -> Text.translatable(lowI18nKey, value)
-          ));
+      this.lowSlider = this.addDrawableChild(new IntSliderWidget(
+          this.getControlLeft(),
+          this.getContentTop(),
+          this.getHalfControlWidth(),
+          this.getContentHeight(),
+          1,
+          32,
+          this.lowGetter.get(),
+          this::stepLow,
+          this::onLowSliderChange,
+          (value) -> Component.translatable(lowI18nKey, value)
+      ));
 
-      this.highSlider = this.addDrawableChild(
-          new IntSliderWidget(this.getRightControlLeft(), this.getContentTop(), this.getHalfControlWidth(),
-              this.getContentHeight(), 1, 32, this.highGetter.get(), this::stepHigh, this::onHighSliderChange,
-              (value) -> Text.translatable(highI18nKey, value)
-          ));
+      this.highSlider = this.addDrawableChild(new IntSliderWidget(
+          this.getRightControlLeft(),
+          this.getContentTop(),
+          this.getHalfControlWidth(),
+          this.getContentHeight(),
+          1,
+          32,
+          this.highGetter.get(),
+          this::stepHigh,
+          this::onHighSliderChange,
+          (value) -> Component.translatable(highI18nKey, value)
+      ));
     }
 
     @Override
@@ -321,14 +419,20 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
     }
 
     @Override
-    public void refreshPositions() {
-      super.refreshPositions();
+    public void arrangeElements() {
+      super.arrangeElements();
 
-      this.lowSlider.setDimensionsAndPosition(this.getHalfControlWidth(), this.getContentHeight(),
-          this.getControlLeft(), this.getContentTop()
+      this.lowSlider.setRectangle(
+          this.getHalfControlWidth(),
+          this.getContentHeight(),
+          this.getControlLeft(),
+          this.getContentTop()
       );
-      this.highSlider.setDimensionsAndPosition(this.getHalfControlWidth(), this.getContentHeight(),
-          this.getRightControlLeft(), this.getContentTop()
+      this.highSlider.setRectangle(
+          this.getHalfControlWidth(),
+          this.getContentHeight(),
+          this.getRightControlLeft(),
+          this.getContentTop()
       );
     }
 
@@ -352,7 +456,7 @@ public class FilterListWidget extends ParentElementEntryListWidget<FilterListWid
       if (from == 1 && sign == 1) {
         return 4;
       }
-      return MathHelper.clamp(from + 4 * sign, 1, 32);
+      return Mth.clamp(from + 4 * sign, 1, 32);
     }
   }
 }

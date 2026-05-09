@@ -1,18 +1,19 @@
 package me.roundaround.custompaintings.client.gui.widget;
 
+import me.roundaround.custompaintings.resource.file.Image;
+import me.roundaround.roundalib.client.gui.util.IntRect;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.CommonColors;
+
 import java.util.Objects;
 import java.util.function.Function;
 
-import me.roundaround.custompaintings.resource.file.Image;
-import me.roundaround.custompaintings.roundalib.client.gui.util.IntRect;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.util.Colors;
-import net.minecraft.util.Identifier;
-
-public class ImageButtonWidget extends ButtonWidget {
+public class ImageButtonWidget extends Button {
   protected final Function<Image, Identifier> getTextureId;
   protected Image image;
   protected int imageWidth;
@@ -21,22 +22,24 @@ public class ImageButtonWidget extends ButtonWidget {
   protected boolean inBatchUpdate = false;
 
   public ImageButtonWidget(
-      net.minecraft.text.Text message,
-      ButtonWidget.PressAction pressAction,
+      Component message,
+      Button.OnPress pressAction,
       Function<Image, Identifier> getTextureId,
-      Image image) {
+      Image image
+  ) {
     this(message, pressAction, getTextureId, image, true);
   }
 
   public ImageButtonWidget(
-      net.minecraft.text.Text message,
-      ButtonWidget.PressAction pressAction,
+      Component message,
+      Button.OnPress pressAction,
       Function<Image, Identifier> getTextureId,
       Image image,
-      boolean immediatelyCalculateBounds) {
-    super(0, 0, 0, 0, message, pressAction, DEFAULT_NARRATION_SUPPLIER);
-    if (message != null && !Objects.equals(message, net.minecraft.text.Text.empty())) {
-      this.setTooltip(Tooltip.of(message));
+      boolean immediatelyCalculateBounds
+  ) {
+    super(0, 0, 0, 0, message, pressAction, DEFAULT_NARRATION);
+    if (!Objects.equals(message, Component.empty())) {
+      this.setTooltip(Tooltip.create(message));
     }
     this.getTextureId = getTextureId;
     this.image = image;
@@ -82,8 +85,8 @@ public class ImageButtonWidget extends ButtonWidget {
   }
 
   @Override
-  public void setDimensions(int width, int height) {
-    super.setDimensions(width, height);
+  public void setSize(int width, int height) {
+    super.setSize(width, height);
     this.calculateBounds();
   }
 
@@ -104,9 +107,7 @@ public class ImageButtonWidget extends ButtonWidget {
     int x = this.getX() + 1;
     int y = this.getY() + 1;
 
-    float scale = Math.min(
-        (float) this.getWidth() / this.imageWidth,
-        (float) this.getHeight() / this.imageHeight);
+    float scale = Math.min((float) this.getWidth() / this.imageWidth, (float) this.getHeight() / this.imageHeight);
     int scaledWidth = Math.round(scale * this.imageWidth);
     int scaledHeight = Math.round(scale * this.imageHeight);
 
@@ -114,7 +115,8 @@ public class ImageButtonWidget extends ButtonWidget {
         x + (width - scaledWidth) / 2,
         y + (height - scaledHeight) / 2,
         scaledWidth,
-        scaledHeight);
+        scaledHeight
+    );
   }
 
   @Override
@@ -123,16 +125,17 @@ public class ImageButtonWidget extends ButtonWidget {
   }
 
   @Override
-  public void drawIcon(DrawContext context, int mouseX, int mouseY, float delta) {
-    this.hovered = this.hovered && this.imageBounds.contains(mouseX, mouseY);
+  public void extractContents(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+    this.isHovered = this.isHovered && this.imageBounds.contains(mouseX, mouseY);
 
     context.fill(
         this.imageBounds.left() - 1,
         this.imageBounds.top() - 1,
         this.imageBounds.right() + 1,
         this.imageBounds.bottom() + 1,
-        this.active && (this.hovered || this.isFocused()) ? Colors.WHITE : Colors.BLACK);
-    context.drawTexture(
+        this.active && (this.isHovered || this.isFocused()) ? CommonColors.WHITE : CommonColors.BLACK
+    );
+    context.blit(
         RenderPipelines.GUI_TEXTURED,
         this.getTextureId.apply(this.image),
         this.imageBounds.left(),
@@ -144,6 +147,7 @@ public class ImageButtonWidget extends ButtonWidget {
         this.imageWidth,
         this.imageHeight,
         this.imageWidth,
-        this.imageHeight);
+        this.imageHeight
+    );
   }
 }

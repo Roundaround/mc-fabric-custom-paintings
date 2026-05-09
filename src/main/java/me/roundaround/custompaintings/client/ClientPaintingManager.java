@@ -5,10 +5,10 @@ import me.roundaround.custompaintings.entity.decoration.painting.PaintingData;
 import me.roundaround.custompaintings.network.PaintingAssignment;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientEntityEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.decoration.painting.PaintingEntity;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.decoration.painting.Painting;
 import net.minecraft.util.Util;
-import net.minecraft.world.World;
+import net.minecraft.world.level.Level;
 
 import java.util.HashMap;
 import java.util.List;
@@ -25,7 +25,7 @@ public class ClientPaintingManager {
 
   private ClientPaintingManager() {
     ClientEntityEvents.ENTITY_LOAD.register((entity, world) -> {
-      if (!(entity instanceof PaintingEntity painting)) {
+      if (!(entity instanceof Painting painting)) {
         return;
       }
 
@@ -38,7 +38,7 @@ public class ClientPaintingManager {
       this.remove(id);
     });
     ClientEntityEvents.ENTITY_UNLOAD.register((entity, world) -> {
-      if (!(entity instanceof PaintingEntity painting)) {
+      if (!(entity instanceof Painting painting)) {
         return;
       }
 
@@ -51,7 +51,7 @@ public class ClientPaintingManager {
       }
     });
     ClientTickEvents.START_CLIENT_TICK.register((client) -> {
-      long now = Util.getEpochTimeMs();
+      long now = Util.getEpochMillis();
       List<Integer> expiredIds = this.expiryTimes.entrySet()
           .stream()
           .filter((entry) -> now >= entry.getValue())
@@ -74,7 +74,7 @@ public class ClientPaintingManager {
     return instance;
   }
 
-  public void trySetPaintingData(World world, PaintingAssignment assignment) {
+  public void trySetPaintingData(Level world, PaintingAssignment assignment) {
     int id = assignment.getPaintingId();
     CompletableFuture<PaintingData> future = assignment.isKnown() ?
         ClientPaintingRegistry.getInstance().safeGet(assignment.getDataId()) :
@@ -84,8 +84,8 @@ public class ClientPaintingManager {
         return;
       }
 
-      Entity entity = world.getEntityById(id);
-      if (!(entity instanceof PaintingEntity painting)) {
+      Entity entity = world.getEntity(id);
+      if (!(entity instanceof Painting painting)) {
         this.cachedData.put(id, data);
         return;
       }
@@ -99,7 +99,7 @@ public class ClientPaintingManager {
     this.expiryTimes.clear();
   }
 
-  private void setPaintingData(PaintingEntity painting, PaintingData data) {
+  private void setPaintingData(Painting painting, PaintingData data) {
     if (data.vanilla()) {
       painting.custompaintings$setVariant(data.id());
     }
@@ -111,12 +111,12 @@ public class ClientPaintingManager {
     this.expiryTimes.remove(id);
   }
 
-  private void cacheData(PaintingEntity painting) {
+  private void cacheData(Painting painting) {
     int id = painting.getId();
     PaintingData data = painting.custompaintings$getData();
     if (data != null && !data.isEmpty()) {
       this.cachedData.put(id, data);
-      this.expiryTimes.put(id, Util.getEpochTimeMs() + TTL);
+      this.expiryTimes.put(id, Util.getEpochMillis() + TTL);
     }
   }
 }

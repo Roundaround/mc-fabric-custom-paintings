@@ -6,8 +6,8 @@ import me.roundaround.gradle.api.annotation.Entrypoint;
 import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
 
 import java.net.URI;
 
@@ -28,14 +28,14 @@ public class CustomPaintingsServerMod implements DedicatedServerModInitializer {
         .orElse(null);
   }
 
-  public static Text getDownloadPrompt() {
+  public static Component getDownloadPrompt() {
     if (homepage == null) {
-      return Text.of(
+      return Component.nullToEmpty(
           "This server uses the Custom Paintings mod. Please install it in your client as well to get the full " +
           "experience!");
     }
-    return Text.literal(
+    return Component.literal(
             "This server uses the Custom Paintings mod. Click here to download it and get the full experience!")
-        .styled((style) -> style.withClickEvent(new ClickEvent.OpenUrl(URI.create(homepage))));
+        .withStyle((style) -> style.withClickEvent(new ClickEvent.OpenUrl(URI.create(homepage))));
   }
 }

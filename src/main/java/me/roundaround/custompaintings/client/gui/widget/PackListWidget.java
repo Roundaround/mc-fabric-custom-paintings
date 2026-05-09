@@ -3,19 +3,19 @@ package me.roundaround.custompaintings.client.gui.widget;
 import me.roundaround.custompaintings.client.registry.ClientPaintingRegistry;
 import me.roundaround.custompaintings.entity.decoration.painting.PackData;
 import me.roundaround.custompaintings.resource.PackIcons;
-import me.roundaround.custompaintings.roundalib.client.gui.layout.linear.LinearLayoutWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.util.GuiUtil;
-import me.roundaround.custompaintings.roundalib.client.gui.widget.NarratableEntryListWidget;
-import me.roundaround.custompaintings.roundalib.client.gui.widget.drawable.LabelWidget;
+import me.roundaround.roundalib.client.gui.layout.linear.LinearLayoutWidget;
+import me.roundaround.roundalib.client.gui.layout.screen.ThreeSectionLayoutWidget;
+import me.roundaround.roundalib.client.gui.util.GuiUtil;
+import me.roundaround.roundalib.client.gui.widget.NarratableEntryListWidget;
+import me.roundaround.roundalib.client.gui.widget.drawable.LabelWidget;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 
 import java.util.Collection;
 import java.util.function.Consumer;
@@ -24,7 +24,7 @@ import java.util.function.Consumer;
 public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Entry> {
   private final Consumer<String> onPackSelect;
 
-  public PackListWidget(MinecraftClient client, ThreeSectionLayoutWidget layout, Consumer<String> onPackSelect) {
+  public PackListWidget(Minecraft client, ThreeSectionLayoutWidget layout, Consumer<String> onPackSelect) {
     super(client, layout);
 
     this.setAlternatingRowShading(true);
@@ -35,7 +35,7 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
 
   public void setGroups(Collection<PackData> packs) {
     this.clearEntries();
-    packs.forEach((pack) -> this.addEntry(this.getEntryFactory(this.client.textRenderer, this.onPackSelect, pack)));
+    packs.forEach((pack) -> this.addEntry(this.getEntryFactory(this.client.font, this.onPackSelect, pack)));
   }
 
   @Override
@@ -44,7 +44,7 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
   }
 
   @Override
-  public boolean keyPressed(KeyInput input) {
+  public boolean keyPressed(KeyEvent input) {
     Entry hovered = this.getHoveredEntry();
     if (hovered != null && hovered.keyPressed(input)) {
       return true;
@@ -52,7 +52,7 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
     return super.keyPressed(input);
   }
 
-  private EntryFactory<Entry> getEntryFactory(TextRenderer textRenderer, Consumer<String> onSelect, PackData pack) {
+  private EntryFactory<Entry> getEntryFactory(Font textRenderer, Consumer<String> onSelect, PackData pack) {
     return (index, left, top, width) -> new Entry(textRenderer, onSelect, pack, index, left, top, width);
   }
 
@@ -64,7 +64,7 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
     private final PackData pack;
 
     public Entry(
-        TextRenderer textRenderer,
+        Font textRenderer,
         Consumer<String> onSelect,
         PackData pack,
         int index,
@@ -86,13 +86,13 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
       layout.add(
           SpriteWidget.create(ClientPaintingRegistry.getInstance()
               .getSprite(PackIcons.customId(this.pack.id()))),
-          (parent, self) -> self.setDimensions(this.getIconWidth(), this.getIconHeight())
+          (parent, self) -> self.setSize(this.getIconWidth(), this.getIconHeight())
       );
 
       LinearLayoutWidget column = LinearLayoutWidget.vertical().spacing(GuiUtil.PADDING).mainAxisContentAlignCenter();
 
       column.add(
-          LabelWidget.builder(textRenderer, Text.of(pack.name()))
+          LabelWidget.builder(textRenderer, Component.nullToEmpty(pack.name()))
               .alignTextLeft()
               .overflowBehavior(LabelWidget.OverflowBehavior.SCROLL)
               .hideBackground()
@@ -101,7 +101,7 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
       );
       if (pack.description().isPresent() && !pack.description().get().isBlank()) {
         column.add(
-            LabelWidget.builder(textRenderer, Text.literal(pack.description().get()).formatted(Formatting.GRAY))
+            LabelWidget.builder(textRenderer, Component.literal(pack.description().get()).withStyle(ChatFormatting.GRAY))
                 .alignTextLeft()
                 .overflowBehavior(LabelWidget.OverflowBehavior.WRAP)
                 .maxLines(2)
@@ -117,7 +117,7 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
           }
       );
 
-      layout.forEachChild(this::addDrawable);
+      layout.visitWidgets(this::addDrawable);
     }
 
     private int getIconWidth() {
@@ -129,14 +129,14 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
     }
 
     @Override
-    public boolean mouseClicked(Click click, boolean doubled) {
+    public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
       this.press();
       return true;
     }
 
     @Override
-    public boolean keyPressed(KeyInput input) {
-      if (input.isEnter()) {
+    public boolean keyPressed(KeyEvent input) {
+      if (input.isConfirmation()) {
         this.press();
         return true;
       }
@@ -144,8 +144,8 @@ public class PackListWidget extends NarratableEntryListWidget<PackListWidget.Ent
     }
 
     @Override
-    public Text getNarration() {
-      return Text.literal(this.pack.name());
+    public Component getNarration() {
+      return Component.literal(this.pack.name());
     }
 
     private void press() {

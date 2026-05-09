@@ -13,11 +13,11 @@ import me.roundaround.custompaintings.network.PaintingAssignment;
 import me.roundaround.custompaintings.util.CustomId;
 import me.roundaround.custompaintings.util.StringUtil;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.command.DefaultPermissions;
-import net.minecraft.world.World;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.server.permissions.Permissions;
+import net.minecraft.world.level.Level;
 
 import java.util.List;
 import java.util.Map;
@@ -67,12 +67,12 @@ public final class ClientNetworking {
 
   private static void handleSummary(Networking.SummaryS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
-      MinecraftClient client = context.client();
-      if (client.isInSingleplayer() && payload.skipped()) {
+      Minecraft client = context.client();
+      if (client.isLocalServer() && payload.skipped()) {
         CustomSystemToasts.addPackLoadSkipped(client);
       }
       if (client.player != null &&
-          (client.isInSingleplayer() || client.player.getPermissions().hasPermission(DefaultPermissions.GAMEMASTERS)) &&
+          (client.isLocalServer() || client.player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)) &&
           payload.loadErrorOrSkipCount() > 0) {
         CustomSystemToasts.addPackLoadFailure(client);
       }
@@ -142,13 +142,13 @@ public final class ClientNetworking {
 
   private static void handleSetPainting(Networking.SetPaintingS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
-      ClientPaintingManager.getInstance().trySetPaintingData(context.player().getEntityWorld(), payload.assignment());
+      ClientPaintingManager.getInstance().trySetPaintingData(context.player().level(), payload.assignment());
     });
   }
 
   private static void handleSyncAllData(Networking.SyncAllDataS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
-      World world = context.player().getEntityWorld();
+      Level world = context.player().level();
       for (PaintingAssignment assignment : payload.assignments()) {
         ClientPaintingManager.getInstance().trySetPaintingData(world, assignment);
       }
@@ -161,7 +161,7 @@ public final class ClientNetworking {
   ) {
     context.client().execute(() -> {
       ClientPaintingRegistry.getInstance().markMigrationFinished(payload.id(), payload.succeeded());
-      Screen currentScreen = context.client().currentScreen;
+      Screen currentScreen = context.client().screen;
       if (!(currentScreen instanceof MigrationsScreen screen)) {
         return;
       }
@@ -171,8 +171,8 @@ public final class ClientNetworking {
 
   private static void handleOpenMenu(Networking.OpenMenuS2C payload, ClientPlayNetworking.Context context) {
     context.client().execute(() -> {
-      MinecraftClient client = context.client();
-      Screen screen = client.currentScreen;
+      Minecraft client = context.client();
+      Screen screen = client.screen;
       if (screen == null || screen instanceof ChatScreen) {
         client.setScreen(new MainMenuScreen(null));
       }

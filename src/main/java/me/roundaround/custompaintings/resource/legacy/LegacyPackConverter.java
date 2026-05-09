@@ -1,5 +1,6 @@
 package me.roundaround.custompaintings.resource.legacy;
 
+import com.mojang.blaze3d.platform.NativeImage;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.client.texture.LoadingSprite;
 import me.roundaround.custompaintings.generated.Constants;
@@ -12,12 +13,13 @@ import me.roundaround.custompaintings.resource.file.Image;
 import me.roundaround.custompaintings.resource.file.Metadata;
 import me.roundaround.custompaintings.resource.file.Pack;
 import me.roundaround.custompaintings.resource.file.PackReader;
-import me.roundaround.custompaintings.roundalib.util.PathAccessor;
 import me.roundaround.custompaintings.util.CustomId;
+import me.roundaround.roundalib.util.PathAccessor;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.texture.*;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.texture.*;
+import net.minecraft.client.resources.metadata.animation.FrameSize;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Util;
 
 import javax.imageio.ImageIO;
@@ -41,9 +43,9 @@ public class LegacyPackConverter {
   private static LegacyPackConverter instance = null;
 
   private final HashSet<CustomId> spriteIds = new HashSet<>();
-  private final Executor ioExecutor = Util.getIoWorkerExecutor();
+  private final Executor ioExecutor = Util.ioPool();
 
-  private SpriteAtlasTexture atlas = null;
+  private TextureAtlas atlas = null;
   private Path globalOutDir = null;
 
   private LegacyPackConverter() {
@@ -60,21 +62,21 @@ public class LegacyPackConverter {
     if (this.atlas == null) {
       return null;
     }
-    return this.atlas.getId();
+    return this.atlas.location();
   }
 
-  public Sprite getMissingSprite() {
+  public TextureAtlasSprite getMissingSprite() {
     if (this.atlas == null) {
       return null;
     }
-    return this.atlas.getSprite(MissingSprite.getMissingSpriteId());
+    return this.atlas.getSprite(MissingTextureAtlasSprite.getLocation());
   }
 
-  public Sprite getSprite(String packId) {
+  public TextureAtlasSprite getSprite(String packId) {
     return this.getSprite(PackIcons.customId(packId));
   }
 
-  public Sprite getSprite(CustomId id) {
+  public TextureAtlasSprite getSprite(CustomId id) {
     if (this.atlas == null) {
       return null;
     }
@@ -122,14 +124,14 @@ public class LegacyPackConverter {
     return this.globalOutDir;
   }
 
-  public CompletableFuture<Collection<Metadata>> checkForLegacyPacks(MinecraftClient client) {
-    Path resourcePackDir = client.getResourcePackDir();
+  public CompletableFuture<Collection<Metadata>> checkForLegacyPacks(Minecraft client) {
+    Path resourcePackDir = client.getResourcePackDirectory();
     return CompletableFuture.supplyAsync(() -> this.checkForLegacyPackMetadata(resourcePackDir), this.ioExecutor);
   }
 
-  public CompletableFuture<LegacyPackCheckResult> checkForLegacyPacksAndConvertedIds(MinecraftClient client) {
-    Path resourcePackDir = client.getResourcePackDir();
-    boolean isSinglePlayer = client.isInSingleplayer();
+  public CompletableFuture<LegacyPackCheckResult> checkForLegacyPacksAndConvertedIds(Minecraft client) {
+    Path resourcePackDir = client.getResourcePackDirectory();
+    boolean isSinglePlayer = client.isLocalServer();
 
     return CompletableFuture.supplyAsync(
         () -> this.loadAllDataFromFiles(resourcePackDir, isSinglePlayer),
@@ -237,12 +239,15 @@ public class LegacyPackConverter {
     }
   }
 
-  private void uploadIconsSpriteAtlas(MinecraftClient client, Collection<Metadata> metas) {
-    this.atlas = new SpriteAtlasTexture(Identifier.of(Constants.MOD_ID, "textures/atlas/legacy_pack_icons.png"));
-    client.getTextureManager().registerTexture(this.atlas.getId(), this.atlas);
+  private void uploadIconsSpriteAtlas(Minecraft client, Collection<Metadata> metas) {
+    this.atlas = new TextureAtlas(Identifier.fromNamespaceAndPath(
+        Constants.MOD_ID,
+        "textures/atlas/legacy_pack_icons.png"
+    ));
+    client.getTextureManager().register(this.atlas.location(), this.atlas);
 
     List<SpriteContents> spriteContents = new ArrayList<>();
-    spriteContents.add(MissingSprite.createSpriteContents());
+    spriteContents.add(MissingTextureAtlasSprite.create());
     metas.forEach((meta) -> {
       if (meta.icon() == null) {
         return;
@@ -251,10 +256,10 @@ public class LegacyPackConverter {
       this.spriteIds.add(id);
       spriteContents.add(getIconSpriteContents(id.toIdentifier(), meta.icon()));
     });
-    this.atlas.create(((SpriteLoaderAccessor) SpriteLoader.fromAtlas(this.atlas)).invokeStitch(
+    this.atlas.upload(((SpriteLoaderAccessor) SpriteLoader.create(this.atlas)).invokeStitch(
         spriteContents,
         0,
-        Util.getMainWorkerExecutor()
+        Util.backgroundExecutor()
     ));
   }
 
@@ -350,7 +355,7 @@ public class LegacyPackConverter {
       return LoadingSprite.generate(id, 16, 16);
     }
     NativeImage nativeImage = image.toNativeImage();
-    return new SpriteContents(id, new SpriteDimensions(image.width(), image.height()), nativeImage);
+    return new SpriteContents(id, new FrameSize(image.width(), image.height()), nativeImage);
   }
 
   private static void writeCustomPaintingsJson(ZipOutputStream zos, PackResource pack) throws IOException {

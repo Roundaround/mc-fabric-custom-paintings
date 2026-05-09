@@ -6,13 +6,13 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.netty.buffer.ByteBuf;
 import me.roundaround.custompaintings.generated.Constants;
 import me.roundaround.custompaintings.util.CustomId;
-import net.minecraft.entity.decoration.painting.PaintingVariant;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.codec.PacketCodecs;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.world.entity.decoration.painting.PaintingVariant;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -25,20 +25,20 @@ public class PaintingData {
   public static final Codec<PaintingData> CODEC = RecordCodecBuilder
       .create((instance) -> mapBaseCodecFields(instance).apply(instance,
           PaintingData::new));
-  public static final PacketCodec<ByteBuf, PaintingData> PACKET_CODEC = PacketCodec.tuple(
+  public static final StreamCodec<ByteBuf, PaintingData> PACKET_CODEC = StreamCodec.composite(
       CustomId.PACKET_CODEC,
       PaintingData::id,
-      PacketCodecs.INTEGER,
+      ByteBufCodecs.INT,
       PaintingData::width,
-      PacketCodecs.INTEGER,
+      ByteBufCodecs.INT,
       PaintingData::height,
-      PacketCodecs.STRING,
+      ByteBufCodecs.STRING_UTF8,
       PaintingData::name,
-      PacketCodecs.STRING,
+      ByteBufCodecs.STRING_UTF8,
       PaintingData::artist,
-      PacketCodecs.BOOLEAN,
+      ByteBufCodecs.BOOL,
       PaintingData::vanilla,
-      PacketCodecs.BOOLEAN,
+      ByteBufCodecs.BOOL,
       PaintingData::unknown,
       PaintingData::new);
   public static final String PACK_NBT_KEY = Constants.MOD_ID + ":pack";
@@ -133,33 +133,33 @@ public class PaintingData {
     return this.hasName() || this.hasArtist();
   }
 
-  public MutableText getNameText() {
+  public MutableComponent getNameText() {
     if (!this.hasName()) {
-      return Text.empty();
+      return Component.empty();
     }
 
     if (this.vanilla()) {
-      return Text.translatable(this.id().toTranslationKey("painting", "title")).formatted(Formatting.YELLOW);
+      return Component.translatable(this.id().toTranslationKey("painting", "title")).withStyle(ChatFormatting.YELLOW);
     }
 
-    return Text.literal(this.name()).formatted(Formatting.LIGHT_PURPLE);
+    return Component.literal(this.name()).withStyle(ChatFormatting.LIGHT_PURPLE);
   }
 
-  public MutableText getArtistText() {
+  public MutableComponent getArtistText() {
     if (!this.hasArtist()) {
-      return Text.empty();
+      return Component.empty();
     }
 
     if (this.vanilla()) {
-      return Text.translatable(this.id().toTranslationKey("painting", "author")).formatted(Formatting.ITALIC);
+      return Component.translatable(this.id().toTranslationKey("painting", "author")).withStyle(ChatFormatting.ITALIC);
     }
 
-    return Text.literal(this.artist).formatted(Formatting.ITALIC);
+    return Component.literal(this.artist).withStyle(ChatFormatting.ITALIC);
   }
 
-  public Text getLabel() {
+  public Component getLabel() {
     if (!this.hasLabel()) {
-      return Text.empty();
+      return Component.empty();
     }
 
     if (!this.hasArtist()) {
@@ -170,10 +170,10 @@ public class PaintingData {
       return this.getArtistText();
     }
 
-    return Text.empty().append(this.getNameText()).append(" - ").append(this.getArtistText());
+    return Component.empty().append(this.getNameText()).append(" - ").append(this.getArtistText());
   }
 
-  public List<Text> getLabelAsLines() {
+  public List<Component> getLabelAsLines() {
     if (!this.hasLabel()) {
       return List.of();
     }
@@ -189,20 +189,20 @@ public class PaintingData {
     return List.of(this.getNameText(), this.getArtistText());
   }
 
-  public Text getIdText() {
-    MutableText idText = Text.literal("(" + this.id().resource() + ")");
+  public Component getIdText() {
+    MutableComponent idText = Component.literal("(" + this.id().resource() + ")");
     if (this.hasLabel()) {
-      idText = idText.setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
+      idText = idText.setStyle(Style.EMPTY.withItalic(true).withColor(ChatFormatting.GRAY));
     }
     return idText;
   }
 
-  public Text getDimensionsText() {
-    return Text.translatable("custompaintings.painting.dimensions", this.width, this.height);
+  public Component getDimensionsText() {
+    return Component.translatable("custompaintings.painting.dimensions", this.width, this.height);
   }
 
-  public List<Text> getInfoLines() {
-    ArrayList<Text> lines = new ArrayList<>();
+  public List<Component> getInfoLines() {
+    ArrayList<Component> lines = new ArrayList<>();
     if (this.hasLabel()) {
       lines.add(this.getLabel());
     }
@@ -211,26 +211,27 @@ public class PaintingData {
     return lines;
   }
 
-  public MutableText getTooltipNameText() {
+  public MutableComponent getTooltipNameText() {
     if (!this.hasName()) {
-      return Text.literal(this.id().resource()).formatted(Formatting.LIGHT_PURPLE);
+      return Component.literal(this.id().resource()).withStyle(ChatFormatting.LIGHT_PURPLE);
     }
 
     return this.getNameText();
   }
 
-  public Optional<MutableText> getTooltipArtistText() {
+  public Optional<MutableComponent> getTooltipArtistText() {
     if (!this.hasArtist()) {
       return Optional.empty();
     }
     if (this.vanilla()) {
-      return Optional.of(Text.translatable(this.id().toTranslationKey("painting", "author")).formatted(Formatting.GRAY));
+      return Optional.of(Component.translatable(this.id().toTranslationKey("painting", "author")).withStyle(
+          ChatFormatting.GRAY));
     }
-    return Optional.of(Text.literal(this.artist()).formatted(Formatting.GRAY));
+    return Optional.of(Component.literal(this.artist()).withStyle(ChatFormatting.GRAY));
   }
 
-  public MutableText getTooltipDimensionsText() {
-    return Text.translatable("painting.dimensions", this.width, this.height);
+  public MutableComponent getTooltipDimensionsText() {
+    return Component.translatable("painting.dimensions", this.width, this.height);
   }
 
   public PaintingData setId(CustomId id) {

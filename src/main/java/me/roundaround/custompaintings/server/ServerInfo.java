@@ -6,13 +6,13 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import me.roundaround.custompaintings.CustomPaintingsMod;
 import me.roundaround.custompaintings.generated.Constants;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.nbt.NbtSizeTracker;
-import net.minecraft.util.Uuids;
-import net.minecraft.world.World;
-import net.minecraft.world.level.storage.LevelStorage;
+import net.minecraft.nbt.NbtAccounter;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.LevelStorageSource;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -59,8 +59,8 @@ public class ServerInfo {
     });
   }
 
-  public static void init(LevelStorage.Session session) {
-    Path savePath = session.getWorldDirectory(World.OVERWORLD)
+  public static void init(LevelStorageSource.LevelStorageAccess session) {
+    Path savePath = session.getDimensionPath(Level.OVERWORLD)
         .resolve("data")
         .resolve(Constants.MOD_ID + "_server" + ".dat");
 
@@ -119,7 +119,7 @@ public class ServerInfo {
       return;
     }
 
-    NbtCompound nbt = (NbtCompound) StoredData.CODEC.encodeStart(
+    CompoundTag nbt = (CompoundTag) StoredData.CODEC.encodeStart(
         NbtOps.INSTANCE,
         new StoredData(this.serverId, this.disabledPacks)
     ).getOrThrow();
@@ -131,12 +131,12 @@ public class ServerInfo {
     if (Files.notExists(savePath)) {
       return DataResult.error(() -> "No file to load");
     }
-    return StoredData.CODEC.parse(NbtOps.INSTANCE, NbtIo.readCompressed(savePath, NbtSizeTracker.ofUnlimitedBytes()));
+    return StoredData.CODEC.parse(NbtOps.INSTANCE, NbtIo.readCompressed(savePath, NbtAccounter.unlimitedHeap()));
   }
 
   private record StoredData(UUID serverId, Set<String> disabledPacks) {
     public static final Codec<StoredData> CODEC = RecordCodecBuilder.create((instance) -> instance.group(
-        Uuids.INT_STREAM_CODEC.fieldOf("ServerId").forGetter(StoredData::serverId),
+        UUIDUtil.CODEC.fieldOf("ServerId").forGetter(StoredData::serverId),
         Codec.list(Codec.STRING)
             .xmap(Set::copyOf, List::copyOf)
             .fieldOf("DisabledPacks")
